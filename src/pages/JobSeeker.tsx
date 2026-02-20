@@ -1,0 +1,346 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { ArrowLeft, Target, Sparkles, AlertTriangle, CheckCircle2, XCircle, ChevronRight, Lightbulb } from "lucide-react";
+import { analyzeJobFit, type FitAnalysis } from "@/lib/analysisEngine";
+import { ScoreRingInline, AnimatedBar } from "@/components/ScoreDisplay";
+
+const EXAMPLE_JOB = `Senior Product Manager — SaaS Growth
+
+We're looking for an experienced Product Manager to lead our growth squad.
+
+Requirements:
+- 4+ years of product management experience
+- Strong data analysis and SQL skills
+- Experience with Agile and Scrum methodologies
+- Track record of driving user growth metrics
+- Excellent communication and leadership skills
+- Experience with A/B testing and experimentation
+- Familiarity with customer success processes
+- Python or data tooling experience a plus`;
+
+const EXAMPLE_RESUME = `Jane Doe | Product Manager
+jane@email.com
+
+Experience:
+Senior PM at TechCorp (3 years)
+- Led agile product teams across 4 squads
+- Drove 35% user growth through feature optimization
+- Collaborated cross-functionally with engineering and design
+- Managed product roadmap using Scrum methodology
+
+PM at StartupXYZ (2 years)
+- Communication strategy for product launches
+- Used Excel and Tableau for reporting
+
+Skills: Agile, Scrum, Communication, Leadership, Excel, Tableau, Customer Success
+Education: MBA — Business Strategy`;
+
+type Step = "input" | "result";
+
+export default function JobSeekerPage() {
+  const navigate = useNavigate();
+  const [jobDesc, setJobDesc] = useState("");
+  const [resume, setResume] = useState("");
+  const [step, setStep] = useState<Step>("input");
+  const [analysis, setAnalysis] = useState<FitAnalysis | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  const handleAnalyze = () => {
+    if (!jobDesc.trim() || !resume.trim()) return;
+    setIsAnalyzing(true);
+    setTimeout(() => {
+      const result = analyzeJobFit(jobDesc, resume);
+      setAnalysis(result);
+      setStep("result");
+      setIsAnalyzing(false);
+    }, 1800);
+  };
+
+  const handleReset = () => {
+    setStep("input");
+    setAnalysis(null);
+    setJobDesc("");
+    setResume("");
+  };
+
+  const severityColor = {
+    critical: "text-destructive",
+    moderate: "text-warning",
+    minor: "text-muted-foreground",
+  };
+
+  const severityBg = {
+    critical: "bg-destructive/10 border-destructive/20",
+    moderate: "bg-warning/10 border-warning/20",
+    minor: "bg-muted border-border",
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="sticky top-0 z-50 bg-card/90 backdrop-blur-sm border-b border-border">
+        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="sm" onClick={() => navigate("/")} className="text-muted-foreground">
+              <ArrowLeft className="w-4 h-4 mr-1" /> Home
+            </Button>
+            <div className="w-px h-5 bg-border" />
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 gradient-teal rounded-lg flex items-center justify-center">
+                <Target className="w-3.5 h-3.5 text-white" />
+              </div>
+              <span className="font-display font-bold text-primary">Job Seeker Fit Analyzer</span>
+            </div>
+          </div>
+          {step === "result" && (
+            <Button variant="outline" size="sm" onClick={handleReset}>
+              Analyze Another Role
+            </Button>
+          )}
+        </div>
+      </header>
+
+      <main className="max-w-5xl mx-auto px-6 py-10">
+        {/* STEP: Input */}
+        {step === "input" && (
+          <div className="animate-fade-up">
+            <div className="text-center mb-10">
+              <h1 className="font-display text-4xl font-bold text-primary mb-3">
+                How do you <span className="text-gradient-teal">stack up?</span>
+              </h1>
+              <p className="text-muted-foreground text-lg max-w-xl mx-auto">
+                Paste a job description and your resume. Get your exact fit score, gaps, and a personalized roadmap in seconds.
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-6 mb-8">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-semibold text-primary">Job Description</label>
+                  <button
+                    className="text-xs text-accent hover:underline"
+                    onClick={() => setJobDesc(EXAMPLE_JOB)}
+                  >
+                    Use example
+                  </button>
+                </div>
+                <Textarea
+                  className="h-72 resize-none bg-card border-border focus:border-accent text-sm leading-relaxed"
+                  placeholder="Paste the full job description here — requirements, responsibilities, and all..."
+                  value={jobDesc}
+                  onChange={(e) => setJobDesc(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">{jobDesc.length} characters</p>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-semibold text-primary">Your Resume / Profile</label>
+                  <button
+                    className="text-xs text-accent hover:underline"
+                    onClick={() => setResume(EXAMPLE_RESUME)}
+                  >
+                    Use example
+                  </button>
+                </div>
+                <Textarea
+                  className="h-72 resize-none bg-card border-border focus:border-accent text-sm leading-relaxed"
+                  placeholder="Paste your resume, LinkedIn summary, or profile text here..."
+                  value={resume}
+                  onChange={(e) => setResume(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">{resume.length} characters</p>
+              </div>
+            </div>
+
+            <div className="flex justify-center">
+              <Button
+                size="lg"
+                className="gradient-teal text-white font-semibold text-lg px-12 py-6 rounded-xl shadow-teal hover:opacity-90 transition-opacity"
+                disabled={!jobDesc.trim() || !resume.trim() || isAnalyzing}
+                onClick={handleAnalyze}
+              >
+                {isAnalyzing ? (
+                  <>
+                    <Sparkles className="w-5 h-5 mr-2 animate-spin" />
+                    Analyzing your fit…
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-5 h-5 mr-2" />
+                    Analyze My Fit
+                  </>
+                )}
+              </Button>
+            </div>
+
+            {isAnalyzing && (
+              <div className="mt-8 max-w-sm mx-auto">
+                <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
+                  <div className="h-full gradient-teal rounded-full animate-pulse" style={{ width: "60%" }} />
+                </div>
+                <p className="text-center text-muted-foreground text-sm mt-3">
+                  Matching skills and identifying gaps…
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* STEP: Results */}
+        {step === "result" && analysis && (
+          <div className="animate-fade-up space-y-8">
+            {/* Score header */}
+            <div
+              className="rounded-3xl p-8 md:p-10 flex flex-col md:flex-row items-center gap-8"
+              style={{ background: "var(--gradient-hero)" }}
+            >
+              <div className="flex-shrink-0">
+                <ScoreRingInline score={analysis.overallScore} size={160} />
+              </div>
+              <div className="text-center md:text-left">
+                <p className="text-white/50 text-sm font-medium uppercase tracking-widest mb-2">Overall Fit Score</p>
+                <h2 className="font-display text-3xl md:text-4xl font-bold text-white mb-4">{analysis.summary}</h2>
+                <div className="flex flex-wrap gap-2 justify-center md:justify-start">
+                  {analysis.strengths.map((s) => (
+                    <Badge key={s} className="bg-teal-500/20 text-teal-300 border-teal-500/30 font-medium">
+                      <CheckCircle2 className="w-3 h-3 mr-1" /> {s}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Skills grid */}
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Matched skills */}
+              <div className="bg-card rounded-2xl p-6 border border-border shadow-card">
+                <h3 className="font-display font-bold text-primary text-lg mb-5 flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5 text-success" /> Skills You Have
+                </h3>
+                <div className="space-y-4">
+                  {analysis.matchedSkills.filter((s) => s.matched).map((s) => (
+                    <div key={s.skill}>
+                      <div className="flex justify-between items-center mb-1.5">
+                        <span className="text-sm font-medium text-foreground">{s.skill}</span>
+                        <span className="text-xs text-success font-semibold">{s.confidence}%</span>
+                      </div>
+                      <AnimatedBar value={s.confidence} />
+                    </div>
+                  ))}
+                  {analysis.matchedSkills.filter((s) => s.matched).length === 0 && (
+                    <p className="text-muted-foreground text-sm">No direct skill matches detected. Consider adding relevant keywords to your resume.</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Missing skills */}
+              <div className="bg-card rounded-2xl p-6 border border-border shadow-card">
+                <h3 className="font-display font-bold text-primary text-lg mb-5 flex items-center gap-2">
+                  <XCircle className="w-5 h-5 text-destructive" /> Skills to Develop
+                </h3>
+                <div className="space-y-3">
+                  {analysis.matchedSkills.filter((s) => !s.matched).slice(0, 6).map((s) => (
+                    <div key={s.skill} className="flex items-center justify-between py-2 border-b border-border last:border-0">
+                      <span className="text-sm font-medium text-foreground">{s.skill}</span>
+                      <Badge variant="outline" className="text-xs text-muted-foreground">Missing</Badge>
+                    </div>
+                  ))}
+                  {analysis.matchedSkills.filter((s) => !s.matched).length === 0 && (
+                    <p className="text-success text-sm font-medium">You cover all detected skills!</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Gap Analysis */}
+            {analysis.gaps.length > 0 && (
+              <div className="bg-card rounded-2xl p-6 border border-border shadow-card">
+                <h3 className="font-display font-bold text-primary text-lg mb-5 flex items-center gap-2">
+                  <AlertTriangle className="w-5 h-5 text-warning" /> Gap Analysis
+                </h3>
+                <div className="space-y-4">
+                  {analysis.gaps.map((gap) => (
+                    <div
+                      key={gap.area}
+                      className={`rounded-xl p-4 border ${severityBg[gap.severity]}`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0 mt-0.5">
+                          {gap.severity === "critical" ? (
+                            <AlertTriangle className={`w-4 h-4 ${severityColor[gap.severity]}`} />
+                          ) : (
+                            <ChevronRight className={`w-4 h-4 ${severityColor[gap.severity]}`} />
+                          )}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className={`text-sm font-semibold ${severityColor[gap.severity]}`}>{gap.area}</span>
+                            <Badge
+                              variant="outline"
+                              className={`text-xs capitalize ${
+                                gap.severity === "critical"
+                                  ? "border-destructive/30 text-destructive"
+                                  : gap.severity === "moderate"
+                                  ? "border-warning/30 text-warning"
+                                  : "border-border text-muted-foreground"
+                              }`}
+                            >
+                              {gap.severity}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground leading-relaxed">{gap.action}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Improvement Roadmap */}
+            <div className="bg-card rounded-2xl p-6 border border-border shadow-card">
+              <h3 className="font-display font-bold text-primary text-lg mb-6 flex items-center gap-2">
+                <Lightbulb className="w-5 h-5 text-accent" /> Your Improvement Roadmap
+              </h3>
+              <div className="relative">
+                <div className="absolute left-5 top-2 bottom-2 w-px bg-border" />
+                <div className="space-y-6">
+                  {analysis.improvementPlan.map((item, i) => (
+                    <div key={i} className="flex gap-5">
+                      <div className="relative flex-shrink-0">
+                        <div className="w-10 h-10 rounded-full gradient-teal flex items-center justify-center text-white font-bold text-sm shadow-teal">
+                          {i + 1}
+                        </div>
+                      </div>
+                      <div className="pt-1.5">
+                        <div className="text-xs font-semibold text-accent uppercase tracking-wider mb-1">{item.week}</div>
+                        <p className="text-sm text-foreground leading-relaxed">{item.action}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* CTA */}
+            <div className="flex justify-center gap-4">
+              <Button variant="outline" onClick={handleReset}>
+                Analyze Another Role
+              </Button>
+              <Button
+                className="gradient-teal text-white shadow-teal hover:opacity-90"
+                onClick={() => navigate("/hiring-manager")}
+              >
+                Switch to Hiring Manager View
+              </Button>
+            </div>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
