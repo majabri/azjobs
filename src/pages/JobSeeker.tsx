@@ -2,8 +2,9 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Target, Sparkles, AlertTriangle, CheckCircle2, XCircle, ChevronRight, Lightbulb } from "lucide-react";
+import { ArrowLeft, Target, Sparkles, AlertTriangle, CheckCircle2, XCircle, ChevronRight, Lightbulb, Link2, Linkedin, ExternalLink } from "lucide-react";
 import { analyzeJobFit, type FitAnalysis } from "@/lib/analysisEngine";
 import { ScoreRingInline, AnimatedBar } from "@/components/ScoreDisplay";
 
@@ -44,6 +45,8 @@ export default function JobSeekerPage() {
   const navigate = useNavigate();
   const [jobDesc, setJobDesc] = useState("");
   const [resume, setResume] = useState("");
+  const [jobLink, setJobLink] = useState("");
+  const [linkedinUrl, setLinkedinUrl] = useState("");
   const [step, setStep] = useState<Step>("input");
   const [analysis, setAnalysis] = useState<FitAnalysis | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -64,6 +67,8 @@ export default function JobSeekerPage() {
     setAnalysis(null);
     setJobDesc("");
     setResume("");
+    setJobLink("");
+    setLinkedinUrl("");
   };
 
   const severityColor = {
@@ -114,6 +119,34 @@ export default function JobSeekerPage() {
               <p className="text-muted-foreground text-lg max-w-xl mx-auto">
                 Paste a job description and your resume. Get your exact fit score, gaps, and a personalized roadmap in seconds.
               </p>
+            </div>
+
+            {/* Optional links row */}
+            <div className="grid md:grid-cols-2 gap-4 mb-6">
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-primary flex items-center gap-1.5">
+                  <Link2 className="w-3.5 h-3.5 text-accent" /> Job Posting URL <span className="text-muted-foreground font-normal">(optional)</span>
+                </label>
+                <Input
+                  className="bg-card border-border focus:border-accent text-sm"
+                  placeholder="https://company.com/jobs/..."
+                  value={jobLink}
+                  onChange={(e) => setJobLink(e.target.value)}
+                  type="url"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-sm font-semibold text-primary flex items-center gap-1.5">
+                  <Linkedin className="w-3.5 h-3.5 text-accent" /> Your LinkedIn Profile <span className="text-muted-foreground font-normal">(optional)</span>
+                </label>
+                <Input
+                  className="bg-card border-border focus:border-accent text-sm"
+                  placeholder="https://linkedin.com/in/your-name"
+                  value={linkedinUrl}
+                  onChange={(e) => setLinkedinUrl(e.target.value)}
+                  type="url"
+                />
+              </div>
             </div>
 
             <div className="grid md:grid-cols-2 gap-6 mb-8">
@@ -213,6 +246,32 @@ export default function JobSeekerPage() {
                 </div>
               </div>
             </div>
+
+            {/* Links bar */}
+            {(jobLink || linkedinUrl) && (
+              <div className="flex flex-wrap gap-3">
+                {jobLink && (
+                  <a
+                    href={jobLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-card border border-border text-sm font-medium text-foreground hover:border-accent hover:text-accent transition-colors"
+                  >
+                    <Link2 className="w-4 h-4" /> View Job Posting <ExternalLink className="w-3 h-3 opacity-60" />
+                  </a>
+                )}
+                {linkedinUrl && (
+                  <a
+                    href={linkedinUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-card border border-border text-sm font-medium text-foreground hover:border-accent hover:text-accent transition-colors"
+                  >
+                    <Linkedin className="w-4 h-4" /> View LinkedIn Profile <ExternalLink className="w-3 h-3 opacity-60" />
+                  </a>
+                )}
+              </div>
+            )}
 
             {/* Skills grid */}
             <div className="grid md:grid-cols-2 gap-6">
