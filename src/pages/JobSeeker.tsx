@@ -4,9 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Target, Sparkles, AlertTriangle, CheckCircle2, XCircle, ChevronRight, Lightbulb, Link2, Linkedin, ExternalLink } from "lucide-react";
+import { ArrowLeft, Target, Sparkles, AlertTriangle, CheckCircle2, XCircle, ChevronRight, Lightbulb, Link2, Linkedin, ExternalLink, Download, Loader2 } from "lucide-react";
 import { analyzeJobFit, type FitAnalysis } from "@/lib/analysisEngine";
 import { ScoreRingInline, AnimatedBar } from "@/components/ScoreDisplay";
+import { scrapeUrl } from "@/lib/api/scrapeUrl";
+import { toast } from "sonner";
 
 const EXAMPLE_JOB = `Senior Product Manager — SaaS Growth
 
@@ -50,6 +52,44 @@ export default function JobSeekerPage() {
   const [step, setStep] = useState<Step>("input");
   const [analysis, setAnalysis] = useState<FitAnalysis | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isFetchingJob, setIsFetchingJob] = useState(false);
+  const [isFetchingLinkedin, setIsFetchingLinkedin] = useState(false);
+
+  const handleFetchJobLink = async () => {
+    if (!jobLink.trim()) return;
+    setIsFetchingJob(true);
+    try {
+      const result = await scrapeUrl(jobLink);
+      if (result.success && result.markdown) {
+        setJobDesc(result.markdown);
+        toast.success("Job description fetched successfully!");
+      } else {
+        toast.error(result.error || "Could not fetch job description");
+      }
+    } catch {
+      toast.error("Failed to fetch job posting");
+    } finally {
+      setIsFetchingJob(false);
+    }
+  };
+
+  const handleFetchLinkedin = async () => {
+    if (!linkedinUrl.trim()) return;
+    setIsFetchingLinkedin(true);
+    try {
+      const result = await scrapeUrl(linkedinUrl);
+      if (result.success && result.markdown) {
+        setResume(result.markdown);
+        toast.success("LinkedIn profile fetched successfully!");
+      } else {
+        toast.error(result.error || "Could not fetch LinkedIn profile");
+      }
+    } catch {
+      toast.error("Failed to fetch LinkedIn profile");
+    } finally {
+      setIsFetchingLinkedin(false);
+    }
+  };
 
   const handleAnalyze = () => {
     if (!jobDesc.trim() || !resume.trim()) return;
@@ -127,25 +167,49 @@ export default function JobSeekerPage() {
                 <label className="text-sm font-semibold text-primary flex items-center gap-1.5">
                   <Link2 className="w-3.5 h-3.5 text-accent" /> Job Posting URL <span className="text-muted-foreground font-normal">(optional)</span>
                 </label>
-                <Input
-                  className="bg-card border-border focus:border-accent text-sm"
-                  placeholder="https://company.com/jobs/..."
-                  value={jobLink}
-                  onChange={(e) => setJobLink(e.target.value)}
-                  type="url"
-                />
+                <div className="flex gap-2">
+                  <Input
+                    className="bg-card border-border focus:border-accent text-sm flex-1"
+                    placeholder="https://company.com/jobs/..."
+                    value={jobLink}
+                    onChange={(e) => setJobLink(e.target.value)}
+                    type="url"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={!jobLink.trim() || isFetchingJob}
+                    onClick={handleFetchJobLink}
+                    className="shrink-0"
+                  >
+                    {isFetchingJob ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                    <span className="ml-1.5">Fetch</span>
+                  </Button>
+                </div>
               </div>
               <div className="space-y-1.5">
                 <label className="text-sm font-semibold text-primary flex items-center gap-1.5">
                   <Linkedin className="w-3.5 h-3.5 text-accent" /> Your LinkedIn Profile <span className="text-muted-foreground font-normal">(optional)</span>
                 </label>
-                <Input
-                  className="bg-card border-border focus:border-accent text-sm"
-                  placeholder="https://linkedin.com/in/your-name"
-                  value={linkedinUrl}
-                  onChange={(e) => setLinkedinUrl(e.target.value)}
-                  type="url"
-                />
+                <div className="flex gap-2">
+                  <Input
+                    className="bg-card border-border focus:border-accent text-sm flex-1"
+                    placeholder="https://linkedin.com/in/your-name"
+                    value={linkedinUrl}
+                    onChange={(e) => setLinkedinUrl(e.target.value)}
+                    type="url"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={!linkedinUrl.trim() || isFetchingLinkedin}
+                    onClick={handleFetchLinkedin}
+                    className="shrink-0"
+                  >
+                    {isFetchingLinkedin ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                    <span className="ml-1.5">Fetch</span>
+                  </Button>
+                </div>
               </div>
             </div>
 
