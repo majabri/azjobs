@@ -43,6 +43,13 @@ export default function Index() {
           >
             Hiring Managers
           </Button>
+          <Button
+            size="sm"
+            className="gradient-teal text-white font-semibold shadow-teal hover:opacity-90"
+            onClick={() => navigate("/auth")}
+          >
+            Sign In
+          </Button>
         </nav>
       </header>
 
