@@ -1,7 +1,10 @@
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Target, Users, CheckCircle, TrendingUp, Zap } from "lucide-react";
+import { ArrowRight, Target, Users, CheckCircle, TrendingUp, Zap, LogOut } from "lucide-react";
 import heroBg from "@/assets/hero-bg.jpg";
+import { supabase } from "@/integrations/supabase/client";
+import type { User } from "@supabase/supabase-js";
 
 const stats = [
   { value: "73%", label: "of job seekers apply without knowing their real fit" },
@@ -17,6 +20,13 @@ const features = [
 
 export default function Index() {
   const navigate = useNavigate();
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => setUser(session?.user ?? null));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => setUser(session?.user ?? null));
+    return () => subscription.unsubscribe();
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -43,13 +53,24 @@ export default function Index() {
           >
             Hiring Managers
           </Button>
-          <Button
-            size="sm"
-            className="gradient-teal text-white font-semibold shadow-teal hover:opacity-90"
-            onClick={() => navigate("/auth")}
-          >
-            Sign In
-          </Button>
+          {user ? (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="text-primary/70 hover:text-primary"
+              onClick={async () => { await supabase.auth.signOut(); setUser(null); }}
+            >
+              <LogOut className="w-4 h-4 mr-1" /> Sign Out
+            </Button>
+          ) : (
+            <Button
+              size="sm"
+              className="gradient-teal text-white font-semibold shadow-teal hover:opacity-90"
+              onClick={() => navigate("/auth")}
+            >
+              Sign In
+            </Button>
+          )}
         </nav>
       </header>
 
