@@ -123,12 +123,12 @@ export default function HiringManagerPage() {
     }
     setFetchingLinkedin((prev) => ({ ...prev, [candidateId]: true }));
     try {
-      const content = await scrapeUrl(url);
-      if (content) {
-        updateCandidate(candidateId, "resumeText", content);
+      const result = await scrapeUrl(url);
+      if (result.success && result.markdown) {
+        updateCandidate(candidateId, "resumeText", result.markdown);
         toast.success("LinkedIn profile fetched successfully");
       } else {
-        toast.error("Could not extract content from URL");
+        toast.error(result.error || "Could not extract content from URL");
       }
     } catch {
       toast.error("Failed to fetch LinkedIn profile");
@@ -142,7 +142,6 @@ export default function HiringManagerPage() {
     setCandidates(
       EXAMPLE_CANDIDATES.map((c, i) => ({ id: String(i + 1), name: c.name, resumeText: c.resumeText, linkedinUrl: "" }))
     );
-  };
   };
 
   const handleAnalyze = () => {
@@ -488,3 +487,4 @@ export default function HiringManagerPage() {
     </div>
   );
 }
+
