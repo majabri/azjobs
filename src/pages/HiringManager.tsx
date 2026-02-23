@@ -16,9 +16,14 @@ import {
   UserCheck,
   UserX,
   HelpCircle,
+  Linkedin,
+  Download,
+  Loader2,
 } from "lucide-react";
 import { analyzeCandidates, type CandidateAnalysis } from "@/lib/analysisEngine";
 import { ScoreRingInline, AnimatedBar } from "@/components/ScoreDisplay";
+import { scrapeUrl } from "@/lib/api/scrapeUrl";
+import { toast } from "sonner";
 
 const EXAMPLE_JOB = `Senior Data Analyst — FinTech
 
@@ -58,6 +63,7 @@ interface CandidateInput {
   id: string;
   name: string;
   resumeText: string;
+  linkedinUrl: string;
 }
 
 type Step = "input" | "result";
@@ -87,7 +93,7 @@ export default function HiringManagerPage() {
   const navigate = useNavigate();
   const [jobDesc, setJobDesc] = useState("");
   const [candidates, setCandidates] = useState<CandidateInput[]>([
-    { id: "1", name: "", resumeText: "" },
+    { id: "1", name: "", resumeText: "", linkedinUrl: "" },
   ]);
   const [step, setStep] = useState<Step>("input");
   const [results, setResults] = useState<CandidateAnalysis[]>([]);
@@ -96,7 +102,7 @@ export default function HiringManagerPage() {
 
   const addCandidate = () => {
     if (candidates.length >= 8) return;
-    setCandidates((prev) => [...prev, { id: Date.now().toString(), name: "", resumeText: "" }]);
+    setCandidates((prev) => [...prev, { id: Date.now().toString(), name: "", resumeText: "", linkedinUrl: "" }]);
   };
 
   const removeCandidate = (id: string) => {
@@ -104,15 +110,39 @@ export default function HiringManagerPage() {
     setCandidates((prev) => prev.filter((c) => c.id !== id));
   };
 
-  const updateCandidate = (id: string, field: "name" | "resumeText", value: string) => {
+  const updateCandidate = (id: string, field: "name" | "resumeText" | "linkedinUrl", value: string) => {
     setCandidates((prev) => prev.map((c) => (c.id === id ? { ...c, [field]: value } : c)));
+  };
+
+  const [fetchingLinkedin, setFetchingLinkedin] = useState<Record<string, boolean>>({});
+
+  const handleFetchLinkedin = async (candidateId: string, url: string) => {
+    if (!url.trim()) {
+      toast.error("Please enter a LinkedIn URL first");
+      return;
+    }
+    setFetchingLinkedin((prev) => ({ ...prev, [candidateId]: true }));
+    try {
+      const content = await scrapeUrl(url);
+      if (content) {
+        updateCandidate(candidateId, "resumeText", content);
+        toast.success("LinkedIn profile fetched successfully");
+      } else {
+        toast.error("Could not extract content from URL");
+      }
+    } catch {
+      toast.error("Failed to fetch LinkedIn profile");
+    } finally {
+      setFetchingLinkedin((prev) => ({ ...prev, [candidateId]: false }));
+    }
   };
 
   const loadExamples = () => {
     setJobDesc(EXAMPLE_JOB);
     setCandidates(
-      EXAMPLE_CANDIDATES.map((c, i) => ({ id: String(i + 1), name: c.name, resumeText: c.resumeText }))
+      EXAMPLE_CANDIDATES.map((c, i) => ({ id: String(i + 1), name: c.name, resumeText: c.resumeText, linkedinUrl: "" }))
     );
+  };
   };
 
   const handleAnalyze = () => {
@@ -132,7 +162,7 @@ export default function HiringManagerPage() {
     setStep("input");
     setResults([]);
     setJobDesc("");
-    setCandidates([{ id: "1", name: "", resumeText: "" }]);
+    setCandidates([{ id: "1", name: "", resumeText: "", linkedinUrl: "" }]);
     setSelectedCandidate(null);
   };
 
@@ -235,6 +265,28 @@ export default function HiringManagerPage() {
                             <Trash2 className="w-3.5 h-3.5" />
                           </Button>
                         )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Linkedin className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                        <Input
+                          placeholder="LinkedIn profile URL"
+                          value={c.linkedinUrl}
+                          onChange={(e) => updateCandidate(c.id, "linkedinUrl", e.target.value)}
+                          className="h-8 text-xs"
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 px-2 flex-shrink-0"
+                          disabled={fetchingLinkedin[c.id]}
+                          onClick={() => handleFetchLinkedin(c.id, c.linkedinUrl)}
+                        >
+                          {fetchingLinkedin[c.id] ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Download className="w-3.5 h-3.5" />
+                          )}
+                        </Button>
                       </div>
                       <Textarea
                         placeholder="Paste resume, LinkedIn summary, or profile…"
