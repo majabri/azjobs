@@ -9,6 +9,7 @@ import { analyzeJobFit, type FitAnalysis } from "@/lib/analysisEngine";
 import { ScoreRingInline, AnimatedBar } from "@/components/ScoreDisplay";
 import { scrapeUrl } from "@/lib/api/scrapeUrl";
 import { toast } from "sonner";
+import UserMenu from "@/components/UserMenu";
 
 const EXAMPLE_JOB = `Senior Product Manager — SaaS Growth
 
@@ -140,11 +141,14 @@ export default function JobSeekerPage() {
               <span className="font-display font-bold text-primary">Job Seeker Fit Analyzer</span>
             </div>
           </div>
-          {step === "result" && (
-            <Button variant="outline" size="sm" onClick={handleReset}>
-              Analyze Another Role
-            </Button>
-          )}
+          <div className="flex items-center gap-3">
+            {step === "result" && (
+              <Button variant="outline" size="sm" onClick={handleReset}>
+                Analyze Another Role
+              </Button>
+            )}
+            <UserMenu />
+          </div>
         </div>
       </header>
 

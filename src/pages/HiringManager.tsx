@@ -24,6 +24,7 @@ import { analyzeCandidates, type CandidateAnalysis } from "@/lib/analysisEngine"
 import { ScoreRingInline, AnimatedBar } from "@/components/ScoreDisplay";
 import { scrapeUrl } from "@/lib/api/scrapeUrl";
 import { toast } from "sonner";
+import UserMenu from "@/components/UserMenu";
 
 const EXAMPLE_JOB = `Senior Data Analyst — FinTech
 
@@ -185,11 +186,14 @@ export default function HiringManagerPage() {
               <span className="font-display font-bold text-primary">Candidate Screener</span>
             </div>
           </div>
-          {step === "result" && (
-            <Button variant="outline" size="sm" onClick={handleReset}>
-              New Screening
-            </Button>
-          )}
+          <div className="flex items-center gap-3">
+            {step === "result" && (
+              <Button variant="outline" size="sm" onClick={handleReset}>
+                New Screening
+              </Button>
+            )}
+            <UserMenu />
+          </div>
         </div>
       </header>
 
