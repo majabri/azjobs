@@ -122,17 +122,21 @@ export default function HiringManagerPage() {
       toast.error("Please enter a LinkedIn URL first");
       return;
     }
+    if (url.includes("linkedin.com")) {
+      toast.error("LinkedIn profiles can't be auto-fetched due to site restrictions. Please copy & paste the profile text instead.");
+      return;
+    }
     setFetchingLinkedin((prev) => ({ ...prev, [candidateId]: true }));
     try {
       const result = await scrapeUrl(url);
       if (result.success && result.markdown) {
         updateCandidate(candidateId, "resumeText", result.markdown);
-        toast.success("LinkedIn profile fetched successfully");
+        toast.success("Profile fetched successfully");
       } else {
         toast.error(result.error || "Could not extract content from URL");
       }
     } catch {
-      toast.error("Failed to fetch LinkedIn profile");
+      toast.error("Failed to fetch profile");
     } finally {
       setFetchingLinkedin((prev) => ({ ...prev, [candidateId]: false }));
     }

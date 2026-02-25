@@ -76,17 +76,21 @@ export default function JobSeekerPage() {
 
   const handleFetchLinkedin = async () => {
     if (!linkedinUrl.trim()) return;
+    if (linkedinUrl.includes("linkedin.com")) {
+      toast.error("LinkedIn profiles can't be auto-fetched due to site restrictions. Please copy & paste your profile text instead.");
+      return;
+    }
     setIsFetchingLinkedin(true);
     try {
       const result = await scrapeUrl(linkedinUrl);
       if (result.success && result.markdown) {
         setResume(result.markdown);
-        toast.success("LinkedIn profile fetched successfully!");
+        toast.success("Profile fetched successfully!");
       } else {
-        toast.error(result.error || "Could not fetch LinkedIn profile");
+        toast.error(result.error || "Could not fetch profile");
       }
     } catch {
-      toast.error("Failed to fetch LinkedIn profile");
+      toast.error("Failed to fetch profile");
     } finally {
       setIsFetchingLinkedin(false);
     }
