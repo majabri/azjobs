@@ -1,13 +1,14 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Target, Sparkles, AlertTriangle, CheckCircle2, XCircle, ChevronRight, Lightbulb, Link2, Linkedin, ExternalLink, Download, Loader2 } from "lucide-react";
+import { ArrowLeft, Target, Sparkles, AlertTriangle, CheckCircle2, XCircle, ChevronRight, Lightbulb, Link2, Linkedin, ExternalLink, Download, Loader2, Upload } from "lucide-react";
 import { analyzeJobFit, type FitAnalysis } from "@/lib/analysisEngine";
 import { ScoreRingInline, AnimatedBar } from "@/components/ScoreDisplay";
 import { scrapeUrl } from "@/lib/api/scrapeUrl";
+import { parseDocument } from "@/lib/api/parseDocument";
 import { toast } from "sonner";
 import UserMenu from "@/components/UserMenu";
 
@@ -55,6 +56,28 @@ export default function JobSeekerPage() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isFetchingJob, setIsFetchingJob] = useState(false);
   const [isFetchingLinkedin, setIsFetchingLinkedin] = useState(false);
+  const [isUploadingResume, setIsUploadingResume] = useState(false);
+  const resumeFileRef = useRef<HTMLInputElement>(null);
+
+  const handleResumeUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingResume(true);
+    try {
+      const result = await parseDocument(file);
+      if (result.success && result.text) {
+        setResume(result.text);
+        toast.success("Resume extracted successfully!");
+      } else {
+        toast.error(result.error || "Could not extract text from document");
+      }
+    } catch {
+      toast.error("Failed to parse document");
+    } finally {
+      setIsUploadingResume(false);
+      if (resumeFileRef.current) resumeFileRef.current.value = "";
+    }
+  };
 
   const handleFetchJobLink = async () => {
     if (!jobLink.trim()) return;
@@ -244,12 +267,31 @@ export default function JobSeekerPage() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="text-sm font-semibold text-primary">Your Resume / Profile</label>
-                  <button
-                    className="text-xs text-accent hover:underline"
-                    onClick={() => setResume(EXAMPLE_RESUME)}
-                  >
-                    Use example
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-xs h-7"
+                      disabled={isUploadingResume}
+                      onClick={() => resumeFileRef.current?.click()}
+                    >
+                      {isUploadingResume ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Upload className="w-3 h-3 mr-1" />}
+                      Upload PDF/Word
+                    </Button>
+                    <input
+                      ref={resumeFileRef}
+                      type="file"
+                      accept=".pdf,.doc,.docx"
+                      className="hidden"
+                      onChange={handleResumeUpload}
+                    />
+                    <button
+                      className="text-xs text-accent hover:underline"
+                      onClick={() => setResume(EXAMPLE_RESUME)}
+                    >
+                      Use example
+                    </button>
+                  </div>
                 </div>
                 <Textarea
                   className="h-72 resize-none bg-card border-border focus:border-accent text-sm leading-relaxed"

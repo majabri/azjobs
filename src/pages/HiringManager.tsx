@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -19,12 +19,14 @@ import {
   Linkedin,
   Download,
   Loader2,
+  Upload,
 } from "lucide-react";
 import { analyzeCandidates, type CandidateAnalysis } from "@/lib/analysisEngine";
 import { ScoreRingInline, AnimatedBar } from "@/components/ScoreDisplay";
 import { scrapeUrl } from "@/lib/api/scrapeUrl";
 import { toast } from "sonner";
 import UserMenu from "@/components/UserMenu";
+import { parseDocument } from "@/lib/api/parseDocument";
 
 const EXAMPLE_JOB = `Senior Data Analyst — FinTech
 
@@ -116,6 +118,24 @@ export default function HiringManagerPage() {
   };
 
   const [fetchingLinkedin, setFetchingLinkedin] = useState<Record<string, boolean>>({});
+  const [uploadingResume, setUploadingResume] = useState<Record<string, boolean>>({});
+
+  const handleResumeUpload = async (candidateId: string, file: File) => {
+    setUploadingResume((prev) => ({ ...prev, [candidateId]: true }));
+    try {
+      const result = await parseDocument(file);
+      if (result.success && result.text) {
+        updateCandidate(candidateId, "resumeText", result.text);
+        toast.success("Resume extracted successfully!");
+      } else {
+        toast.error(result.error || "Could not extract text from document");
+      }
+    } catch {
+      toast.error("Failed to parse document");
+    } finally {
+      setUploadingResume((prev) => ({ ...prev, [candidateId]: false }));
+    }
+  };
 
   const handleFetchLinkedin = async (candidateId: string, url: string) => {
     if (!url.trim()) {
@@ -295,12 +315,34 @@ export default function HiringManagerPage() {
                           )}
                         </Button>
                       </div>
-                      <Textarea
-                        placeholder="Paste resume, LinkedIn summary, or profile…"
-                        value={c.resumeText}
-                        onChange={(e) => updateCandidate(c.id, "resumeText", e.target.value)}
-                        className="h-24 resize-none text-xs leading-relaxed bg-muted/50"
-                      />
+                      <div className="flex items-center gap-2">
+                        <Textarea
+                          placeholder="Paste resume, LinkedIn summary, or profile…"
+                          value={c.resumeText}
+                          onChange={(e) => updateCandidate(c.id, "resumeText", e.target.value)}
+                          className="h-24 resize-none text-xs leading-relaxed bg-muted/50 flex-1"
+                        />
+                        <div className="flex flex-col gap-1">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 px-2 text-xs"
+                            disabled={uploadingResume[c.id]}
+                            onClick={() => {
+                              const input = document.createElement('input');
+                              input.type = 'file';
+                              input.accept = '.pdf,.doc,.docx';
+                              input.onchange = (e) => {
+                                const file = (e.target as HTMLInputElement).files?.[0];
+                                if (file) handleResumeUpload(c.id, file);
+                              };
+                              input.click();
+                            }}
+                          >
+                            {uploadingResume[c.id] ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+                          </Button>
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
