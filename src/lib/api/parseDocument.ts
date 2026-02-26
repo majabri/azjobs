@@ -1,27 +1,39 @@
-import { supabase } from "@/integrations/supabase/client";
+import * as pdfjsLib from "pdfjs-dist";
+import workerUrl from "pdfjs-dist/build/pdf.worker.mjs?url";
+import mammoth from "mammoth";
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
 
 export async function parseDocument(file: File): Promise<{ success: boolean; text?: string; error?: string }> {
-  const formData = new FormData();
-  formData.append("file", file);
+  try {
+    const arrayBuffer = await file.arrayBuffer();
 
-  const { data: { session } } = await supabase.auth.getSession();
-
-  const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-  const response = await fetch(
-    `https://${projectId}.supabase.co/functions/v1/parse-document`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-      },
-      body: formData,
+    if (file.type === "application/pdf") {
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      let fullText = "";
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        fullText += content.items.map((item: any) => item.str).join(" ") + "\n";
+      }
+      const trimmed = fullText.trim();
+      if (!trimmed) return { success: false, error: "Could not extract text from PDF. The file may be image-only." };
+      return { success: true, text: trimmed };
     }
-  );
 
-  if (!response.ok) {
-    const errData = await response.json().catch(() => null);
-    return { success: false, error: errData?.error || `Request failed with status ${response.status}` };
+    if (
+      file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+      file.type === "application/msword"
+    ) {
+      const result = await mammoth.extractRawText({ arrayBuffer });
+      const trimmed = result.value.trim();
+      if (!trimmed) return { success: false, error: "Could not extract text from document." };
+      return { success: true, text: trimmed };
+    }
+
+    return { success: false, error: "Unsupported file type. Please upload a PDF or Word document." };
+  } catch (error) {
+    console.error("Error parsing document:", error);
+    return { success: false, error: error instanceof Error ? error.message : "Failed to parse document" };
   }
-
-  return response.json();
 }
