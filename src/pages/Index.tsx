@@ -31,7 +31,7 @@ export default function Index() {
   return (
     <div className="min-h-screen flex flex-col">
       {/* Nav */}
-      <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 glass border-b border-white/10">
+      <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-4 bg-primary/95 backdrop-blur-sm border-b border-white/10">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 gradient-teal rounded-lg flex items-center justify-center shadow-teal">
             <Target className="w-4 h-4 text-white" />
@@ -41,14 +41,14 @@ export default function Index() {
         <nav className="flex items-center gap-4">
           <Button
             variant="ghost"
-            className="text-primary/70 hover:text-primary"
+            className="text-primary-foreground/80 hover:text-primary-foreground hover:bg-white/10"
             onClick={() => navigate("/job-seeker")}
           >
             Job Seekers
           </Button>
           <Button
             variant="ghost"
-            className="text-primary/70 hover:text-primary"
+            className="text-primary-foreground/80 hover:text-primary-foreground hover:bg-white/10"
             onClick={() => navigate("/hiring-manager")}
           >
             Hiring Managers
@@ -57,7 +57,7 @@ export default function Index() {
             <Button
               size="sm"
               variant="ghost"
-              className="text-primary/70 hover:text-primary"
+              className="text-primary-foreground/80 hover:text-primary-foreground hover:bg-white/10"
               onClick={async () => { await supabase.auth.signOut(); setUser(null); }}
             >
               <LogOut className="w-4 h-4 mr-1" /> Sign Out
