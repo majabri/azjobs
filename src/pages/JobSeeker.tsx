@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Target, Sparkles, AlertTriangle, CheckCircle2, XCircle, ChevronRight, Lightbulb, Link2, Linkedin, ExternalLink, Download, Loader2, Upload } from "lucide-react";
+import { ArrowLeft, Target, Sparkles, AlertTriangle, CheckCircle2, XCircle, ChevronRight, Lightbulb, Link2, Linkedin, ExternalLink, Download, Loader2, Upload, FileText, Copy } from "lucide-react";
 import { analyzeJobFit, type FitAnalysis } from "@/lib/analysisEngine";
 import { ScoreRingInline, AnimatedBar } from "@/components/ScoreDisplay";
 import { scrapeUrl } from "@/lib/api/scrapeUrl";
@@ -154,7 +154,6 @@ export default function JobSeekerPage() {
   const handleAddExperience = (skill: string) => {
     const updatedResume = resume + `\n\nAdditional Skills: ${skill}`;
     setResume(updatedResume);
-    // Re-run analysis with updated resume
     setIsAnalyzing(true);
     setTimeout(() => {
       const result = analyzeJobFit(jobDesc, updatedResume);
@@ -162,6 +161,79 @@ export default function JobSeekerPage() {
       setIsAnalyzing(false);
       toast.success(`"${skill}" added to your profile — score updated!`);
     }, 800);
+  };
+
+  const generateATSResume = (): string => {
+    if (!analysis) return "";
+    const matchedSkills = analysis.matchedSkills.filter((s) => s.matched).map((s) => s.skill);
+    const allSkills = [
+      ...matchedSkills,
+      ...analysis.matchedSkills.filter((s) => !s.matched).map((s) => s.skill),
+    ];
+
+    // Extract name from first line of resume
+    const lines = resume.split("\n").filter((l) => l.trim());
+    const nameGuess = lines[0]?.replace(/[|–—·•,]/g, " ").trim().split(/\s{2,}/)[0] || "YOUR NAME";
+
+    return `${nameGuess.toUpperCase()}
+${"=".repeat(nameGuess.length + 4)}
+
+CONTACT
+-------
+[Phone] | [Email] | [City, State] | [LinkedIn URL]
+
+
+PROFESSIONAL SUMMARY
+---------------------
+Results-driven professional with demonstrated expertise in ${matchedSkills.slice(0, 3).join(", ").toLowerCase() || "key industry areas"}. Proven track record of delivering impact through ${matchedSkills.slice(3, 5).join(" and ").toLowerCase() || "cross-functional collaboration"}. Seeking to leverage skills in a ${jobDesc.split("\n")[0]?.trim().substring(0, 60) || "new role"}.
+
+
+CORE COMPETENCIES
+-----------------
+${allSkills.map((s) => `• ${s}`).join("\n")}
+
+
+PROFESSIONAL EXPERIENCE
+-----------------------
+[Most Recent Job Title]
+[Company Name] | [City, State] | [Start Date] – [End Date]
+${matchedSkills.slice(0, 3).map((s) => `• Leveraged ${s.toLowerCase()} expertise to drive measurable outcomes`).join("\n")}
+• [Add 2-3 more quantified accomplishments]
+
+[Previous Job Title]
+[Company Name] | [City, State] | [Start Date] – [End Date]
+${matchedSkills.slice(3, 5).map((s) => `• Applied ${s.toLowerCase()} skills to support team objectives`).join("\n")}
+• [Add 2-3 more quantified accomplishments]
+
+
+EDUCATION
+---------
+[Degree] in [Field of Study]
+[University Name] | [Graduation Year]
+
+
+CERTIFICATIONS
+--------------
+${analysis.gaps.slice(0, 3).map((g) => `• [Relevant ${g.area} certification — consider obtaining]`).join("\n") || "• [Add relevant certifications]"}
+`;
+  };
+
+  const handleDownloadATS = () => {
+    const content = generateATSResume();
+    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "ats-resume.txt";
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("ATS resume downloaded!");
+  };
+
+  const handleCopyATS = () => {
+    const content = generateATSResume();
+    navigator.clipboard.writeText(content);
+    toast.success("ATS resume copied to clipboard!");
   };
 
   return (
@@ -525,6 +597,38 @@ export default function JobSeekerPage() {
                     </div>
                   ))}
                 </div>
+              </div>
+            </div>
+
+            {/* ATS Resume Rewrite & Export */}
+            <div className="bg-card rounded-2xl p-6 border border-border shadow-card">
+              <h3 className="font-display font-bold text-primary text-lg mb-2 flex items-center gap-2">
+                <FileText className="w-5 h-5 text-accent" /> ATS-Optimized Resume
+              </h3>
+              <p className="text-sm text-muted-foreground mb-5">
+                We've generated an ATS-friendly resume template incorporating your matched skills and highlighting areas to fill in. Download or copy it, then customize the placeholders.
+              </p>
+              <div className="bg-muted/50 rounded-xl p-4 border border-border mb-4 max-h-64 overflow-y-auto">
+                <pre className="text-xs text-foreground whitespace-pre-wrap font-mono leading-relaxed">
+                  {generateATSResume()}
+                </pre>
+              </div>
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCopyATS}
+                  className="text-sm"
+                >
+                  <Copy className="w-4 h-4 mr-1.5" /> Copy to Clipboard
+                </Button>
+                <Button
+                  size="sm"
+                  className="gradient-teal text-white shadow-teal hover:opacity-90 text-sm"
+                  onClick={handleDownloadATS}
+                >
+                  <Download className="w-4 h-4 mr-1.5" /> Download .txt
+                </Button>
               </div>
             </div>
 
