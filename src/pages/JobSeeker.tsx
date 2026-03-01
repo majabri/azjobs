@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -228,6 +228,61 @@ ${analysis.gaps.slice(0, 3).map((g) => `• [Relevant ${g.area} certification �
     a.click();
     URL.revokeObjectURL(url);
     toast.success("ATS resume downloaded!");
+  };
+
+  const handleDownloadPDF = async () => {
+    const { default: jsPDF } = await import("jspdf");
+    const content = generateATSResume();
+    const doc = new jsPDF({ unit: "pt", format: "letter" });
+    const margin = 50;
+    const pageWidth = doc.internal.pageSize.getWidth() - margin * 2;
+    const lines = doc.splitTextToSize(content, pageWidth);
+    let y = margin;
+    const lineHeight = 14;
+
+    for (const line of lines) {
+      if (y + lineHeight > doc.internal.pageSize.getHeight() - margin) {
+        doc.addPage();
+        y = margin;
+      }
+      const isHeader = line === line.toUpperCase() && line.trim().length > 2 && !line.startsWith("[") && !line.startsWith("•");
+      doc.setFont("helvetica", isHeader ? "bold" : "normal");
+      doc.setFontSize(isHeader ? 12 : 10);
+      doc.text(line, margin, y);
+      y += lineHeight;
+    }
+    doc.save("ats-resume.pdf");
+    toast.success("PDF resume downloaded!");
+  };
+
+  const handleDownloadDocx = async () => {
+    const { Document, Packer, Paragraph, TextRun, HeadingLevel } = await import("docx");
+    const { saveAs } = await import("file-saver");
+    const content = generateATSResume();
+    const paragraphs = content.split("\n").map((line) => {
+      const trimmed = line.trim();
+      const isHeading = trimmed === trimmed.toUpperCase() && trimmed.length > 2 && !trimmed.startsWith("[") && !trimmed.startsWith("•") && !trimmed.startsWith("=") && !trimmed.startsWith("-");
+      const isDivider = /^[=-]+$/.test(trimmed);
+      if (isDivider) return new Paragraph({ text: "" });
+      if (isHeading) {
+        return new Paragraph({
+          heading: HeadingLevel.HEADING_2,
+          children: [new TextRun({ text: trimmed, bold: true, size: 24 })],
+          spacing: { before: 200, after: 100 },
+        });
+      }
+      return new Paragraph({
+        children: [new TextRun({ text: line, size: 20 })],
+        spacing: { after: 40 },
+      });
+    });
+
+    const doc = new Document({
+      sections: [{ children: paragraphs }],
+    });
+    const blob = await Packer.toBlob(doc);
+    saveAs(blob, "ats-resume.docx");
+    toast.success("Word document downloaded!");
   };
 
   const handleCopyATS = () => {
@@ -623,11 +678,27 @@ ${analysis.gaps.slice(0, 3).map((g) => `• [Relevant ${g.area} certification �
                   <Copy className="w-4 h-4 mr-1.5" /> Copy to Clipboard
                 </Button>
                 <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDownloadATS}
+                  className="text-sm"
+                >
+                  <Download className="w-4 h-4 mr-1.5" /> .txt
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDownloadPDF}
+                  className="text-sm"
+                >
+                  <FileText className="w-4 h-4 mr-1.5" /> .pdf
+                </Button>
+                <Button
                   size="sm"
                   className="gradient-teal text-white shadow-teal hover:opacity-90 text-sm"
-                  onClick={handleDownloadATS}
+                  onClick={handleDownloadDocx}
                 >
-                  <Download className="w-4 h-4 mr-1.5" /> Download .txt
+                  <FileText className="w-4 h-4 mr-1.5" /> .docx
                 </Button>
               </div>
             </div>
