@@ -151,6 +151,19 @@ export default function JobSeekerPage() {
     minor: "bg-muted border-border",
   };
 
+  const handleAddExperience = (skill: string) => {
+    const updatedResume = resume + `\n\nAdditional Skills: ${skill}`;
+    setResume(updatedResume);
+    // Re-run analysis with updated resume
+    setIsAnalyzing(true);
+    setTimeout(() => {
+      const result = analyzeJobFit(jobDesc, updatedResume);
+      setAnalysis(result);
+      setIsAnalyzing(false);
+      toast.success(`"${skill}" added to your profile — score updated!`);
+    }, 800);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -449,7 +462,7 @@ export default function JobSeekerPage() {
                             <ChevronRight className={`w-4 h-4 ${severityColor[gap.severity]}`} />
                           )}
                         </div>
-                        <div>
+                        <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
                             <span className={`text-sm font-semibold ${severityColor[gap.severity]}`}>{gap.area}</span>
                             <Badge
@@ -465,7 +478,23 @@ export default function JobSeekerPage() {
                               {gap.severity}
                             </Badge>
                           </div>
-                          <p className="text-sm text-muted-foreground leading-relaxed">{gap.action}</p>
+                          <p className="text-sm text-muted-foreground leading-relaxed mb-2">{gap.action}</p>
+                          <div className="flex items-center gap-2 mt-2 pt-2 border-t border-border/50">
+                            <Lightbulb className="w-3.5 h-3.5 text-accent flex-shrink-0" />
+                            <p className="text-xs text-accent leading-relaxed flex-1">
+                              Already have {gap.area.toLowerCase()} experience? Add it to your profile to improve your match.
+                            </p>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-xs h-7 shrink-0 border-accent/30 text-accent hover:bg-accent/10"
+                              disabled={isAnalyzing}
+                              onClick={() => handleAddExperience(gap.area)}
+                            >
+                              {isAnalyzing ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <CheckCircle2 className="w-3 h-3 mr-1" />}
+                              I have this
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     </div>
