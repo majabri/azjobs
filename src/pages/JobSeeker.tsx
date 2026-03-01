@@ -57,6 +57,8 @@ export default function JobSeekerPage() {
   const [isFetchingJob, setIsFetchingJob] = useState(false);
   const [isFetchingLinkedin, setIsFetchingLinkedin] = useState(false);
   const [isUploadingResume, setIsUploadingResume] = useState(false);
+  const [isRewriting, setIsRewriting] = useState(false);
+  const [aiResume, setAiResume] = useState("");
   const resumeFileRef = useRef<HTMLInputElement>(null);
 
   const handleResumeUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -137,6 +139,7 @@ export default function JobSeekerPage() {
     setResume("");
     setJobLink("");
     setLinkedinUrl("");
+    setAiResume("");
   };
 
   const severityColor = {
@@ -163,6 +166,77 @@ export default function JobSeekerPage() {
     }, 800);
   };
 
+  const handleAIRewrite = async () => {
+    if (!analysis) return;
+    setIsRewriting(true);
+    setAiResume("");
+
+    const matchedSkills = analysis.matchedSkills.filter((s) => s.matched).map((s) => s.skill);
+    const gaps = analysis.gaps.map((g) => g.area);
+
+    try {
+      const resp = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/rewrite-resume`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({ resume, jobDescription: jobDesc, matchedSkills, gaps }),
+        }
+      );
+
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({ error: "Failed to rewrite resume" }));
+        toast.error(err.error || "Failed to rewrite resume");
+        setIsRewriting(false);
+        return;
+      }
+
+      const reader = resp.body?.getReader();
+      if (!reader) throw new Error("No response body");
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let full = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        let newlineIdx: number;
+        while ((newlineIdx = buffer.indexOf("\n")) !== -1) {
+          let line = buffer.slice(0, newlineIdx);
+          buffer = buffer.slice(newlineIdx + 1);
+          if (line.endsWith("\r")) line = line.slice(0, -1);
+          if (!line.startsWith("data: ")) continue;
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === "[DONE]") break;
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content;
+            if (content) {
+              full += content;
+              setAiResume(full);
+            }
+          } catch {
+            buffer = line + "\n" + buffer;
+            break;
+          }
+        }
+      }
+      toast.success("Resume rewritten with AI!");
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to rewrite resume");
+    } finally {
+      setIsRewriting(false);
+    }
+  };
+
+  const getATSContent = () => aiResume || generateATSResume();
+
   const generateATSResume = (): string => {
     if (!analysis) return "";
     const matchedSkills = analysis.matchedSkills.filter((s) => s.matched).map((s) => s.skill);
@@ -170,8 +244,6 @@ export default function JobSeekerPage() {
       ...matchedSkills,
       ...analysis.matchedSkills.filter((s) => !s.matched).map((s) => s.skill),
     ];
-
-    // Extract name from first line of resume
     const lines = resume.split("\n").filter((l) => l.trim());
     const nameGuess = lines[0]?.replace(/[|–—·•,]/g, " ").trim().split(/\s{2,}/)[0] || "YOUR NAME";
 
@@ -182,16 +254,13 @@ CONTACT
 -------
 [Phone] | [Email] | [City, State] | [LinkedIn URL]
 
-
 PROFESSIONAL SUMMARY
 ---------------------
 Results-driven professional with demonstrated expertise in ${matchedSkills.slice(0, 3).join(", ").toLowerCase() || "key industry areas"}. Proven track record of delivering impact through ${matchedSkills.slice(3, 5).join(" and ").toLowerCase() || "cross-functional collaboration"}. Seeking to leverage skills in a ${jobDesc.split("\n")[0]?.trim().substring(0, 60) || "new role"}.
 
-
 CORE COMPETENCIES
 -----------------
 ${allSkills.map((s) => `• ${s}`).join("\n")}
-
 
 PROFESSIONAL EXPERIENCE
 -----------------------
@@ -205,12 +274,10 @@ ${matchedSkills.slice(0, 3).map((s) => `• Leveraged ${s.toLowerCase()} experti
 ${matchedSkills.slice(3, 5).map((s) => `• Applied ${s.toLowerCase()} skills to support team objectives`).join("\n")}
 • [Add 2-3 more quantified accomplishments]
 
-
 EDUCATION
 ---------
 [Degree] in [Field of Study]
 [University Name] | [Graduation Year]
-
 
 CERTIFICATIONS
 --------------
@@ -219,7 +286,7 @@ ${analysis.gaps.slice(0, 3).map((g) => `• [Relevant ${g.area} certification �
   };
 
   const handleDownloadATS = () => {
-    const content = generateATSResume();
+    const content = getATSContent();
     const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -232,7 +299,7 @@ ${analysis.gaps.slice(0, 3).map((g) => `• [Relevant ${g.area} certification �
 
   const handleDownloadPDF = async () => {
     const { default: jsPDF } = await import("jspdf");
-    const content = generateATSResume();
+    const content = getATSContent();
     const doc = new jsPDF({ unit: "pt", format: "letter" });
     const margin = 50;
     const pageWidth = doc.internal.pageSize.getWidth() - margin * 2;
@@ -258,7 +325,7 @@ ${analysis.gaps.slice(0, 3).map((g) => `• [Relevant ${g.area} certification �
   const handleDownloadDocx = async () => {
     const { Document, Packer, Paragraph, TextRun, HeadingLevel } = await import("docx");
     const { saveAs } = await import("file-saver");
-    const content = generateATSResume();
+    const content = getATSContent();
     const paragraphs = content.split("\n").map((line) => {
       const trimmed = line.trim();
       const isHeading = trimmed === trimmed.toUpperCase() && trimmed.length > 2 && !trimmed.startsWith("[") && !trimmed.startsWith("•") && !trimmed.startsWith("=") && !trimmed.startsWith("-");
@@ -286,7 +353,7 @@ ${analysis.gaps.slice(0, 3).map((g) => `• [Relevant ${g.area} certification �
   };
 
   const handleCopyATS = () => {
-    const content = generateATSResume();
+    const content = getATSContent();
     navigator.clipboard.writeText(content);
     toast.success("ATS resume copied to clipboard!");
   };
@@ -657,47 +724,44 @@ ${analysis.gaps.slice(0, 3).map((g) => `• [Relevant ${g.area} certification �
 
             {/* ATS Resume Rewrite & Export */}
             <div className="bg-card rounded-2xl p-6 border border-border shadow-card">
-              <h3 className="font-display font-bold text-primary text-lg mb-2 flex items-center gap-2">
-                <FileText className="w-5 h-5 text-accent" /> ATS-Optimized Resume
-              </h3>
-              <p className="text-sm text-muted-foreground mb-5">
-                We've generated an ATS-friendly resume template incorporating your matched skills and highlighting areas to fill in. Download or copy it, then customize the placeholders.
-              </p>
-              <div className="bg-muted/50 rounded-xl p-4 border border-border mb-4 max-h-64 overflow-y-auto">
-                <pre className="text-xs text-foreground whitespace-pre-wrap font-mono leading-relaxed">
-                  {generateATSResume()}
-                </pre>
-              </div>
-              <div className="flex gap-3">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleCopyATS}
-                  className="text-sm"
-                >
-                  <Copy className="w-4 h-4 mr-1.5" /> Copy to Clipboard
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleDownloadATS}
-                  className="text-sm"
-                >
-                  <Download className="w-4 h-4 mr-1.5" /> .txt
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleDownloadPDF}
-                  className="text-sm"
-                >
-                  <FileText className="w-4 h-4 mr-1.5" /> .pdf
-                </Button>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-display font-bold text-primary text-lg flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-accent" /> ATS-Optimized Resume
+                </h3>
                 <Button
                   size="sm"
                   className="gradient-teal text-white shadow-teal hover:opacity-90 text-sm"
-                  onClick={handleDownloadDocx}
+                  disabled={isRewriting}
+                  onClick={handleAIRewrite}
                 >
+                  {isRewriting ? (
+                    <><Loader2 className="w-4 h-4 animate-spin mr-1.5" /> Rewriting…</>
+                  ) : (
+                    <><Sparkles className="w-4 h-4 mr-1.5" /> {aiResume ? "Rewrite Again" : "AI Rewrite"}</>
+                  )}
+                </Button>
+              </div>
+              <p className="text-sm text-muted-foreground mb-5">
+                {aiResume
+                  ? "Your resume has been intelligently rewritten by AI to maximize ATS compatibility for this role."
+                  : "Click \"AI Rewrite\" to have AI intelligently rewrite your resume for this job, or use the template below."}
+              </p>
+              <div className="bg-muted/50 rounded-xl p-4 border border-border mb-4 max-h-72 overflow-y-auto">
+                <pre className="text-xs text-foreground whitespace-pre-wrap font-mono leading-relaxed">
+                  {getATSContent()}
+                </pre>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <Button variant="outline" size="sm" onClick={handleCopyATS} className="text-sm">
+                  <Copy className="w-4 h-4 mr-1.5" /> Copy
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleDownloadATS} className="text-sm">
+                  <Download className="w-4 h-4 mr-1.5" /> .txt
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleDownloadPDF} className="text-sm">
+                  <FileText className="w-4 h-4 mr-1.5" /> .pdf
+                </Button>
+                <Button variant="outline" size="sm" onClick={handleDownloadDocx} className="text-sm">
                   <FileText className="w-4 h-4 mr-1.5" /> .docx
                 </Button>
               </div>
