@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,6 +11,7 @@ import { scrapeUrl } from "@/lib/api/scrapeUrl";
 import { parseDocument } from "@/lib/api/parseDocument";
 import { toast } from "sonner";
 import UserMenu from "@/components/UserMenu";
+import { computeDiff, type DiffSegment } from "@/lib/diffUtils";
 
 const EXAMPLE_JOB = `Senior Product Manager â€” SaaS Growth
 
@@ -60,6 +61,11 @@ export default function JobSeekerPage() {
   const [isRewriting, setIsRewriting] = useState(false);
   const [aiResume, setAiResume] = useState("");
   const resumeFileRef = useRef<HTMLInputElement>(null);
+
+  const diffResult = useMemo(() => {
+    if (!aiResume || !resume) return { original: [], modified: [] };
+    return computeDiff(resume, aiResume);
+  }, [resume, aiResume]);
 
   const handleResumeUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -754,10 +760,16 @@ ${analysis.gaps.slice(0, 3).map((g) => `â€¢ [Relevant ${g.area} certification â€
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-2 h-2 rounded-full bg-muted-foreground" />
                       <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Original Resume</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-destructive/10 text-destructive font-medium">Removed</span>
                     </div>
                     <div className="bg-muted/30 rounded-xl p-4 border border-border max-h-80 overflow-y-auto">
-                      <pre className="text-xs text-muted-foreground whitespace-pre-wrap font-mono leading-relaxed">
-                        {resume}
+                      <pre className="text-xs whitespace-pre-wrap font-mono leading-relaxed">
+                        {diffResult.original.map((seg, i) => (
+                          <span
+                            key={i}
+                            className={seg.type === "removed" ? "bg-destructive/15 text-destructive line-through decoration-destructive/40" : "text-muted-foreground"}
+                          >{seg.text}</span>
+                        ))}
                       </pre>
                     </div>
                   </div>
@@ -765,10 +777,16 @@ ${analysis.gaps.slice(0, 3).map((g) => `â€¢ [Relevant ${g.area} certification â€
                     <div className="flex items-center gap-2 mb-2">
                       <div className="w-2 h-2 rounded-full bg-accent" />
                       <span className="text-xs font-semibold text-accent uppercase tracking-wider">AI-Rewritten (ATS-Optimized)</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent/10 text-accent font-medium">Added</span>
                     </div>
                     <div className="bg-accent/5 rounded-xl p-4 border border-accent/20 max-h-80 overflow-y-auto">
-                      <pre className="text-xs text-foreground whitespace-pre-wrap font-mono leading-relaxed">
-                        {aiResume}
+                      <pre className="text-xs whitespace-pre-wrap font-mono leading-relaxed">
+                        {diffResult.modified.map((seg, i) => (
+                          <span
+                            key={i}
+                            className={seg.type === "added" ? "bg-accent/15 text-accent font-medium" : "text-foreground"}
+                          >{seg.text}</span>
+                        ))}
                       </pre>
                     </div>
                   </div>
