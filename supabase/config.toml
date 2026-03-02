@@ -2,3 +2,6 @@ project_id = "gberhsbddthwkjimsqig"
 
 [functions.rewrite-resume]
 verify_jwt = false
+
+[functions.generate-cover-letter]
+verify_jwt = false

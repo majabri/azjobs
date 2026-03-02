@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Target, Sparkles, AlertTriangle, CheckCircle2, XCircle, ChevronRight, Lightbulb, Link2, Linkedin, ExternalLink, Download, Loader2, Upload, FileText, Copy } from "lucide-react";
+import { ArrowLeft, Target, Sparkles, AlertTriangle, CheckCircle2, XCircle, ChevronRight, Lightbulb, Link2, Linkedin, ExternalLink, Download, Loader2, Upload, FileText, Copy, Mail } from "lucide-react";
 import { analyzeJobFit, type FitAnalysis } from "@/lib/analysisEngine";
 import { ScoreRingInline, AnimatedBar } from "@/components/ScoreDisplay";
 import { scrapeUrl } from "@/lib/api/scrapeUrl";
@@ -60,6 +60,8 @@ export default function JobSeekerPage() {
   const [isUploadingResume, setIsUploadingResume] = useState(false);
   const [isRewriting, setIsRewriting] = useState(false);
   const [aiResume, setAiResume] = useState("");
+  const [isGeneratingCover, setIsGeneratingCover] = useState(false);
+  const [coverLetter, setCoverLetter] = useState("");
   const resumeFileRef = useRef<HTMLInputElement>(null);
 
   const diffResult = useMemo(() => {
@@ -146,6 +148,7 @@ export default function JobSeekerPage() {
     setJobLink("");
     setLinkedinUrl("");
     setAiResume("");
+    setCoverLetter("");
   };
 
   const severityColor = {
@@ -239,6 +242,91 @@ export default function JobSeekerPage() {
     } finally {
       setIsRewriting(false);
     }
+  };
+
+  const handleGenerateCoverLetter = async () => {
+    if (!analysis) return;
+    setIsGeneratingCover(true);
+    setCoverLetter("");
+
+    const matchedSkills = analysis.matchedSkills.filter((s) => s.matched).map((s) => s.skill);
+    const gaps = analysis.gaps.map((g) => g.area);
+
+    try {
+      const resp = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-cover-letter`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({ resume, jobDescription: jobDesc, matchedSkills, gaps }),
+        }
+      );
+
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({ error: "Failed to generate cover letter" }));
+        toast.error(err.error || "Failed to generate cover letter");
+        setIsGeneratingCover(false);
+        return;
+      }
+
+      const reader = resp.body?.getReader();
+      if (!reader) throw new Error("No response body");
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let full = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        let newlineIdx: number;
+        while ((newlineIdx = buffer.indexOf("\n")) !== -1) {
+          let line = buffer.slice(0, newlineIdx);
+          buffer = buffer.slice(newlineIdx + 1);
+          if (line.endsWith("\r")) line = line.slice(0, -1);
+          if (!line.startsWith("data: ")) continue;
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === "[DONE]") break;
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content;
+            if (content) {
+              full += content;
+              setCoverLetter(full);
+            }
+          } catch {
+            buffer = line + "\n" + buffer;
+            break;
+          }
+        }
+      }
+      toast.success("Cover letter generated!");
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to generate cover letter");
+    } finally {
+      setIsGeneratingCover(false);
+    }
+  };
+
+  const handleCopyCoverLetter = () => {
+    navigator.clipboard.writeText(coverLetter);
+    toast.success("Cover letter copied to clipboard!");
+  };
+
+  const handleDownloadCoverLetter = () => {
+    const blob = new Blob([coverLetter], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "cover-letter.txt";
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Cover letter downloaded!");
   };
 
   const getATSContent = () => aiResume || generateATSResume();
@@ -813,6 +901,50 @@ ${analysis.gaps.slice(0, 3).map((g) => `• [Relevant ${g.area} certification �
                   <FileText className="w-4 h-4 mr-1.5" /> .docx
                 </Button>
               </div>
+            </div>
+
+            {/* Cover Letter Generator */}
+            <div className="bg-card rounded-2xl p-6 border border-border shadow-card">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-display font-bold text-primary text-lg flex items-center gap-2">
+                  <Mail className="w-5 h-5 text-accent" /> AI Cover Letter
+                </h3>
+                <Button
+                  size="sm"
+                  className="gradient-teal text-white shadow-teal hover:opacity-90 text-sm"
+                  disabled={isGeneratingCover}
+                  onClick={handleGenerateCoverLetter}
+                >
+                  {isGeneratingCover ? (
+                    <><Loader2 className="w-4 h-4 animate-spin mr-1.5" /> Generating…</>
+                  ) : (
+                    <><Sparkles className="w-4 h-4 mr-1.5" /> {coverLetter ? "Regenerate" : "Generate Cover Letter"}</>
+                  )}
+                </Button>
+              </div>
+              <p className="text-sm text-muted-foreground mb-5">
+                {coverLetter
+                  ? "Your cover letter has been tailored to this specific role based on your resume and the job requirements."
+                  : "Generate a personalized cover letter that highlights your strengths and addresses the job requirements."}
+              </p>
+
+              {coverLetter && (
+                <>
+                  <div className="bg-muted/30 rounded-xl p-5 border border-border mb-4 max-h-80 overflow-y-auto">
+                    <pre className="text-sm whitespace-pre-wrap font-sans leading-relaxed text-foreground">
+                      {coverLetter}
+                    </pre>
+                  </div>
+                  <div className="flex flex-wrap gap-3">
+                    <Button variant="outline" size="sm" onClick={handleCopyCoverLetter} className="text-sm">
+                      <Copy className="w-4 h-4 mr-1.5" /> Copy
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={handleDownloadCoverLetter} className="text-sm">
+                      <Download className="w-4 h-4 mr-1.5" /> Download .txt
+                    </Button>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* CTA */}
