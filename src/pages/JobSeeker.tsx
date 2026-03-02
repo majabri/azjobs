@@ -746,11 +746,41 @@ ${analysis.gaps.slice(0, 3).map((g) => `â€¢ [Relevant ${g.area} certification â€
                   ? "Your resume has been intelligently rewritten by AI to maximize ATS compatibility for this role."
                   : "Click \"AI Rewrite\" to have AI intelligently rewrite your resume for this job, or use the template below."}
               </p>
-              <div className="bg-muted/50 rounded-xl p-4 border border-border mb-4 max-h-72 overflow-y-auto">
-                <pre className="text-xs text-foreground whitespace-pre-wrap font-mono leading-relaxed">
-                  {getATSContent()}
-                </pre>
-              </div>
+
+              {/* Side-by-side comparison when AI rewrite is available */}
+              {aiResume ? (
+                <div className="grid md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-2 h-2 rounded-full bg-muted-foreground" />
+                      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Original Resume</span>
+                    </div>
+                    <div className="bg-muted/30 rounded-xl p-4 border border-border max-h-80 overflow-y-auto">
+                      <pre className="text-xs text-muted-foreground whitespace-pre-wrap font-mono leading-relaxed">
+                        {resume}
+                      </pre>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-2 h-2 rounded-full bg-accent" />
+                      <span className="text-xs font-semibold text-accent uppercase tracking-wider">AI-Rewritten (ATS-Optimized)</span>
+                    </div>
+                    <div className="bg-accent/5 rounded-xl p-4 border border-accent/20 max-h-80 overflow-y-auto">
+                      <pre className="text-xs text-foreground whitespace-pre-wrap font-mono leading-relaxed">
+                        {aiResume}
+                      </pre>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-muted/50 rounded-xl p-4 border border-border mb-4 max-h-72 overflow-y-auto">
+                  <pre className="text-xs text-foreground whitespace-pre-wrap font-mono leading-relaxed">
+                    {getATSContent()}
+                  </pre>
+                </div>
+              )}
+
               <div className="flex flex-wrap gap-3">
                 <Button variant="outline" size="sm" onClick={handleCopyATS} className="text-sm">
                   <Copy className="w-4 h-4 mr-1.5" /> Copy
