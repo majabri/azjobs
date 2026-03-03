@@ -37,15 +37,24 @@ serve(async (req) => {
       );
     }
 
-    const { resume, jobDescription, matchedSkills, gaps } = await req.json();
+    const { resume, jobDescription, matchedSkills, gaps, tone = "professional" } = await req.json();
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
+    const toneInstructions: Record<string, string> = {
+      professional: "Write in a formal, polished, and confident tone. Use precise language and maintain a structured, business-appropriate style throughout.",
+      conversational: "Write in a warm, approachable, and natural tone. Use a friendly voice that feels genuine and personable while remaining appropriate for a job application.",
+      enthusiastic: "Write in an energetic, passionate, and upbeat tone. Show genuine excitement about the role and company while highlighting achievements with enthusiasm.",
+    };
+
+    const toneGuide = toneInstructions[tone] || toneInstructions.professional;
+
     const systemPrompt = `You are an expert career coach and cover letter writer. Write a compelling, tailored cover letter for the candidate based on the job description and their resume.
 
+TONE: ${toneGuide}
+
 RULES:
-- Write in a professional but personable tone
 - Open with a strong hook that shows genuine interest in the role and company
 - Highlight 2-3 key achievements from the resume that directly map to job requirements
 - Address skill gaps indirectly by emphasizing transferable skills and eagerness to learn
