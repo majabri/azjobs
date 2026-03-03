@@ -63,6 +63,7 @@ export default function JobSeekerPage() {
   const [aiResume, setAiResume] = useState("");
   const [isGeneratingCover, setIsGeneratingCover] = useState(false);
   const [coverLetter, setCoverLetter] = useState("");
+  const [coverTone, setCoverTone] = useState<"professional" | "conversational" | "enthusiastic">("professional");
   const resumeFileRef = useRef<HTMLInputElement>(null);
 
   const diffResult = useMemo(() => {
@@ -278,7 +279,7 @@ export default function JobSeekerPage() {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ resume, jobDescription: jobDesc, matchedSkills, gaps }),
+          body: JSON.stringify({ resume, jobDescription: jobDesc, matchedSkills, gaps, tone: coverTone }),
         }
       );
 
@@ -976,6 +977,24 @@ ${analysis.gaps.slice(0, 3).map((g) => `â€¢ [Relevant ${g.area} certification â€
                   )}
                 </Button>
               </div>
+
+              {/* Tone selector */}
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-sm text-muted-foreground font-medium">Tone:</span>
+                {(["professional", "conversational", "enthusiastic"] as const).map((tone) => (
+                  <Button
+                    key={tone}
+                    variant={coverTone === tone ? "default" : "outline"}
+                    size="sm"
+                    className={`text-xs capitalize ${coverTone === tone ? "gradient-teal text-white" : ""}`}
+                    onClick={() => setCoverTone(tone)}
+                    disabled={isGeneratingCover}
+                  >
+                    {tone}
+                  </Button>
+                ))}
+              </div>
+
               <p className="text-sm text-muted-foreground mb-5">
                 {coverLetter
                   ? "Your cover letter has been tailored to this specific role based on your resume and the job requirements."
