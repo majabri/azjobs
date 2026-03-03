@@ -12,6 +12,7 @@ import { parseDocument } from "@/lib/api/parseDocument";
 import { toast } from "sonner";
 import UserMenu from "@/components/UserMenu";
 import { computeDiff, type DiffSegment } from "@/lib/diffUtils";
+import { supabase } from "@/integrations/supabase/client";
 
 const EXAMPLE_JOB = `Senior Product Manager — SaaS Growth
 
@@ -184,13 +185,21 @@ export default function JobSeekerPage() {
     const gaps = analysis.gaps.map((g) => g.area);
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) {
+        toast.error("Please sign in to use AI rewrite");
+        setIsRewriting(false);
+        return;
+      }
+
       const resp = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/rewrite-resume`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({ resume, jobDescription: jobDesc, matchedSkills, gaps }),
         }
@@ -253,13 +262,21 @@ export default function JobSeekerPage() {
     const gaps = analysis.gaps.map((g) => g.area);
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      if (!token) {
+        toast.error("Please sign in to use cover letter generator");
+        setIsGeneratingCover(false);
+        return;
+      }
+
       const resp = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-cover-letter`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({ resume, jobDescription: jobDesc, matchedSkills, gaps }),
         }
