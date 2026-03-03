@@ -346,6 +346,43 @@ export default function JobSeekerPage() {
     toast.success("Cover letter downloaded!");
   };
 
+  const handleDownloadCoverLetterPDF = async () => {
+    const { default: jsPDF } = await import("jspdf");
+    const doc = new jsPDF({ unit: "pt", format: "letter" });
+    const margin = 50;
+    const pageWidth = doc.internal.pageSize.getWidth() - margin * 2;
+    const lines = doc.splitTextToSize(coverLetter, pageWidth);
+    let y = margin;
+    const lineHeight = 14;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+    for (const line of lines) {
+      if (y + lineHeight > doc.internal.pageSize.getHeight() - margin) {
+        doc.addPage();
+        y = margin;
+      }
+      doc.text(line, margin, y);
+      y += lineHeight;
+    }
+    doc.save("cover-letter.pdf");
+    toast.success("Cover letter PDF downloaded!");
+  };
+
+  const handleDownloadCoverLetterDocx = async () => {
+    const { Document, Packer, Paragraph, TextRun } = await import("docx");
+    const { saveAs } = await import("file-saver");
+    const paragraphs = coverLetter.split("\n").map((line) =>
+      new Paragraph({
+        children: [new TextRun({ text: line, size: 22 })],
+        spacing: { after: 80 },
+      })
+    );
+    const doc = new Document({ sections: [{ children: paragraphs }] });
+    const blob = await Packer.toBlob(doc);
+    saveAs(blob, "cover-letter.docx");
+    toast.success("Cover letter Word document downloaded!");
+  };
+
   const getATSContent = () => aiResume || generateATSResume();
 
   const generateATSResume = (): string => {
@@ -957,7 +994,13 @@ ${analysis.gaps.slice(0, 3).map((g) => `â€¢ [Relevant ${g.area} certification â€
                       <Copy className="w-4 h-4 mr-1.5" /> Copy
                     </Button>
                     <Button variant="outline" size="sm" onClick={handleDownloadCoverLetter} className="text-sm">
-                      <Download className="w-4 h-4 mr-1.5" /> Download .txt
+                      <Download className="w-4 h-4 mr-1.5" /> .txt
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={handleDownloadCoverLetterPDF} className="text-sm">
+                      <FileText className="w-4 h-4 mr-1.5" /> .pdf
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={handleDownloadCoverLetterDocx} className="text-sm">
+                      <FileText className="w-4 h-4 mr-1.5" /> .docx
                     </Button>
                   </div>
                 </>
