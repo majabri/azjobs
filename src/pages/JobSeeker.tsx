@@ -721,14 +721,24 @@ ${analysis.gaps.slice(0, 3).map((g) => `â€¢ [Relevant ${g.area} certification â€
             {(jobLink || linkedinUrl) && (
               <div className="flex flex-wrap gap-3">
                 {jobLink && (
-                  <a
-                    href={jobLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-card border border-border text-sm font-medium text-foreground hover:border-accent hover:text-accent transition-colors"
-                  >
-                    <Link2 className="w-4 h-4" /> View Job Posting <ExternalLink className="w-3 h-3 opacity-60" />
-                  </a>
+                  <>
+                    <a
+                      href={jobLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-card border border-border text-sm font-medium text-foreground hover:border-accent hover:text-accent transition-colors"
+                    >
+                      <Link2 className="w-4 h-4" /> View Job Posting <ExternalLink className="w-3 h-3 opacity-60" />
+                    </a>
+                    <a
+                      href={jobLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-5 py-2 rounded-xl gradient-teal text-sm font-bold text-white shadow-lg hover:opacity-90 transition-opacity"
+                    >
+                      <Mail className="w-4 h-4" /> Apply Now <ExternalLink className="w-3 h-3 opacity-60" />
+                    </a>
+                  </>
                 )}
                 {linkedinUrl && (
                   <a
