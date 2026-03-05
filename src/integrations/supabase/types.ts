@@ -18,6 +18,9 @@ export type Database = {
         Row: {
           applied_at: string
           company: string
+          follow_up_date: string | null
+          follow_up_notes: string | null
+          followed_up: boolean
           id: string
           job_title: string
           job_url: string | null
@@ -29,6 +32,9 @@ export type Database = {
         Insert: {
           applied_at?: string
           company?: string
+          follow_up_date?: string | null
+          follow_up_notes?: string | null
+          followed_up?: boolean
           id?: string
           job_title?: string
           job_url?: string | null
@@ -40,6 +46,9 @@ export type Database = {
         Update: {
           applied_at?: string
           company?: string
+          follow_up_date?: string | null
+          follow_up_notes?: string | null
+          followed_up?: boolean
           id?: string
           job_title?: string
           job_url?: string | null

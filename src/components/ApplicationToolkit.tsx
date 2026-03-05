@@ -5,8 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Mail, Copy, ExternalLink, Package, Briefcase, CheckCircle2,
-  Loader2, Trash2, Chrome, Puzzle, ArrowRight
+  Loader2, Trash2, Chrome, Puzzle, ArrowRight, LayoutDashboard
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -64,6 +65,7 @@ export default function ApplicationToolkit({
   aiResume,
   overallScore,
 }: ApplicationToolkitProps) {
+  const navigate = useNavigate();
   const [applications, setApplications] = useState<JobApplication[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -307,6 +309,17 @@ export default function ApplicationToolkit({
           <Loader2 className="w-4 h-4 animate-spin mr-2" /> Loading applications…
         </div>
       )}
+
+      {/* Dashboard Link */}
+      <div className="flex justify-center pt-2">
+        <Button
+          variant="outline"
+          onClick={() => navigate("/applications")}
+          className="text-sm"
+        >
+          <LayoutDashboard className="w-4 h-4 mr-1.5" /> Open Applications Dashboard
+        </Button>
+      </div>
 
       {/* Browser Extension Suggestions */}
       <div className="space-y-3 pt-2 border-t border-border">
