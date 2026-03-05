@@ -20,6 +20,7 @@ import {
   Download,
   Loader2,
   Upload,
+  Link,
 } from "lucide-react";
 import { analyzeCandidates, type CandidateAnalysis } from "@/lib/analysisEngine";
 import { ScoreRingInline, AnimatedBar } from "@/components/ScoreDisplay";
@@ -27,6 +28,7 @@ import { scrapeUrl } from "@/lib/api/scrapeUrl";
 import { toast } from "sonner";
 import UserMenu from "@/components/UserMenu";
 import { parseDocument } from "@/lib/api/parseDocument";
+import BulkResumeUpload, { type ParsedResume } from "@/components/BulkResumeUpload";
 
 const EXAMPLE_JOB = `Senior Data Analyst — FinTech
 
@@ -95,6 +97,9 @@ const recommendationConfig = {
 export default function HiringManagerPage() {
   const navigate = useNavigate();
   const [jobDesc, setJobDesc] = useState("");
+  const [jobUrl, setJobUrl] = useState("");
+  const [fetchingJobUrl, setFetchingJobUrl] = useState(false);
+  const [inputMode, setInputMode] = useState<"manual" | "bulk">("manual");
   const [candidates, setCandidates] = useState<CandidateInput[]>([
     { id: "1", name: "", resumeText: "", linkedinUrl: "" },
   ]);
@@ -104,7 +109,7 @@ export default function HiringManagerPage() {
   const [selectedCandidate, setSelectedCandidate] = useState<CandidateAnalysis | null>(null);
 
   const addCandidate = () => {
-    if (candidates.length >= 8) return;
+    if (candidates.length >= 20) return;
     setCandidates((prev) => [...prev, { id: Date.now().toString(), name: "", resumeText: "", linkedinUrl: "" }]);
   };
 
@@ -162,8 +167,41 @@ export default function HiringManagerPage() {
     }
   };
 
+  const handleFetchJobUrl = async () => {
+    if (!jobUrl.trim()) {
+      toast.error("Please enter a job posting URL");
+      return;
+    }
+    setFetchingJobUrl(true);
+    try {
+      const result = await scrapeUrl(jobUrl);
+      if (result.success && result.markdown) {
+        setJobDesc(result.markdown);
+        toast.success("Job description fetched successfully");
+      } else {
+        toast.error(result.error || "Could not extract content from URL");
+      }
+    } catch {
+      toast.error("Failed to fetch job description");
+    } finally {
+      setFetchingJobUrl(false);
+    }
+  };
+
+  const handleBulkResumes = (resumes: ParsedResume[]) => {
+    setCandidates(
+      resumes.map((r) => ({
+        id: r.id,
+        name: r.name,
+        resumeText: r.resumeText,
+        linkedinUrl: "",
+      }))
+    );
+  };
+
   const loadExamples = () => {
     setJobDesc(EXAMPLE_JOB);
+    setInputMode("manual");
     setCandidates(
       EXAMPLE_CANDIDATES.map((c, i) => ({ id: String(i + 1), name: c.name, resumeText: c.resumeText, linkedinUrl: "" }))
     );
@@ -186,6 +224,8 @@ export default function HiringManagerPage() {
     setStep("input");
     setResults([]);
     setJobDesc("");
+    setJobUrl("");
+    setInputMode("manual");
     setCandidates([{ id: "1", name: "", resumeText: "", linkedinUrl: "" }]);
     setSelectedCandidate(null);
   };
@@ -242,11 +282,33 @@ export default function HiringManagerPage() {
 
             <div className="grid md:grid-cols-5 gap-6 mb-8">
               {/* Job description */}
-              <div className="md:col-span-2 space-y-2">
+              <div className="md:col-span-2 space-y-3">
                 <label className="text-sm font-semibold text-primary">Job Description</label>
+                <div className="flex items-center gap-2">
+                  <Link className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                  <Input
+                    placeholder="Paste job posting URL to auto-fetch…"
+                    value={jobUrl}
+                    onChange={(e) => setJobUrl(e.target.value)}
+                    className="h-8 text-xs"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 px-3 flex-shrink-0 text-xs"
+                    disabled={fetchingJobUrl}
+                    onClick={handleFetchJobUrl}
+                  >
+                    {fetchingJobUrl ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Download className="w-3.5 h-3.5" />
+                    )}
+                  </Button>
+                </div>
                 <Textarea
-                  className="h-80 resize-none bg-card border-border focus:border-accent text-sm leading-relaxed"
-                  placeholder="Paste the full job description including requirements…"
+                  className="h-72 resize-none bg-card border-border focus:border-accent text-sm leading-relaxed"
+                  placeholder="Or paste the full job description including requirements…"
                   value={jobDesc}
                   onChange={(e) => setJobDesc(e.target.value)}
                 />
@@ -256,96 +318,118 @@ export default function HiringManagerPage() {
               <div className="md:col-span-3 space-y-3">
                 <div className="flex items-center justify-between">
                   <label className="text-sm font-semibold text-primary">
-                    Candidates ({candidates.length}/8)
+                    Candidates ({candidates.length})
                   </label>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={addCandidate}
-                    disabled={candidates.length >= 8}
-                    className="text-xs"
-                  >
-                    <Plus className="w-3.5 h-3.5 mr-1" /> Add Candidate
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <div className="flex rounded-lg border border-border overflow-hidden text-xs">
+                      <button
+                        onClick={() => setInputMode("bulk")}
+                        className={`px-3 py-1.5 transition-colors ${inputMode === "bulk" ? "bg-accent text-white" : "bg-card text-muted-foreground hover:text-foreground"}`}
+                      >
+                        <Upload className="w-3 h-3 inline mr-1" /> Bulk Upload
+                      </button>
+                      <button
+                        onClick={() => setInputMode("manual")}
+                        className={`px-3 py-1.5 transition-colors ${inputMode === "manual" ? "bg-accent text-white" : "bg-card text-muted-foreground hover:text-foreground"}`}
+                      >
+                        Manual Entry
+                      </button>
+                    </div>
+                    {inputMode === "manual" && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={addCandidate}
+                        disabled={candidates.length >= 20}
+                        className="text-xs"
+                      >
+                        <Plus className="w-3.5 h-3.5 mr-1" /> Add
+                      </Button>
+                    )}
+                  </div>
                 </div>
 
-                <div className="space-y-3 max-h-[360px] overflow-y-auto pr-1">
-                  {candidates.map((c, i) => (
-                    <div key={c.id} className="bg-card rounded-xl border border-border p-4 space-y-2">
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 gradient-teal rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                          {i + 1}
-                        </div>
-                        <Input
-                          placeholder="Candidate name"
-                          value={c.name}
-                          onChange={(e) => updateCandidate(c.id, "name", e.target.value)}
-                          className="h-8 text-sm font-medium"
-                        />
-                        {candidates.length > 1 && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeCandidate(c.id)}
-                            className="text-muted-foreground hover:text-destructive h-8 w-8 p-0"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Linkedin className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                        <Input
-                          placeholder="LinkedIn profile URL"
-                          value={c.linkedinUrl}
-                          onChange={(e) => updateCandidate(c.id, "linkedinUrl", e.target.value)}
-                          className="h-8 text-xs"
-                        />
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-8 px-2 flex-shrink-0"
-                          disabled={fetchingLinkedin[c.id]}
-                          onClick={() => handleFetchLinkedin(c.id, c.linkedinUrl)}
-                        >
-                          {fetchingLinkedin[c.id] ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          ) : (
-                            <Download className="w-3.5 h-3.5" />
+                {inputMode === "bulk" ? (
+                  <BulkResumeUpload onResumesReady={handleBulkResumes} />
+                ) : (
+                  <div className="space-y-3 max-h-[360px] overflow-y-auto pr-1">
+                    {candidates.map((c, i) => (
+                      <div key={c.id} className="bg-card rounded-xl border border-border p-4 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 gradient-teal rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                            {i + 1}
+                          </div>
+                          <Input
+                            placeholder="Candidate name"
+                            value={c.name}
+                            onChange={(e) => updateCandidate(c.id, "name", e.target.value)}
+                            className="h-8 text-sm font-medium"
+                          />
+                          {candidates.length > 1 && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeCandidate(c.id)}
+                              className="text-muted-foreground hover:text-destructive h-8 w-8 p-0"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
                           )}
-                        </Button>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Textarea
-                          placeholder="Paste resume, LinkedIn summary, or profile…"
-                          value={c.resumeText}
-                          onChange={(e) => updateCandidate(c.id, "resumeText", e.target.value)}
-                          className="h-24 resize-none text-xs leading-relaxed bg-muted/50 flex-1"
-                        />
-                        <div className="flex flex-col gap-1">
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Linkedin className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                          <Input
+                            placeholder="LinkedIn profile URL"
+                            value={c.linkedinUrl}
+                            onChange={(e) => updateCandidate(c.id, "linkedinUrl", e.target.value)}
+                            className="h-8 text-xs"
+                          />
                           <Button
                             variant="outline"
                             size="sm"
-                            className="h-8 px-2 text-xs"
-                            disabled={uploadingResume[c.id]}
-                            onClick={() => {
-                              const input = document.createElement('input');
-                              input.type = 'file';
-                              input.accept = '.pdf,.doc,.docx';
-                              input.onchange = (e) => {
-                                const file = (e.target as HTMLInputElement).files?.[0];
-                                if (file) handleResumeUpload(c.id, file);
-                              };
-                              input.click();
-                            }}
+                            className="h-8 px-2 flex-shrink-0"
+                            disabled={fetchingLinkedin[c.id]}
+                            onClick={() => handleFetchLinkedin(c.id, c.linkedinUrl)}
                           >
-                            {uploadingResume[c.id] ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+                            {fetchingLinkedin[c.id] ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Download className="w-3.5 h-3.5" />
+                            )}
                           </Button>
                         </div>
+                        <div className="flex items-center gap-2">
+                          <Textarea
+                            placeholder="Paste resume, LinkedIn summary, or profile…"
+                            value={c.resumeText}
+                            onChange={(e) => updateCandidate(c.id, "resumeText", e.target.value)}
+                            className="h-24 resize-none text-xs leading-relaxed bg-muted/50 flex-1"
+                          />
+                          <div className="flex flex-col gap-1">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 px-2 text-xs"
+                              disabled={uploadingResume[c.id]}
+                              onClick={() => {
+                                const input = document.createElement('input');
+                                input.type = 'file';
+                                input.accept = '.pdf,.doc,.docx';
+                                input.onchange = (e) => {
+                                  const file = (e.target as HTMLInputElement).files?.[0];
+                                  if (file) handleResumeUpload(c.id, file);
+                                };
+                                input.click();
+                              }}
+                            >
+                              {uploadingResume[c.id] ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+                            </Button>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
