@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Mail, Copy, ExternalLink, Package, Briefcase, CheckCircle2,
-  Loader2, Trash2, Chrome, Puzzle, ArrowRight, LayoutDashboard
+  Loader2, Trash2, LayoutDashboard
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -39,23 +39,6 @@ const statusColors: Record<string, string> = {
   rejected: "bg-destructive/15 text-destructive border-destructive/30",
 };
 
-const EXTENSIONS = [
-  {
-    name: "Simplify",
-    desc: "Auto-fills job applications on 100k+ sites. One-click apply.",
-    url: "https://simplify.jobs/",
-  },
-  {
-    name: "Autofill (by Google)",
-    desc: "Chrome's built-in autofill for forms — enable via chrome://settings/addresses.",
-    url: "https://support.google.com/chrome/answer/142893",
-  },
-  {
-    name: "JobFill",
-    desc: "Stores your info and fills job application forms automatically.",
-    url: "https://chromewebstore.google.com/search/jobfill",
-  },
-];
 
 export default function ApplicationToolkit({
   jobLink,
@@ -321,32 +304,6 @@ export default function ApplicationToolkit({
         </Button>
       </div>
 
-      {/* Browser Extension Suggestions */}
-      <div className="space-y-3 pt-2 border-t border-border">
-        <h4 className="text-sm font-semibold text-primary flex items-center gap-2">
-          <Puzzle className="w-4 h-4" /> Recommended Autofill Extensions
-        </h4>
-        <p className="text-xs text-muted-foreground">
-          For auto-filling application forms on external job sites, try these browser extensions:
-        </p>
-        <div className="grid sm:grid-cols-3 gap-3">
-          {EXTENSIONS.map((ext) => (
-            <a
-              key={ext.name}
-              href={ext.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex flex-col gap-1.5 p-3 rounded-xl bg-muted/30 border border-border hover:border-accent hover:bg-accent/5 transition-colors group"
-            >
-              <span className="text-sm font-semibold text-foreground group-hover:text-accent flex items-center gap-1.5">
-                <Chrome className="w-3.5 h-3.5" /> {ext.name}
-                <ArrowRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-              </span>
-              <span className="text-xs text-muted-foreground leading-relaxed">{ext.desc}</span>
-            </a>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }
