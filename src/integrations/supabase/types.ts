@@ -59,6 +59,51 @@ export type Database = {
         }
         Relationships: []
       }
+      job_seeker_profiles: {
+        Row: {
+          certifications: string[] | null
+          education: Json | null
+          email: string | null
+          full_name: string | null
+          id: string
+          location: string | null
+          phone: string | null
+          skills: string[] | null
+          summary: string | null
+          updated_at: string
+          user_id: string
+          work_experience: Json | null
+        }
+        Insert: {
+          certifications?: string[] | null
+          education?: Json | null
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          location?: string | null
+          phone?: string | null
+          skills?: string[] | null
+          summary?: string | null
+          updated_at?: string
+          user_id: string
+          work_experience?: Json | null
+        }
+        Update: {
+          certifications?: string[] | null
+          education?: Json | null
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          location?: string | null
+          phone?: string | null
+          skills?: string[] | null
+          summary?: string | null
+          updated_at?: string
+          user_id?: string
+          work_experience?: Json | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

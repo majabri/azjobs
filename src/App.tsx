@@ -8,6 +8,7 @@ import JobSeeker from "./pages/JobSeeker";
 import HiringManager from "./pages/HiringManager";
 import Auth from "./pages/Auth";
 import Applications from "./pages/Applications";
+import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -25,6 +26,7 @@ const App = () => (
           <Route path="/job-seeker" element={<ProtectedRoute><JobSeeker /></ProtectedRoute>} />
           <Route path="/hiring-manager" element={<ProtectedRoute><HiringManager /></ProtectedRoute>} />
           <Route path="/applications" element={<ProtectedRoute><Applications /></ProtectedRoute>} />
+          <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Target, Sparkles, AlertTriangle, CheckCircle2, XCircle, ChevronRight, Lightbulb, Link2, Linkedin, ExternalLink, Download, Loader2, Upload, FileText, Copy, Mail } from "lucide-react";
+import { ArrowLeft, Target, Sparkles, AlertTriangle, CheckCircle2, XCircle, ChevronRight, Lightbulb, Link2, Linkedin, ExternalLink, Download, Loader2, Upload, FileText, Copy, Mail, User } from "lucide-react";
 import { analyzeJobFit, type FitAnalysis } from "@/lib/analysisEngine";
 import { ScoreRingInline, AnimatedBar } from "@/components/ScoreDisplay";
 import { scrapeUrl } from "@/lib/api/scrapeUrl";
@@ -65,6 +65,7 @@ export default function JobSeekerPage() {
   const [isGeneratingCover, setIsGeneratingCover] = useState(false);
   const [coverLetter, setCoverLetter] = useState("");
   const [coverTone, setCoverTone] = useState<"professional" | "conversational" | "enthusiastic">("professional");
+  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const resumeFileRef = useRef<HTMLInputElement>(null);
 
   const diffResult = useMemo(() => {
@@ -89,6 +90,54 @@ export default function JobSeekerPage() {
     } finally {
       setIsUploadingResume(false);
       if (resumeFileRef.current) resumeFileRef.current.value = "";
+    }
+  };
+
+  const handleLoadFromProfile = async () => {
+    setIsLoadingProfile(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { toast.error("Please sign in"); return; }
+      const { data, error } = await supabase
+        .from("job_seeker_profiles")
+        .select("*")
+        .eq("user_id", session.user.id)
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) {
+        toast.error("No profile found. Create one first!", { action: { label: "Go to Profile", onClick: () => navigate("/profile") } });
+        return;
+      }
+      const lines: string[] = [];
+      if (data.full_name) lines.push(data.full_name);
+      const contact = [data.email, data.phone, data.location].filter(Boolean).join(" | ");
+      if (contact) lines.push(contact);
+      if (data.summary) { lines.push(""); lines.push("PROFESSIONAL SUMMARY"); lines.push(data.summary); }
+      const skills = data.skills as string[] | null;
+      if (skills?.length) { lines.push(""); lines.push("SKILLS"); lines.push(skills.join(", ")); }
+      const workExp = data.work_experience as unknown as { title: string; company: string; startDate?: string; endDate?: string; description?: string }[] | null;
+      if (workExp?.length) {
+        lines.push(""); lines.push("WORK EXPERIENCE");
+        workExp.forEach((w) => {
+          lines.push(`${w.title} at ${w.company}${w.startDate ? ` (${w.startDate} – ${w.endDate || "Present"})` : ""}`);
+          if (w.description) lines.push(w.description);
+          lines.push("");
+        });
+      }
+      const edu = data.education as unknown as { degree: string; institution: string; year?: string }[] | null;
+      if (edu?.length) {
+        lines.push("EDUCATION");
+        edu.forEach((e) => lines.push(`${e.degree} — ${e.institution}${e.year ? ` (${e.year})` : ""}`));
+      }
+      const certs = data.certifications as string[] | null;
+      if (certs?.length) { lines.push(""); lines.push("CERTIFICATIONS"); certs.forEach((c) => lines.push(`• ${c}`)); }
+      setResume(lines.join("\n"));
+      toast.success("Profile loaded into resume field!");
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to load profile");
+    } finally {
+      setIsLoadingProfile(false);
     }
   };
 
@@ -625,6 +674,16 @@ ${analysis.gaps.slice(0, 3).map((g) => `• [Relevant ${g.area} certification �
                 <div className="flex items-center justify-between">
                   <label className="text-sm font-semibold text-primary">Your Resume / Profile</label>
                   <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-xs h-7"
+                      disabled={isLoadingProfile}
+                      onClick={handleLoadFromProfile}
+                    >
+                      {isLoadingProfile ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <User className="w-3 h-3 mr-1" />}
+                      Load from Profile
+                    </Button>
                     <Button
                       variant="outline"
                       size="sm"
