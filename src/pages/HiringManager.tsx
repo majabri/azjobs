@@ -613,10 +613,33 @@ export default function HiringManagerPage() {
               )}
             </div>
 
-            <div className="flex justify-center gap-4 mt-10">
+            <div className="flex flex-wrap justify-center gap-3 mt-10">
               <Button variant="outline" onClick={handleReset}>
                 New Screening
               </Button>
+              <CandidateComparison candidates={results} />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" className="gap-2">
+                    <FileDown className="w-4 h-4" />
+                    Export Results
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="center">
+                  <DropdownMenuItem onClick={() => exportToPDF(results, jobDesc)}>
+                    <FileText className="w-4 h-4 mr-2" /> PDF
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => exportToWord(results, jobDesc)}>
+                    <FileText className="w-4 h-4 mr-2" /> Word (.docx)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => exportToExcel(results, jobDesc)}>
+                    <FileSpreadsheet className="w-4 h-4 mr-2" /> Excel (.csv)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => exportToText(results, jobDesc)}>
+                    <FileText className="w-4 h-4 mr-2" /> Text (.txt)
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               <Button
                 className="gradient-teal text-white shadow-teal hover:opacity-90"
                 onClick={() => navigate("/job-seeker")}
