@@ -93,6 +93,54 @@ export default function JobSeekerPage() {
     }
   };
 
+  const handleLoadFromProfile = async () => {
+    setIsLoadingProfile(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { toast.error("Please sign in"); return; }
+      const { data, error } = await supabase
+        .from("job_seeker_profiles")
+        .select("*")
+        .eq("user_id", session.user.id)
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) {
+        toast.error("No profile found. Create one first!", { action: { label: "Go to Profile", onClick: () => navigate("/profile") } });
+        return;
+      }
+      const lines: string[] = [];
+      if (data.full_name) lines.push(data.full_name);
+      const contact = [data.email, data.phone, data.location].filter(Boolean).join(" | ");
+      if (contact) lines.push(contact);
+      if (data.summary) { lines.push(""); lines.push("PROFESSIONAL SUMMARY"); lines.push(data.summary); }
+      const skills = data.skills as string[] | null;
+      if (skills?.length) { lines.push(""); lines.push("SKILLS"); lines.push(skills.join(", ")); }
+      const workExp = data.work_experience as unknown as { title: string; company: string; startDate?: string; endDate?: string; description?: string }[] | null;
+      if (workExp?.length) {
+        lines.push(""); lines.push("WORK EXPERIENCE");
+        workExp.forEach((w) => {
+          lines.push(`${w.title} at ${w.company}${w.startDate ? ` (${w.startDate} – ${w.endDate || "Present"})` : ""}`);
+          if (w.description) lines.push(w.description);
+          lines.push("");
+        });
+      }
+      const edu = data.education as unknown as { degree: string; institution: string; year?: string }[] | null;
+      if (edu?.length) {
+        lines.push("EDUCATION");
+        edu.forEach((e) => lines.push(`${e.degree} — ${e.institution}${e.year ? ` (${e.year})` : ""}`));
+      }
+      const certs = data.certifications as string[] | null;
+      if (certs?.length) { lines.push(""); lines.push("CERTIFICATIONS"); certs.forEach((c) => lines.push(`• ${c}`)); }
+      setResume(lines.join("\n"));
+      toast.success("Profile loaded into resume field!");
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to load profile");
+    } finally {
+      setIsLoadingProfile(false);
+    }
+  };
+
   const handleFetchJobLink = async () => {
     if (!jobLink.trim()) return;
     setIsFetchingJob(true);
