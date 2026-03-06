@@ -29,6 +29,15 @@ import { toast } from "sonner";
 import UserMenu from "@/components/UserMenu";
 import { parseDocument } from "@/lib/api/parseDocument";
 import BulkResumeUpload, { type ParsedResume } from "@/components/BulkResumeUpload";
+import CandidateComparison from "@/components/CandidateComparison";
+import { exportToPDF, exportToWord, exportToExcel, exportToText } from "@/lib/exportResults";
+import { FileText, FileSpreadsheet, FileDown } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const EXAMPLE_JOB = `Senior Data Analyst — FinTech
 
