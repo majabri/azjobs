@@ -678,6 +678,16 @@ ${analysis.gaps.slice(0, 3).map((g) => `â€¢ [Relevant ${g.area} certification â€
                       variant="outline"
                       size="sm"
                       className="text-xs h-7"
+                      disabled={isLoadingProfile}
+                      onClick={handleLoadFromProfile}
+                    >
+                      {isLoadingProfile ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <User className="w-3 h-3 mr-1" />}
+                      Load from Profile
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-xs h-7"
                       disabled={isUploadingResume}
                       onClick={() => resumeFileRef.current?.click()}
                     >
