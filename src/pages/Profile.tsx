@@ -115,7 +115,7 @@ export default function ProfilePage() {
       };
       const { error } = await supabase
         .from("job_seeker_profiles")
-        .upsert(payload, { onConflict: "user_id" });
+        .upsert(payload as any, { onConflict: "user_id" });
       if (error) throw error;
       toast.success("Profile saved!");
     } catch (e) {
