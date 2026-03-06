@@ -65,6 +65,7 @@ export default function JobSeekerPage() {
   const [isGeneratingCover, setIsGeneratingCover] = useState(false);
   const [coverLetter, setCoverLetter] = useState("");
   const [coverTone, setCoverTone] = useState<"professional" | "conversational" | "enthusiastic">("professional");
+  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const resumeFileRef = useRef<HTMLInputElement>(null);
 
   const diffResult = useMemo(() => {
