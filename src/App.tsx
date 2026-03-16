@@ -9,6 +9,7 @@ import HiringManager from "./pages/HiringManager";
 import Auth from "./pages/Auth";
 import Applications from "./pages/Applications";
 import Profile from "./pages/Profile";
+import JobSearch from "./pages/JobSearch";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
 
