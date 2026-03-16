@@ -13,14 +13,18 @@ serve(async (req) => {
     const PERPLEXITY_API_KEY = Deno.env.get("PERPLEXITY_API_KEY");
     if (!PERPLEXITY_API_KEY) throw new Error("PERPLEXITY_API_KEY is not configured");
 
-    const { skills, jobTypes, location, query } = await req.json();
+    const { skills, jobTypes, location, query, careerLevel, targetTitles } = await req.json();
 
     const skillsList = (skills as string[])?.join(", ") || "general";
     const jobTypesList = (jobTypes as string[])?.join(", ") || "";
     const locationStr = (location as string) || "";
     const customQuery = (query as string) || "";
+    const careerLevelStr = (careerLevel as string) || "";
+    const titlesList = (targetTitles as string[])?.join(", ") || "";
 
     const searchPrompt = `Find current job openings for someone with these skills: ${skillsList}.${
+      careerLevelStr ? ` Career level: ${careerLevelStr}.` : ""
+    }${titlesList ? ` Target job titles: ${titlesList}.` : ""}${
       jobTypesList ? ` Job type preferences: ${jobTypesList}.` : ""
     }${locationStr ? ` Location: ${locationStr}.` : ""}${
       customQuery ? ` Additional criteria: ${customQuery}.` : ""
