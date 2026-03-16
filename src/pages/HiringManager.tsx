@@ -472,6 +472,16 @@ export default function HiringManagerPage() {
                             >
                               {uploadingResume[c.id] ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
                             </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 px-2 text-xs"
+                              disabled={loadingProfileFor === c.id}
+                              onClick={() => handleLoadProfileAsCandidate(c.id)}
+                              title="Load my profile"
+                            >
+                              {loadingProfileFor === c.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <User className="w-3 h-3" />}
+                            </Button>
                           </div>
                         </div>
                       </div>
