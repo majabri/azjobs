@@ -39,6 +39,8 @@ export default function JobSearchPage() {
   const [jobTypes, setJobTypes] = useState<string[]>([]);
   const [location, setLocation] = useState("");
   const [customQuery, setCustomQuery] = useState("");
+  const [careerLevel, setCareerLevel] = useState("");
+  const [targetTitles, setTargetTitles] = useState<string[]>([]);
   const [jobs, setJobs] = useState<JobResult[]>([]);
   const [citations, setCitations] = useState<string[]>([]);
   const [searching, setSearching] = useState(false);
@@ -61,6 +63,8 @@ export default function JobSearchPage() {
         if (data.skills) setSkills(data.skills as string[]);
         if ((data as any).preferred_job_types) setJobTypes((data as any).preferred_job_types as string[]);
         if (data.location) setLocation(data.location);
+        if ((data as any).career_level) setCareerLevel((data as any).career_level);
+        if ((data as any).target_job_titles) setTargetTitles((data as any).target_job_titles as string[]);
         setProfileLoaded(true);
       }
     } catch (e) {
