@@ -811,6 +811,37 @@ ${analysis.gaps.slice(0, 3).map((g) => `â€¢ [Relevant ${g.area} certification â€
               </div>
             </div>
 
+            {/* Resume Version Picker */}
+            {showVersionPicker && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+                <div className="bg-card border border-border rounded-2xl p-6 max-w-md w-full mx-4 shadow-xl">
+                  <h3 className="font-display font-bold text-primary text-lg mb-4">Choose a Resume Version</h3>
+                  <div className="space-y-2 mb-4">
+                    <button
+                      className="w-full text-left p-3 rounded-xl border border-border hover:border-accent transition-colors"
+                      onClick={handleLoadDefaultFromPicker}
+                    >
+                      <span className="font-medium text-foreground">Default Profile</span>
+                      <p className="text-xs text-muted-foreground">Generated from your profile data</p>
+                    </button>
+                    {resumeVersions.map((v) => (
+                      <button
+                        key={v.id}
+                        className="w-full text-left p-3 rounded-xl border border-border hover:border-accent transition-colors"
+                        onClick={() => handleSelectVersion(v)}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-foreground">{v.version_name}</span>
+                          {v.job_type && <Badge variant="outline" className="text-xs capitalize">{v.job_type}</Badge>}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{v.resume_text.slice(0, 80)}...</p>
+                      </button>
+                    ))}
+                  </div>
+                  <Button variant="ghost" size="sm" className="w-full" onClick={() => setShowVersionPicker(false)}>Cancel</Button>
+                </div>
+              </div>
+            )}
             <div className="flex justify-center">
               <Button
                 size="lg"
