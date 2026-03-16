@@ -48,6 +48,8 @@ interface ProfileData {
   education: Education[];
   certifications: string[];
   preferred_job_types: string[];
+  career_level: string;
+  target_job_titles: string[];
 }
 
 const emptyProfile: ProfileData = {
@@ -61,6 +63,8 @@ const emptyProfile: ProfileData = {
   education: [],
   certifications: [],
   preferred_job_types: [],
+  career_level: "",
+  target_job_titles: [],
 };
 
 const JOB_TYPE_OPTIONS = [
