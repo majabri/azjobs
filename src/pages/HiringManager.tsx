@@ -118,6 +118,43 @@ export default function HiringManagerPage() {
   const [results, setResults] = useState<CandidateAnalysis[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [selectedCandidate, setSelectedCandidate] = useState<CandidateAnalysis | null>(null);
+  const [loadingProfileFor, setLoadingProfileFor] = useState<string | null>(null);
+
+  const handleLoadProfileAsCandidate = async (candidateId: string) => {
+    setLoadingProfileFor(candidateId);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { toast.error("Please sign in"); return; }
+      const { data, error } = await supabase
+        .from("job_seeker_profiles")
+        .select("*")
+        .eq("user_id", session.user.id)
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) { toast.error("No profile found"); return; }
+      const lines: string[] = [];
+      if (data.full_name) { lines.push(data.full_name); updateCandidate(candidateId, "name", data.full_name); }
+      const contact = [data.email, data.phone, data.location].filter(Boolean).join(" | ");
+      if (contact) lines.push(contact);
+      if (data.summary) { lines.push(""); lines.push(data.summary); }
+      const skills = data.skills as string[] | null;
+      if (skills?.length) { lines.push(""); lines.push("Skills: " + skills.join(", ")); }
+      const workExp = data.work_experience as unknown as { title: string; company: string; startDate?: string; endDate?: string; description?: string }[] | null;
+      if (workExp?.length) {
+        lines.push("");
+        workExp.forEach((w) => {
+          lines.push(`${w.title} at ${w.company}${w.startDate ? ` (${w.startDate} – ${w.endDate || "Present"})` : ""}`);
+          if (w.description) lines.push(w.description);
+        });
+      }
+      updateCandidate(candidateId, "resumeText", lines.join("\n"));
+      toast.success("Profile loaded!");
+    } catch {
+      toast.error("Failed to load profile");
+    } finally {
+      setLoadingProfileFor(null);
+    }
+  };
 
   const addCandidate = () => {
     if (candidates.length >= 20) return;
