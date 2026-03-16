@@ -178,6 +178,8 @@ export default function ProfilePage() {
         education: profile.education.length ? profile.education : null,
         certifications: profile.certifications.length ? profile.certifications : null,
         preferred_job_types: profile.preferred_job_types.length ? profile.preferred_job_types : null,
+        career_level: profile.career_level || null,
+        target_job_titles: profile.target_job_titles.length ? profile.target_job_titles : null,
         updated_at: new Date().toISOString(),
       };
       const { error } = await supabase
