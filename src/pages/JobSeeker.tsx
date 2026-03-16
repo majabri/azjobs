@@ -96,41 +96,54 @@ export default function JobSeekerPage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
-      // Extract skills using the analysis engine's keyword list
-      const { extractSkillsFromText } = await import("@/lib/analysisEngine");
-      const extractedSkills = extractSkillsFromText(resumeText);
-      if (!extractedSkills.length) return;
+      const { extractProfileFromResume } = await import("@/lib/analysisEngine");
+      const extracted = extractProfileFromResume(resumeText);
+      if (!extracted.skills.length) return;
 
-      // Merge with existing profile skills
+      // Merge with existing profile
       const { data } = await supabase
         .from("job_seeker_profiles")
-        .select("skills")
+        .select("skills, certifications")
         .eq("user_id", session.user.id)
         .maybeSingle();
 
       const currentSkills = (data?.skills as string[]) || [];
       const normalizedCurrent = currentSkills.map((s) => s.toLowerCase());
-      const newSkills = extractedSkills.filter((s) => !normalizedCurrent.includes(s.toLowerCase()));
+      const newSkills = extracted.skills.filter((s) => !normalizedCurrent.includes(s.toLowerCase()));
 
-      if (!newSkills.length) {
-        toast.info("All detected skills are already in your profile");
-        return;
-      }
+      const currentCerts = (data?.certifications as string[]) || [];
+      const normalizedCerts = currentCerts.map((c) => c.toLowerCase());
+      const newCerts = extracted.certifications.filter((c) => !normalizedCerts.includes(c.toLowerCase()));
 
-      const merged = [...currentSkills, ...newSkills];
+      const updatePayload: Record<string, any> = {
+        user_id: session.user.id,
+        updated_at: new Date().toISOString(),
+      };
+
+      if (newSkills.length) updatePayload.skills = [...currentSkills, ...newSkills];
+      if (newCerts.length) updatePayload.certifications = [...currentCerts, ...newCerts];
+      if (extracted.careerLevel) updatePayload.career_level = extracted.careerLevel;
+      if (extracted.jobTitles.length) updatePayload.target_job_titles = extracted.jobTitles;
+
       const { error } = await supabase
         .from("job_seeker_profiles")
-        .upsert({
-          user_id: session.user.id,
-          skills: merged,
-          updated_at: new Date().toISOString(),
-        } as any, { onConflict: "user_id" });
+        .upsert(updatePayload as any, { onConflict: "user_id" });
 
       if (error) throw error;
-      toast.success(`${newSkills.length} skill${newSkills.length > 1 ? "s" : ""} added to your profile: ${newSkills.join(", ")}`, { duration: 5000 });
+
+      const messages: string[] = [];
+      if (newSkills.length) messages.push(`${newSkills.length} skill${newSkills.length > 1 ? "s" : ""}`);
+      if (newCerts.length) messages.push(`${newCerts.length} certification${newCerts.length > 1 ? "s" : ""}`);
+      if (extracted.careerLevel) messages.push(`career level: ${extracted.careerLevel}`);
+      if (extracted.jobTitles.length) messages.push(`${extracted.jobTitles.length} job title${extracted.jobTitles.length > 1 ? "s" : ""}`);
+
+      if (messages.length) {
+        toast.success(`Profile updated: ${messages.join(", ")}`, { duration: 5000 });
+      } else {
+        toast.info("All detected skills are already in your profile");
+      }
     } catch (e) {
       console.error("Skill sync error:", e);
-      // Non-blocking — don't show error toast for background sync
     }
   };
 

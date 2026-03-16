@@ -61,6 +61,7 @@ export type Database = {
       }
       job_seeker_profiles: {
         Row: {
+          career_level: string | null
           certifications: string[] | null
           education: Json | null
           email: string | null
@@ -71,11 +72,13 @@ export type Database = {
           preferred_job_types: string[] | null
           skills: string[] | null
           summary: string | null
+          target_job_titles: string[] | null
           updated_at: string
           user_id: string
           work_experience: Json | null
         }
         Insert: {
+          career_level?: string | null
           certifications?: string[] | null
           education?: Json | null
           email?: string | null
@@ -86,11 +89,13 @@ export type Database = {
           preferred_job_types?: string[] | null
           skills?: string[] | null
           summary?: string | null
+          target_job_titles?: string[] | null
           updated_at?: string
           user_id: string
           work_experience?: Json | null
         }
         Update: {
+          career_level?: string | null
           certifications?: string[] | null
           education?: Json | null
           email?: string | null
@@ -101,6 +106,7 @@ export type Database = {
           preferred_job_types?: string[] | null
           skills?: string[] | null
           summary?: string | null
+          target_job_titles?: string[] | null
           updated_at?: string
           user_id?: string
           work_experience?: Json | null

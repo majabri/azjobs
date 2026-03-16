@@ -48,6 +48,8 @@ interface ProfileData {
   education: Education[];
   certifications: string[];
   preferred_job_types: string[];
+  career_level: string;
+  target_job_titles: string[];
 }
 
 const emptyProfile: ProfileData = {
@@ -61,6 +63,8 @@ const emptyProfile: ProfileData = {
   education: [],
   certifications: [],
   preferred_job_types: [],
+  career_level: "",
+  target_job_titles: [],
 };
 
 const JOB_TYPE_OPTIONS = [
@@ -124,6 +128,8 @@ export default function ProfilePage() {
           education: (data.education as unknown as Education[]) || [],
           certifications: (data.certifications as string[]) || [],
           preferred_job_types: ((data as any).preferred_job_types as string[]) || [],
+          career_level: (data as any).career_level || "",
+          target_job_titles: ((data as any).target_job_titles as string[]) || [],
         });
       }
     } catch (e) {
@@ -172,6 +178,8 @@ export default function ProfilePage() {
         education: profile.education.length ? profile.education : null,
         certifications: profile.certifications.length ? profile.certifications : null,
         preferred_job_types: profile.preferred_job_types.length ? profile.preferred_job_types : null,
+        career_level: profile.career_level || null,
+        target_job_titles: profile.target_job_titles.length ? profile.target_job_titles : null,
         updated_at: new Date().toISOString(),
       };
       const { error } = await supabase
@@ -227,6 +235,8 @@ export default function ProfilePage() {
           education: extracted.education?.length ? extracted.education : prev.education,
           certifications: extracted.certifications?.length ? extracted.certifications : prev.certifications,
           preferred_job_types: prev.preferred_job_types,
+          career_level: prev.career_level,
+          target_job_titles: prev.target_job_titles,
         }));
         toast.success("Profile fields extracted from resume!");
       }
@@ -448,6 +458,81 @@ export default function ProfilePage() {
               className="max-w-xs"
             />
             <Button variant="outline" size="sm" onClick={addSkill}><Plus className="w-4 h-4" /></Button>
+          </div>
+        </section>
+
+        {/* Career Level */}
+        <section>
+          <h2 className="text-base font-semibold text-foreground flex items-center gap-2 mb-3">
+            <Briefcase className="w-4 h-4 text-primary" /> Career Level
+          </h2>
+          {profile.career_level ? (
+            <div className="flex items-center gap-3">
+              <Badge variant="default" className="bg-accent text-accent-foreground text-sm px-3 py-1">
+                {profile.career_level}
+              </Badge>
+              <button onClick={() => setProfile({ ...profile, career_level: "" })} className="text-xs text-muted-foreground hover:text-destructive">
+                Clear
+              </button>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">Upload a resume to auto-detect your career level, or set it manually below.</p>
+          )}
+          <div className="flex flex-wrap gap-2 mt-3">
+            {["Entry-Level / Junior", "Mid-Level", "Senior", "Manager", "Senior Manager / Principal", "Director", "VP / Senior Leadership", "C-Level / Executive"].map((level) => (
+              <Badge
+                key={level}
+                variant={profile.career_level === level ? "default" : "outline"}
+                className={`cursor-pointer text-xs ${
+                  profile.career_level === level
+                    ? "bg-primary text-primary-foreground"
+                    : "hover:bg-accent/10"
+                }`}
+                onClick={() => setProfile({ ...profile, career_level: level })}
+              >
+                {level}
+              </Badge>
+            ))}
+          </div>
+        </section>
+
+        {/* Target Job Titles */}
+        <section>
+          <h2 className="text-base font-semibold text-foreground flex items-center gap-2 mb-3">
+            <Briefcase className="w-4 h-4 text-primary" /> Target Job Titles
+          </h2>
+          <div className="flex flex-wrap gap-2 mb-3">
+            {profile.target_job_titles.map((t, i) => (
+              <Badge key={i} variant="secondary" className="gap-1">
+                {t}
+                <button onClick={() => setProfile({ ...profile, target_job_titles: profile.target_job_titles.filter((_, idx) => idx !== i) })} className="ml-1 hover:text-destructive"><X className="w-3 h-3" /></button>
+              </Badge>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <Input
+              id="title-input"
+              placeholder="Add a target job title..."
+              className="max-w-sm"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  const val = (e.target as HTMLInputElement).value.trim();
+                  if (val && !profile.target_job_titles.includes(val)) {
+                    setProfile({ ...profile, target_job_titles: [...profile.target_job_titles, val] });
+                    (e.target as HTMLInputElement).value = "";
+                  }
+                }
+              }}
+            />
+            <Button variant="outline" size="sm" onClick={() => {
+              const el = document.getElementById("title-input") as HTMLInputElement;
+              const val = el?.value.trim();
+              if (val && !profile.target_job_titles.includes(val)) {
+                setProfile({ ...profile, target_job_titles: [...profile.target_job_titles, val] });
+                el.value = "";
+              }
+            }}><Plus className="w-4 h-4" /></Button>
           </div>
         </section>
 

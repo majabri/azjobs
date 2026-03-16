@@ -39,6 +39,8 @@ export default function JobSearchPage() {
   const [jobTypes, setJobTypes] = useState<string[]>([]);
   const [location, setLocation] = useState("");
   const [customQuery, setCustomQuery] = useState("");
+  const [careerLevel, setCareerLevel] = useState("");
+  const [targetTitles, setTargetTitles] = useState<string[]>([]);
   const [jobs, setJobs] = useState<JobResult[]>([]);
   const [citations, setCitations] = useState<string[]>([]);
   const [searching, setSearching] = useState(false);
@@ -61,6 +63,8 @@ export default function JobSearchPage() {
         if (data.skills) setSkills(data.skills as string[]);
         if ((data as any).preferred_job_types) setJobTypes((data as any).preferred_job_types as string[]);
         if (data.location) setLocation(data.location);
+        if ((data as any).career_level) setCareerLevel((data as any).career_level);
+        if ((data as any).target_job_titles) setTargetTitles((data as any).target_job_titles as string[]);
         setProfileLoaded(true);
       }
     } catch (e) {
@@ -95,7 +99,7 @@ export default function JobSearchPage() {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ skills, jobTypes, location, query: customQuery }),
+          body: JSON.stringify({ skills, jobTypes, location, query: customQuery, careerLevel, targetTitles }),
         }
       );
 
@@ -154,6 +158,28 @@ export default function JobSearchPage() {
         {/* Search Controls */}
         <Card className="p-6 mb-8">
           <div className="space-y-4">
+            {/* Career Level & Target Titles */}
+            {(careerLevel || targetTitles.length > 0) && (
+              <div className="grid sm:grid-cols-2 gap-4">
+                {careerLevel && (
+                  <div>
+                    <label className="text-sm font-semibold text-foreground mb-2 block">Career Level</label>
+                    <Badge variant="default" className="bg-accent text-accent-foreground">{careerLevel}</Badge>
+                  </div>
+                )}
+                {targetTitles.length > 0 && (
+                  <div>
+                    <label className="text-sm font-semibold text-foreground mb-2 block">Target Titles</label>
+                    <div className="flex flex-wrap gap-2">
+                      {targetTitles.map((t, i) => (
+                        <Badge key={i} variant="outline">{t}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Skills */}
             <div>
               <label className="text-sm font-semibold text-foreground mb-2 block">Your Skills</label>
