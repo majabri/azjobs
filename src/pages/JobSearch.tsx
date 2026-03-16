@@ -99,7 +99,7 @@ export default function JobSearchPage() {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ skills, jobTypes, location, query: customQuery }),
+          body: JSON.stringify({ skills, jobTypes, location, query: customQuery, careerLevel, targetTitles }),
         }
       );
 
