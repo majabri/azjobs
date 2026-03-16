@@ -461,6 +461,81 @@ export default function ProfilePage() {
           </div>
         </section>
 
+        {/* Career Level */}
+        <section>
+          <h2 className="text-base font-semibold text-foreground flex items-center gap-2 mb-3">
+            <Briefcase className="w-4 h-4 text-primary" /> Career Level
+          </h2>
+          {profile.career_level ? (
+            <div className="flex items-center gap-3">
+              <Badge variant="default" className="bg-accent text-accent-foreground text-sm px-3 py-1">
+                {profile.career_level}
+              </Badge>
+              <button onClick={() => setProfile({ ...profile, career_level: "" })} className="text-xs text-muted-foreground hover:text-destructive">
+                Clear
+              </button>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">Upload a resume to auto-detect your career level, or set it manually below.</p>
+          )}
+          <div className="flex flex-wrap gap-2 mt-3">
+            {["Entry-Level / Junior", "Mid-Level", "Senior", "Manager", "Senior Manager / Principal", "Director", "VP / Senior Leadership", "C-Level / Executive"].map((level) => (
+              <Badge
+                key={level}
+                variant={profile.career_level === level ? "default" : "outline"}
+                className={`cursor-pointer text-xs ${
+                  profile.career_level === level
+                    ? "bg-primary text-primary-foreground"
+                    : "hover:bg-accent/10"
+                }`}
+                onClick={() => setProfile({ ...profile, career_level: level })}
+              >
+                {level}
+              </Badge>
+            ))}
+          </div>
+        </section>
+
+        {/* Target Job Titles */}
+        <section>
+          <h2 className="text-base font-semibold text-foreground flex items-center gap-2 mb-3">
+            <Briefcase className="w-4 h-4 text-primary" /> Target Job Titles
+          </h2>
+          <div className="flex flex-wrap gap-2 mb-3">
+            {profile.target_job_titles.map((t, i) => (
+              <Badge key={i} variant="secondary" className="gap-1">
+                {t}
+                <button onClick={() => setProfile({ ...profile, target_job_titles: profile.target_job_titles.filter((_, idx) => idx !== i) })} className="ml-1 hover:text-destructive"><X className="w-3 h-3" /></button>
+              </Badge>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <Input
+              id="title-input"
+              placeholder="Add a target job title..."
+              className="max-w-sm"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  const val = (e.target as HTMLInputElement).value.trim();
+                  if (val && !profile.target_job_titles.includes(val)) {
+                    setProfile({ ...profile, target_job_titles: [...profile.target_job_titles, val] });
+                    (e.target as HTMLInputElement).value = "";
+                  }
+                }
+              }}
+            />
+            <Button variant="outline" size="sm" onClick={() => {
+              const el = document.getElementById("title-input") as HTMLInputElement;
+              const val = el?.value.trim();
+              if (val && !profile.target_job_titles.includes(val)) {
+                setProfile({ ...profile, target_job_titles: [...profile.target_job_titles, val] });
+                el.value = "";
+              }
+            }}><Plus className="w-4 h-4" /></Button>
+          </div>
+        </section>
+
         {/* Job Preferences */}
         <section>
           <h2 className="text-base font-semibold text-foreground flex items-center gap-2 mb-4">
