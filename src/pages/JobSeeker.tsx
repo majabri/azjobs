@@ -91,6 +91,49 @@ export default function JobSeekerPage() {
     return computeDiff(resume, aiResume);
   }, [resume, aiResume]);
 
+  const syncSkillsToProfile = async (resumeText: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      // Extract skills using the analysis engine's keyword list
+      const { extractSkillsFromText } = await import("@/lib/analysisEngine");
+      const extractedSkills = extractSkillsFromText(resumeText);
+      if (!extractedSkills.length) return;
+
+      // Merge with existing profile skills
+      const { data } = await supabase
+        .from("job_seeker_profiles")
+        .select("skills")
+        .eq("user_id", session.user.id)
+        .maybeSingle();
+
+      const currentSkills = (data?.skills as string[]) || [];
+      const normalizedCurrent = currentSkills.map((s) => s.toLowerCase());
+      const newSkills = extractedSkills.filter((s) => !normalizedCurrent.includes(s.toLowerCase()));
+
+      if (!newSkills.length) {
+        toast.info("All detected skills are already in your profile");
+        return;
+      }
+
+      const merged = [...currentSkills, ...newSkills];
+      const { error } = await supabase
+        .from("job_seeker_profiles")
+        .upsert({
+          user_id: session.user.id,
+          skills: merged,
+          updated_at: new Date().toISOString(),
+        } as any, { onConflict: "user_id" });
+
+      if (error) throw error;
+      toast.success(`${newSkills.length} skill${newSkills.length > 1 ? "s" : ""} added to your profile: ${newSkills.join(", ")}`, { duration: 5000 });
+    } catch (e) {
+      console.error("Skill sync error:", e);
+      // Non-blocking — don't show error toast for background sync
+    }
+  };
+
   const handleResumeUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -100,6 +143,8 @@ export default function JobSeekerPage() {
       if (result.success && result.text) {
         setResume(result.text);
         toast.success("Resume extracted successfully!");
+        // Auto-sync extracted skills to profile
+        syncSkillsToProfile(result.text);
       } else {
         toast.error(result.error || "Could not extract text from document");
       }
