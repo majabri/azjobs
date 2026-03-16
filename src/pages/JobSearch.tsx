@@ -158,6 +158,28 @@ export default function JobSearchPage() {
         {/* Search Controls */}
         <Card className="p-6 mb-8">
           <div className="space-y-4">
+            {/* Career Level & Target Titles */}
+            {(careerLevel || targetTitles.length > 0) && (
+              <div className="grid sm:grid-cols-2 gap-4">
+                {careerLevel && (
+                  <div>
+                    <label className="text-sm font-semibold text-foreground mb-2 block">Career Level</label>
+                    <Badge variant="default" className="bg-accent text-accent-foreground">{careerLevel}</Badge>
+                  </div>
+                )}
+                {targetTitles.length > 0 && (
+                  <div>
+                    <label className="text-sm font-semibold text-foreground mb-2 block">Target Titles</label>
+                    <div className="flex flex-wrap gap-2">
+                      {targetTitles.map((t, i) => (
+                        <Badge key={i} variant="outline">{t}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Skills */}
             <div>
               <label className="text-sm font-semibold text-foreground mb-2 block">Your Skills</label>
