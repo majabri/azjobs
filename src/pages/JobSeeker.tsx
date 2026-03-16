@@ -1,10 +1,10 @@
-import { useState, useRef, useCallback, useMemo } from "react";
+import { useState, useRef, useCallback, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Target, Sparkles, AlertTriangle, CheckCircle2, XCircle, ChevronRight, Lightbulb, Link2, Linkedin, ExternalLink, Download, Loader2, Upload, FileText, Copy, Mail, User } from "lucide-react";
+import { ArrowLeft, Target, Sparkles, AlertTriangle, CheckCircle2, XCircle, ChevronRight, Lightbulb, Link2, Linkedin, ExternalLink, Download, Loader2, Upload, FileText, Copy, Mail, User, Plus } from "lucide-react";
 import { analyzeJobFit, type FitAnalysis } from "@/lib/analysisEngine";
 import { ScoreRingInline, AnimatedBar } from "@/components/ScoreDisplay";
 import { scrapeUrl } from "@/lib/api/scrapeUrl";
@@ -48,6 +48,13 @@ Education: MBA — Business Strategy`;
 
 type Step = "input" | "result";
 
+interface ResumeVersionOption {
+  id: string;
+  version_name: string;
+  job_type: string;
+  resume_text: string;
+}
+
 export default function JobSeekerPage() {
   const navigate = useNavigate();
   const [jobDesc, setJobDesc] = useState("");
@@ -66,7 +73,18 @@ export default function JobSeekerPage() {
   const [coverLetter, setCoverLetter] = useState("");
   const [coverTone, setCoverTone] = useState<"professional" | "conversational" | "enthusiastic">("professional");
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+  const [resumeVersions, setResumeVersions] = useState<ResumeVersionOption[]>([]);
+  const [showVersionPicker, setShowVersionPicker] = useState(false);
+  const [addingSkill, setAddingSkill] = useState<string | null>(null);
   const resumeFileRef = useRef<HTMLInputElement>(null);
+
+  // Check for prefilled job description from Job Search
+  useEffect(() => {
+    const state = window.history.state?.usr;
+    if (state?.prefillJob) {
+      setJobDesc(state.prefillJob);
+    }
+  }, []);
 
   const diffResult = useMemo(() => {
     if (!aiResume || !resume) return { original: [], modified: [] };
@@ -98,46 +116,120 @@ export default function JobSeekerPage() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { toast.error("Please sign in"); return; }
-      const { data, error } = await supabase
-        .from("job_seeker_profiles")
+
+      // Load resume versions
+      const { data: versionData } = await (supabase.from("resume_versions" as any) as any)
         .select("*")
         .eq("user_id", session.user.id)
-        .maybeSingle();
-      if (error) throw error;
-      if (!data) {
-        toast.error("No profile found. Create one first!", { action: { label: "Go to Profile", onClick: () => navigate("/profile") } });
+        .order("created_at", { ascending: false });
+
+      if (versionData?.length) {
+        setResumeVersions(versionData.map((v: any) => ({
+          id: v.id,
+          version_name: v.version_name,
+          job_type: v.job_type || "",
+          resume_text: v.resume_text,
+        })));
+        setShowVersionPicker(true);
+        setIsLoadingProfile(false);
         return;
       }
-      const lines: string[] = [];
-      if (data.full_name) lines.push(data.full_name);
-      const contact = [data.email, data.phone, data.location].filter(Boolean).join(" | ");
-      if (contact) lines.push(contact);
-      if (data.summary) { lines.push(""); lines.push("PROFESSIONAL SUMMARY"); lines.push(data.summary); }
-      const skills = data.skills as string[] | null;
-      if (skills?.length) { lines.push(""); lines.push("SKILLS"); lines.push(skills.join(", ")); }
-      const workExp = data.work_experience as unknown as { title: string; company: string; startDate?: string; endDate?: string; description?: string }[] | null;
-      if (workExp?.length) {
-        lines.push(""); lines.push("WORK EXPERIENCE");
-        workExp.forEach((w) => {
-          lines.push(`${w.title} at ${w.company}${w.startDate ? ` (${w.startDate} – ${w.endDate || "Present"})` : ""}`);
-          if (w.description) lines.push(w.description);
-          lines.push("");
-        });
-      }
-      const edu = data.education as unknown as { degree: string; institution: string; year?: string }[] | null;
-      if (edu?.length) {
-        lines.push("EDUCATION");
-        edu.forEach((e) => lines.push(`${e.degree} — ${e.institution}${e.year ? ` (${e.year})` : ""}`));
-      }
-      const certs = data.certifications as string[] | null;
-      if (certs?.length) { lines.push(""); lines.push("CERTIFICATIONS"); certs.forEach((c) => lines.push(`• ${c}`)); }
-      setResume(lines.join("\n"));
-      toast.success("Profile loaded into resume field!");
+
+      // No versions, load default profile
+      await loadDefaultProfile(session.user.id);
     } catch (e) {
       console.error(e);
       toast.error("Failed to load profile");
     } finally {
       setIsLoadingProfile(false);
+    }
+  };
+
+  const loadDefaultProfile = async (userId: string) => {
+    const { data, error } = await supabase
+      .from("job_seeker_profiles")
+      .select("*")
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) {
+      toast.error("No profile found. Create one first!", { action: { label: "Go to Profile", onClick: () => navigate("/profile") } });
+      return;
+    }
+    const lines: string[] = [];
+    if (data.full_name) lines.push(data.full_name);
+    const contact = [data.email, data.phone, data.location].filter(Boolean).join(" | ");
+    if (contact) lines.push(contact);
+    if (data.summary) { lines.push(""); lines.push("PROFESSIONAL SUMMARY"); lines.push(data.summary); }
+    const skills = data.skills as string[] | null;
+    if (skills?.length) { lines.push(""); lines.push("SKILLS"); lines.push(skills.join(", ")); }
+    const workExp = data.work_experience as unknown as { title: string; company: string; startDate?: string; endDate?: string; description?: string }[] | null;
+    if (workExp?.length) {
+      lines.push(""); lines.push("WORK EXPERIENCE");
+      workExp.forEach((w) => {
+        lines.push(`${w.title} at ${w.company}${w.startDate ? ` (${w.startDate} – ${w.endDate || "Present"})` : ""}`);
+        if (w.description) lines.push(w.description);
+        lines.push("");
+      });
+    }
+    const edu = data.education as unknown as { degree: string; institution: string; year?: string }[] | null;
+    if (edu?.length) {
+      lines.push("EDUCATION");
+      edu.forEach((e) => lines.push(`${e.degree} — ${e.institution}${e.year ? ` (${e.year})` : ""}`));
+    }
+    const certs = data.certifications as string[] | null;
+    if (certs?.length) { lines.push(""); lines.push("CERTIFICATIONS"); certs.forEach((c) => lines.push(`• ${c}`)); }
+    setResume(lines.join("\n"));
+    toast.success("Profile loaded into resume field!");
+  };
+
+  const handleSelectVersion = (version: ResumeVersionOption) => {
+    setResume(version.resume_text);
+    setShowVersionPicker(false);
+    toast.success(`Loaded "${version.version_name}" resume version!`);
+  };
+
+  const handleLoadDefaultFromPicker = async () => {
+    setShowVersionPicker(false);
+    setIsLoadingProfile(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) await loadDefaultProfile(session.user.id);
+    } catch {
+      toast.error("Failed to load profile");
+    } finally {
+      setIsLoadingProfile(false);
+    }
+  };
+
+  const handleAddSkillToProfile = async (skill: string) => {
+    setAddingSkill(skill);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { toast.error("Please sign in"); return; }
+      const { data } = await supabase
+        .from("job_seeker_profiles")
+        .select("skills")
+        .eq("user_id", session.user.id)
+        .maybeSingle();
+      const currentSkills = (data?.skills as string[]) || [];
+      if (currentSkills.includes(skill)) {
+        toast.info(`"${skill}" is already in your profile`);
+        return;
+      }
+      const { error } = await supabase
+        .from("job_seeker_profiles")
+        .upsert({
+          user_id: session.user.id,
+          skills: [...currentSkills, skill],
+          updated_at: new Date().toISOString(),
+        } as any, { onConflict: "user_id" });
+      if (error) throw error;
+      toast.success(`"${skill}" added to your profile!`);
+    } catch {
+      toast.error("Failed to add skill to profile");
+    } finally {
+      setAddingSkill(null);
     }
   };
 
@@ -719,6 +811,37 @@ ${analysis.gaps.slice(0, 3).map((g) => `• [Relevant ${g.area} certification �
               </div>
             </div>
 
+            {/* Resume Version Picker */}
+            {showVersionPicker && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+                <div className="bg-card border border-border rounded-2xl p-6 max-w-md w-full mx-4 shadow-xl">
+                  <h3 className="font-display font-bold text-primary text-lg mb-4">Choose a Resume Version</h3>
+                  <div className="space-y-2 mb-4">
+                    <button
+                      className="w-full text-left p-3 rounded-xl border border-border hover:border-accent transition-colors"
+                      onClick={handleLoadDefaultFromPicker}
+                    >
+                      <span className="font-medium text-foreground">Default Profile</span>
+                      <p className="text-xs text-muted-foreground">Generated from your profile data</p>
+                    </button>
+                    {resumeVersions.map((v) => (
+                      <button
+                        key={v.id}
+                        className="w-full text-left p-3 rounded-xl border border-border hover:border-accent transition-colors"
+                        onClick={() => handleSelectVersion(v)}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-foreground">{v.version_name}</span>
+                          {v.job_type && <Badge variant="outline" className="text-xs capitalize">{v.job_type}</Badge>}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{v.resume_text.slice(0, 80)}...</p>
+                      </button>
+                    ))}
+                  </div>
+                  <Button variant="ghost" size="sm" className="w-full" onClick={() => setShowVersionPicker(false)}>Cancel</Button>
+                </div>
+              </div>
+            )}
             <div className="flex justify-center">
               <Button
                 size="lg"
@@ -845,7 +968,19 @@ ${analysis.gaps.slice(0, 3).map((g) => `• [Relevant ${g.area} certification �
                   {analysis.matchedSkills.filter((s) => !s.matched).slice(0, 6).map((s) => (
                     <div key={s.skill} className="flex items-center justify-between py-2 border-b border-border last:border-0">
                       <span className="text-sm font-medium text-foreground">{s.skill}</span>
-                      <Badge variant="outline" className="text-xs text-muted-foreground">Missing</Badge>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-xs h-7 border-accent/30 text-accent hover:bg-accent/10"
+                          disabled={addingSkill === s.skill}
+                          onClick={() => handleAddSkillToProfile(s.skill)}
+                        >
+                          {addingSkill === s.skill ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Plus className="w-3 h-3 mr-1" />}
+                          Add to Profile
+                        </Button>
+                        <Badge variant="outline" className="text-xs text-muted-foreground">Missing</Badge>
+                      </div>
                     </div>
                   ))}
                   {analysis.matchedSkills.filter((s) => !s.matched).length === 0 && (

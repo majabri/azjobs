@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -21,6 +22,7 @@ import {
   Loader2,
   Upload,
   Link,
+  User,
 } from "lucide-react";
 import { analyzeCandidates, type CandidateAnalysis } from "@/lib/analysisEngine";
 import { ScoreRingInline, AnimatedBar } from "@/components/ScoreDisplay";
@@ -116,6 +118,43 @@ export default function HiringManagerPage() {
   const [results, setResults] = useState<CandidateAnalysis[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [selectedCandidate, setSelectedCandidate] = useState<CandidateAnalysis | null>(null);
+  const [loadingProfileFor, setLoadingProfileFor] = useState<string | null>(null);
+
+  const handleLoadProfileAsCandidate = async (candidateId: string) => {
+    setLoadingProfileFor(candidateId);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { toast.error("Please sign in"); return; }
+      const { data, error } = await supabase
+        .from("job_seeker_profiles")
+        .select("*")
+        .eq("user_id", session.user.id)
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) { toast.error("No profile found"); return; }
+      const lines: string[] = [];
+      if (data.full_name) { lines.push(data.full_name); updateCandidate(candidateId, "name", data.full_name); }
+      const contact = [data.email, data.phone, data.location].filter(Boolean).join(" | ");
+      if (contact) lines.push(contact);
+      if (data.summary) { lines.push(""); lines.push(data.summary); }
+      const skills = data.skills as string[] | null;
+      if (skills?.length) { lines.push(""); lines.push("Skills: " + skills.join(", ")); }
+      const workExp = data.work_experience as unknown as { title: string; company: string; startDate?: string; endDate?: string; description?: string }[] | null;
+      if (workExp?.length) {
+        lines.push("");
+        workExp.forEach((w) => {
+          lines.push(`${w.title} at ${w.company}${w.startDate ? ` (${w.startDate} – ${w.endDate || "Present"})` : ""}`);
+          if (w.description) lines.push(w.description);
+        });
+      }
+      updateCandidate(candidateId, "resumeText", lines.join("\n"));
+      toast.success("Profile loaded!");
+    } catch {
+      toast.error("Failed to load profile");
+    } finally {
+      setLoadingProfileFor(null);
+    }
+  };
 
   const addCandidate = () => {
     if (candidates.length >= 20) return;
@@ -432,6 +471,16 @@ export default function HiringManagerPage() {
                               }}
                             >
                               {uploadingResume[c.id] ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 px-2 text-xs"
+                              disabled={loadingProfileFor === c.id}
+                              onClick={() => handleLoadProfileAsCandidate(c.id)}
+                              title="Load my profile"
+                            >
+                              {loadingProfileFor === c.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <User className="w-3 h-3" />}
                             </Button>
                           </div>
                         </div>
