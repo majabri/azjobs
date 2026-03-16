@@ -128,6 +128,8 @@ export default function ProfilePage() {
           education: (data.education as unknown as Education[]) || [],
           certifications: (data.certifications as string[]) || [],
           preferred_job_types: ((data as any).preferred_job_types as string[]) || [],
+          career_level: (data as any).career_level || "",
+          target_job_titles: ((data as any).target_job_titles as string[]) || [],
         });
       }
     } catch (e) {
