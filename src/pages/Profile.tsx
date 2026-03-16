@@ -6,7 +6,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { ArrowLeft, Save, Upload, Plus, X, Loader2, Briefcase, GraduationCap, Award, User, FileText } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
+import {
+  ArrowLeft, Save, Upload, Plus, X, Loader2, Briefcase, GraduationCap,
+  Award, User, FileText, Settings, Trash2, Edit2,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { parseDocument } from "@/lib/api/parseDocument";
 import { toast } from "sonner";
@@ -26,6 +30,13 @@ interface Education {
   year: string;
 }
 
+interface ResumeVersion {
+  id?: string;
+  version_name: string;
+  job_type: string;
+  resume_text: string;
+}
+
 interface ProfileData {
   full_name: string;
   email: string;
@@ -36,6 +47,7 @@ interface ProfileData {
   work_experience: WorkExperience[];
   education: Education[];
   certifications: string[];
+  preferred_job_types: string[];
 }
 
 const emptyProfile: ProfileData = {
@@ -48,7 +60,26 @@ const emptyProfile: ProfileData = {
   work_experience: [],
   education: [],
   certifications: [],
+  preferred_job_types: [],
 };
+
+const JOB_TYPE_OPTIONS = [
+  "remote", "hybrid", "in-office", "full-time", "part-time", "contract", "short-term",
+];
+
+function computeCompleteness(p: ProfileData): number {
+  const fields = [
+    !!p.full_name,
+    !!p.email,
+    !!p.phone,
+    !!p.location,
+    !!p.summary,
+    p.skills.length > 0,
+    p.work_experience.length > 0,
+    p.education.length > 0,
+  ];
+  return Math.round((fields.filter(Boolean).length / fields.length) * 100);
+}
 
 export default function ProfilePage() {
   const navigate = useNavigate();
@@ -60,8 +91,15 @@ export default function ProfilePage() {
   const [certInput, setCertInput] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // Resume versions
+  const [versions, setVersions] = useState<ResumeVersion[]>([]);
+  const [editingVersion, setEditingVersion] = useState<number | null>(null);
+  const [newVersion, setNewVersion] = useState<ResumeVersion>({ version_name: "", job_type: "", resume_text: "" });
+  const [showNewVersion, setShowNewVersion] = useState(false);
+
   useEffect(() => {
     loadProfile();
+    loadVersions();
   }, []);
 
   const loadProfile = async () => {
@@ -85,6 +123,7 @@ export default function ProfilePage() {
           work_experience: (data.work_experience as unknown as WorkExperience[]) || [],
           education: (data.education as unknown as Education[]) || [],
           certifications: (data.certifications as string[]) || [],
+          preferred_job_types: ((data as any).preferred_job_types as string[]) || [],
         });
       }
     } catch (e) {
@@ -92,6 +131,27 @@ export default function ProfilePage() {
       toast.error("Failed to load profile");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadVersions = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const { data, error } = await supabase
+        .from("resume_versions" as any)
+        .select("*")
+        .eq("user_id", session.user.id)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      setVersions((data as any[])?.map((v: any) => ({
+        id: v.id,
+        version_name: v.version_name,
+        job_type: v.job_type || "",
+        resume_text: v.resume_text,
+      })) || []);
+    } catch (e) {
+      console.error(e);
     }
   };
 
@@ -111,6 +171,7 @@ export default function ProfilePage() {
         work_experience: profile.work_experience.length ? profile.work_experience : null,
         education: profile.education.length ? profile.education : null,
         certifications: profile.certifications.length ? profile.certifications : null,
+        preferred_job_types: profile.preferred_job_types.length ? profile.preferred_job_types : null,
         updated_at: new Date().toISOString(),
       };
       const { error } = await supabase
@@ -155,17 +216,18 @@ export default function ProfilePage() {
       }
       const { profile: extracted } = await resp.json();
       if (extracted) {
-        setProfile({
-          full_name: extracted.full_name || profile.full_name,
-          email: extracted.email || profile.email,
-          phone: extracted.phone || profile.phone,
-          location: extracted.location || profile.location,
-          summary: extracted.summary || profile.summary,
-          skills: extracted.skills?.length ? extracted.skills : profile.skills,
-          work_experience: extracted.work_experience?.length ? extracted.work_experience : profile.work_experience,
-          education: extracted.education?.length ? extracted.education : profile.education,
-          certifications: extracted.certifications?.length ? extracted.certifications : profile.certifications,
-        });
+        setProfile((prev) => ({
+          full_name: extracted.full_name || prev.full_name,
+          email: extracted.email || prev.email,
+          phone: extracted.phone || prev.phone,
+          location: extracted.location || prev.location,
+          summary: extracted.summary || prev.summary,
+          skills: extracted.skills?.length ? extracted.skills : prev.skills,
+          work_experience: extracted.work_experience?.length ? extracted.work_experience : prev.work_experience,
+          education: extracted.education?.length ? extracted.education : prev.education,
+          certifications: extracted.certifications?.length ? extracted.certifications : prev.certifications,
+          preferred_job_types: prev.preferred_job_types,
+        }));
         toast.success("Profile fields extracted from resume!");
       }
     } catch {
@@ -176,6 +238,7 @@ export default function ProfilePage() {
     }
   };
 
+  // Skills
   const addSkill = () => {
     const s = skillInput.trim();
     if (s && !profile.skills.includes(s)) {
@@ -183,11 +246,9 @@ export default function ProfilePage() {
       setSkillInput("");
     }
   };
+  const removeSkill = (i: number) => setProfile({ ...profile, skills: profile.skills.filter((_, idx) => idx !== i) });
 
-  const removeSkill = (i: number) => {
-    setProfile({ ...profile, skills: profile.skills.filter((_, idx) => idx !== i) });
-  };
-
+  // Certifications
   const addCert = () => {
     const c = certInput.trim();
     if (c && !profile.certifications.includes(c)) {
@@ -195,44 +256,76 @@ export default function ProfilePage() {
       setCertInput("");
     }
   };
+  const removeCert = (i: number) => setProfile({ ...profile, certifications: profile.certifications.filter((_, idx) => idx !== i) });
 
-  const removeCert = (i: number) => {
-    setProfile({ ...profile, certifications: profile.certifications.filter((_, idx) => idx !== i) });
-  };
-
-  const addWorkExp = () => {
-    setProfile({
-      ...profile,
-      work_experience: [...profile.work_experience, { title: "", company: "", startDate: "", endDate: "", description: "" }],
-    });
-  };
-
+  // Work experience
+  const addWorkExp = () => setProfile({ ...profile, work_experience: [...profile.work_experience, { title: "", company: "", startDate: "", endDate: "", description: "" }] });
   const updateWorkExp = (i: number, field: keyof WorkExperience, value: string) => {
     const updated = [...profile.work_experience];
     updated[i] = { ...updated[i], [field]: value };
     setProfile({ ...profile, work_experience: updated });
   };
+  const removeWorkExp = (i: number) => setProfile({ ...profile, work_experience: profile.work_experience.filter((_, idx) => idx !== i) });
 
-  const removeWorkExp = (i: number) => {
-    setProfile({ ...profile, work_experience: profile.work_experience.filter((_, idx) => idx !== i) });
-  };
-
-  const addEdu = () => {
-    setProfile({
-      ...profile,
-      education: [...profile.education, { degree: "", institution: "", year: "" }],
-    });
-  };
-
+  // Education
+  const addEdu = () => setProfile({ ...profile, education: [...profile.education, { degree: "", institution: "", year: "" }] });
   const updateEdu = (i: number, field: keyof Education, value: string) => {
     const updated = [...profile.education];
     updated[i] = { ...updated[i], [field]: value };
     setProfile({ ...profile, education: updated });
   };
+  const removeEdu = (i: number) => setProfile({ ...profile, education: profile.education.filter((_, idx) => idx !== i) });
 
-  const removeEdu = (i: number) => {
-    setProfile({ ...profile, education: profile.education.filter((_, idx) => idx !== i) });
+  // Job type preferences
+  const toggleJobType = (type: string) => {
+    setProfile((prev) => ({
+      ...prev,
+      preferred_job_types: prev.preferred_job_types.includes(type)
+        ? prev.preferred_job_types.filter((t) => t !== type)
+        : [...prev.preferred_job_types, type],
+    }));
   };
+
+  // Resume versions CRUD
+  const saveVersion = async (version: ResumeVersion) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      if (version.id) {
+        await (supabase.from("resume_versions" as any) as any).update({
+          version_name: version.version_name,
+          job_type: version.job_type || null,
+          resume_text: version.resume_text,
+          updated_at: new Date().toISOString(),
+        }).eq("id", version.id);
+      } else {
+        await (supabase.from("resume_versions" as any) as any).insert({
+          user_id: session.user.id,
+          version_name: version.version_name,
+          job_type: version.job_type || null,
+          resume_text: version.resume_text,
+        });
+      }
+      toast.success("Resume version saved!");
+      loadVersions();
+      setShowNewVersion(false);
+      setEditingVersion(null);
+    } catch {
+      toast.error("Failed to save resume version");
+    }
+  };
+
+  const deleteVersion = async (id: string) => {
+    try {
+      await (supabase.from("resume_versions" as any) as any).delete().eq("id", id);
+      toast.success("Version deleted");
+      loadVersions();
+    } catch {
+      toast.error("Failed to delete version");
+    }
+  };
+
+  const completeness = computeCompleteness(profile);
 
   if (loading) {
     return (
@@ -264,6 +357,22 @@ export default function ProfilePage() {
       </header>
 
       <main className="max-w-4xl mx-auto px-4 py-8 space-y-8">
+        {/* Completeness Indicator */}
+        <Card className="p-5">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-semibold text-foreground">Profile Completeness</h3>
+            <span className={`text-sm font-bold ${completeness === 100 ? "text-success" : completeness >= 60 ? "text-accent" : "text-warning"}`}>
+              {completeness}%
+            </span>
+          </div>
+          <Progress value={completeness} className="h-2" />
+          {completeness < 100 && (
+            <p className="text-xs text-muted-foreground mt-2">
+              Complete your profile to get better job matches and analysis results.
+            </p>
+          )}
+        </Card>
+
         {/* Import from Resume */}
         <Card className="p-6 border-dashed border-2 border-primary/30 bg-primary/5">
           <div className="flex items-center gap-4">
@@ -342,6 +451,30 @@ export default function ProfilePage() {
           </div>
         </section>
 
+        {/* Job Preferences */}
+        <section>
+          <h2 className="text-base font-semibold text-foreground flex items-center gap-2 mb-4">
+            <Settings className="w-4 h-4 text-primary" /> Job Preferences
+          </h2>
+          <div className="flex flex-wrap gap-2">
+            {JOB_TYPE_OPTIONS.map((type) => (
+              <Badge
+                key={type}
+                variant={profile.preferred_job_types.includes(type) ? "default" : "outline"}
+                className={`cursor-pointer capitalize ${
+                  profile.preferred_job_types.includes(type)
+                    ? "bg-primary text-primary-foreground"
+                    : "hover:bg-accent/10"
+                }`}
+                onClick={() => toggleJobType(type)}
+              >
+                {type}
+              </Badge>
+            ))}
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">Click to toggle your preferred job types.</p>
+        </section>
+
         {/* Work Experience */}
         <section>
           <h2 className="text-base font-semibold text-foreground flex items-center gap-2 mb-4">
@@ -354,22 +487,10 @@ export default function ProfilePage() {
                   <X className="w-4 h-4" />
                 </button>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <Label>Job Title</Label>
-                    <Input value={exp.title} onChange={(e) => updateWorkExp(i, "title", e.target.value)} placeholder="Product Manager" />
-                  </div>
-                  <div>
-                    <Label>Company</Label>
-                    <Input value={exp.company} onChange={(e) => updateWorkExp(i, "company", e.target.value)} placeholder="Acme Corp" />
-                  </div>
-                  <div>
-                    <Label>Start Date</Label>
-                    <Input value={exp.startDate} onChange={(e) => updateWorkExp(i, "startDate", e.target.value)} placeholder="Jan 2020" />
-                  </div>
-                  <div>
-                    <Label>End Date</Label>
-                    <Input value={exp.endDate} onChange={(e) => updateWorkExp(i, "endDate", e.target.value)} placeholder="Present" />
-                  </div>
+                  <div><Label>Job Title</Label><Input value={exp.title} onChange={(e) => updateWorkExp(i, "title", e.target.value)} placeholder="Product Manager" /></div>
+                  <div><Label>Company</Label><Input value={exp.company} onChange={(e) => updateWorkExp(i, "company", e.target.value)} placeholder="Acme Corp" /></div>
+                  <div><Label>Start Date</Label><Input value={exp.startDate} onChange={(e) => updateWorkExp(i, "startDate", e.target.value)} placeholder="Jan 2020" /></div>
+                  <div><Label>End Date</Label><Input value={exp.endDate} onChange={(e) => updateWorkExp(i, "endDate", e.target.value)} placeholder="Present" /></div>
                 </div>
                 <div className="mt-3">
                   <Label>Description</Label>
@@ -395,18 +516,9 @@ export default function ProfilePage() {
                   <X className="w-4 h-4" />
                 </button>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <div>
-                    <Label>Degree</Label>
-                    <Input value={edu.degree} onChange={(e) => updateEdu(i, "degree", e.target.value)} placeholder="B.S. Computer Science" />
-                  </div>
-                  <div>
-                    <Label>Institution</Label>
-                    <Input value={edu.institution} onChange={(e) => updateEdu(i, "institution", e.target.value)} placeholder="State University" />
-                  </div>
-                  <div>
-                    <Label>Year</Label>
-                    <Input value={edu.year} onChange={(e) => updateEdu(i, "year", e.target.value)} placeholder="2020" />
-                  </div>
+                  <div><Label>Degree</Label><Input value={edu.degree} onChange={(e) => updateEdu(i, "degree", e.target.value)} placeholder="B.S. Computer Science" /></div>
+                  <div><Label>Institution</Label><Input value={edu.institution} onChange={(e) => updateEdu(i, "institution", e.target.value)} placeholder="State University" /></div>
+                  <div><Label>Year</Label><Input value={edu.year} onChange={(e) => updateEdu(i, "year", e.target.value)} placeholder="2020" /></div>
                 </div>
               </Card>
             ))}
@@ -439,6 +551,70 @@ export default function ProfilePage() {
             />
             <Button variant="outline" size="sm" onClick={addCert}><Plus className="w-4 h-4" /></Button>
           </div>
+        </section>
+
+        {/* Resume Versions */}
+        <section>
+          <h2 className="text-base font-semibold text-foreground flex items-center gap-2 mb-4">
+            <FileText className="w-4 h-4 text-primary" /> Resume Versions
+          </h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            Create different resume versions tailored for different job types.
+          </p>
+
+          <div className="space-y-3">
+            {versions.map((v, i) => (
+              <Card key={v.id || i} className="p-4">
+                {editingVersion === i ? (
+                  <div className="space-y-3">
+                    <div className="grid sm:grid-cols-2 gap-3">
+                      <div><Label>Version Name</Label><Input value={v.version_name} onChange={(e) => { const u = [...versions]; u[i] = { ...u[i], version_name: e.target.value }; setVersions(u); }} /></div>
+                      <div><Label>Job Type</Label><Input value={v.job_type} onChange={(e) => { const u = [...versions]; u[i] = { ...u[i], job_type: e.target.value }; setVersions(u); }} placeholder="e.g. remote, technical" /></div>
+                    </div>
+                    <div><Label>Resume Text</Label><Textarea value={v.resume_text} onChange={(e) => { const u = [...versions]; u[i] = { ...u[i], resume_text: e.target.value }; setVersions(u); }} rows={6} /></div>
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={() => saveVersion(v)}><Save className="w-3.5 h-3.5 mr-1" /> Save</Button>
+                      <Button variant="ghost" size="sm" onClick={() => { setEditingVersion(null); loadVersions(); }}>Cancel</Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-foreground">{v.version_name}</span>
+                        {v.job_type && <Badge variant="outline" className="text-xs capitalize">{v.job_type}</Badge>}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{v.resume_text.slice(0, 150)}...</p>
+                    </div>
+                    <div className="flex gap-1">
+                      <Button variant="ghost" size="sm" onClick={() => setEditingVersion(i)}><Edit2 className="w-3.5 h-3.5" /></Button>
+                      <Button variant="ghost" size="sm" className="text-destructive" onClick={() => v.id && deleteVersion(v.id)}><Trash2 className="w-3.5 h-3.5" /></Button>
+                    </div>
+                  </div>
+                )}
+              </Card>
+            ))}
+          </div>
+
+          {showNewVersion ? (
+            <Card className="p-4 mt-3 space-y-3">
+              <div className="grid sm:grid-cols-2 gap-3">
+                <div><Label>Version Name</Label><Input value={newVersion.version_name} onChange={(e) => setNewVersion({ ...newVersion, version_name: e.target.value })} placeholder="e.g. Technical, Management" /></div>
+                <div><Label>Job Type</Label><Input value={newVersion.job_type} onChange={(e) => setNewVersion({ ...newVersion, job_type: e.target.value })} placeholder="e.g. remote, full-time" /></div>
+              </div>
+              <div><Label>Resume Text</Label><Textarea value={newVersion.resume_text} onChange={(e) => setNewVersion({ ...newVersion, resume_text: e.target.value })} rows={6} placeholder="Paste or write your resume version here..." /></div>
+              <div className="flex gap-2">
+                <Button size="sm" onClick={() => saveVersion(newVersion)} disabled={!newVersion.version_name.trim()}>
+                  <Save className="w-3.5 h-3.5 mr-1" /> Save Version
+                </Button>
+                <Button variant="ghost" size="sm" onClick={() => { setShowNewVersion(false); setNewVersion({ version_name: "", job_type: "", resume_text: "" }); }}>Cancel</Button>
+              </div>
+            </Card>
+          ) : (
+            <Button variant="outline" size="sm" className="mt-3" onClick={() => setShowNewVersion(true)}>
+              <Plus className="w-4 h-4 mr-1" /> Add Resume Version
+            </Button>
+          )}
         </section>
 
         {/* Bottom Save */}
