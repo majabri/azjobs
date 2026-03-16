@@ -39,6 +39,10 @@ function extractKeywords(text: string): string[] {
   return SKILL_KEYWORDS.filter((k) => lower.includes(k));
 }
 
+export function extractSkillsFromText(text: string): string[] {
+  return extractKeywords(text).map((s) => s.charAt(0).toUpperCase() + s.slice(1));
+}
+
 function scoreOverlap(jobKeywords: string[], resumeKeywords: string[]): number {
   if (jobKeywords.length === 0) return 65;
   const matched = jobKeywords.filter((k) => resumeKeywords.includes(k)).length;
