@@ -48,6 +48,13 @@ Education: MBA — Business Strategy`;
 
 type Step = "input" | "result";
 
+interface ResumeVersionOption {
+  id: string;
+  version_name: string;
+  job_type: string;
+  resume_text: string;
+}
+
 export default function JobSeekerPage() {
   const navigate = useNavigate();
   const [jobDesc, setJobDesc] = useState("");
@@ -66,7 +73,18 @@ export default function JobSeekerPage() {
   const [coverLetter, setCoverLetter] = useState("");
   const [coverTone, setCoverTone] = useState<"professional" | "conversational" | "enthusiastic">("professional");
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+  const [resumeVersions, setResumeVersions] = useState<ResumeVersionOption[]>([]);
+  const [showVersionPicker, setShowVersionPicker] = useState(false);
+  const [addingSkill, setAddingSkill] = useState<string | null>(null);
   const resumeFileRef = useRef<HTMLInputElement>(null);
+
+  // Check for prefilled job description from Job Search
+  useEffect(() => {
+    const state = window.history.state?.usr;
+    if (state?.prefillJob) {
+      setJobDesc(state.prefillJob);
+    }
+  }, []);
 
   const diffResult = useMemo(() => {
     if (!aiResume || !resume) return { original: [], modified: [] };
