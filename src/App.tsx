@@ -28,6 +28,7 @@ const App = () => (
           <Route path="/hiring-manager" element={<ProtectedRoute><HiringManager /></ProtectedRoute>} />
           <Route path="/applications" element={<ProtectedRoute><Applications /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+          <Route path="/job-search" element={<ProtectedRoute><JobSearch /></ProtectedRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

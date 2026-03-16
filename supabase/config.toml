@@ -11,3 +11,9 @@ verify_jwt = false
 
 [functions.parse-document]
 verify_jwt = false
+
+[functions.extract-profile-fields]
+verify_jwt = false
+
+[functions.search-jobs]
+verify_jwt = false

@@ -32,6 +32,16 @@ export default function UserMenu() {
         <UserCircle className="w-4 h-4" />
         <span className="hidden sm:inline text-xs">Profile</span>
       </Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="text-muted-foreground hover:text-primary"
+        onClick={() => navigate("/job-search")}
+        title="Job Search"
+      >
+        <Globe className="w-4 h-4" />
+        <span className="hidden sm:inline text-xs">Jobs</span>
+      </Button>
       {avatar ? (
         <img src={avatar} alt={name} className="w-7 h-7 rounded-full border border-border" />
       ) : (
