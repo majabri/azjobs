@@ -68,6 +68,7 @@ export type Database = {
           id: string
           location: string | null
           phone: string | null
+          preferred_job_types: string[] | null
           skills: string[] | null
           summary: string | null
           updated_at: string
@@ -82,6 +83,7 @@ export type Database = {
           id?: string
           location?: string | null
           phone?: string | null
+          preferred_job_types?: string[] | null
           skills?: string[] | null
           summary?: string | null
           updated_at?: string
@@ -96,11 +98,42 @@ export type Database = {
           id?: string
           location?: string | null
           phone?: string | null
+          preferred_job_types?: string[] | null
           skills?: string[] | null
           summary?: string | null
           updated_at?: string
           user_id?: string
           work_experience?: Json | null
+        }
+        Relationships: []
+      }
+      resume_versions: {
+        Row: {
+          created_at: string
+          id: string
+          job_type: string | null
+          resume_text: string
+          updated_at: string
+          user_id: string
+          version_name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          job_type?: string | null
+          resume_text?: string
+          updated_at?: string
+          user_id: string
+          version_name?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          job_type?: string | null
+          resume_text?: string
+          updated_at?: string
+          user_id?: string
+          version_name?: string
         }
         Relationships: []
       }
