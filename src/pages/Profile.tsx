@@ -233,6 +233,8 @@ export default function ProfilePage() {
           education: extracted.education?.length ? extracted.education : prev.education,
           certifications: extracted.certifications?.length ? extracted.certifications : prev.certifications,
           preferred_job_types: prev.preferred_job_types,
+          career_level: prev.career_level,
+          target_job_titles: prev.target_job_titles,
         }));
         toast.success("Profile fields extracted from resume!");
       }
