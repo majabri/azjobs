@@ -968,7 +968,19 @@ ${analysis.gaps.slice(0, 3).map((g) => `â€¢ [Relevant ${g.area} certification â€
                   {analysis.matchedSkills.filter((s) => !s.matched).slice(0, 6).map((s) => (
                     <div key={s.skill} className="flex items-center justify-between py-2 border-b border-border last:border-0">
                       <span className="text-sm font-medium text-foreground">{s.skill}</span>
-                      <Badge variant="outline" className="text-xs text-muted-foreground">Missing</Badge>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-xs h-7 border-accent/30 text-accent hover:bg-accent/10"
+                          disabled={addingSkill === s.skill}
+                          onClick={() => handleAddSkillToProfile(s.skill)}
+                        >
+                          {addingSkill === s.skill ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Plus className="w-3 h-3 mr-1" />}
+                          Add to Profile
+                        </Button>
+                        <Badge variant="outline" className="text-xs text-muted-foreground">Missing</Badge>
+                      </div>
                     </div>
                   ))}
                   {analysis.matchedSkills.filter((s) => !s.matched).length === 0 && (
