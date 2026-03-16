@@ -22,6 +22,7 @@ import {
   Loader2,
   Upload,
   Link,
+  User,
 } from "lucide-react";
 import { analyzeCandidates, type CandidateAnalysis } from "@/lib/analysisEngine";
 import { ScoreRingInline, AnimatedBar } from "@/components/ScoreDisplay";
