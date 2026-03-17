@@ -190,10 +190,15 @@ const CAREER_LEVEL_PATTERNS: { level: string; patterns: RegExp[]; weight: number
   {
     level: "VP / Senior Leadership",
     patterns: [
-      /\b(vice\s+president|v\.?p\.?)\b/i,
+      /\b(vice\s+president|v\.?p\.?)\s+(of\s+)?\w/i,
+      /\bvp\s+(of\s+)?\w/i,
       /\bsvp\b/i,
       /\bsenior\s+vice\s+president\b/i,
       /\bhead\s+of\b/i,
+      /\bbiso\b/i,
+      /\bbusiness\s+information\s+security\s+officer\b/i,
+      /\bglobal\s+head\b/i,
+      /\bregional\s+head\b/i,
     ],
     weight: 90,
   },
