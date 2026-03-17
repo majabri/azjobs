@@ -225,6 +225,10 @@ export default function ProfilePage() {
         return;
       }
       const { profile: extracted } = await resp.json();
+
+      // Run local analysis engine for career level, job titles, and additional skills/certs
+      const localProfile = extractProfileFromResume(result.text);
+
       if (extracted) {
         setProfile((prev) => ({
           full_name: extracted.full_name || prev.full_name,
@@ -237,10 +241,27 @@ export default function ProfilePage() {
           education: extracted.education?.length ? extracted.education : prev.education,
           certifications: extracted.certifications?.length ? extracted.certifications : prev.certifications,
           preferred_job_types: prev.preferred_job_types,
-          career_level: prev.career_level,
-          target_job_titles: prev.target_job_titles,
+          career_level: localProfile.careerLevel || prev.career_level,
+          target_job_titles: localProfile.jobTitles.length ? localProfile.jobTitles : prev.target_job_titles,
         }));
-        toast.success("Profile fields extracted from resume!");
+
+        // Merge local engine skills/certs that AI might have missed
+        setProfile((prev) => {
+          const normalizedSkills = prev.skills.map(s => s.toLowerCase());
+          const extraSkills = localProfile.skills.filter(s => !normalizedSkills.includes(s.toLowerCase()));
+          const normalizedCerts = prev.certifications.map(c => c.toLowerCase());
+          const extraCerts = localProfile.certifications.filter(c => !normalizedCerts.includes(c.toLowerCase()));
+          return {
+            ...prev,
+            skills: extraSkills.length ? [...prev.skills, ...extraSkills] : prev.skills,
+            certifications: extraCerts.length ? [...prev.certifications, ...extraCerts] : prev.certifications,
+          };
+        });
+
+        const messages: string[] = ["Profile fields extracted!"];
+        if (localProfile.careerLevel) messages.push(`Career level: ${localProfile.careerLevel}`);
+        if (localProfile.jobTitles.length) messages.push(`${localProfile.jobTitles.length} job title(s) detected`);
+        toast.success(messages.join(" · "));
       }
     } catch {
       toast.error("Failed to import resume");
