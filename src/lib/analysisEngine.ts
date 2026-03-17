@@ -285,6 +285,19 @@ const ACRONYM_TITLES: { pattern: RegExp; expanded: string }[] = [
   { pattern: /\bcto\b/i, expanded: "Chief Technology Officer" },
   { pattern: /\bcio\b/i, expanded: "Chief Information Officer" },
   { pattern: /\bcso\b/i, expanded: "Chief Security Officer" },
+  { pattern: /\bisso\b/i, expanded: "Information System Security Officer" },
+  { pattern: /\bissm\b/i, expanded: "Information System Security Manager" },
+  { pattern: /\bisse\b/i, expanded: "Information Systems Security Engineer" },
+  { pattern: /\bissep\b/i, expanded: "Information Systems Security Engineering Professional" },
+  { pattern: /\bissa\b/i, expanded: "Information Systems Security Architect" },
+  { pattern: /\bdpo\b/i, expanded: "Data Protection Officer" },
+  { pattern: /\bvciso\b/i, expanded: "Virtual Chief Information Security Officer" },
+  { pattern: /\bsoc\s+analyst\b/i, expanded: "SOC Analyst" },
+  { pattern: /\bsoc\s+manager\b/i, expanded: "SOC Manager" },
+  { pattern: /\bsoc\s+lead\b/i, expanded: "SOC Lead" },
+  { pattern: /\bsoc\s+engineer\b/i, expanded: "SOC Engineer" },
+  { pattern: /\birt\s+lead\b/i, expanded: "Incident Response Team Lead" },
+  { pattern: /\bcsirt\b/i, expanded: "Computer Security Incident Response Team" },
 ];
 
 export function extractJobTitles(text: string): string[] {
