@@ -278,47 +278,70 @@ export function detectCareerLevel(text: string): string {
 }
 
 // ─── Job Title Extraction ────────────────────────────────────────────────────
-const TITLE_PATTERNS = [
-  // Explicit title patterns in resumes
-  /(?:^|\n)\s*((?:senior |sr\.? |junior |jr\.? |lead |principal |staff |chief |head of |vice president of |v\.?p\.?\s+(?:of\s+)?|director of )?(?:information (?:technology|security)|cybersecurity|it security|software|data|product|project|program|marketing|sales|finance|operations|business|cloud|devops|security|network|systems?|full[- ]?stack|front[- ]?end|back[- ]?end|mobile|machine learning|ai|ux|ui|qa|test|quality|compliance|risk|governance)[\w\s]*?(?:officer|manager|engineer|developer|architect|analyst|consultant|specialist|director|lead|administrator|coordinator|strategist|scientist|designer|researcher))\s*(?:\n|$)/gim,
+// Known acronym titles that should be detected directly
+const ACRONYM_TITLES: { pattern: RegExp; expanded: string }[] = [
+  { pattern: /\bbiso\b/i, expanded: "Business Information Security Officer" },
+  { pattern: /\bciso\b/i, expanded: "Chief Information Security Officer" },
+  { pattern: /\bcto\b/i, expanded: "Chief Technology Officer" },
+  { pattern: /\bcio\b/i, expanded: "Chief Information Officer" },
+  { pattern: /\bcso\b/i, expanded: "Chief Security Officer" },
 ];
 
 export function extractJobTitles(text: string): string[] {
   const titles = new Set<string>();
-  const lower = text.toLowerCase();
 
-  // Look for lines that look like job titles (short lines near company names / dates)
-  const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    // Skip very long lines (descriptions) and very short ones
-    if (line.length < 8 || line.length > 120) continue;
+  // 1. Detect acronym-based titles
+  for (const { pattern, expanded } of ACRONYM_TITLES) {
+    if (pattern.test(text)) {
+      titles.add(expanded);
+    }
+  }
 
-    const titleIndicators = [
-      /vice\s+president/i, /v\.?p\.?\s/i, /director/i, /manager/i, /engineer/i,
-      /architect/i, /analyst/i, /consultant/i, /specialist/i, /officer/i,
-      /lead\b/i, /head\s+of/i, /principal/i, /chief/i, /coordinator/i,
-      /administrator/i, /developer/i, /designer/i, /strategist/i, /scientist/i,
-    ];
-
-    const isTitle = titleIndicators.some((p) => p.test(line));
-    // Also check if it's NOT a bullet point or sentence
-    const isBullet = /^[-•●▪]/.test(line) || line.length > 80;
-    if (isTitle && !isBullet) {
-      // Clean up the title
-      let title = line
-        .replace(/^#+ /, "")
-        .replace(/[,|–—]\s*\d{4}.*$/, "")
-        .replace(/\s*\(.*?\)\s*$/, "")
-        .replace(/["']/g, "")
-        .trim();
+  // 2. Detect compound VP / Director / Head titles via regex
+  const compoundPatterns = [
+    /\b(vice\s+president|vp)\s+(?:of\s+)?[\w\s,&/]+?(?=\n|\||–|—|\d{4}|$)/gim,
+    /\bdirector\s+(?:of\s+)?[\w\s,&/]+?(?=\n|\||–|—|\d{4}|$)/gim,
+    /\bhead\s+of\s+[\w\s,&/]+?(?=\n|\||–|—|\d{4}|$)/gim,
+  ];
+  for (const cp of compoundPatterns) {
+    let m: RegExpExecArray | null;
+    while ((m = cp.exec(text)) !== null) {
+      let title = m[0].trim().replace(/[,|–—]+\s*$/, "").trim();
       if (title.length > 5 && title.length < 100) {
         titles.add(title);
       }
     }
   }
 
-  return Array.from(titles).slice(0, 8);
+  // 3. Line-by-line detection for standalone title lines
+  const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
+  for (const line of lines) {
+    if (line.length < 4 || line.length > 120) continue;
+
+    const titleIndicators = [
+      /vice\s+president/i, /v\.?p\.?\s/i, /\bvp\b/i, /director/i, /manager/i,
+      /engineer/i, /architect/i, /analyst/i, /consultant/i, /specialist/i,
+      /officer/i, /lead\b/i, /head\s+of/i, /principal/i, /chief/i,
+      /coordinator/i, /administrator/i, /developer/i, /designer/i,
+      /strategist/i, /scientist/i, /\bbiso\b/i,
+    ];
+
+    const isTitle = titleIndicators.some((p) => p.test(line));
+    const isBullet = /^[-•●▪]/.test(line) || line.length > 80;
+    if (isTitle && !isBullet) {
+      let title = line
+        .replace(/^#+ /, "")
+        .replace(/[,|–—]\s*\d{4}.*$/, "")
+        .replace(/\s*\(.*?\)\s*$/, "")
+        .replace(/["']/g, "")
+        .trim();
+      if (title.length > 4 && title.length < 100) {
+        titles.add(title);
+      }
+    }
+  }
+
+  return Array.from(titles).slice(0, 10);
 }
 
 // ─── Skill Extraction (improved) ─────────────────────────────────────────────
