@@ -13,7 +13,9 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { parseDocument } from "@/lib/api/parseDocument";
+import { extractProfileFromResume } from "@/lib/analysisEngine";
 import { toast } from "sonner";
+import UserMenu from "@/components/UserMenu";
 import UserMenu from "@/components/UserMenu";
 
 interface WorkExperience {
