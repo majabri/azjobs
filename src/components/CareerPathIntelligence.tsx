@@ -9,7 +9,7 @@ import { toast } from "sonner";
 interface CareerInsight {
   currentLevel: string;
   nextRoles: { title: string; salaryRange: string; matchGap: string }[];
-  skillsToLearn: { skill: string; impact: string; timeEstimate: string }[];
+  skillsToLearn: { skill: string; impact: string; timeEstimate: string; actionStep?: string; resourceType?: string; resourceSuggestion?: string }[];
   industryTrends: string[];
   advice: string;
 }
