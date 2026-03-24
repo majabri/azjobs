@@ -441,19 +441,80 @@ export default function AutoApplyPage() {
       </header>
 
       <main className="max-w-5xl mx-auto px-6 py-8 space-y-8">
+        {/* Mode Selector */}
+        <div className="grid grid-cols-3 gap-3">
+          {([
+            { mode: "manual" as const, label: "Manual Review", desc: "You review every job before applying", icon: Eye },
+            { mode: "smart" as const, label: "Smart Approval", desc: "Auto-approve jobs above 80% match", icon: Zap },
+            { mode: "full-auto" as const, label: "Full Auto Apply", desc: "AI handles everything automatically", icon: Bot },
+          ] as const).map(m => (
+            <Card
+              key={m.mode}
+              className={`p-4 cursor-pointer transition-all ${prefs.applyMode === m.mode ? "border-accent bg-accent/5 shadow-teal" : "hover:border-accent/30"}`}
+              onClick={() => setPrefs({ ...prefs, applyMode: m.mode, requireReview: m.mode === "manual" })}
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <m.icon className={`w-4 h-4 ${prefs.applyMode === m.mode ? "text-accent" : "text-muted-foreground"}`} />
+                <span className={`text-sm font-semibold ${prefs.applyMode === m.mode ? "text-accent" : "text-foreground"}`}>{m.label}</span>
+              </div>
+              <p className="text-xs text-muted-foreground">{m.desc}</p>
+            </Card>
+          ))}
+        </div>
+
         {/* Status Banner */}
-        <Card className="p-4 flex items-center justify-between bg-accent/5 border-accent/20">
+        <Card className={`p-4 flex items-center justify-between ${
+          prefs.applyMode === "full-auto" ? "bg-accent/10 border-accent/30" :
+          prefs.applyMode === "smart" ? "bg-warning/5 border-warning/20" :
+          "bg-accent/5 border-accent/20"
+        }`}>
           <div className="flex items-center gap-3">
-            <Shield className="w-5 h-5 text-accent" />
+            {prefs.applyMode === "full-auto" ? (
+              <Bot className="w-5 h-5 text-accent animate-pulse" />
+            ) : (
+              <Shield className="w-5 h-5 text-accent" />
+            )}
             <div>
-              <p className="text-sm font-semibold text-foreground">Review Before Apply</p>
-              <p className="text-xs text-muted-foreground">Review job details, analyze fit, then generate materials. Full control.</p>
+              <p className="text-sm font-semibold text-foreground">
+                {prefs.applyMode === "full-auto" ? "Your AI is applying to jobs right now" :
+                 prefs.applyMode === "smart" ? "Smart Approval — auto-applying to 80%+ matches" :
+                 "Manual Review Mode"}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {prefs.applyMode === "full-auto" ? "AI finds, optimizes, and queues applications automatically." :
+                 prefs.applyMode === "smart" ? "Jobs above 80% match are auto-approved. Others need your review." :
+                 "Review job details, analyze fit, then generate materials."}
+              </p>
             </div>
           </div>
           <Badge className="bg-accent/15 text-accent border-accent/30 text-xs">
             {reviewCount} review · {analyzedCount} analyzed · {readyCount} ready
           </Badge>
         </Card>
+
+        {/* Live Activity Feed */}
+        {activityLog.length > 0 && (
+          <Card className="p-4">
+            <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+              <Play className="w-4 h-4 text-accent" /> Live Activity Feed
+            </h3>
+            <div className="space-y-1.5 max-h-40 overflow-y-auto">
+              {activityLog.slice(0, 10).map((log, i) => (
+                <div key={i} className="flex items-center gap-2 text-xs">
+                  <span className="text-muted-foreground w-16 flex-shrink-0">{log.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                  <Badge variant="outline" className={`text-[9px] w-14 justify-center ${
+                    log.type === "apply" ? "border-success/30 text-success" :
+                    log.type === "skip" ? "border-muted text-muted-foreground" :
+                    log.type === "analyze" ? "border-primary/30 text-primary" :
+                    "border-accent/30 text-accent"
+                  }`}>{log.type}</Badge>
+                  <span className="text-foreground font-medium">{log.action}</span>
+                  <span className="text-muted-foreground truncate">{log.detail}</span>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
 
         {/* Preferences (loaded from profile, customizable) */}
         <Card className="p-6">
