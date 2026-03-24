@@ -1415,16 +1415,42 @@ ${analysis.gaps.slice(0, 3).map((g) => `â€¢ [Relevant ${g.area} certification â€
             </div>
 
             {/* CTA */}
-            <div className="flex justify-center gap-4">
-              <Button variant="outline" onClick={handleReset}>
-                Analyze Another Role
-              </Button>
-              <Button
-                className="gradient-teal text-white shadow-teal hover:opacity-90"
-                onClick={() => navigate("/hiring-manager")}
-              >
-                Switch to Hiring Manager View
-              </Button>
+            <div className="flex flex-col items-center gap-4">
+              {isDemo && (
+                <div className="w-full max-w-md bg-accent/10 border border-accent/20 rounded-2xl p-6 text-center">
+                  <h3 className="font-display font-bold text-primary text-lg mb-2">Ready to optimize your real resume?</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Sign up free to unlock AI resume optimization, cover letters, and save your analysis history.
+                  </p>
+                  <Button
+                    className="gradient-teal text-white shadow-teal hover:opacity-90"
+                    onClick={() => navigate("/auth")}
+                  >
+                    Sign Up Free
+                  </Button>
+                </div>
+              )}
+              <div className="flex gap-4">
+                <Button variant="outline" onClick={handleReset}>
+                  Analyze Another Role
+                </Button>
+                {!isDemo && (
+                  <>
+                    <Button
+                      variant="outline"
+                      onClick={() => navigate("/dashboard")}
+                    >
+                      View Dashboard
+                    </Button>
+                    <Button
+                      className="gradient-teal text-white shadow-teal hover:opacity-90"
+                      onClick={() => navigate("/hiring-manager")}
+                    >
+                      Switch to Hiring Manager View
+                    </Button>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         )}
