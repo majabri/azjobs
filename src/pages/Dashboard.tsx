@@ -46,6 +46,8 @@ export default function Dashboard() {
         .limit(10) as any;
       if (error) throw error;
       setAnalyses(data || []);
+      // Update last_active_at for re-engagement tracking
+      supabase.from("job_seeker_profiles").update({ last_active_at: new Date().toISOString() } as any).eq("user_id", session.user.id).then(() => {});
     } catch (e) {
       console.error(e);
       toast.error("Failed to load analysis history");

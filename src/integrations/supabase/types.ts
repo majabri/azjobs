@@ -65,6 +65,33 @@ export type Database = {
         }
         Relationships: []
       }
+      email_preferences: {
+        Row: {
+          daily_job_alerts: boolean
+          id: string
+          min_match_score: number
+          updated_at: string
+          user_id: string
+          weekly_insights: boolean
+        }
+        Insert: {
+          daily_job_alerts?: boolean
+          id?: string
+          min_match_score?: number
+          updated_at?: string
+          user_id: string
+          weekly_insights?: boolean
+        }
+        Update: {
+          daily_job_alerts?: boolean
+          id?: string
+          min_match_score?: number
+          updated_at?: string
+          user_id?: string
+          weekly_insights?: boolean
+        }
+        Relationships: []
+      }
       interview_sessions: {
         Row: {
           created_at: string
@@ -156,6 +183,7 @@ export type Database = {
           email: string | null
           full_name: string | null
           id: string
+          last_active_at: string | null
           location: string | null
           min_match_score: number | null
           phone: string | null
@@ -180,6 +208,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          last_active_at?: string | null
           location?: string | null
           min_match_score?: number | null
           phone?: string | null
@@ -204,6 +233,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          last_active_at?: string | null
           location?: string | null
           min_match_score?: number | null
           phone?: string | null
@@ -260,6 +290,39 @@ export type Database = {
           role?: string | null
           sent_at?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      referrals: {
+        Row: {
+          converted_at: string | null
+          created_at: string
+          id: string
+          referral_code: string
+          referred_email: string
+          referred_user_id: string | null
+          referrer_id: string
+          status: string
+        }
+        Insert: {
+          converted_at?: string | null
+          created_at?: string
+          id?: string
+          referral_code: string
+          referred_email: string
+          referred_user_id?: string | null
+          referrer_id: string
+          status?: string
+        }
+        Update: {
+          converted_at?: string | null
+          created_at?: string
+          id?: string
+          referral_code?: string
+          referred_email?: string
+          referred_user_id?: string | null
+          referrer_id?: string
+          status?: string
         }
         Relationships: []
       }

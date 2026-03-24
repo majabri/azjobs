@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import PortfolioEditor from "@/components/PortfolioEditor";
 import ProfilePdfExport from "@/components/ProfilePdfExport";
+import ReferralDashboard from "@/components/ReferralDashboard";
+import EmailPreferences from "@/components/EmailPreferences";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -789,9 +791,14 @@ export default function ProfilePage() {
           )}
         </section>
 
-        {/* Bottom Save */}
         {/* Portfolio */}
         <PortfolioEditor />
+
+        {/* Referral & Email Preferences */}
+        <div className="grid gap-6 sm:grid-cols-2">
+          <ReferralDashboard />
+          <EmailPreferences />
+        </div>
 
         <div className="flex justify-end pt-4 border-t border-border">
           <Button onClick={handleSave} disabled={saving}>
