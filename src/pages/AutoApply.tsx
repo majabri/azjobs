@@ -73,6 +73,12 @@ export default function AutoApplyPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
+  const [activityLog, setActivityLog] = useState<ActivityLogEntry[]>([]);
+  const [isAutoRunning, setIsAutoRunning] = useState(false);
+
+  const addLog = (action: string, detail: string, type: ActivityLogEntry["type"]) => {
+    setActivityLog(prev => [{ timestamp: new Date(), action, detail, type }, ...prev].slice(0, 50));
+  };
 
   // Load defaults from profile
   useEffect(() => {
