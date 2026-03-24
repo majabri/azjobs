@@ -3,13 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import {
   ArrowLeft, Save, Upload, Plus, X, Loader2, Briefcase, GraduationCap,
-  Award, User, FileText, Settings, Trash2, Edit2,
+  Award, User, FileText, Settings, Trash2, Edit2, DollarSign, Bot,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { parseDocument } from "@/lib/api/parseDocument";
@@ -51,6 +52,10 @@ interface ProfileData {
   preferred_job_types: string[];
   career_level: string;
   target_job_titles: string[];
+  salary_min: string;
+  salary_max: string;
+  remote_only: boolean;
+  min_match_score: number;
 }
 
 const emptyProfile: ProfileData = {
@@ -66,6 +71,10 @@ const emptyProfile: ProfileData = {
   preferred_job_types: [],
   career_level: "",
   target_job_titles: [],
+  salary_min: "",
+  salary_max: "",
+  remote_only: false,
+  min_match_score: 60,
 };
 
 const JOB_TYPE_OPTIONS = [
@@ -131,6 +140,10 @@ export default function ProfilePage() {
           preferred_job_types: ((data as any).preferred_job_types as string[]) || [],
           career_level: (data as any).career_level || "",
           target_job_titles: ((data as any).target_job_titles as string[]) || [],
+          salary_min: (data as any).salary_min || "",
+          salary_max: (data as any).salary_max || "",
+          remote_only: (data as any).remote_only || false,
+          min_match_score: (data as any).min_match_score ?? 60,
         });
       }
     } catch (e) {
@@ -181,6 +194,10 @@ export default function ProfilePage() {
         preferred_job_types: profile.preferred_job_types.length ? profile.preferred_job_types : null,
         career_level: profile.career_level || null,
         target_job_titles: profile.target_job_titles.length ? profile.target_job_titles : null,
+        salary_min: profile.salary_min || null,
+        salary_max: profile.salary_max || null,
+        remote_only: profile.remote_only,
+        min_match_score: profile.min_match_score,
         updated_at: new Date().toISOString(),
       };
       const { error } = await supabase
@@ -230,6 +247,7 @@ export default function ProfilePage() {
 
       if (extracted) {
         setProfile((prev) => ({
+          ...prev,
           full_name: extracted.full_name || prev.full_name,
           email: extracted.email || prev.email,
           phone: extracted.phone || prev.phone,
@@ -239,7 +257,6 @@ export default function ProfilePage() {
           work_experience: extracted.work_experience?.length ? extracted.work_experience : prev.work_experience,
           education: extracted.education?.length ? extracted.education : prev.education,
           certifications: extracted.certifications?.length ? extracted.certifications : prev.certifications,
-          preferred_job_types: prev.preferred_job_types,
           career_level: localProfile.careerLevel || prev.career_level,
           target_job_titles: localProfile.jobTitles.length ? localProfile.jobTitles : prev.target_job_titles,
         }));
@@ -555,6 +572,51 @@ export default function ProfilePage() {
                 el.value = "";
               }
             }}><Plus className="w-4 h-4" /></Button>
+          </div>
+        </section>
+
+        {/* Auto-Apply Preferences */}
+        <section>
+          <h2 className="text-base font-semibold text-foreground flex items-center gap-2 mb-4">
+            <Bot className="w-4 h-4 text-primary" /> Auto-Apply Defaults
+          </h2>
+          <p className="text-xs text-muted-foreground mb-4">These defaults are used by the Auto-Apply Agent and Job Search. You can override them per session.</p>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label>Min Salary</Label>
+                <div className="flex items-center gap-1 mt-1">
+                  <DollarSign className="w-4 h-4 text-muted-foreground" />
+                  <Input value={profile.salary_min} onChange={(e) => setProfile({ ...profile, salary_min: e.target.value })} placeholder="80,000" />
+                </div>
+              </div>
+              <div>
+                <Label>Max Salary</Label>
+                <div className="flex items-center gap-1 mt-1">
+                  <DollarSign className="w-4 h-4 text-muted-foreground" />
+                  <Input value={profile.salary_max} onChange={(e) => setProfile({ ...profile, salary_max: e.target.value })} placeholder="150,000" />
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch checked={profile.remote_only} onCheckedChange={(v) => setProfile({ ...profile, remote_only: v })} />
+              <Label className="text-sm">Remote Only</Label>
+            </div>
+            <div>
+              <Label className="text-sm font-semibold">Minimum Match Score: {profile.min_match_score}%</Label>
+              <input
+                type="range"
+                min={30}
+                max={90}
+                value={profile.min_match_score}
+                onChange={(e) => setProfile({ ...profile, min_match_score: parseInt(e.target.value) })}
+                className="w-full mt-1 accent-[hsl(var(--accent))]"
+              />
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>More Jobs (30%)</span>
+                <span>Higher Quality (90%)</span>
+              </div>
+            </div>
           </div>
         </section>
 
