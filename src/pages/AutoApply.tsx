@@ -50,7 +50,17 @@ const defaultPrefs: AutoApplyPrefs = {
   remoteOnly: false,
   requireReview: true,
   minMatchScore: 60,
+  applyMode: "manual",
+  riskTolerance: 50,
 };
+
+interface ActivityLogEntry {
+  timestamp: Date;
+  action: string;
+  detail: string;
+  type: "search" | "analyze" | "generate" | "apply" | "skip";
+}
+
 
 export default function AutoApplyPage() {
   const navigate = useNavigate();
