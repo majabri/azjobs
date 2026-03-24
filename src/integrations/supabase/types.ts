@@ -206,6 +206,105 @@ export type Database = {
         }
         Relationships: []
       }
+      scraped_jobs: {
+        Row: {
+          company: string
+          created_at: string
+          description: string
+          first_seen_at: string
+          flag_reasons: Json | null
+          id: string
+          industry: string | null
+          is_flagged: boolean | null
+          is_remote: boolean | null
+          job_type: string | null
+          job_url: string | null
+          last_seen_at: string
+          location: string | null
+          quality_score: number | null
+          salary: string | null
+          seniority: string | null
+          source: string
+          source_id: string | null
+          title: string
+        }
+        Insert: {
+          company: string
+          created_at?: string
+          description?: string
+          first_seen_at?: string
+          flag_reasons?: Json | null
+          id?: string
+          industry?: string | null
+          is_flagged?: boolean | null
+          is_remote?: boolean | null
+          job_type?: string | null
+          job_url?: string | null
+          last_seen_at?: string
+          location?: string | null
+          quality_score?: number | null
+          salary?: string | null
+          seniority?: string | null
+          source?: string
+          source_id?: string | null
+          title: string
+        }
+        Update: {
+          company?: string
+          created_at?: string
+          description?: string
+          first_seen_at?: string
+          flag_reasons?: Json | null
+          id?: string
+          industry?: string | null
+          is_flagged?: boolean | null
+          is_remote?: boolean | null
+          job_type?: string | null
+          job_url?: string | null
+          last_seen_at?: string
+          location?: string | null
+          quality_score?: number | null
+          salary?: string | null
+          seniority?: string | null
+          source?: string
+          source_id?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
+      scraping_targets: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          last_scraped_at: string | null
+          name: string
+          target_type: string
+          url: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          last_scraped_at?: string | null
+          name?: string
+          target_type?: string
+          url: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          last_scraped_at?: string | null
+          name?: string
+          target_type?: string
+          url?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
