@@ -1231,6 +1231,12 @@ ${analysis.gaps.slice(0, 3).map((g) => `â€¢ [Relevant ${g.area} certification â€
               </div>
             )}
 
+            {/* Gap Intelligence Panel */}
+            <GapIntelligence analysis={analysis} />
+
+            {/* Interview Predictor */}
+            <InterviewPredictor jobDescription={jobDesc} resumeText={resume} />
+
             {/* Links bar */}
             {(jobLink || linkedinUrl) && (
               <div className="flex flex-wrap gap-3">

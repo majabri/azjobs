@@ -139,6 +139,12 @@ export default function Dashboard() {
         {/* Learning Insights */}
         <LearningInsights />
 
+        {/* Adaptive Search Strategy */}
+        <AdaptiveSearchStrategy />
+
+        {/* Job Board Importer */}
+        <JobBoardImporter />
+
         {/* Career Path Intelligence */}
         <CareerPathIntelligence />
 
