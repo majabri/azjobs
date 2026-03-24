@@ -854,11 +854,22 @@ ${analysis.gaps.slice(0, 3).map((g) => `• [Relevant ${g.area} certification �
           <div className="animate-fade-up">
             <div className="text-center mb-10">
               <h1 className="font-display text-4xl font-bold text-primary mb-3">
-                How do you <span className="text-gradient-teal">stack up?</span>
+                {isDemo ? (
+                  <>See how <span className="text-gradient-teal">FitCheck</span> works</>
+                ) : (
+                  <>Get more <span className="text-gradient-teal">interviews</span></>
+                )}
               </h1>
               <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-                Paste a job description and your resume. Get your exact fit score, gaps, and a personalized roadmap in seconds.
+                {isDemo
+                  ? "This demo shows a pre-loaded resume and job description. Hit Analyze to see your fit score instantly."
+                  : "Upload your resume and paste a job description. Get your fit score, gaps, and an AI-optimized resume in seconds."}
               </p>
+              {isDemo && (
+                <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent/10 border border-accent/20 text-accent text-sm font-medium">
+                  <Sparkles className="w-3.5 h-3.5" /> Demo Mode — no account needed
+                </div>
+              )}
             </div>
 
             {/* Optional links row */}
