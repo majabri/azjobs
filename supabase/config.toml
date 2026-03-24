@@ -56,3 +56,6 @@ verify_jwt = false
 
 [functions.salary-projection]
 verify_jwt = false
+
+[functions.interview-predictor]
+verify_jwt = false
