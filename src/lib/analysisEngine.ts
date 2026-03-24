@@ -454,6 +454,60 @@ export function extractProfileFromResume(resumeText: string): ExtractedProfile {
   };
 }
 
+// ─── Learning Resources Generator ────────────────────────────────────────────
+const RESOURCE_DB: Record<string, LearningResource[]> = {
+  "Cybersecurity": [
+    { title: "CompTIA Security+ Certification", type: "certification", platform: "CompTIA", estimatedTime: "6-8 weeks", url: "https://www.comptia.org/certifications/security" },
+    { title: "Cybersecurity Specialization", type: "course", platform: "Coursera", estimatedTime: "4-6 months", url: "https://www.coursera.org/specializations/cyber-security" },
+    { title: "TryHackMe Learning Paths", type: "project", platform: "TryHackMe", estimatedTime: "2-4 weeks", url: "https://tryhackme.com" },
+  ],
+  "Compliance & Governance": [
+    { title: "NIST Cybersecurity Framework Course", type: "course", platform: "NIST", estimatedTime: "2 weeks", url: "https://www.nist.gov/cyberframework" },
+    { title: "ISO 27001 Lead Implementer", type: "certification", platform: "PECB", estimatedTime: "5 days" },
+    { title: "GRC Fundamentals", type: "course", platform: "Udemy", estimatedTime: "3 weeks" },
+  ],
+  "Backend & Infrastructure": [
+    { title: "AWS Solutions Architect", type: "certification", platform: "AWS", estimatedTime: "8-12 weeks", url: "https://aws.amazon.com/certification/" },
+    { title: "Docker & Kubernetes Bootcamp", type: "course", platform: "Udemy", estimatedTime: "4 weeks" },
+    { title: "Build a Microservices Project", type: "project", platform: "Self-directed", estimatedTime: "3 weeks" },
+  ],
+  "Programming Languages": [
+    { title: "CS50 Introduction to CS", type: "course", platform: "Harvard/edX", estimatedTime: "12 weeks", url: "https://cs50.harvard.edu/" },
+    { title: "LeetCode Practice", type: "project", platform: "LeetCode", estimatedTime: "Ongoing", url: "https://leetcode.com" },
+  ],
+  "Data & Analytics": [
+    { title: "Google Data Analytics Certificate", type: "certification", platform: "Coursera", estimatedTime: "6 months", url: "https://www.coursera.org/professional-certificates/google-data-analytics" },
+    { title: "SQL for Data Science", type: "course", platform: "Coursera", estimatedTime: "4 weeks" },
+  ],
+  "AI & Machine Learning": [
+    { title: "Machine Learning Specialization", type: "course", platform: "Coursera/Stanford", estimatedTime: "3 months", url: "https://www.coursera.org/specializations/machine-learning-introduction" },
+    { title: "Build an ML Portfolio Project", type: "project", platform: "Kaggle", estimatedTime: "4 weeks", url: "https://www.kaggle.com" },
+  ],
+  "Leadership & Strategy": [
+    { title: "Management Essentials", type: "course", platform: "Harvard Online", estimatedTime: "8 weeks" },
+    { title: "The First 90 Days", type: "book", platform: "Book", estimatedTime: "1 week" },
+  ],
+  "Web & Frontend": [
+    { title: "Meta Front-End Developer", type: "certification", platform: "Coursera", estimatedTime: "7 months" },
+    { title: "Build a Portfolio Site", type: "project", platform: "Self-directed", estimatedTime: "2 weeks" },
+  ],
+  "Project & Product Management": [
+    { title: "PMP Certification Prep", type: "certification", platform: "PMI", estimatedTime: "3 months" },
+    { title: "Agile/Scrum Master Cert", type: "certification", platform: "Scrum.org", estimatedTime: "2 weeks" },
+  ],
+};
+
+const DEFAULT_RESOURCES: LearningResource[] = [
+  { title: "LinkedIn Learning Courses", type: "course", platform: "LinkedIn", estimatedTime: "2-4 weeks", url: "https://www.linkedin.com/learning/" },
+  { title: "Hands-on Portfolio Project", type: "project", platform: "Self-directed", estimatedTime: "3 weeks" },
+];
+
+function getResourcesForSkill(skill: string, category: string): LearningResource[] {
+  const categoryResources = RESOURCE_DB[category];
+  if (categoryResources) return categoryResources.slice(0, 3);
+  return DEFAULT_RESOURCES;
+}
+
 // ─── Scoring & Analysis (unchanged logic, enhanced categories) ───────────────
 function scoreOverlap(jobKeywords: string[], resumeKeywords: string[]): number {
   if (jobKeywords.length === 0) return 65;
