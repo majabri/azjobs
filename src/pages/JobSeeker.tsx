@@ -1258,6 +1258,15 @@ ${analysis.gaps.slice(0, 3).map((g) => `â€¢ [Relevant ${g.area} certification â€
               overallScore={analysis.overallScore}
             />
 
+            {/* Application Package Generator */}
+            <ApplicationPackageGenerator
+              resume={resume}
+              aiResume={aiResume}
+              coverLetter={coverLetter}
+              jobDesc={jobDesc}
+              analysis={analysis}
+            />
+
             {/* Skills grid */}
             <div className="grid md:grid-cols-2 gap-6">
               {/* Matched skills */}
