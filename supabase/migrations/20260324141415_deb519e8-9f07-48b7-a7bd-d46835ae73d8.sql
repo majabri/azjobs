@@ -1,0 +1,1 @@
+CREATE POLICY "Anyone can view score reports" ON public.analysis_history FOR SELECT TO anon USING (true);
