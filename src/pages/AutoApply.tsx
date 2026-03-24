@@ -10,7 +10,7 @@ import {
   ArrowLeft, Bot, Settings, Play, CheckCircle2, Loader2,
   Briefcase, MapPin, DollarSign, FileText, Eye, Copy,
   Shield, Target, Package, Mail,
-  ChevronDown, ChevronUp, Search, X,
+  ChevronDown, ChevronUp, Search, X, ExternalLink,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -529,14 +529,14 @@ export default function AutoApplyPage() {
                       </Badge>
 
                       {/* Actions */}
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1 flex-wrap">
                         {item.status === "review" && (
                           <>
-                            <Button size="sm" variant="outline" className="text-xs" onClick={() => setExpandedId(isExpanded ? null : item.id)}>
-                              <Eye className="w-3 h-3 mr-1" /> Review
+                            <Button size="sm" className="text-xs gradient-teal text-white" onClick={() => { analyzeItem(item); setExpandedId(item.id); }} disabled={isAnalyzing}>
+                              {isAnalyzing ? <Loader2 className="w-3 h-3 animate-spin" /> : <><Target className="w-3 h-3 mr-1" /> Analyze Fit</>}
                             </Button>
-                            <Button size="sm" className="text-xs gradient-teal text-white" onClick={() => analyzeItem(item)} disabled={isAnalyzing}>
-                              {isAnalyzing ? <Loader2 className="w-3 h-3 animate-spin" /> : <><Target className="w-3 h-3 mr-1" /> Analyze</>}
+                            <Button size="sm" variant="outline" className="text-xs" onClick={() => setExpandedId(isExpanded ? null : item.id)}>
+                              <Eye className="w-3 h-3 mr-1" /> View Job
                             </Button>
                             <Button size="sm" variant="ghost" className="text-xs text-muted-foreground" onClick={() => skipJob(item.id)}>Skip</Button>
                           </>
@@ -544,10 +544,17 @@ export default function AutoApplyPage() {
                         {item.status === "analyzed" && (
                           <>
                             <Button size="sm" variant="outline" className="text-xs" onClick={() => setExpandedId(isExpanded ? null : item.id)}>
-                              <Eye className="w-3 h-3 mr-1" /> Details
+                              <Eye className="w-3 h-3 mr-1" /> {isExpanded ? "Collapse" : "Review Analysis"}
                             </Button>
                             <Button size="sm" className="text-xs gradient-teal text-white" onClick={() => generatePackage(item)} disabled={isGenerating}>
-                              {isGenerating ? <Loader2 className="w-3 h-3 animate-spin" /> : <><Package className="w-3 h-3 mr-1" /> Generate</>}
+                              {isGenerating ? <Loader2 className="w-3 h-3 animate-spin" /> : <><Package className="w-3 h-3 mr-1" /> Generate Package</>}
+                            </Button>
+                            <Button size="sm" variant="outline" className="text-xs" onClick={() => {
+                              const jobDesc = `${item.jobTitle} at ${item.company}\n${item.jobDescription}`;
+                              const url = `/job-seeker?prefillJob=${encodeURIComponent(jobDesc)}`;
+                              window.open(url, "_blank");
+                            }}>
+                              <ExternalLink className="w-3 h-3 mr-1" /> Full Analysis
                             </Button>
                             <Button size="sm" variant="ghost" className="text-xs text-muted-foreground" onClick={() => skipJob(item.id)}>Skip</Button>
                           </>
@@ -555,7 +562,7 @@ export default function AutoApplyPage() {
                         {item.status === "ready" && (
                           <>
                             <Button size="sm" className="text-xs" onClick={() => approveAndTrack(item)}>
-                              <CheckCircle2 className="w-3 h-3 mr-1" /> Track
+                              <CheckCircle2 className="w-3 h-3 mr-1" /> Track Application
                             </Button>
                             <Button size="sm" variant="ghost" onClick={() => setExpandedId(isExpanded ? null : item.id)}>
                               {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
