@@ -109,6 +109,59 @@ export default function AutoApplyPage() {
     }
   };
 
+  const buildProfileResumeFallback = (profile: any): string => {
+    if (!profile) return "";
+
+    const workExp = Array.isArray(profile.work_experience)
+      ? profile.work_experience
+          .map((w: any) => `${w?.title || ""} at ${w?.company || ""}. ${w?.description || ""}`.trim())
+          .filter(Boolean)
+      : [];
+
+    const skills = Array.isArray(profile.skills) ? profile.skills.join(", ") : "";
+    const certs = Array.isArray(profile.certifications) ? profile.certifications.join(", ") : "";
+    const titles = Array.isArray(profile.target_job_titles) ? profile.target_job_titles.join(", ") : "";
+
+    return [
+      profile.full_name ? `Name: ${profile.full_name}` : "",
+      profile.career_level ? `Career Level: ${profile.career_level}` : "",
+      profile.summary ? `Summary: ${profile.summary}` : "",
+      skills ? `Skills: ${skills}` : "",
+      titles ? `Target Roles: ${titles}` : "",
+      certs ? `Certifications: ${certs}` : "",
+      workExp.length ? `Experience: ${workExp.join(" ")}` : "",
+    ]
+      .filter(Boolean)
+      .join("\n");
+  };
+
+  const getBestResumeText = async (userId: string): Promise<{ text: string; source: "resume_version" | "profile" | "none" }> => {
+    const { data: versions } = await supabase
+      .from("resume_versions" as any)
+      .select("resume_text")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(1) as any;
+
+    const latestResume = versions?.[0]?.resume_text?.trim?.() || "";
+    if (latestResume) {
+      return { text: latestResume, source: "resume_version" };
+    }
+
+    const { data: profile } = await supabase
+      .from("job_seeker_profiles")
+      .select("full_name, summary, skills, work_experience, certifications, target_job_titles, career_level")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    const fallback = buildProfileResumeFallback(profile).trim();
+    if (fallback) {
+      return { text: fallback, source: "profile" };
+    }
+
+    return { text: "", source: "none" };
+  };
+
   const runAutoSearch = async () => {
     if (!prefs.jobTitles.length) {
       toast.error("Add at least one target job title");
@@ -148,14 +201,8 @@ export default function AutoApplyPage() {
       const data = await resp.json();
       const jobs = (data.jobs || []) as any[];
 
-      const { data: versions } = await supabase
-        .from("resume_versions" as any)
-        .select("resume_text")
-        .eq("user_id", session.user.id)
-        .order("created_at", { ascending: false })
-        .limit(1) as any;
-
-      const resumeText = versions?.[0]?.resume_text || "";
+      const resumeLookup = await getBestResumeText(session.user.id);
+      const resumeText = resumeLookup.text;
 
       const newQueue: QueuedApplication[] = jobs
         .map((job: any) => {
@@ -176,7 +223,11 @@ export default function AutoApplyPage() {
         .sort((a: QueuedApplication, b: QueuedApplication) => b.matchScore - a.matchScore);
 
       setQueue((prev) => [...newQueue, ...prev]);
-      toast.success(`Found ${newQueue.filter(j => j.status === "review").length} jobs above ${prefs.minMatchScore}% threshold`);
+      if (resumeLookup.source === "profile") {
+        toast.success(`Found ${newQueue.filter(j => j.status === "review").length} jobs. Using your profile for fit analysis.`);
+      } else {
+        toast.success(`Found ${newQueue.filter(j => j.status === "review").length} jobs above ${prefs.minMatchScore}% threshold`);
+      }
     } catch {
       toast.error("Auto-search failed");
     } finally {
@@ -189,18 +240,23 @@ export default function AutoApplyPage() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
-      const { data: versions } = await supabase
-        .from("resume_versions" as any)
-        .select("resume_text")
-        .eq("user_id", session.user.id)
-        .order("created_at", { ascending: false })
-        .limit(1) as any;
-      const resumeText = versions?.[0]?.resume_text || "";
-      if (!resumeText) { toast.error("Save a resume in your profile first."); return; }
+
+      const resumeLookup = await getBestResumeText(session.user.id);
+      const resumeText = resumeLookup.text;
+
+      if (!resumeText) {
+        toast.error("Add resume content in Profile or Resume Versions first.");
+        return;
+      }
+
       const analysis = analyzeJobFit(item.jobDescription || "", resumeText);
       setQueue((prev) => prev.map(q =>
         q.id === item.id ? { ...q, analysis, matchScore: analysis.overallScore, status: "analyzed" as const } : q
       ));
+
+      if (resumeLookup.source === "profile") {
+        toast.success("Analyzed using your profile data.");
+      }
     } catch {
       toast.error("Analysis failed");
     } finally {
@@ -214,15 +270,9 @@ export default function AutoApplyPage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
-      const { data: versions } = await supabase
-        .from("resume_versions" as any)
-        .select("resume_text")
-        .eq("user_id", session.user.id)
-        .order("created_at", { ascending: false })
-        .limit(1) as any;
-
-      const resumeText = versions?.[0]?.resume_text || "";
-      if (!resumeText) { toast.error("No resume found."); return; }
+      const resumeLookup = await getBestResumeText(session.user.id);
+      const resumeText = resumeLookup.text;
+      if (!resumeText) { toast.error("No resume/profile content found."); return; }
 
       const analysis = item.analysis || analyzeJobFit(item.jobDescription || "", resumeText);
 
