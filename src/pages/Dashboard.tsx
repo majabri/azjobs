@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Target, Trash2, FileText, BarChart3, Clock, Loader2, TrendingUp, Sparkles, Search } from "lucide-react";
+import { ArrowLeft, Target, Trash2, FileText, BarChart3, Clock, Loader2, TrendingUp, Sparkles, Search, Map, MessageSquare } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import UserMenu from "@/components/UserMenu";
 import { toast } from "sonner";
@@ -10,6 +10,7 @@ import { ScoreRingInline } from "@/components/ScoreDisplay";
 import TodaysMatches from "@/components/TodaysMatches";
 import CareerPathIntelligence from "@/components/CareerPathIntelligence";
 import RecruiterAssistant from "@/components/RecruiterAssistant";
+import LearningInsights from "@/components/LearningInsights";
 
 interface AnalysisRecord {
   id: string;

@@ -12,6 +12,9 @@ import Profile from "./pages/Profile";
 import JobSearch from "./pages/JobSearch";
 import Dashboard from "./pages/Dashboard";
 import AutoApply from "./pages/AutoApply";
+import Career from "./pages/Career";
+import InterviewPrep from "./pages/InterviewPrep";
+import PublicProfile from "./pages/PublicProfile";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -33,6 +36,9 @@ const App = () => (
           <Route path="/job-search" element={<ProtectedRoute><JobSearch /></ProtectedRoute>} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/auto-apply" element={<ProtectedRoute><AutoApply /></ProtectedRoute>} />
+          <Route path="/career" element={<ProtectedRoute><Career /></ProtectedRoute>} />
+          <Route path="/interview-prep" element={<ProtectedRoute><InterviewPrep /></ProtectedRoute>} />
+          <Route path="/p/:userId" element={<PublicProfile />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
