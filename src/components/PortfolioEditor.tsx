@@ -1,0 +1,170 @@
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Plus, Trash2, Save, Loader2, ExternalLink, Copy, Check, Globe } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+
+interface PortfolioItem {
+  id?: string;
+  item_type: string;
+  title: string;
+  description: string;
+  url: string;
+  tags: string[];
+  display_order: number;
+}
+
+const ITEM_TYPES = ["project", "achievement", "case_study"];
+
+export default function PortfolioEditor() {
+  const [items, setItems] = useState<PortfolioItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [showAdd, setShowAdd] = useState(false);
+  const [newItem, setNewItem] = useState<PortfolioItem>({ item_type: "project", title: "", description: "", url: "", tags: [], display_order: 0 });
+  const [tagInput, setTagInput] = useState("");
+  const [linkCopied, setLinkCopied] = useState(false);
+  const [userId, setUserId] = useState("");
+
+  useEffect(() => { loadItems(); }, []);
+
+  const loadItems = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      setUserId(session.user.id);
+      const { data } = await supabase.from("user_portfolio_items" as any).select("*").eq("user_id", session.user.id).order("display_order", { ascending: true }) as any;
+      setItems(data || []);
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
+  };
+
+  const addItem = async () => {
+    if (!newItem.title.trim()) { toast.error("Title required"); return; }
+    setSaving(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      await (supabase.from("user_portfolio_items" as any) as any).insert({
+        user_id: session.user.id,
+        ...newItem,
+        display_order: items.length,
+      });
+      toast.success("Portfolio item added!");
+      setNewItem({ item_type: "project", title: "", description: "", url: "", tags: [], display_order: 0 });
+      setShowAdd(false);
+      loadItems();
+    } catch { toast.error("Failed to add"); }
+    finally { setSaving(false); }
+  };
+
+  const deleteItem = async (id: string) => {
+    try {
+      await (supabase.from("user_portfolio_items" as any) as any).delete().eq("id", id);
+      setItems(prev => prev.filter(i => i.id !== id));
+      toast.success("Removed");
+    } catch { toast.error("Failed to delete"); }
+  };
+
+  const copyProfileLink = () => {
+    const url = `${window.location.origin}/p/${userId}`;
+    navigator.clipboard.writeText(url);
+    setLinkCopied(true);
+    toast.success("Profile link copied!");
+    setTimeout(() => setLinkCopied(false), 2000);
+  };
+
+  const addTag = () => {
+    const t = tagInput.trim();
+    if (t && !newItem.tags.includes(t)) {
+      setNewItem({ ...newItem, tags: [...newItem.tags, t] });
+      setTagInput("");
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-base font-semibold text-foreground flex items-center gap-2"><Globe className="w-4 h-4 text-primary" /> Portfolio</h2>
+        <div className="flex gap-2">
+          {userId && (
+            <Button variant="outline" size="sm" onClick={copyProfileLink}>
+              {linkCopied ? <><Check className="w-3 h-3 mr-1" /> Copied</> : <><Copy className="w-3 h-3 mr-1" /> Share Profile</>}
+            </Button>
+          )}
+          <Button variant="outline" size="sm" onClick={() => setShowAdd(!showAdd)}>
+            <Plus className="w-4 h-4 mr-1" /> Add Item
+          </Button>
+        </div>
+      </div>
+
+      {/* Add Form */}
+      {showAdd && (
+        <Card className="p-4 space-y-3 border-dashed border-2 border-accent/30">
+          <div className="flex gap-2">
+            {ITEM_TYPES.map(t => (
+              <Badge key={t} variant={newItem.item_type === t ? "default" : "outline"} className="cursor-pointer capitalize text-xs" onClick={() => setNewItem({ ...newItem, item_type: t })}>
+                {t.replace("_", " ")}
+              </Badge>
+            ))}
+          </div>
+          <Input value={newItem.title} onChange={e => setNewItem({ ...newItem, title: e.target.value })} placeholder="Title" />
+          <Textarea value={newItem.description} onChange={e => setNewItem({ ...newItem, description: e.target.value })} placeholder="Description" rows={3} />
+          <Input value={newItem.url} onChange={e => setNewItem({ ...newItem, url: e.target.value })} placeholder="URL (optional)" />
+          <div className="flex gap-2">
+            <Input value={tagInput} onChange={e => setTagInput(e.target.value)} placeholder="Add tag" onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addTag(); }}} />
+            <Button variant="outline" size="sm" onClick={addTag}>Add</Button>
+          </div>
+          {newItem.tags.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {newItem.tags.map((t, i) => (
+                <Badge key={i} variant="secondary" className="cursor-pointer text-xs" onClick={() => setNewItem({ ...newItem, tags: newItem.tags.filter((_, j) => j !== i) })}>
+                  {t} ×
+                </Badge>
+              ))}
+            </div>
+          )}
+          <Button onClick={addItem} disabled={saving} size="sm">
+            {saving ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Save className="w-4 h-4 mr-1" />} Save Item
+          </Button>
+        </Card>
+      )}
+
+      {/* Items List */}
+      {loading ? (
+        <div className="flex justify-center py-6"><Loader2 className="w-5 h-5 animate-spin text-accent" /></div>
+      ) : items.length === 0 ? (
+        <Card className="p-6 text-center">
+          <p className="text-muted-foreground text-sm">No portfolio items yet. Add projects, achievements, or case studies to showcase your work.</p>
+        </Card>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {items.map(item => (
+            <Card key={item.id} className="p-4">
+              <div className="flex items-start justify-between mb-2">
+                <div>
+                  <Badge variant="outline" className="text-[10px] mb-1 capitalize">{item.item_type.replace("_", " ")}</Badge>
+                  <h3 className="font-semibold text-foreground text-sm">{item.title}</h3>
+                </div>
+                <div className="flex gap-1">
+                  {item.url && <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-accent hover:text-accent/80"><ExternalLink className="w-3.5 h-3.5" /></a>}
+                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive" onClick={() => deleteItem(item.id!)}>
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              </div>
+              {item.description && <p className="text-xs text-muted-foreground line-clamp-2">{item.description}</p>}
+              {item.tags?.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-2">{item.tags.map((t, j) => <Badge key={j} variant="secondary" className="text-[10px]">{t}</Badge>)}</div>
+              )}
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
