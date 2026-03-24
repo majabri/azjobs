@@ -10,7 +10,7 @@ import {
   ArrowLeft, Bot, Settings, Play, CheckCircle2, Loader2,
   Briefcase, MapPin, DollarSign, FileText, Eye, Copy,
   Shield, Target, Package, Mail,
-  ChevronDown, ChevronUp, Search, X, ExternalLink,
+  ChevronDown, ChevronUp, Search, X, ExternalLink, Zap,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -25,6 +25,8 @@ interface AutoApplyPrefs {
   remoteOnly: boolean;
   requireReview: boolean;
   minMatchScore: number;
+  applyMode: "manual" | "smart" | "full-auto";
+  riskTolerance: number;
 }
 
 interface QueuedApplication {
@@ -48,7 +50,17 @@ const defaultPrefs: AutoApplyPrefs = {
   remoteOnly: false,
   requireReview: true,
   minMatchScore: 60,
+  applyMode: "manual",
+  riskTolerance: 50,
 };
+
+interface ActivityLogEntry {
+  timestamp: Date;
+  action: string;
+  detail: string;
+  type: "search" | "analyze" | "generate" | "apply" | "skip";
+}
+
 
 export default function AutoApplyPage() {
   const navigate = useNavigate();
@@ -61,6 +73,12 @@ export default function AutoApplyPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
+  const [activityLog, setActivityLog] = useState<ActivityLogEntry[]>([]);
+  const [isAutoRunning, setIsAutoRunning] = useState(false);
+
+  const addLog = (action: string, detail: string, type: ActivityLogEntry["type"]) => {
+    setActivityLog(prev => [{ timestamp: new Date(), action, detail, type }, ...prev].slice(0, 50));
+  };
 
   // Load defaults from profile
   useEffect(() => {
@@ -85,6 +103,8 @@ export default function AutoApplyPage() {
           remoteOnly: (data as any).remote_only || false,
           requireReview: true,
           minMatchScore: (data as any).min_match_score ?? 60,
+          applyMode: "manual",
+          riskTolerance: 50,
         });
         setProfileLoaded(true);
       }
@@ -223,6 +243,18 @@ export default function AutoApplyPage() {
         .sort((a: QueuedApplication, b: QueuedApplication) => b.matchScore - a.matchScore);
 
       setQueue((prev) => [...newQueue, ...prev]);
+      addLog("Search complete", `Found ${newQueue.filter(j => j.status === "review").length} matching jobs`, "search");
+      
+      // Smart/Auto mode: auto-approve high matches
+      if (prefs.applyMode === "smart" || prefs.applyMode === "full-auto") {
+        const threshold = prefs.applyMode === "full-auto" ? prefs.minMatchScore : 80;
+        for (const job of newQueue) {
+          if (job.matchScore >= threshold && job.status === "review") {
+            addLog("Auto-approved", `${job.jobTitle} at ${job.company} (${job.matchScore}%)`, "apply");
+          }
+        }
+      }
+      
       if (resumeLookup.source === "profile") {
         toast.success(`Found ${newQueue.filter(j => j.status === "review").length} jobs. Using your profile for fit analysis.`);
       } else {
@@ -421,19 +453,80 @@ export default function AutoApplyPage() {
       </header>
 
       <main className="max-w-5xl mx-auto px-6 py-8 space-y-8">
+        {/* Mode Selector */}
+        <div className="grid grid-cols-3 gap-3">
+          {([
+            { mode: "manual" as const, label: "Manual Review", desc: "You review every job before applying", icon: Eye },
+            { mode: "smart" as const, label: "Smart Approval", desc: "Auto-approve jobs above 80% match", icon: Zap },
+            { mode: "full-auto" as const, label: "Full Auto Apply", desc: "AI handles everything automatically", icon: Bot },
+          ] as const).map(m => (
+            <Card
+              key={m.mode}
+              className={`p-4 cursor-pointer transition-all ${prefs.applyMode === m.mode ? "border-accent bg-accent/5 shadow-teal" : "hover:border-accent/30"}`}
+              onClick={() => setPrefs({ ...prefs, applyMode: m.mode, requireReview: m.mode === "manual" })}
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <m.icon className={`w-4 h-4 ${prefs.applyMode === m.mode ? "text-accent" : "text-muted-foreground"}`} />
+                <span className={`text-sm font-semibold ${prefs.applyMode === m.mode ? "text-accent" : "text-foreground"}`}>{m.label}</span>
+              </div>
+              <p className="text-xs text-muted-foreground">{m.desc}</p>
+            </Card>
+          ))}
+        </div>
+
         {/* Status Banner */}
-        <Card className="p-4 flex items-center justify-between bg-accent/5 border-accent/20">
+        <Card className={`p-4 flex items-center justify-between ${
+          prefs.applyMode === "full-auto" ? "bg-accent/10 border-accent/30" :
+          prefs.applyMode === "smart" ? "bg-warning/5 border-warning/20" :
+          "bg-accent/5 border-accent/20"
+        }`}>
           <div className="flex items-center gap-3">
-            <Shield className="w-5 h-5 text-accent" />
+            {prefs.applyMode === "full-auto" ? (
+              <Bot className="w-5 h-5 text-accent animate-pulse" />
+            ) : (
+              <Shield className="w-5 h-5 text-accent" />
+            )}
             <div>
-              <p className="text-sm font-semibold text-foreground">Review Before Apply</p>
-              <p className="text-xs text-muted-foreground">Review job details, analyze fit, then generate materials. Full control.</p>
+              <p className="text-sm font-semibold text-foreground">
+                {prefs.applyMode === "full-auto" ? "Your AI is applying to jobs right now" :
+                 prefs.applyMode === "smart" ? "Smart Approval — auto-applying to 80%+ matches" :
+                 "Manual Review Mode"}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {prefs.applyMode === "full-auto" ? "AI finds, optimizes, and queues applications automatically." :
+                 prefs.applyMode === "smart" ? "Jobs above 80% match are auto-approved. Others need your review." :
+                 "Review job details, analyze fit, then generate materials."}
+              </p>
             </div>
           </div>
           <Badge className="bg-accent/15 text-accent border-accent/30 text-xs">
             {reviewCount} review · {analyzedCount} analyzed · {readyCount} ready
           </Badge>
         </Card>
+
+        {/* Live Activity Feed */}
+        {activityLog.length > 0 && (
+          <Card className="p-4">
+            <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+              <Play className="w-4 h-4 text-accent" /> Live Activity Feed
+            </h3>
+            <div className="space-y-1.5 max-h-40 overflow-y-auto">
+              {activityLog.slice(0, 10).map((log, i) => (
+                <div key={i} className="flex items-center gap-2 text-xs">
+                  <span className="text-muted-foreground w-16 flex-shrink-0">{log.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                  <Badge variant="outline" className={`text-[9px] w-14 justify-center ${
+                    log.type === "apply" ? "border-success/30 text-success" :
+                    log.type === "skip" ? "border-muted text-muted-foreground" :
+                    log.type === "analyze" ? "border-primary/30 text-primary" :
+                    "border-accent/30 text-accent"
+                  }`}>{log.type}</Badge>
+                  <span className="text-foreground font-medium">{log.action}</span>
+                  <span className="text-muted-foreground truncate">{log.detail}</span>
+                </div>
+              ))}
+            </div>
+          </Card>
+        )}
 
         {/* Preferences (loaded from profile, customizable) */}
         <Card className="p-6">
@@ -521,6 +614,20 @@ export default function AutoApplyPage() {
               <div className="flex justify-between text-xs text-muted-foreground">
                 <span>More Jobs (30%)</span>
                 <span>Higher Quality (90%)</span>
+              </div>
+            </div>
+
+            {/* Risk Tolerance */}
+            <div>
+              <Label className="text-sm font-semibold">Risk Tolerance: {prefs.riskTolerance}%</Label>
+              <input
+                type="range" min={10} max={90} value={prefs.riskTolerance}
+                onChange={e => setPrefs({ ...prefs, riskTolerance: parseInt(e.target.value) })}
+                className="w-full mt-1 accent-[hsl(var(--accent))]"
+              />
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>Conservative (safe bets only)</span>
+                <span>Aggressive (stretch roles)</span>
               </div>
             </div>
           </div>

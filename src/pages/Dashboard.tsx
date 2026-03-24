@@ -12,6 +12,8 @@ import TodaysMatches from "@/components/TodaysMatches";
 import CareerPathIntelligence from "@/components/CareerPathIntelligence";
 import RecruiterAssistant from "@/components/RecruiterAssistant";
 import LearningInsights from "@/components/LearningInsights";
+import AdaptiveSearchStrategy from "@/components/AdaptiveSearchStrategy";
+import JobBoardImporter from "@/components/JobBoardImporter";
 
 interface AnalysisRecord {
   id: string;
@@ -136,6 +138,12 @@ export default function Dashboard() {
 
         {/* Learning Insights */}
         <LearningInsights />
+
+        {/* Adaptive Search Strategy */}
+        <AdaptiveSearchStrategy />
+
+        {/* Job Board Importer */}
+        <JobBoardImporter />
 
         {/* Career Path Intelligence */}
         <CareerPathIntelligence />

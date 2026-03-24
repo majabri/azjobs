@@ -15,9 +15,9 @@ import { analyzeJobFit } from "@/lib/analysisEngine";
 import type { User } from "@supabase/supabase-js";
 
 const stats = [
-  { value: "1,200+", label: "resumes optimized this week" },
-  { value: "3x", label: "more interview callbacks on average" },
-  { value: "< 30s", label: "to get matched with relevant jobs" },
+  { value: "2,400+", label: "applications sent by AI this week" },
+  { value: "5x", label: "more interview callbacks vs manual applying" },
+  { value: "24/7", label: "your AI agent works while you sleep" },
 ];
 
 const features = [
@@ -32,8 +32,8 @@ const features = [
 
 const howItWorks = [
   { step: "1", icon: Upload, title: "Upload Your Resume", desc: "Upload a PDF or Word doc. We extract your skills, experience, and career level automatically." },
-  { step: "2", icon: Target, title: "Get Matched Jobs", desc: "AI finds jobs that match your profile and ranks them by fit score and interview probability." },
-  { step: "3", icon: Rocket, title: "Auto-Optimize & Apply", desc: "Generate tailored resumes, cover letters, and application packages — then apply with one click." },
+  { step: "2", icon: Bot, title: "Your AI Works While You Sleep", desc: "AI finds matching jobs, optimizes your resume for each, generates cover letters, and queues applications." },
+  { step: "3", icon: Rocket, title: "You Get Interviews", desc: "Wake up to interview invitations. Review what your AI applied to and prep with mock interviews." },
 ];
 
 const sampleJobs = [
@@ -185,23 +185,23 @@ export default function Index() {
           )}
 
           <h1 className="text-5xl md:text-7xl font-display font-bold text-white mb-6 animate-fade-up leading-tight" style={{ animationDelay: "0.1s" }}>
-            We Apply to Jobs For You
+            Stop Applying to Jobs.
             <br />
-            <span className="text-gradient-teal">& Get You More Interviews</span>
+            <span className="text-gradient-teal">Your AI Does It For You.</span>
           </h1>
 
           <p className="text-xl md:text-2xl text-white/70 max-w-3xl mx-auto mb-12 animate-fade-up leading-relaxed" style={{ animationDelay: "0.2s" }}>
-            AI finds the best jobs, rewrites your resume, and helps you apply faster — all in one place.
+            FitCheck finds, optimizes, and applies to jobs automatically — while you focus on interviews.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-up" style={{ animationDelay: "0.3s" }}>
             <Button
               size="lg"
               className="gradient-teal text-white font-semibold text-lg px-8 py-6 rounded-xl shadow-teal hover:opacity-90 transition-opacity animate-pulse-glow"
-              onClick={() => navigate(user ? "/job-seeker" : "/auth")}
+              onClick={() => navigate(user ? "/auto-apply" : "/auth")}
             >
-              <Upload className="mr-2 w-5 h-5" />
-              Upload Resume & Get Matched
+              <Bot className="mr-2 w-5 h-5" />
+              Activate My Job Agent
             </Button>
             <Button
               size="lg"
@@ -253,9 +253,9 @@ export default function Index() {
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-display font-bold text-primary mb-4">
-              How It <span className="text-gradient-teal">Works</span>
+              Your AI Works While <span className="text-gradient-teal">You Sleep</span>
             </h2>
-            <p className="text-muted-foreground text-lg">Three steps to your next interview.</p>
+            <p className="text-muted-foreground text-lg">Three steps to your next interview — zero manual effort.</p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
