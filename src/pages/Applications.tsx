@@ -233,6 +233,8 @@ export default function ApplicationsPage() {
           <div className="flex items-center justify-center py-16 text-muted-foreground">
             <Loader2 className="w-5 h-5 animate-spin mr-2" /> Loading…
           </div>
+        ) : viewMode === "timeline" ? (
+          <ApplicationTimeline applications={filtered as any} />
         ) : viewMode === "kanban" ? (
           /* KANBAN VIEW */
           <DragDropContext onDragEnd={onDragEnd}>
