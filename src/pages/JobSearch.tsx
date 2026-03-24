@@ -291,6 +291,7 @@ export default function JobSearchPage() {
               </div>
             </div>
 
+            <Button
               className="gradient-teal text-white shadow-teal hover:opacity-90 w-full sm:w-auto"
               disabled={searching}
               onClick={handleSearch}
