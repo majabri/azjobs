@@ -41,3 +41,18 @@ verify_jwt = false
 
 [functions.learning-insights]
 verify_jwt = false
+
+[functions.generate-notifications]
+verify_jwt = false
+
+[functions.send-job-alerts]
+verify_jwt = false
+
+[functions.send-weekly-insights]
+verify_jwt = false
+
+[functions.re-engagement]
+verify_jwt = false
+
+[functions.salary-projection]
+verify_jwt = false
