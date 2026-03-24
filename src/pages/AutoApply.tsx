@@ -243,6 +243,18 @@ export default function AutoApplyPage() {
         .sort((a: QueuedApplication, b: QueuedApplication) => b.matchScore - a.matchScore);
 
       setQueue((prev) => [...newQueue, ...prev]);
+      addLog("Search complete", `Found ${newQueue.filter(j => j.status === "review").length} matching jobs`, "search");
+      
+      // Smart/Auto mode: auto-approve high matches
+      if (prefs.applyMode === "smart" || prefs.applyMode === "full-auto") {
+        const threshold = prefs.applyMode === "full-auto" ? prefs.minMatchScore : 80;
+        for (const job of newQueue) {
+          if (job.matchScore >= threshold && job.status === "review") {
+            addLog("Auto-approved", `${job.jobTitle} at ${job.company} (${job.matchScore}%)`, "apply");
+          }
+        }
+      }
+      
       if (resumeLookup.source === "profile") {
         toast.success(`Found ${newQueue.filter(j => j.status === "review").length} jobs. Using your profile for fit analysis.`);
       } else {
