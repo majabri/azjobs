@@ -457,10 +457,10 @@ export default function JobSearchPage() {
                   value={sortBy}
                   onChange={e => {
                     setSortBy(e.target.value as any);
-                    // Re-sort
                     setJobs(prev => {
                       const sorted = [...prev];
-                      if (e.target.value === "probability") sorted.sort((a, b) => (b.responseProbability || 0) - (a.responseProbability || 0));
+                      if (e.target.value === "decision") sorted.sort((a, b) => (b.decisionScore || 0) - (a.decisionScore || 0));
+                      else if (e.target.value === "probability") sorted.sort((a, b) => (b.responseProbability || 0) - (a.responseProbability || 0));
                       else if (e.target.value === "newest") sorted.sort((a, b) => {
                         if (!a.first_seen_at && !b.first_seen_at) return 0;
                         if (!a.first_seen_at) return 1;
@@ -471,6 +471,7 @@ export default function JobSearchPage() {
                     });
                   }}
                 >
+                  <option value="decision">Decision Score</option>
                   <option value="relevance">Relevance</option>
                   <option value="probability">Response Probability</option>
                   <option value="newest">Newest First</option>
