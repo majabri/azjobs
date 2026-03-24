@@ -135,6 +135,13 @@ export default function JobSeekerPage() {
   const [resumeVersions, setResumeVersions] = useState<ResumeVersionOption[]>([]);
   const [showVersionPicker, setShowVersionPicker] = useState(false);
   const [addingSkill, setAddingSkill] = useState<string | null>(null);
+  // Interview prep
+  const [isGeneratingInterviewPrep, setIsGeneratingInterviewPrep] = useState(false);
+  const [interviewPrep, setInterviewPrep] = useState("");
+  // Follow-up email
+  const [isGeneratingEmail, setIsGeneratingEmail] = useState(false);
+  const [followUpEmail, setFollowUpEmail] = useState("");
+  const [emailType, setEmailType] = useState<string>("follow-up");
   const resumeFileRef = useRef<HTMLInputElement>(null);
 
   // Check for prefilled job description from Job Search or demo mode
