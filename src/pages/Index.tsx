@@ -15,9 +15,9 @@ import { analyzeJobFit } from "@/lib/analysisEngine";
 import type { User } from "@supabase/supabase-js";
 
 const stats = [
-  { value: "1,200+", label: "resumes optimized this week" },
-  { value: "3x", label: "more interview callbacks on average" },
-  { value: "< 30s", label: "to get matched with relevant jobs" },
+  { value: "2,400+", label: "applications sent by AI this week" },
+  { value: "5x", label: "more interview callbacks vs manual applying" },
+  { value: "24/7", label: "your AI agent works while you sleep" },
 ];
 
 const features = [
