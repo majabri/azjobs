@@ -33,7 +33,7 @@ export default function PublicProfilePage() {
     try {
       const { data: p, error } = await supabase
         .from("job_seeker_profiles")
-        .select("full_name, summary, skills, work_experience, education, certifications, location, career_level")
+        .select("full_name, summary, skills, work_experience, education, certifications, location, career_level, email, phone")
         .eq("user_id", userId!)
         .maybeSingle();
 
