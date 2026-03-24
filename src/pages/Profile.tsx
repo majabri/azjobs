@@ -246,6 +246,7 @@ export default function ProfilePage() {
 
       if (extracted) {
         setProfile((prev) => ({
+          ...prev,
           full_name: extracted.full_name || prev.full_name,
           email: extracted.email || prev.email,
           phone: extracted.phone || prev.phone,
@@ -255,7 +256,6 @@ export default function ProfilePage() {
           work_experience: extracted.work_experience?.length ? extracted.work_experience : prev.work_experience,
           education: extracted.education?.length ? extracted.education : prev.education,
           certifications: extracted.certifications?.length ? extracted.certifications : prev.certifications,
-          preferred_job_types: prev.preferred_job_types,
           career_level: localProfile.careerLevel || prev.career_level,
           target_job_titles: localProfile.jobTitles.length ? localProfile.jobTitles : prev.target_job_titles,
         }));
