@@ -253,9 +253,9 @@ export default function Index() {
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-display font-bold text-primary mb-4">
-              How It <span className="text-gradient-teal">Works</span>
+              Your AI Works While <span className="text-gradient-teal">You Sleep</span>
             </h2>
-            <p className="text-muted-foreground text-lg">Three steps to your next interview.</p>
+            <p className="text-muted-foreground text-lg">Three steps to your next interview — zero manual effort.</p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
