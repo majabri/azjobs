@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import {
   ArrowLeft, Save, Upload, Plus, X, Loader2, Briefcase, GraduationCap,
-  Award, User, FileText, Settings, Trash2, Edit2,
+  Award, User, FileText, Settings, Trash2, Edit2, DollarSign, Bot,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { parseDocument } from "@/lib/api/parseDocument";
