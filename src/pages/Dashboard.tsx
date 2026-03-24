@@ -92,7 +92,7 @@ export default function Dashboard() {
           </div>
           <div className="flex items-center gap-3">
             <Button variant="outline" size="sm" onClick={() => navigate("/job-seeker")}>
-              <Target className="w-4 h-4 mr-1" /> New Analysis
+              <Target className="w-4 h-4 mr-1" /> Get More Interviews
             </Button>
             <UserMenu />
           </div>
