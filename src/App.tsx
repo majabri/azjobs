@@ -11,6 +11,7 @@ import Applications from "./pages/Applications";
 import Profile from "./pages/Profile";
 import JobSearch from "./pages/JobSearch";
 import Dashboard from "./pages/Dashboard";
+import AutoApply from "./pages/AutoApply";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -31,6 +32,7 @@ const App = () => (
           <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
           <Route path="/job-search" element={<ProtectedRoute><JobSearch /></ProtectedRoute>} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/auto-apply" element={<ProtectedRoute><AutoApply /></ProtectedRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

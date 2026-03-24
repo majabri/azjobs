@@ -8,6 +8,8 @@ import UserMenu from "@/components/UserMenu";
 import { toast } from "sonner";
 import { ScoreRingInline } from "@/components/ScoreDisplay";
 import TodaysMatches from "@/components/TodaysMatches";
+import CareerPathIntelligence from "@/components/CareerPathIntelligence";
+import RecruiterAssistant from "@/components/RecruiterAssistant";
 
 interface AnalysisRecord {
   id: string;
@@ -117,6 +119,12 @@ export default function Dashboard() {
 
         {/* Today's Matches */}
         <TodaysMatches compact />
+
+        {/* Career Path Intelligence */}
+        <CareerPathIntelligence />
+
+        {/* Recruiter Assistant */}
+        <RecruiterAssistant />
 
         {/* Analysis History */}
         <div>

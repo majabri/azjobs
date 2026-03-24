@@ -22,6 +22,7 @@ const features = [
   { icon: FileText, title: "AI Resume Optimization", desc: "One click rewrites your resume with ATS-friendly keywords tailored to the exact role. Export as PDF, Word, or text.", link: "/job-seeker" },
   { icon: Briefcase, title: "Application Toolkit", desc: "Apply with pre-filled emails, direct links, and a copy-ready application package — all from your analysis results.", link: "/job-seeker" },
   { icon: ClipboardList, title: "Application Tracker", desc: "Track every application with status updates, follow-up reminders, and notes. Never lose track of where you stand.", link: "/applications" },
+  { icon: Zap, title: "Auto-Apply Agent", desc: "Set your preferences, and let AI find jobs, generate tailored materials, and queue applications for your review.", link: "/auto-apply" },
 ];
 
 export default function Index() {
@@ -52,6 +53,7 @@ export default function Index() {
               <NavBtn icon={<ClipboardList className="w-4 h-4" />} label="Applications" onClick={() => navigate("/applications")} />
               <NavBtn icon={<UserCircle className="w-4 h-4" />} label="Profile" onClick={() => navigate("/profile")} />
               <NavBtn icon={<BarChart3 className="w-4 h-4" />} label="Dashboard" onClick={() => navigate("/dashboard")} />
+              <NavBtn icon={<Zap className="w-4 h-4" />} label="Auto-Apply" onClick={() => navigate("/auto-apply")} />
               <div className="w-px h-6 bg-white/20 mx-1" />
               <Button
                 size="sm"
