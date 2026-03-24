@@ -31,6 +31,11 @@ export interface FitAnalysis {
   strengths: string[];
   improvementPlan: { week: string; action: string }[];
   summary: string;
+  // Enhanced scoring
+  interviewProbability: number;
+  experienceMatch: number;
+  keywordAlignment: number;
+  topActions: string[];
 }
 
 // ─── Categorized Skill Keywords ───────────────────────────────────────────────
@@ -565,7 +570,40 @@ export function analyzeJobFit(jobDescription: string, resumeText: string): FitAn
       ? `You have a solid foundation but are missing some important requirements. With targeted effort over 4–8 weeks, you can significantly close the gap.`
       : `This role requires skills you haven't yet developed. Don't be discouraged — use this as a roadmap. Consider applying to similar but slightly lower-level roles while you build toward this one.`;
 
-  return { overallScore, matchedSkills, gaps, strengths, improvementPlan, summary };
+  // Enhanced scoring
+  const matchedCount = matchedSkills.filter(s => s.matched).length;
+  const totalSkills = matchedSkills.length;
+  const keywordAlignment = totalSkills > 0 ? Math.round((matchedCount / totalSkills) * 100) : 50;
+
+  // Experience match based on career level detection
+  const jobLevel = detectCareerLevel(jobDescription);
+  const resumeLevel = detectCareerLevel(resumeText);
+  const levelWeights: Record<string, number> = {
+    "Entry-Level / Junior": 10, "Mid-Level": 30, "Senior": 50, "Manager": 60,
+    "Senior Manager / Principal": 70, "Director": 80, "VP / Senior Leadership": 90, "C-Level / Executive": 100,
+  };
+  const jobW = levelWeights[jobLevel] || 30;
+  const resW = levelWeights[resumeLevel] || 30;
+  const experienceMatch = Math.max(20, 100 - Math.abs(jobW - resW));
+
+  // Interview probability composite
+  const interviewProbability = Math.min(95, Math.max(5,
+    Math.round(overallScore * 0.4 + experienceMatch * 0.3 + keywordAlignment * 0.3)
+  ));
+
+  // Top 3 actions to increase score
+  const topActions: string[] = [];
+  if (gaps[0]) topActions.push(`Add "${gaps[0].area}" to your resume — this is the #1 missing keyword`);
+  if (experienceMatch < 70) topActions.push(`Highlight ${jobLevel}-level achievements to bridge the experience gap`);
+  if (keywordAlignment < 60) topActions.push("Use the AI optimizer to add more matching keywords to your resume");
+  if (topActions.length < 3 && gaps[1]) topActions.push(`Get certified in ${gaps[1].area} for a quick score boost`);
+  if (topActions.length < 3) topActions.push("Tailor your professional summary to mirror the job description language");
+
+  return {
+    overallScore, matchedSkills, gaps, strengths, improvementPlan, summary,
+    interviewProbability, experienceMatch, keywordAlignment,
+    topActions: topActions.slice(0, 3),
+  };
 }
 
 // ─── Candidate Analysis (hiring manager) ─────────────────────────────────────

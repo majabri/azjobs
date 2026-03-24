@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Target, Sparkles, AlertTriangle, CheckCircle2, XCircle, ChevronRight, Lightbulb, Link2, Linkedin, ExternalLink, Download, Loader2, Upload, FileText, Copy, Mail, User, Plus, MessageSquare, BookOpen, GraduationCap, Award, Package } from "lucide-react";
+import { ArrowLeft, Target, Sparkles, AlertTriangle, CheckCircle2, XCircle, ChevronRight, Lightbulb, Link2, Linkedin, ExternalLink, Download, Loader2, Upload, FileText, Copy, Mail, User, Plus, MessageSquare, BookOpen, GraduationCap, Award, Package, TrendingUp, Shield, Zap } from "lucide-react";
 import { analyzeJobFit, type FitAnalysis } from "@/lib/analysisEngine";
 import { ScoreRingInline, AnimatedBar } from "@/components/ScoreDisplay";
 import { scrapeUrl } from "@/lib/api/scrapeUrl";
@@ -14,6 +14,7 @@ import UserMenu from "@/components/UserMenu";
 import { computeDiff, type DiffSegment } from "@/lib/diffUtils";
 import { supabase } from "@/integrations/supabase/client";
 import ApplicationToolkit from "@/components/ApplicationToolkit";
+import ApplicationPackageGenerator from "@/components/ApplicationPackageGenerator";
 
 const DEMO_JOB = `Senior Cybersecurity Engineer â€” Cloud Security
 
@@ -1184,6 +1185,43 @@ ${analysis.gaps.slice(0, 3).map((g) => `â€¢ [Relevant ${g.area} certification â€
               </div>
             </div>
 
+            {/* Enhanced Score Breakdown */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="bg-card rounded-xl p-4 border border-border shadow-card text-center">
+                <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1 justify-center"><Target className="w-3 h-3" /> Interview Chance</div>
+                <div className="text-2xl font-display font-bold text-accent">{analysis.interviewProbability}%</div>
+              </div>
+              <div className="bg-card rounded-xl p-4 border border-border shadow-card text-center">
+                <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1 justify-center"><Shield className="w-3 h-3" /> Experience Match</div>
+                <div className={`text-2xl font-display font-bold ${analysis.experienceMatch >= 70 ? "text-success" : analysis.experienceMatch >= 40 ? "text-warning" : "text-destructive"}`}>{analysis.experienceMatch}%</div>
+              </div>
+              <div className="bg-card rounded-xl p-4 border border-border shadow-card text-center">
+                <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1 justify-center"><Zap className="w-3 h-3" /> Keyword Alignment</div>
+                <div className={`text-2xl font-display font-bold ${analysis.keywordAlignment >= 70 ? "text-success" : analysis.keywordAlignment >= 40 ? "text-warning" : "text-destructive"}`}>{analysis.keywordAlignment}%</div>
+              </div>
+              <div className="bg-card rounded-xl p-4 border border-border shadow-card text-center">
+                <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1 justify-center"><TrendingUp className="w-3 h-3" /> Fit Score</div>
+                <div className={`text-2xl font-display font-bold ${analysis.overallScore >= 70 ? "text-success" : analysis.overallScore >= 45 ? "text-warning" : "text-destructive"}`}>{analysis.overallScore}%</div>
+              </div>
+            </div>
+
+            {/* Top Actions to Improve */}
+            {analysis.topActions.length > 0 && (
+              <div className="bg-accent/5 border border-accent/20 rounded-2xl p-5">
+                <h3 className="font-display font-bold text-primary text-base mb-3 flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-accent" /> Top Actions to Improve Your Score
+                </h3>
+                <div className="space-y-2">
+                  {analysis.topActions.map((action, i) => (
+                    <div key={i} className="flex items-start gap-3 text-sm">
+                      <span className="w-6 h-6 rounded-full gradient-teal text-white flex items-center justify-center text-xs font-bold flex-shrink-0">{i + 1}</span>
+                      <span className="text-foreground">{action}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Links bar */}
             {(jobLink || linkedinUrl) && (
               <div className="flex flex-wrap gap-3">
@@ -1218,6 +1256,15 @@ ${analysis.gaps.slice(0, 3).map((g) => `â€¢ [Relevant ${g.area} certification â€
               coverLetter={coverLetter}
               aiResume={aiResume}
               overallScore={analysis.overallScore}
+            />
+
+            {/* Application Package Generator */}
+            <ApplicationPackageGenerator
+              resume={resume}
+              aiResume={aiResume}
+              coverLetter={coverLetter}
+              jobDesc={jobDesc}
+              analysis={analysis}
             />
 
             {/* Skills grid */}
