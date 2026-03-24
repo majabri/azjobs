@@ -150,6 +150,9 @@ export default function CareerPage() {
       </header>
 
       <main className="max-w-6xl mx-auto px-6 py-8 space-y-8">
+        {/* Progress Metrics */}
+        <ProgressMetrics />
+
         {/* Career Snapshot */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <Card className="p-4">
