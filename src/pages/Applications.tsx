@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import UserMenu from "@/components/UserMenu";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
+import ApplicationTimeline from "@/components/ApplicationTimeline";
 
 interface JobApplication {
   id: string;
@@ -46,7 +47,7 @@ export default function ApplicationsPage() {
   const [applications, setApplications] = useState<JobApplication[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [viewMode, setViewMode] = useState<"kanban" | "list">("kanban");
+  const [viewMode, setViewMode] = useState<"kanban" | "list" | "timeline">("kanban");
   const [editingFollowUp, setEditingFollowUp] = useState<string | null>(null);
   const [followUpDate, setFollowUpDate] = useState("");
   const [followUpNotes, setFollowUpNotes] = useState("");
@@ -209,6 +210,7 @@ export default function ApplicationsPage() {
           <div className="flex gap-2">
             <Button variant={viewMode === "kanban" ? "default" : "outline"} size="sm" onClick={() => setViewMode("kanban")} className="text-xs">Board</Button>
             <Button variant={viewMode === "list" ? "default" : "outline"} size="sm" onClick={() => setViewMode("list")} className="text-xs">List</Button>
+            <Button variant={viewMode === "timeline" ? "default" : "outline"} size="sm" onClick={() => setViewMode("timeline")} className="text-xs">Timeline</Button>
             <Button variant="outline" size="sm" onClick={() => setAddingApp(!addingApp)} className="text-xs">
               <Plus className="w-3.5 h-3.5 mr-1" /> Add
             </Button>
@@ -231,6 +233,8 @@ export default function ApplicationsPage() {
           <div className="flex items-center justify-center py-16 text-muted-foreground">
             <Loader2 className="w-5 h-5 animate-spin mr-2" /> Loading…
           </div>
+        ) : viewMode === "timeline" ? (
+          <ApplicationTimeline applications={filtered as any} />
         ) : viewMode === "kanban" ? (
           /* KANBAN VIEW */
           <DragDropContext onDragEnd={onDragEnd}>

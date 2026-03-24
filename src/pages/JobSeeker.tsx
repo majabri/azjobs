@@ -15,6 +15,7 @@ import { computeDiff, type DiffSegment } from "@/lib/diffUtils";
 import { supabase } from "@/integrations/supabase/client";
 import ApplicationToolkit from "@/components/ApplicationToolkit";
 import ApplicationPackageGenerator from "@/components/ApplicationPackageGenerator";
+import ResumeComparison from "@/components/ResumeComparison";
 
 const DEMO_JOB = `Senior Cybersecurity Engineer — Cloud Security
 
@@ -1476,42 +1477,11 @@ ${analysis.gaps.slice(0, 3).map((g) => `• [Relevant ${g.area} certification �
 
               {/* Side-by-side comparison when AI rewrite is available */}
               {aiResume ? (
-                <div className="grid md:grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="w-2 h-2 rounded-full bg-muted-foreground" />
-                      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Original Resume</span>
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-destructive/10 text-destructive font-medium">Removed</span>
-                    </div>
-                    <div className="bg-muted/30 rounded-xl p-4 border border-border max-h-80 overflow-y-auto">
-                      <pre className="text-xs whitespace-pre-wrap font-mono leading-relaxed">
-                        {diffResult.original.map((seg, i) => (
-                          <span
-                            key={i}
-                            className={seg.type === "removed" ? "bg-destructive/15 text-destructive line-through decoration-destructive/40" : "text-muted-foreground"}
-                          >{seg.text}</span>
-                        ))}
-                      </pre>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="w-2 h-2 rounded-full bg-accent" />
-                      <span className="text-xs font-semibold text-accent uppercase tracking-wider">AI-Rewritten (ATS-Optimized)</span>
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent/10 text-accent font-medium">Added</span>
-                    </div>
-                    <div className="bg-accent/5 rounded-xl p-4 border border-accent/20 max-h-80 overflow-y-auto">
-                      <pre className="text-xs whitespace-pre-wrap font-mono leading-relaxed">
-                        {diffResult.modified.map((seg, i) => (
-                          <span
-                            key={i}
-                            className={seg.type === "added" ? "bg-accent/15 text-accent font-medium" : "text-foreground"}
-                          >{seg.text}</span>
-                        ))}
-                      </pre>
-                    </div>
-                  </div>
-                </div>
+                <ResumeComparison
+                  original={resume}
+                  optimized={aiResume}
+                  jobTitle={analysis ? (jobDesc.trim().split("\n")[0]?.match(/^(.+?)(?:\s*[—–-]\s*|$)/)?.[1]?.trim() || undefined) : undefined}
+                />
               ) : (
                 <div className="bg-muted/50 rounded-xl p-4 border border-border mb-4 max-h-72 overflow-y-auto">
                   <pre className="text-xs text-foreground whitespace-pre-wrap font-mono leading-relaxed">
