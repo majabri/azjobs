@@ -536,10 +536,32 @@ export default function JobSeekerPage() {
           }
         }
       }
-      toast.success("Resume rewritten with AI!");
+      toast.success("Resume optimized with AI!");
+
+      // Save optimized resume to analysis history
+      if (!isDemo) {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session) {
+            // Update the most recent analysis with optimized resume
+            const { data: recent } = await (supabase.from("analysis_history" as any) as any)
+              .select("id")
+              .eq("user_id", session.user.id)
+              .order("created_at", { ascending: false })
+              .limit(1);
+            if (recent?.[0]) {
+              await (supabase.from("analysis_history" as any) as any)
+                .update({ optimized_resume: full })
+                .eq("id", recent[0].id);
+            }
+          }
+        } catch (e) {
+          console.error("Failed to save optimized resume:", e);
+        }
+      }
     } catch (e) {
       console.error(e);
-      toast.error("Failed to rewrite resume");
+      toast.error("Failed to optimize resume");
     } finally {
       setIsRewriting(false);
     }
