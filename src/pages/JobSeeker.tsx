@@ -1311,6 +1311,39 @@ ${analysis.gaps.slice(0, 3).map((g) => `• [Relevant ${g.area} certification �
                             </Badge>
                           </div>
                           <p className="text-sm text-muted-foreground leading-relaxed mb-2">{gap.action}</p>
+                          
+                          {/* Estimated time */}
+                          {'estimatedWeeks' in gap && (gap as any).estimatedWeeks && (
+                            <p className="text-xs text-accent font-medium mb-2">
+                              ⏱ Estimated {(gap as any).estimatedWeeks} weeks to close this gap
+                            </p>
+                          )}
+
+                          {/* Learning Resources */}
+                          {'resources' in gap && (gap as any).resources?.length > 0 && (
+                            <div className="mt-2 space-y-1.5">
+                              <p className="text-xs font-semibold text-foreground flex items-center gap-1">
+                                <GraduationCap className="w-3 h-3 text-accent" /> Recommended Resources
+                              </p>
+                              {((gap as any).resources as any[]).map((r: any, ri: number) => (
+                                <div key={ri} className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded-lg px-3 py-1.5">
+                                  {r.type === "course" && <BookOpen className="w-3 h-3 text-accent flex-shrink-0" />}
+                                  {r.type === "certification" && <Award className="w-3 h-3 text-warning flex-shrink-0" />}
+                                  {r.type === "project" && <Package className="w-3 h-3 text-success flex-shrink-0" />}
+                                  {r.type === "book" && <FileText className="w-3 h-3 text-muted-foreground flex-shrink-0" />}
+                                  <span className="flex-1">{r.title}</span>
+                                  <span className="text-muted-foreground/60">{r.platform}</span>
+                                  <span className="text-muted-foreground/60">{r.estimatedTime}</span>
+                                  {r.url && (
+                                    <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">
+                                      <ExternalLink className="w-3 h-3" />
+                                    </a>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
                           <div className="flex items-center gap-2 mt-2 pt-2 border-t border-border/50">
                             <Lightbulb className="w-3.5 h-3.5 text-accent flex-shrink-0" />
                             <p className="text-xs text-accent leading-relaxed flex-1">
