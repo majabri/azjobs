@@ -51,6 +51,10 @@ interface ProfileData {
   preferred_job_types: string[];
   career_level: string;
   target_job_titles: string[];
+  salary_min: string;
+  salary_max: string;
+  remote_only: boolean;
+  min_match_score: number;
 }
 
 const emptyProfile: ProfileData = {
