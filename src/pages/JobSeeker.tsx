@@ -397,11 +397,39 @@ export default function JobSeekerPage() {
   const handleAnalyze = () => {
     if (!jobDesc.trim() || !resume.trim()) return;
     setIsAnalyzing(true);
-    setTimeout(() => {
+    setTimeout(async () => {
       const result = analyzeJobFit(jobDesc, resume);
       setAnalysis(result);
       setStep("result");
       setIsAnalyzing(false);
+
+      // Save analysis to history (only for authenticated users)
+      if (!isDemo) {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session) {
+            // Try to extract job title from first line of job description
+            const firstLine = jobDesc.trim().split("\n")[0] || "";
+            const titleMatch = firstLine.match(/^(.+?)(?:\s*[—–-]\s*|$)/);
+            const jobTitle = titleMatch?.[1]?.trim().slice(0, 100) || "Untitled Role";
+
+            await (supabase.from("analysis_history" as any) as any).insert({
+              user_id: session.user.id,
+              job_title: jobTitle,
+              job_description: jobDesc.slice(0, 5000),
+              resume_text: resume.slice(0, 5000),
+              overall_score: result.overallScore,
+              matched_skills: result.matchedSkills,
+              gaps: result.gaps,
+              strengths: result.strengths,
+              improvement_plan: result.improvementPlan,
+              summary: result.summary,
+            });
+          }
+        } catch (e) {
+          console.error("Failed to save analysis:", e);
+        }
+      }
     }, 1800);
   };
 
