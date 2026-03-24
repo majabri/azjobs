@@ -119,8 +119,12 @@ export type Database = {
           full_name: string | null
           id: string
           location: string | null
+          min_match_score: number | null
           phone: string | null
           preferred_job_types: string[] | null
+          remote_only: boolean | null
+          salary_max: string | null
+          salary_min: string | null
           skills: string[] | null
           summary: string | null
           target_job_titles: string[] | null
@@ -136,8 +140,12 @@ export type Database = {
           full_name?: string | null
           id?: string
           location?: string | null
+          min_match_score?: number | null
           phone?: string | null
           preferred_job_types?: string[] | null
+          remote_only?: boolean | null
+          salary_max?: string | null
+          salary_min?: string | null
           skills?: string[] | null
           summary?: string | null
           target_job_titles?: string[] | null
@@ -153,8 +161,12 @@ export type Database = {
           full_name?: string | null
           id?: string
           location?: string | null
+          min_match_score?: number | null
           phone?: string | null
           preferred_job_types?: string[] | null
+          remote_only?: boolean | null
+          salary_max?: string | null
+          salary_min?: string | null
           skills?: string[] | null
           summary?: string | null
           target_job_titles?: string[] | null
