@@ -1229,25 +1229,28 @@ ${analysis.gaps.slice(0, 3).map((g) => `• [Relevant ${g.area} certification �
             <div className="bg-card rounded-2xl p-6 border border-border shadow-card">
               <div className="flex items-center justify-between mb-2">
                 <h3 className="font-display font-bold text-primary text-lg flex items-center gap-2">
-                  <FileText className="w-5 h-5 text-accent" /> ATS-Optimized Resume
+                  <FileText className="w-5 h-5 text-accent" /> Optimize My Resume
                 </h3>
                 <Button
                   size="sm"
                   className="gradient-teal text-white shadow-teal hover:opacity-90 text-sm"
-                  disabled={isRewriting}
+                  disabled={isRewriting || isDemo}
                   onClick={handleAIRewrite}
+                  title={isDemo ? "Sign up to use AI optimization" : ""}
                 >
                   {isRewriting ? (
-                    <><Loader2 className="w-4 h-4 animate-spin mr-1.5" /> Rewriting…</>
+                    <><Loader2 className="w-4 h-4 animate-spin mr-1.5" /> Optimizing…</>
                   ) : (
-                    <><Sparkles className="w-4 h-4 mr-1.5" /> {aiResume ? "Rewrite Again" : "AI Rewrite"}</>
+                    <><Sparkles className="w-4 h-4 mr-1.5" /> {aiResume ? "Re-Optimize" : "Optimize My Resume"}</>
                   )}
                 </Button>
               </div>
               <p className="text-sm text-muted-foreground mb-5">
-                {aiResume
-                  ? "Your resume has been intelligently rewritten by AI to maximize ATS compatibility for this role."
-                  : "Click \"AI Rewrite\" to have AI intelligently rewrite your resume for this job, or use the template below."}
+                {isDemo
+                  ? "Sign up to unlock AI-powered resume optimization tailored for this exact role."
+                  : aiResume
+                  ? "Your resume has been AI-optimized for maximum ATS compatibility with this role."
+                  : "Click \"Optimize My Resume\" to have AI rewrite your resume for maximum ATS compatibility."}
               </p>
 
               {/* Side-by-side comparison when AI rewrite is available */}
