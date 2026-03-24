@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, TrendingUp, DollarSign, GraduationCap, ArrowRight, Sparkles, Target } from "lucide-react";
+import { Loader2, TrendingUp, DollarSign, GraduationCap, ArrowRight, Sparkles, Target, BookOpen, Award, Code2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
