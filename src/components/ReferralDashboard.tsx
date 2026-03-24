@@ -1,0 +1,171 @@
+import { useState, useEffect } from "react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Copy, Gift, Users, Loader2, CheckCircle, Clock, Send } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+
+interface Referral {
+  id: string;
+  referred_email: string;
+  referral_code: string;
+  status: string;
+  created_at: string;
+  converted_at: string | null;
+}
+
+export default function ReferralDashboard() {
+  const [referrals, setReferrals] = useState<Referral[]>([]);
+  const [referralCode, setReferralCode] = useState("");
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+
+  useEffect(() => { loadReferrals(); }, []);
+
+  const loadReferrals = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const { data } = await supabase
+        .from("referrals" as any)
+        .select("*")
+        .eq("referrer_id", session.user.id)
+        .order("created_at", { ascending: false }) as any;
+
+      setReferrals(data || []);
+
+      // Generate or retrieve referral code
+      if (data?.length) {
+        setReferralCode(data[0].referral_code.split("-").slice(0, 2).join("-"));
+      } else {
+        setReferralCode(session.user.id.slice(0, 8));
+      }
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
+  };
+
+  const sendInvite = async () => {
+    if (!inviteEmail.trim()) return;
+    setSending(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+
+      const code = `${referralCode}-${Date.now().toString(36)}`;
+
+      const { error } = await (supabase.from("referrals" as any) as any).insert({
+        referrer_id: session.user.id,
+        referred_email: inviteEmail.trim(),
+        referral_code: code,
+        status: "pending",
+      });
+
+      if (error) {
+        if (error.code === "23505") toast.error("Already invited this email");
+        else throw error;
+        return;
+      }
+
+      toast.success(`Invite tracked for ${inviteEmail}`);
+      setInviteEmail("");
+      loadReferrals();
+    } catch { toast.error("Failed to send invite"); }
+    finally { setSending(false); }
+  };
+
+  const copyLink = () => {
+    const link = `${window.location.origin}/?ref=${referralCode}`;
+    navigator.clipboard.writeText(link);
+    toast.success("Referral link copied!");
+  };
+
+  const converted = referrals.filter(r => r.status === "converted").length;
+  const pending = referrals.filter(r => r.status === "pending").length;
+  const premiumUnlocked = converted >= 3;
+
+  if (loading) return <Card className="p-6 flex items-center justify-center h-32"><Loader2 className="w-6 h-6 animate-spin text-accent" /></Card>;
+
+  return (
+    <Card className="p-6">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="font-display font-bold text-primary text-lg flex items-center gap-2">
+          <Gift className="w-5 h-5 text-accent" /> Referral Program
+        </h2>
+        {premiumUnlocked && (
+          <Badge className="bg-success/10 text-success border-success/20">Premium Unlocked!</Badge>
+        )}
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-3 mb-6">
+        <div className="text-center p-3 rounded-lg bg-muted/30">
+          <p className="font-display font-bold text-primary text-xl">{referrals.length}</p>
+          <p className="text-xs text-muted-foreground">Invited</p>
+        </div>
+        <div className="text-center p-3 rounded-lg bg-muted/30">
+          <p className="font-display font-bold text-accent text-xl">{converted}</p>
+          <p className="text-xs text-muted-foreground">Joined</p>
+        </div>
+        <div className="text-center p-3 rounded-lg bg-muted/30">
+          <p className="font-display font-bold text-primary text-xl">{Math.max(0, 3 - converted)}</p>
+          <p className="text-xs text-muted-foreground">Until Premium</p>
+        </div>
+      </div>
+
+      {/* Referral Link */}
+      <div className="flex gap-2 mb-4">
+        <Input
+          value={`${window.location.origin}/?ref=${referralCode}`}
+          readOnly
+          className="text-xs"
+        />
+        <Button variant="outline" size="sm" onClick={copyLink}>
+          <Copy className="w-4 h-4" />
+        </Button>
+      </div>
+
+      {/* Invite by email */}
+      <div className="flex gap-2 mb-6">
+        <Input
+          value={inviteEmail}
+          onChange={e => setInviteEmail(e.target.value)}
+          placeholder="friend@email.com"
+          type="email"
+        />
+        <Button size="sm" onClick={sendInvite} disabled={sending || !inviteEmail.trim()}>
+          {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4 mr-1" />}
+          Invite
+        </Button>
+      </div>
+
+      {/* Referral list */}
+      {referrals.length > 0 && (
+        <div className="space-y-2">
+          <h4 className="text-sm font-semibold text-primary">Your Referrals</h4>
+          {referrals.slice(0, 10).map(r => (
+            <div key={r.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/20 text-sm">
+              <span className="text-foreground">{r.referred_email}</span>
+              <Badge variant={r.status === "converted" ? "default" : "outline"} className="text-xs">
+                {r.status === "converted" ? (
+                  <><CheckCircle className="w-3 h-3 mr-1" /> Joined</>
+                ) : (
+                  <><Clock className="w-3 h-3 mr-1" /> Pending</>
+                )}
+              </Badge>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {!premiumUnlocked && (
+        <p className="text-xs text-muted-foreground mt-4 text-center">
+          Invite 3 friends who sign up to unlock premium features like advanced salary projections and priority job alerts.
+        </p>
+      )}
+    </Card>
+  );
+}
