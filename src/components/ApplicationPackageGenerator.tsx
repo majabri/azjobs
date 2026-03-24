@@ -161,6 +161,44 @@ export default function ApplicationPackageGenerator({
         </div>
       </div>
 
+      {/* Save as Version */}
+      {aiResume && (
+        <div className="pt-2 border-t border-border">
+          <Button
+            size="sm"
+            variant={saved ? "outline" : "default"}
+            disabled={saving || saved}
+            onClick={async () => {
+              setSaving(true);
+              try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) { toast.error("Please sign in to save resume versions"); return; }
+                const jobTitle = jobDesc.split("\n")[0]?.trim() || "Optimized Resume";
+                const versionName = `${jobTitle} — ${new Date().toLocaleDateString()}`;
+                const { error } = await supabase.from("resume_versions").insert({
+                  user_id: user.id,
+                  version_name: versionName,
+                  resume_text: aiResume,
+                  job_type: jobTitle,
+                });
+                if (error) throw error;
+                setSaved(true);
+                toast.success("Resume saved as new version! Future analyses will use this stronger resume.");
+              } catch (e: any) {
+                toast.error(e.message || "Failed to save resume version");
+              } finally {
+                setSaving(false);
+              }
+            }}
+            className="w-full text-xs"
+          >
+            {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : saved ? <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> : <Save className="w-3.5 h-3.5 mr-1" />}
+            {saved ? "Saved as New Version" : "Save Optimized Resume as New Version"}
+          </Button>
+          <p className="text-[11px] text-muted-foreground mt-1">Future analyses will use this stronger resume as your base.</p>
+        </div>
+      )}
+
       {/* Export */}
       <div className="flex flex-wrap gap-2 pt-2 border-t border-border">
         <Button size="sm" onClick={handleCopyAll} className="gradient-teal text-white text-xs">
