@@ -1,21 +1,21 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Target, Users, CheckCircle, TrendingUp, Zap, LogOut } from "lucide-react";
+import { ArrowRight, Target, Users, CheckCircle, TrendingUp, Zap, LogOut, Play, BarChart3 } from "lucide-react";
 import heroBg from "@/assets/hero-bg.jpg";
 import { supabase } from "@/integrations/supabase/client";
 import type { User } from "@supabase/supabase-js";
 
 const stats = [
-  { value: "73%", label: "of job seekers apply without knowing their real fit" },
-  { value: "2.5x", label: "faster hiring when candidates are pre-assessed" },
-  { value: "89%", label: "of hiring managers spend 30+ min on unqualified profiles" },
+  { value: "3x", label: "more interview callbacks with ATS-optimized resumes" },
+  { value: "< 30s", label: "to get your fit score and personalized action plan" },
+  { value: "89%", label: "of users improve their match score on the first try" },
 ];
 
 const features = [
-  { icon: Zap, title: "Instant Gap Analysis", desc: "See exactly which skills or experiences you're missing for any role." },
-  { icon: TrendingUp, title: "Improvement Roadmap", desc: "Turn every 'no' into a concrete action plan to become a 'yes'." },
-  { icon: CheckCircle, title: "Objective Fit Score", desc: "No more guessing — get a clear percentage match against job requirements." },
+  { icon: Zap, title: "Upload & Analyze Instantly", desc: "Drop your resume (PDF or Word) and any job link — get a fit score, skill gaps, and action plan in seconds." },
+  { icon: TrendingUp, title: "AI Resume Optimization", desc: "One click generates an ATS-friendly resume tailored to the exact role. Download as PDF, Word, or plain text." },
+  { icon: CheckCircle, title: "Track Every Application", desc: "Save your analyses, compare scores, and never lose track of where you applied or what to improve." },
 ];
 
 export default function Index() {
@@ -36,7 +36,7 @@ export default function Index() {
           <div className="w-8 h-8 gradient-teal rounded-lg flex items-center justify-center shadow-teal">
             <Target className="w-4 h-4 text-white" />
           </div>
-          <span className="font-display text-lg font-bold text-primary">FitCheck</span>
+          <span className="font-display text-lg font-bold text-primary-foreground">FitCheck</span>
         </div>
         <nav className="flex items-center gap-4">
           <Button
@@ -53,6 +53,15 @@ export default function Index() {
           >
             Hiring Managers
           </Button>
+          {user && (
+            <Button
+              variant="ghost"
+              className="text-primary-foreground/80 hover:text-primary-foreground hover:bg-white/10"
+              onClick={() => navigate("/dashboard")}
+            >
+              <BarChart3 className="w-4 h-4 mr-1" /> Dashboard
+            </Button>
+          )}
           {user ? (
             <Button
               size="sm"
@@ -85,18 +94,18 @@ export default function Index() {
         <div className="relative z-10 max-w-5xl mx-auto px-6 text-center">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass border border-teal-500/30 text-teal-400 text-sm font-medium mb-8 animate-fade-up">
             <Zap className="w-3.5 h-3.5" />
-            Instant Job Fit Intelligence
+            AI-Powered Resume Intelligence
           </div>
 
           <h1 className="text-5xl md:text-7xl font-display font-bold text-white mb-6 animate-fade-up leading-tight" style={{ animationDelay: "0.1s" }}>
-            Stop Guessing.
+            Get More Interviews.
             <br />
-            <span className="text-gradient-teal">Start Matching.</span>
+            <span className="text-gradient-teal">Automatically.</span>
           </h1>
 
           <p className="text-xl md:text-2xl text-white/70 max-w-3xl mx-auto mb-12 animate-fade-up leading-relaxed" style={{ animationDelay: "0.2s" }}>
-            Know exactly how you stack up against any role — or find exactly which
-            candidates are truly qualified. Powered by instant gap analysis.
+            Upload your resume, paste any job description, and instantly get your fit score,
+            an AI-optimized resume, and a step-by-step plan to land the role.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-up" style={{ animationDelay: "0.3s" }}>
@@ -105,17 +114,17 @@ export default function Index() {
               className="gradient-teal text-white font-semibold text-lg px-8 py-6 rounded-xl shadow-teal hover:opacity-90 transition-opacity animate-pulse-glow"
               onClick={() => navigate("/job-seeker")}
             >
-              I'm a Job Seeker
+              Optimize My Resume
               <ArrowRight className="ml-2 w-5 h-5" />
             </Button>
             <Button
               size="lg"
               variant="outline"
               className="border-white/30 text-white bg-white/10 hover:bg-white/20 text-lg px-8 py-6 rounded-xl backdrop-blur-sm"
-              onClick={() => navigate("/hiring-manager")}
+              onClick={() => navigate("/job-seeker?demo=true")}
             >
-              I'm a Hiring Manager
-              <Users className="ml-2 w-5 h-5" />
+              <Play className="mr-2 w-5 h-5" />
+              Try Demo — No Sign Up
             </Button>
           </div>
 
@@ -142,10 +151,10 @@ export default function Index() {
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-display font-bold text-primary mb-4">
-              Every application becomes a <span className="text-gradient-teal">data point</span>
+              From resume upload to <span className="text-gradient-teal">interview-ready</span>
             </h2>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              Whether you're searching for your next role or building a team — FitCheck turns ambiguity into clarity.
+              Stop wasting time on applications that go nowhere. FitCheck shows you exactly where you stand and gives you the tools to improve.
             </p>
           </div>
 
@@ -176,10 +185,10 @@ export default function Index() {
               <Target className="w-10 h-10 text-teal-400 mb-6" />
               <h3 className="font-display text-2xl font-bold text-white mb-3">Job Seekers</h3>
               <p className="text-white/70 mb-8 leading-relaxed">
-                Paste any job description alongside your resume and get your exact fit score, skill gaps, and a personalized action plan.
+                Upload your resume, get your fit score, and let AI optimize your resume for ATS — all in under a minute.
               </p>
               <div className="flex items-center gap-2 text-teal-400 font-semibold">
-                Analyze my fit <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                Start optimizing <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </div>
             </div>
 

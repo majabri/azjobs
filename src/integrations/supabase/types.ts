@@ -14,6 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      analysis_history: {
+        Row: {
+          company: string | null
+          created_at: string
+          gaps: Json | null
+          id: string
+          improvement_plan: Json | null
+          job_description: string
+          job_title: string | null
+          matched_skills: Json | null
+          optimized_resume: string | null
+          overall_score: number
+          resume_text: string
+          strengths: Json | null
+          summary: string | null
+          user_id: string
+        }
+        Insert: {
+          company?: string | null
+          created_at?: string
+          gaps?: Json | null
+          id?: string
+          improvement_plan?: Json | null
+          job_description?: string
+          job_title?: string | null
+          matched_skills?: Json | null
+          optimized_resume?: string | null
+          overall_score?: number
+          resume_text?: string
+          strengths?: Json | null
+          summary?: string | null
+          user_id: string
+        }
+        Update: {
+          company?: string | null
+          created_at?: string
+          gaps?: Json | null
+          id?: string
+          improvement_plan?: Json | null
+          job_description?: string
+          job_title?: string | null
+          matched_skills?: Json | null
+          optimized_resume?: string | null
+          overall_score?: number
+          resume_text?: string
+          strengths?: Json | null
+          summary?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       job_applications: {
         Row: {
           applied_at: string

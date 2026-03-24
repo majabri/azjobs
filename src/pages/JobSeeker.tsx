@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useMemo, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,58 @@ import UserMenu from "@/components/UserMenu";
 import { computeDiff, type DiffSegment } from "@/lib/diffUtils";
 import { supabase } from "@/integrations/supabase/client";
 import ApplicationToolkit from "@/components/ApplicationToolkit";
+
+const DEMO_JOB = `Senior Cybersecurity Engineer — Cloud Security
+
+We're looking for an experienced Cybersecurity Engineer to lead our cloud security initiatives.
+
+Requirements:
+- 5+ years of cybersecurity experience
+- Strong knowledge of cloud security (AWS, Azure, or GCP)
+- Experience with SIEM tools and security operations
+- Familiarity with compliance frameworks (NIST, ISO 27001, SOC 2)
+- Incident response and threat detection skills
+- Experience with vulnerability management and penetration testing
+- Strong communication and documentation skills
+- CISSP, CISM, or equivalent certification preferred
+- Experience with zero trust architecture
+- Knowledge of identity and access management (IAM)`;
+
+const DEMO_RESUME = `Alex Morgan | Cybersecurity Professional
+alex.morgan@email.com | (555) 123-4567 | San Francisco, CA
+
+PROFESSIONAL SUMMARY
+Results-driven cybersecurity professional with 6+ years of experience in information security, cloud security, and compliance. Proven track record in vulnerability management, incident response, and security architecture. CISSP certified with deep expertise in AWS and Azure security.
+
+WORK EXPERIENCE
+
+Senior Security Analyst at CloudDefend Inc (3 years)
+- Led cloud security assessments across AWS and Azure environments
+- Implemented SIEM monitoring using Splunk, reducing incident response time by 40%
+- Managed vulnerability scanning program covering 2,000+ assets
+- Developed security policies aligned with NIST CSF and ISO 27001
+- Conducted threat intelligence analysis and created detection rules
+
+Security Engineer at TechSecure Corp (2.5 years)
+- Performed penetration testing on web applications and APIs
+- Designed and implemented zero trust network architecture
+- Managed IAM policies for 500+ users across multi-cloud environment
+- Led incident response for 15+ security incidents
+- Created security awareness training program
+
+Junior Security Analyst at DataShield (1 year)
+- Monitored SOC alerts and escalated security incidents
+- Assisted with compliance audits (SOC 2, PCI DSS)
+- Maintained firewall rules and access control lists
+
+CERTIFICATIONS
+CISSP, CompTIA Security+, AWS Certified Security Specialty
+
+SKILLS
+Cloud Security, AWS, Azure, SIEM, Splunk, Vulnerability Management, Penetration Testing, Incident Response, Threat Detection, NIST, ISO 27001, SOC 2, IAM, Zero Trust, Firewalls, Python, Bash
+
+EDUCATION
+B.S. Computer Science — University of California, Berkeley (2017)`;
 
 const EXAMPLE_JOB = `Senior Product Manager — SaaS Growth
 
@@ -48,6 +100,12 @@ Education: MBA — Business Strategy`;
 
 type Step = "input" | "result";
 
+// Check if we're in demo mode (no auth required)
+function useDemoMode() {
+  const [searchParams] = useSearchParams();
+  return searchParams.get("demo") === "true";
+}
+
 interface ResumeVersionOption {
   id: string;
   version_name: string;
@@ -57,6 +115,7 @@ interface ResumeVersionOption {
 
 export default function JobSeekerPage() {
   const navigate = useNavigate();
+  const isDemo = useDemoMode();
   const [jobDesc, setJobDesc] = useState("");
   const [resume, setResume] = useState("");
   const [jobLink, setJobLink] = useState("");
@@ -78,13 +137,17 @@ export default function JobSeekerPage() {
   const [addingSkill, setAddingSkill] = useState<string | null>(null);
   const resumeFileRef = useRef<HTMLInputElement>(null);
 
-  // Check for prefilled job description from Job Search
+  // Check for prefilled job description from Job Search or demo mode
   useEffect(() => {
     const state = window.history.state?.usr;
     if (state?.prefillJob) {
       setJobDesc(state.prefillJob);
     }
-  }, []);
+    if (isDemo && !resume && !jobDesc) {
+      setJobDesc(DEMO_JOB);
+      setResume(DEMO_RESUME);
+    }
+  }, [isDemo]);
 
   const diffResult = useMemo(() => {
     if (!aiResume || !resume) return { original: [], modified: [] };
@@ -334,11 +397,39 @@ export default function JobSeekerPage() {
   const handleAnalyze = () => {
     if (!jobDesc.trim() || !resume.trim()) return;
     setIsAnalyzing(true);
-    setTimeout(() => {
+    setTimeout(async () => {
       const result = analyzeJobFit(jobDesc, resume);
       setAnalysis(result);
       setStep("result");
       setIsAnalyzing(false);
+
+      // Save analysis to history (only for authenticated users)
+      if (!isDemo) {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session) {
+            // Try to extract job title from first line of job description
+            const firstLine = jobDesc.trim().split("\n")[0] || "";
+            const titleMatch = firstLine.match(/^(.+?)(?:\s*[—–-]\s*|$)/);
+            const jobTitle = titleMatch?.[1]?.trim().slice(0, 100) || "Untitled Role";
+
+            await (supabase.from("analysis_history" as any) as any).insert({
+              user_id: session.user.id,
+              job_title: jobTitle,
+              job_description: jobDesc.slice(0, 5000),
+              resume_text: resume.slice(0, 5000),
+              overall_score: result.overallScore,
+              matched_skills: result.matchedSkills,
+              gaps: result.gaps,
+              strengths: result.strengths,
+              improvement_plan: result.improvementPlan,
+              summary: result.summary,
+            });
+          }
+        } catch (e) {
+          console.error("Failed to save analysis:", e);
+        }
+      }
     }, 1800);
   };
 
@@ -445,10 +536,32 @@ export default function JobSeekerPage() {
           }
         }
       }
-      toast.success("Resume rewritten with AI!");
+      toast.success("Resume optimized with AI!");
+
+      // Save optimized resume to analysis history
+      if (!isDemo) {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session) {
+            // Update the most recent analysis with optimized resume
+            const { data: recent } = await (supabase.from("analysis_history" as any) as any)
+              .select("id")
+              .eq("user_id", session.user.id)
+              .order("created_at", { ascending: false })
+              .limit(1);
+            if (recent?.[0]) {
+              await (supabase.from("analysis_history" as any) as any)
+                .update({ optimized_resume: full })
+                .eq("id", recent[0].id);
+            }
+          }
+        } catch (e) {
+          console.error("Failed to save optimized resume:", e);
+        }
+      }
     } catch (e) {
       console.error(e);
-      toast.error("Failed to rewrite resume");
+      toast.error("Failed to optimize resume");
     } finally {
       setIsRewriting(false);
     }
@@ -741,11 +854,22 @@ ${analysis.gaps.slice(0, 3).map((g) => `• [Relevant ${g.area} certification �
           <div className="animate-fade-up">
             <div className="text-center mb-10">
               <h1 className="font-display text-4xl font-bold text-primary mb-3">
-                How do you <span className="text-gradient-teal">stack up?</span>
+                {isDemo ? (
+                  <>See how <span className="text-gradient-teal">FitCheck</span> works</>
+                ) : (
+                  <>Get more <span className="text-gradient-teal">interviews</span></>
+                )}
               </h1>
               <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-                Paste a job description and your resume. Get your exact fit score, gaps, and a personalized roadmap in seconds.
+                {isDemo
+                  ? "This demo shows a pre-loaded resume and job description. Hit Analyze to see your fit score instantly."
+                  : "Upload your resume and paste a job description. Get your fit score, gaps, and an AI-optimized resume in seconds."}
               </p>
+              {isDemo && (
+                <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent/10 border border-accent/20 text-accent text-sm font-medium">
+                  <Sparkles className="w-3.5 h-3.5" /> Demo Mode — no account needed
+                </div>
+              )}
             </div>
 
             {/* Optional links row */}
@@ -820,29 +944,21 @@ ${analysis.gaps.slice(0, 3).map((g) => `• [Relevant ${g.area} certification �
                 <p className="text-xs text-muted-foreground">{jobDesc.length} characters</p>
               </div>
 
-              <div className="space-y-2">
+                <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-sm font-semibold text-primary">Your Resume / Profile</label>
+                  <label className="text-sm font-semibold text-primary flex items-center gap-1.5">
+                    <Upload className="w-3.5 h-3.5 text-accent" /> Your Resume
+                  </label>
                   <div className="flex items-center gap-2">
                     <Button
-                      variant="outline"
+                      variant="default"
                       size="sm"
-                      className="text-xs h-7"
-                      disabled={isLoadingProfile}
-                      onClick={handleLoadFromProfile}
-                    >
-                      {isLoadingProfile ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <User className="w-3 h-3 mr-1" />}
-                      Load from Profile
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-xs h-7"
-                      disabled={isUploadingResume}
+                      className="text-xs h-8 gradient-teal text-white shadow-teal hover:opacity-90"
+                      disabled={isUploadingResume || isDemo}
                       onClick={() => resumeFileRef.current?.click()}
                     >
                       {isUploadingResume ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Upload className="w-3 h-3 mr-1" />}
-                      Upload PDF/Word
+                      Upload PDF / Word
                     </Button>
                     <input
                       ref={resumeFileRef}
@@ -851,12 +967,18 @@ ${analysis.gaps.slice(0, 3).map((g) => `• [Relevant ${g.area} certification �
                       className="hidden"
                       onChange={handleResumeUpload}
                     />
-                    <button
-                      className="text-xs text-accent hover:underline"
-                      onClick={() => setResume(EXAMPLE_RESUME)}
-                    >
-                      Use example
-                    </button>
+                    {!isDemo && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-xs h-7"
+                        disabled={isLoadingProfile}
+                        onClick={handleLoadFromProfile}
+                      >
+                        {isLoadingProfile ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <User className="w-3 h-3 mr-1" />}
+                        From Profile
+                      </Button>
+                    )}
                   </div>
                 </div>
                 <Textarea
@@ -1138,25 +1260,28 @@ ${analysis.gaps.slice(0, 3).map((g) => `• [Relevant ${g.area} certification �
             <div className="bg-card rounded-2xl p-6 border border-border shadow-card">
               <div className="flex items-center justify-between mb-2">
                 <h3 className="font-display font-bold text-primary text-lg flex items-center gap-2">
-                  <FileText className="w-5 h-5 text-accent" /> ATS-Optimized Resume
+                  <FileText className="w-5 h-5 text-accent" /> Optimize My Resume
                 </h3>
                 <Button
                   size="sm"
                   className="gradient-teal text-white shadow-teal hover:opacity-90 text-sm"
-                  disabled={isRewriting}
+                  disabled={isRewriting || isDemo}
                   onClick={handleAIRewrite}
+                  title={isDemo ? "Sign up to use AI optimization" : ""}
                 >
                   {isRewriting ? (
-                    <><Loader2 className="w-4 h-4 animate-spin mr-1.5" /> Rewriting…</>
+                    <><Loader2 className="w-4 h-4 animate-spin mr-1.5" /> Optimizing…</>
                   ) : (
-                    <><Sparkles className="w-4 h-4 mr-1.5" /> {aiResume ? "Rewrite Again" : "AI Rewrite"}</>
+                    <><Sparkles className="w-4 h-4 mr-1.5" /> {aiResume ? "Re-Optimize" : "Optimize My Resume"}</>
                   )}
                 </Button>
               </div>
               <p className="text-sm text-muted-foreground mb-5">
-                {aiResume
-                  ? "Your resume has been intelligently rewritten by AI to maximize ATS compatibility for this role."
-                  : "Click \"AI Rewrite\" to have AI intelligently rewrite your resume for this job, or use the template below."}
+                {isDemo
+                  ? "Sign up to unlock AI-powered resume optimization tailored for this exact role."
+                  : aiResume
+                  ? "Your resume has been AI-optimized for maximum ATS compatibility with this role."
+                  : "Click \"Optimize My Resume\" to have AI rewrite your resume for maximum ATS compatibility."}
               </p>
 
               {/* Side-by-side comparison when AI rewrite is available */}
@@ -1230,8 +1355,9 @@ ${analysis.gaps.slice(0, 3).map((g) => `• [Relevant ${g.area} certification �
                 <Button
                   size="sm"
                   className="gradient-teal text-white shadow-teal hover:opacity-90 text-sm"
-                  disabled={isGeneratingCover}
+                  disabled={isGeneratingCover || isDemo}
                   onClick={handleGenerateCoverLetter}
+                  title={isDemo ? "Sign up to generate cover letters" : ""}
                 >
                   {isGeneratingCover ? (
                     <><Loader2 className="w-4 h-4 animate-spin mr-1.5" /> Generating…</>
@@ -1290,16 +1416,42 @@ ${analysis.gaps.slice(0, 3).map((g) => `• [Relevant ${g.area} certification �
             </div>
 
             {/* CTA */}
-            <div className="flex justify-center gap-4">
-              <Button variant="outline" onClick={handleReset}>
-                Analyze Another Role
-              </Button>
-              <Button
-                className="gradient-teal text-white shadow-teal hover:opacity-90"
-                onClick={() => navigate("/hiring-manager")}
-              >
-                Switch to Hiring Manager View
-              </Button>
+            <div className="flex flex-col items-center gap-4">
+              {isDemo && (
+                <div className="w-full max-w-md bg-accent/10 border border-accent/20 rounded-2xl p-6 text-center">
+                  <h3 className="font-display font-bold text-primary text-lg mb-2">Ready to optimize your real resume?</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Sign up free to unlock AI resume optimization, cover letters, and save your analysis history.
+                  </p>
+                  <Button
+                    className="gradient-teal text-white shadow-teal hover:opacity-90"
+                    onClick={() => navigate("/auth")}
+                  >
+                    Sign Up Free
+                  </Button>
+                </div>
+              )}
+              <div className="flex gap-4">
+                <Button variant="outline" onClick={handleReset}>
+                  Analyze Another Role
+                </Button>
+                {!isDemo && (
+                  <>
+                    <Button
+                      variant="outline"
+                      onClick={() => navigate("/dashboard")}
+                    >
+                      View Dashboard
+                    </Button>
+                    <Button
+                      className="gradient-teal text-white shadow-teal hover:opacity-90"
+                      onClick={() => navigate("/hiring-manager")}
+                    >
+                      Switch to Hiring Manager View
+                    </Button>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         )}

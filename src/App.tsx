@@ -10,6 +10,7 @@ import Auth from "./pages/Auth";
 import Applications from "./pages/Applications";
 import Profile from "./pages/Profile";
 import JobSearch from "./pages/JobSearch";
+import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -24,11 +25,12 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/auth" element={<Auth />} />
-          <Route path="/job-seeker" element={<ProtectedRoute><JobSeeker /></ProtectedRoute>} />
+          <Route path="/job-seeker" element={<JobSeeker />} />
           <Route path="/hiring-manager" element={<ProtectedRoute><HiringManager /></ProtectedRoute>} />
           <Route path="/applications" element={<ProtectedRoute><Applications /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
           <Route path="/job-search" element={<ProtectedRoute><JobSearch /></ProtectedRoute>} />
+          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
