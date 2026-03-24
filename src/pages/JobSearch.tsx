@@ -14,6 +14,9 @@ import {
   Target,
   Briefcase,
   Globe,
+  Plus,
+  X,
+  DollarSign,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -41,6 +44,9 @@ export default function JobSearchPage() {
   const [customQuery, setCustomQuery] = useState("");
   const [careerLevel, setCareerLevel] = useState("");
   const [targetTitles, setTargetTitles] = useState<string[]>([]);
+  const [titleInput, setTitleInput] = useState("");
+  const [salaryMin, setSalaryMin] = useState("");
+  const [salaryMax, setSalaryMax] = useState("");
   const [jobs, setJobs] = useState<JobResult[]>([]);
   const [citations, setCitations] = useState<string[]>([]);
   const [searching, setSearching] = useState(false);
@@ -56,7 +62,7 @@ export default function JobSearchPage() {
       if (!session) return;
       const { data } = await supabase
         .from("job_seeker_profiles")
-        .select("skills, preferred_job_types, location")
+        .select("skills, preferred_job_types, location, career_level, target_job_titles, salary_min, salary_max")
         .eq("user_id", session.user.id)
         .maybeSingle();
       if (data) {
@@ -65,6 +71,8 @@ export default function JobSearchPage() {
         if (data.location) setLocation(data.location);
         if ((data as any).career_level) setCareerLevel((data as any).career_level);
         if ((data as any).target_job_titles) setTargetTitles((data as any).target_job_titles as string[]);
+        if ((data as any).salary_min) setSalaryMin((data as any).salary_min);
+        if ((data as any).salary_max) setSalaryMax((data as any).salary_max);
         setProfileLoaded(true);
       }
     } catch (e) {
@@ -158,25 +166,47 @@ export default function JobSearchPage() {
         {/* Search Controls */}
         <Card className="p-6 mb-8">
           <div className="space-y-4">
-            {/* Career Level & Target Titles */}
-            {(careerLevel || targetTitles.length > 0) && (
-              <div className="grid sm:grid-cols-2 gap-4">
-                {careerLevel && (
-                  <div>
-                    <label className="text-sm font-semibold text-foreground mb-2 block">Career Level</label>
-                    <Badge variant="default" className="bg-accent text-accent-foreground">{careerLevel}</Badge>
-                  </div>
-                )}
-                {targetTitles.length > 0 && (
-                  <div>
-                    <label className="text-sm font-semibold text-foreground mb-2 block">Target Titles</label>
-                    <div className="flex flex-wrap gap-2">
-                      {targetTitles.map((t, i) => (
-                        <Badge key={i} variant="outline">{t}</Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
+            {/* Target Titles (editable) */}
+            <div>
+              <label className="text-sm font-semibold text-foreground mb-2 block">Target Job Titles</label>
+              <div className="flex gap-2 mb-2">
+                <Input
+                  value={titleInput}
+                  onChange={(e) => setTitleInput(e.target.value)}
+                  placeholder="e.g. Software Engineer"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      const t = titleInput.trim();
+                      if (t && !targetTitles.includes(t)) {
+                        setTargetTitles([...targetTitles, t]);
+                        setTitleInput("");
+                      }
+                    }
+                  }}
+                />
+                <Button variant="outline" size="sm" onClick={() => {
+                  const t = titleInput.trim();
+                  if (t && !targetTitles.includes(t)) {
+                    setTargetTitles([...targetTitles, t]);
+                    setTitleInput("");
+                  }
+                }}><Plus className="w-4 h-4" /></Button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {targetTitles.map((t, i) => (
+                  <Badge key={i} variant="secondary" className="cursor-pointer" onClick={() => setTargetTitles(targetTitles.filter((_, idx) => idx !== i))}>
+                    {t} <X className="w-3 h-3 ml-1" />
+                  </Badge>
+                ))}
+              </div>
+            </div>
+
+            {/* Career Level */}
+            {careerLevel && (
+              <div>
+                <label className="text-sm font-semibold text-foreground mb-2 block">Career Level</label>
+                <Badge variant="default" className="bg-accent text-accent-foreground">{careerLevel}</Badge>
               </div>
             )}
 
@@ -240,6 +270,24 @@ export default function JobSearchPage() {
                   onChange={(e) => setCustomQuery(e.target.value)}
                   placeholder="e.g. startup, Fortune 500, healthcare..."
                 />
+              </div>
+            </div>
+
+            {/* Salary Range */}
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-semibold text-foreground mb-1 block">Min Salary</label>
+                <div className="flex items-center gap-1">
+                  <DollarSign className="w-4 h-4 text-muted-foreground" />
+                  <Input value={salaryMin} onChange={(e) => setSalaryMin(e.target.value)} placeholder="80,000" />
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-semibold text-foreground mb-1 block">Max Salary</label>
+                <div className="flex items-center gap-1">
+                  <DollarSign className="w-4 h-4 text-muted-foreground" />
+                  <Input value={salaryMax} onChange={(e) => setSalaryMax(e.target.value)} placeholder="150,000" />
+                </div>
               </div>
             </div>
 
