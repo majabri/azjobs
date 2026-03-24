@@ -100,6 +100,12 @@ Education: MBA — Business Strategy`;
 
 type Step = "input" | "result";
 
+// Check if we're in demo mode (no auth required)
+function useDemoMode() {
+  const [searchParams] = useSearchParams();
+  return searchParams.get("demo") === "true";
+}
+
 interface ResumeVersionOption {
   id: string;
   version_name: string;
