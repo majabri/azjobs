@@ -151,6 +151,12 @@ export default function JobSeekerPage() {
     if (state?.prefillJob) {
       setJobDesc(state.prefillJob);
     }
+    // Support opening from new tab via query params
+    const params = new URLSearchParams(window.location.search);
+    const prefillFromUrl = params.get("prefillJob");
+    if (prefillFromUrl) {
+      setJobDesc(prefillFromUrl);
+    }
     if (isDemo && !resume && !jobDesc) {
       setJobDesc(DEMO_JOB);
       setResume(DEMO_RESUME);
