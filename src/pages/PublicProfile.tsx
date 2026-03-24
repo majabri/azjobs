@@ -3,9 +3,10 @@ import { useParams } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  Loader2, User, Briefcase, GraduationCap, Award, ExternalLink, MapPin, Globe,
+  Loader2, User, Briefcase, GraduationCap, Award, ExternalLink, MapPin, Globe, FileText,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import ProfilePdfExport from "@/components/ProfilePdfExport";
 
 interface PortfolioItem {
   id: string;
