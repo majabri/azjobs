@@ -488,6 +488,8 @@ export function analyzeJobFit(jobDescription: string, resumeText: string): FitAn
         : i <= 2
         ? `Add ${s.skill} to your profile through a side project or certification`
         : `Mention ${s.skill} in your cover letter if you have adjacent experience`,
+    resources: getResourcesForSkill(s.skill, s.category || "Other"),
+    estimatedWeeks: i === 0 ? 4 : i <= 2 ? 3 : 2,
   }));
 
   const strengths = matchedSkills
