@@ -34,6 +34,8 @@ export default function ApplicationPackageGenerator({
 }: ApplicationPackageGeneratorProps) {
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [generating, setGenerating] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   const finalResume = aiResume || resume;
   const matchedSkills = analysis?.matchedSkills.filter(s => s.matched).map(s => s.skill) || [];
