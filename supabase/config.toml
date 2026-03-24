@@ -17,3 +17,9 @@ verify_jwt = false
 
 [functions.search-jobs]
 verify_jwt = false
+
+[functions.generate-followup-email]
+verify_jwt = false
+
+[functions.generate-interview-prep]
+verify_jwt = false

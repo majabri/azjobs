@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Target, Sparkles, AlertTriangle, CheckCircle2, XCircle, ChevronRight, Lightbulb, Link2, Linkedin, ExternalLink, Download, Loader2, Upload, FileText, Copy, Mail, User, Plus } from "lucide-react";
+import { ArrowLeft, Target, Sparkles, AlertTriangle, CheckCircle2, XCircle, ChevronRight, Lightbulb, Link2, Linkedin, ExternalLink, Download, Loader2, Upload, FileText, Copy, Mail, User, Plus, MessageSquare, BookOpen, GraduationCap, Award, Package } from "lucide-react";
 import { analyzeJobFit, type FitAnalysis } from "@/lib/analysisEngine";
 import { ScoreRingInline, AnimatedBar } from "@/components/ScoreDisplay";
 import { scrapeUrl } from "@/lib/api/scrapeUrl";
@@ -135,6 +135,13 @@ export default function JobSeekerPage() {
   const [resumeVersions, setResumeVersions] = useState<ResumeVersionOption[]>([]);
   const [showVersionPicker, setShowVersionPicker] = useState(false);
   const [addingSkill, setAddingSkill] = useState<string | null>(null);
+  // Interview prep
+  const [isGeneratingInterviewPrep, setIsGeneratingInterviewPrep] = useState(false);
+  const [interviewPrep, setInterviewPrep] = useState("");
+  // Follow-up email
+  const [isGeneratingEmail, setIsGeneratingEmail] = useState(false);
+  const [followUpEmail, setFollowUpEmail] = useState("");
+  const [emailType, setEmailType] = useState<string>("follow-up");
   const resumeFileRef = useRef<HTMLInputElement>(null);
 
   // Check for prefilled job description from Job Search or demo mode
@@ -442,6 +449,103 @@ export default function JobSeekerPage() {
     setLinkedinUrl("");
     setAiResume("");
     setCoverLetter("");
+    setInterviewPrep("");
+    setFollowUpEmail("");
+  };
+
+  // SSE streaming helper
+  const streamFromEdgeFunction = async (
+    functionName: string,
+    body: Record<string, any>,
+    onChunk: (text: string) => void,
+    onDone?: () => void
+  ) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    if (!token) { toast.error("Please sign in"); return; }
+
+    const resp = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/${functionName}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(body),
+      }
+    );
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({ error: "Request failed" }));
+      toast.error(err.error || "Request failed");
+      return;
+    }
+
+    const reader = resp.body?.getReader();
+    if (!reader) throw new Error("No response body");
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let full = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      let newlineIdx: number;
+      while ((newlineIdx = buffer.indexOf("\n")) !== -1) {
+        let line = buffer.slice(0, newlineIdx);
+        buffer = buffer.slice(newlineIdx + 1);
+        if (line.endsWith("\r")) line = line.slice(0, -1);
+        if (!line.startsWith("data: ")) continue;
+        const jsonStr = line.slice(6).trim();
+        if (jsonStr === "[DONE]") break;
+        try {
+          const parsed = JSON.parse(jsonStr);
+          const content = parsed.choices?.[0]?.delta?.content;
+          if (content) { full += content; onChunk(full); }
+        } catch { buffer = line + "\n" + buffer; break; }
+      }
+    }
+    onDone?.();
+    return full;
+  };
+
+  const handleGenerateInterviewPrep = async () => {
+    if (!analysis) return;
+    setIsGeneratingInterviewPrep(true);
+    setInterviewPrep("");
+    try {
+      await streamFromEdgeFunction(
+        "generate-interview-prep",
+        {
+          jobDescription: jobDesc,
+          resume,
+          matchedSkills: analysis.matchedSkills.filter((s) => s.matched).map((s) => s.skill),
+          gaps: analysis.gaps.map((g) => g.area),
+        },
+        (text) => setInterviewPrep(text),
+        () => toast.success("Interview prep ready!")
+      );
+    } catch { toast.error("Failed to generate interview prep"); }
+    finally { setIsGeneratingInterviewPrep(false); }
+  };
+
+  const handleGenerateFollowUpEmail = async () => {
+    if (!analysis) return;
+    setIsGeneratingEmail(true);
+    setFollowUpEmail("");
+    const firstLine = jobDesc.trim().split("\n")[0] || "";
+    const titleMatch = firstLine.match(/^(.+?)(?:\s*[—–-]\s*|$)/);
+    const jobTitle = titleMatch?.[1]?.trim() || "the role";
+    const companyMatch = jobDesc.match(/(?:at|@|company[:\s]*)\s*([A-Z][A-Za-z0-9 &.]+)/i);
+    const company = companyMatch?.[1]?.trim() || "";
+    try {
+      await streamFromEdgeFunction(
+        "generate-followup-email",
+        { jobTitle, company, resume, emailType },
+        (text) => setFollowUpEmail(text),
+        () => toast.success("Email generated!")
+      );
+    } catch { toast.error("Failed to generate email"); }
+    finally { setIsGeneratingEmail(false); }
   };
 
   const severityColor = {
@@ -1207,6 +1311,39 @@ ${analysis.gaps.slice(0, 3).map((g) => `• [Relevant ${g.area} certification �
                             </Badge>
                           </div>
                           <p className="text-sm text-muted-foreground leading-relaxed mb-2">{gap.action}</p>
+                          
+                          {/* Estimated time */}
+                          {'estimatedWeeks' in gap && (gap as any).estimatedWeeks && (
+                            <p className="text-xs text-accent font-medium mb-2">
+                              ⏱ Estimated {(gap as any).estimatedWeeks} weeks to close this gap
+                            </p>
+                          )}
+
+                          {/* Learning Resources */}
+                          {'resources' in gap && (gap as any).resources?.length > 0 && (
+                            <div className="mt-2 space-y-1.5">
+                              <p className="text-xs font-semibold text-foreground flex items-center gap-1">
+                                <GraduationCap className="w-3 h-3 text-accent" /> Recommended Resources
+                              </p>
+                              {((gap as any).resources as any[]).map((r: any, ri: number) => (
+                                <div key={ri} className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded-lg px-3 py-1.5">
+                                  {r.type === "course" && <BookOpen className="w-3 h-3 text-accent flex-shrink-0" />}
+                                  {r.type === "certification" && <Award className="w-3 h-3 text-warning flex-shrink-0" />}
+                                  {r.type === "project" && <Package className="w-3 h-3 text-success flex-shrink-0" />}
+                                  {r.type === "book" && <FileText className="w-3 h-3 text-muted-foreground flex-shrink-0" />}
+                                  <span className="flex-1">{r.title}</span>
+                                  <span className="text-muted-foreground/60">{r.platform}</span>
+                                  <span className="text-muted-foreground/60">{r.estimatedTime}</span>
+                                  {r.url && (
+                                    <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">
+                                      <ExternalLink className="w-3 h-3" />
+                                    </a>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
                           <div className="flex items-center gap-2 mt-2 pt-2 border-t border-border/50">
                             <Lightbulb className="w-3.5 h-3.5 text-accent flex-shrink-0" />
                             <p className="text-xs text-accent leading-relaxed flex-1">
@@ -1410,6 +1547,87 @@ ${analysis.gaps.slice(0, 3).map((g) => `• [Relevant ${g.area} certification �
                     <Button variant="outline" size="sm" onClick={handleDownloadCoverLetterDocx} className="text-sm">
                       <FileText className="w-4 h-4 mr-1.5" /> .docx
                     </Button>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Interview Prep */}
+            <div className="bg-card rounded-2xl p-6 border border-border shadow-card">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-display font-bold text-primary text-lg flex items-center gap-2">
+                  <MessageSquare className="w-5 h-5 text-accent" /> AI Interview Prep
+                </h3>
+                <Button
+                  size="sm"
+                  className="gradient-teal text-white shadow-teal hover:opacity-90 text-sm"
+                  disabled={isGeneratingInterviewPrep || isDemo}
+                  onClick={handleGenerateInterviewPrep}
+                >
+                  {isGeneratingInterviewPrep ? (
+                    <><Loader2 className="w-4 h-4 animate-spin mr-1.5" /> Generating…</>
+                  ) : (
+                    <><Sparkles className="w-4 h-4 mr-1.5" /> {interviewPrep ? "Regenerate" : "Prepare for Interview"}</>
+                  )}
+                </Button>
+              </div>
+              <p className="text-sm text-muted-foreground mb-4">
+                {interviewPrep ? "Your personalized interview prep is ready." : "Generate likely interview questions and suggested answers based on this role and your resume."}
+              </p>
+              {interviewPrep && (
+                <>
+                  <div className="bg-muted/30 rounded-xl p-5 border border-border mb-4 max-h-96 overflow-y-auto prose prose-sm max-w-none">
+                    <pre className="text-sm whitespace-pre-wrap font-sans leading-relaxed text-foreground">{interviewPrep}</pre>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => { navigator.clipboard.writeText(interviewPrep); toast.success("Copied!"); }}>
+                    <Copy className="w-4 h-4 mr-1.5" /> Copy
+                  </Button>
+                </>
+              )}
+            </div>
+
+            {/* Follow-Up Email Generator */}
+            <div className="bg-card rounded-2xl p-6 border border-border shadow-card">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-display font-bold text-primary text-lg flex items-center gap-2">
+                  <Mail className="w-5 h-5 text-accent" /> Follow-Up Email Generator
+                </h3>
+                <Button
+                  size="sm"
+                  className="gradient-teal text-white shadow-teal hover:opacity-90 text-sm"
+                  disabled={isGeneratingEmail || isDemo}
+                  onClick={handleGenerateFollowUpEmail}
+                >
+                  {isGeneratingEmail ? (
+                    <><Loader2 className="w-4 h-4 animate-spin mr-1.5" /> Generating…</>
+                  ) : (
+                    <><Sparkles className="w-4 h-4 mr-1.5" /> Generate Email</>
+                  )}
+                </Button>
+              </div>
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-sm text-muted-foreground font-medium">Type:</span>
+                {["follow-up", "thank-you", "recruiter-outreach", "networking"].map((t) => (
+                  <Button key={t} variant={emailType === t ? "default" : "outline"} size="sm"
+                    className={`text-xs capitalize ${emailType === t ? "gradient-teal text-white" : ""}`}
+                    onClick={() => setEmailType(t)} disabled={isGeneratingEmail}
+                  >
+                    {t.replace("-", " ")}
+                  </Button>
+                ))}
+              </div>
+              {followUpEmail && (
+                <>
+                  <div className="bg-muted/30 rounded-xl p-5 border border-border mb-4 max-h-80 overflow-y-auto">
+                    <pre className="text-sm whitespace-pre-wrap font-sans leading-relaxed text-foreground">{followUpEmail}</pre>
+                  </div>
+                  <div className="flex gap-3">
+                    <Button variant="outline" size="sm" onClick={() => { navigator.clipboard.writeText(followUpEmail); toast.success("Copied!"); }}>
+                      <Copy className="w-4 h-4 mr-1.5" /> Copy
+                    </Button>
+                    <a href={`mailto:?subject=${encodeURIComponent(followUpEmail.match(/Subject:\s*(.+)/)?.[1] || "Follow Up")}&body=${encodeURIComponent(followUpEmail.replace(/Subject:.*\n?/, ""))}`}>
+                      <Button variant="outline" size="sm"><Mail className="w-4 h-4 mr-1.5" /> Open in Email</Button>
+                    </a>
                   </div>
                 </>
               )}
