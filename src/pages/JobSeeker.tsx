@@ -1552,6 +1552,87 @@ ${analysis.gaps.slice(0, 3).map((g) => `• [Relevant ${g.area} certification �
               )}
             </div>
 
+            {/* Interview Prep */}
+            <div className="bg-card rounded-2xl p-6 border border-border shadow-card">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-display font-bold text-primary text-lg flex items-center gap-2">
+                  <MessageSquare className="w-5 h-5 text-accent" /> AI Interview Prep
+                </h3>
+                <Button
+                  size="sm"
+                  className="gradient-teal text-white shadow-teal hover:opacity-90 text-sm"
+                  disabled={isGeneratingInterviewPrep || isDemo}
+                  onClick={handleGenerateInterviewPrep}
+                >
+                  {isGeneratingInterviewPrep ? (
+                    <><Loader2 className="w-4 h-4 animate-spin mr-1.5" /> Generating…</>
+                  ) : (
+                    <><Sparkles className="w-4 h-4 mr-1.5" /> {interviewPrep ? "Regenerate" : "Prepare for Interview"}</>
+                  )}
+                </Button>
+              </div>
+              <p className="text-sm text-muted-foreground mb-4">
+                {interviewPrep ? "Your personalized interview prep is ready." : "Generate likely interview questions and suggested answers based on this role and your resume."}
+              </p>
+              {interviewPrep && (
+                <>
+                  <div className="bg-muted/30 rounded-xl p-5 border border-border mb-4 max-h-96 overflow-y-auto prose prose-sm max-w-none">
+                    <pre className="text-sm whitespace-pre-wrap font-sans leading-relaxed text-foreground">{interviewPrep}</pre>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => { navigator.clipboard.writeText(interviewPrep); toast.success("Copied!"); }}>
+                    <Copy className="w-4 h-4 mr-1.5" /> Copy
+                  </Button>
+                </>
+              )}
+            </div>
+
+            {/* Follow-Up Email Generator */}
+            <div className="bg-card rounded-2xl p-6 border border-border shadow-card">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-display font-bold text-primary text-lg flex items-center gap-2">
+                  <Mail className="w-5 h-5 text-accent" /> Follow-Up Email Generator
+                </h3>
+                <Button
+                  size="sm"
+                  className="gradient-teal text-white shadow-teal hover:opacity-90 text-sm"
+                  disabled={isGeneratingEmail || isDemo}
+                  onClick={handleGenerateFollowUpEmail}
+                >
+                  {isGeneratingEmail ? (
+                    <><Loader2 className="w-4 h-4 animate-spin mr-1.5" /> Generating…</>
+                  ) : (
+                    <><Sparkles className="w-4 h-4 mr-1.5" /> Generate Email</>
+                  )}
+                </Button>
+              </div>
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-sm text-muted-foreground font-medium">Type:</span>
+                {["follow-up", "thank-you", "recruiter-outreach", "networking"].map((t) => (
+                  <Button key={t} variant={emailType === t ? "default" : "outline"} size="sm"
+                    className={`text-xs capitalize ${emailType === t ? "gradient-teal text-white" : ""}`}
+                    onClick={() => setEmailType(t)} disabled={isGeneratingEmail}
+                  >
+                    {t.replace("-", " ")}
+                  </Button>
+                ))}
+              </div>
+              {followUpEmail && (
+                <>
+                  <div className="bg-muted/30 rounded-xl p-5 border border-border mb-4 max-h-80 overflow-y-auto">
+                    <pre className="text-sm whitespace-pre-wrap font-sans leading-relaxed text-foreground">{followUpEmail}</pre>
+                  </div>
+                  <div className="flex gap-3">
+                    <Button variant="outline" size="sm" onClick={() => { navigator.clipboard.writeText(followUpEmail); toast.success("Copied!"); }}>
+                      <Copy className="w-4 h-4 mr-1.5" /> Copy
+                    </Button>
+                    <a href={`mailto:?subject=${encodeURIComponent(followUpEmail.match(/Subject:\s*(.+)/)?.[1] || "Follow Up")}&body=${encodeURIComponent(followUpEmail.replace(/Subject:.*\n?/, ""))}`}>
+                      <Button variant="outline" size="sm"><Mail className="w-4 h-4 mr-1.5" /> Open in Email</Button>
+                    </a>
+                  </div>
+                </>
+              )}
+            </div>
+
             {/* CTA */}
             <div className="flex flex-col items-center gap-4">
               {isDemo && (
