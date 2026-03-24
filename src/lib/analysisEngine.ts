@@ -8,10 +8,20 @@ export interface SkillMatch {
   category?: string;
 }
 
+export interface LearningResource {
+  title: string;
+  type: "course" | "certification" | "project" | "book";
+  platform: string;
+  estimatedTime: string;
+  url?: string;
+}
+
 export interface GapItem {
   area: string;
   severity: "critical" | "moderate" | "minor";
   action: string;
+  resources: LearningResource[];
+  estimatedWeeks: number;
 }
 
 export interface FitAnalysis {
