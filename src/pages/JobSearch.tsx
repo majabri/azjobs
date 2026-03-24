@@ -249,7 +249,9 @@ export default function JobSearchPage() {
       });
 
       // Sort
-      if (sortBy === "probability") {
+      if (sortBy === "decision") {
+        allJobs.sort((a, b) => (b.decisionScore || 0) - (a.decisionScore || 0));
+      } else if (sortBy === "probability") {
         allJobs.sort((a, b) => (b.responseProbability || 0) - (a.responseProbability || 0));
       } else if (sortBy === "newest") {
         allJobs.sort((a, b) => {
