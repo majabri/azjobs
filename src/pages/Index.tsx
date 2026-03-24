@@ -198,10 +198,10 @@ export default function Index() {
             <Button
               size="lg"
               className="gradient-teal text-white font-semibold text-lg px-8 py-6 rounded-xl shadow-teal hover:opacity-90 transition-opacity animate-pulse-glow"
-              onClick={() => navigate(user ? "/job-seeker" : "/auth")}
+              onClick={() => navigate(user ? "/auto-apply" : "/auth")}
             >
-              <Upload className="mr-2 w-5 h-5" />
-              Upload Resume & Get Matched
+              <Bot className="mr-2 w-5 h-5" />
+              Activate My Job Agent
             </Button>
             <Button
               size="lg"
