@@ -55,7 +55,14 @@ Provide a JSON response with this EXACT structure:
     { "title": "role title", "salaryRange": "$X-$Y", "matchGap": "what they need to get there" }
   ],
   "skillsToLearn": [
-    { "skill": "skill name", "impact": "high/medium/low", "timeEstimate": "e.g. 2-3 months" }
+    {
+      "skill": "skill name",
+      "impact": "high/medium/low",
+      "timeEstimate": "e.g. 2-3 months",
+      "actionStep": "specific action to take, e.g. 'Complete AWS Solutions Architect certification on Udemy'",
+      "resourceType": "course/certification/project/book",
+      "resourceSuggestion": "specific resource name or platform"
+    }
   ],
   "industryTrends": ["trend 1", "trend 2"],
   "advice": "personalized career advice paragraph",
@@ -64,7 +71,7 @@ Provide a JSON response with this EXACT structure:
   ]
 }
 
-Include 3-4 next roles sorted by attainability, 4-5 skills to learn sorted by impact, 2-3 industry trends, and 3-4 roadmap stages showing progression from current to target role. Be specific and actionable.`;
+Include 3-4 next roles sorted by attainability, 4-5 skills to learn sorted by impact, 2-3 industry trends, and 3-4 roadmap stages showing progression from current to target role. For each skill, provide a SPECIFIC actionStep (not generic), a resourceType, and a concrete resourceSuggestion. Be specific and actionable.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
