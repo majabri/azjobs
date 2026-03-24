@@ -324,6 +324,17 @@ export default function CareerPage() {
           )}
         </Card>
 
+        {/* Salary Projections */}
+        <SalaryProjection
+          skills={targetTitles}
+          careerLevel={careerLevel}
+          salaryMin={salaryMin}
+          salaryMax={salaryMax}
+          salaryTarget={salaryTarget}
+          targetTitles={targetTitles}
+          experience={[]}
+        />
+
         {/* Networking & Outreach */}
         <div className="space-y-6">
           <h2 className="font-display font-bold text-primary text-xl flex items-center gap-2"><Users className="w-5 h-5 text-accent" /> Networking & Outreach</h2>
