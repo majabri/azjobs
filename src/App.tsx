@@ -11,6 +11,7 @@ import Applications from "./pages/Applications";
 import Profile from "./pages/Profile";
 import JobSearch from "./pages/JobSearch";
 import Dashboard from "./pages/Dashboard";
+import AutoApply from "./pages/AutoApply";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
 
