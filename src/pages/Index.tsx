@@ -32,8 +32,8 @@ const features = [
 
 const howItWorks = [
   { step: "1", icon: Upload, title: "Upload Your Resume", desc: "Upload a PDF or Word doc. We extract your skills, experience, and career level automatically." },
-  { step: "2", icon: Target, title: "Get Matched Jobs", desc: "AI finds jobs that match your profile and ranks them by fit score and interview probability." },
-  { step: "3", icon: Rocket, title: "Auto-Optimize & Apply", desc: "Generate tailored resumes, cover letters, and application packages — then apply with one click." },
+  { step: "2", icon: Bot, title: "Your AI Works While You Sleep", desc: "AI finds matching jobs, optimizes your resume for each, generates cover letters, and queues applications." },
+  { step: "3", icon: Rocket, title: "You Get Interviews", desc: "Wake up to interview invitations. Review what your AI applied to and prep with mock interviews." },
 ];
 
 const sampleJobs = [
