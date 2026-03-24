@@ -70,6 +70,10 @@ const emptyProfile: ProfileData = {
   preferred_job_types: [],
   career_level: "",
   target_job_titles: [],
+  salary_min: "",
+  salary_max: "",
+  remote_only: false,
+  min_match_score: 60,
 };
 
 const JOB_TYPE_OPTIONS = [
