@@ -449,6 +449,103 @@ export default function JobSeekerPage() {
     setLinkedinUrl("");
     setAiResume("");
     setCoverLetter("");
+    setInterviewPrep("");
+    setFollowUpEmail("");
+  };
+
+  // SSE streaming helper
+  const streamFromEdgeFunction = async (
+    functionName: string,
+    body: Record<string, any>,
+    onChunk: (text: string) => void,
+    onDone?: () => void
+  ) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    if (!token) { toast.error("Please sign in"); return; }
+
+    const resp = await fetch(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/${functionName}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(body),
+      }
+    );
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({ error: "Request failed" }));
+      toast.error(err.error || "Request failed");
+      return;
+    }
+
+    const reader = resp.body?.getReader();
+    if (!reader) throw new Error("No response body");
+    const decoder = new TextDecoder();
+    let buffer = "";
+    let full = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      let newlineIdx: number;
+      while ((newlineIdx = buffer.indexOf("\n")) !== -1) {
+        let line = buffer.slice(0, newlineIdx);
+        buffer = buffer.slice(newlineIdx + 1);
+        if (line.endsWith("\r")) line = line.slice(0, -1);
+        if (!line.startsWith("data: ")) continue;
+        const jsonStr = line.slice(6).trim();
+        if (jsonStr === "[DONE]") break;
+        try {
+          const parsed = JSON.parse(jsonStr);
+          const content = parsed.choices?.[0]?.delta?.content;
+          if (content) { full += content; onChunk(full); }
+        } catch { buffer = line + "\n" + buffer; break; }
+      }
+    }
+    onDone?.();
+    return full;
+  };
+
+  const handleGenerateInterviewPrep = async () => {
+    if (!analysis) return;
+    setIsGeneratingInterviewPrep(true);
+    setInterviewPrep("");
+    try {
+      await streamFromEdgeFunction(
+        "generate-interview-prep",
+        {
+          jobDescription: jobDesc,
+          resume,
+          matchedSkills: analysis.matchedSkills.filter((s) => s.matched).map((s) => s.skill),
+          gaps: analysis.gaps.map((g) => g.area),
+        },
+        (text) => setInterviewPrep(text),
+        () => toast.success("Interview prep ready!")
+      );
+    } catch { toast.error("Failed to generate interview prep"); }
+    finally { setIsGeneratingInterviewPrep(false); }
+  };
+
+  const handleGenerateFollowUpEmail = async () => {
+    if (!analysis) return;
+    setIsGeneratingEmail(true);
+    setFollowUpEmail("");
+    const firstLine = jobDesc.trim().split("\n")[0] || "";
+    const titleMatch = firstLine.match(/^(.+?)(?:\s*[—–-]\s*|$)/);
+    const jobTitle = titleMatch?.[1]?.trim() || "the role";
+    const companyMatch = jobDesc.match(/(?:at|@|company[:\s]*)\s*([A-Z][A-Za-z0-9 &.]+)/i);
+    const company = companyMatch?.[1]?.trim() || "";
+    try {
+      await streamFromEdgeFunction(
+        "generate-followup-email",
+        { jobTitle, company, resume, emailType },
+        (text) => setFollowUpEmail(text),
+        () => toast.success("Email generated!")
+      );
+    } catch { toast.error("Failed to generate email"); }
+    finally { setIsGeneratingEmail(false); }
   };
 
   const severityColor = {
