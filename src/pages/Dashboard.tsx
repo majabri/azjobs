@@ -107,6 +107,7 @@ export default function Dashboard() {
             <Button variant="outline" size="sm" onClick={() => navigate("/job-search")}>
               <Search className="w-4 h-4 mr-1" /> Find Jobs
             </Button>
+            <NotificationCenter />
             <UserMenu />
           </div>
         </div>
