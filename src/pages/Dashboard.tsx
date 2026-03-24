@@ -87,7 +87,7 @@ export default function Dashboard() {
               <div className="w-7 h-7 gradient-teal rounded-lg flex items-center justify-center">
                 <BarChart3 className="w-3.5 h-3.5 text-white" />
               </div>
-              <span className="font-display font-bold text-primary">Dashboard</span>
+              <span className="font-display font-bold text-primary">Interview Dashboard</span>
             </div>
           </div>
           <div className="flex items-center gap-3">
