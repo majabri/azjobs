@@ -568,10 +568,6 @@ export default function AutoApplyPage() {
                               {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                             </Button>
                           </>
-                        )}
-                            </Button>
-                          </>
-                        )}
                       </div>
                     </div>
 
