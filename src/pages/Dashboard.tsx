@@ -141,9 +141,9 @@ export default function Dashboard() {
             <div className="text-center py-16 bg-card rounded-2xl border border-border">
               <BarChart3 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
               <h3 className="font-display text-xl font-bold text-primary mb-2">Start getting interviews</h3>
-              <p className="text-muted-foreground mb-6">Upload your resume and let AI match you with the best opportunities.</p>
+              <p className="text-muted-foreground mb-6">Upload your resume and let AI match you with the best opportunities automatically.</p>
               <Button className="gradient-teal text-white shadow-teal hover:opacity-90" onClick={() => navigate("/job-seeker")}>
-                <Target className="w-4 h-4 mr-2" /> Get Started
+                <Target className="w-4 h-4 mr-2" /> Upload Resume & Get Started
               </Button>
             </div>
           ) : (
