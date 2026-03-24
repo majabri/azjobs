@@ -137,13 +137,17 @@ export default function JobSeekerPage() {
   const [addingSkill, setAddingSkill] = useState<string | null>(null);
   const resumeFileRef = useRef<HTMLInputElement>(null);
 
-  // Check for prefilled job description from Job Search
+  // Check for prefilled job description from Job Search or demo mode
   useEffect(() => {
     const state = window.history.state?.usr;
     if (state?.prefillJob) {
       setJobDesc(state.prefillJob);
     }
-  }, []);
+    if (isDemo && !resume && !jobDesc) {
+      setJobDesc(DEMO_JOB);
+      setResume(DEMO_RESUME);
+    }
+  }, [isDemo]);
 
   const diffResult = useMemo(() => {
     if (!aiResume || !resume) return { original: [], modified: [] };
