@@ -193,6 +193,10 @@ export default function ProfilePage() {
         preferred_job_types: profile.preferred_job_types.length ? profile.preferred_job_types : null,
         career_level: profile.career_level || null,
         target_job_titles: profile.target_job_titles.length ? profile.target_job_titles : null,
+        salary_min: profile.salary_min || null,
+        salary_max: profile.salary_max || null,
+        remote_only: profile.remote_only,
+        min_match_score: profile.min_match_score,
         updated_at: new Date().toISOString(),
       };
       const { error } = await supabase
