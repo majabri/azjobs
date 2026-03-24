@@ -130,19 +130,41 @@ export default function CareerPathIntelligence() {
         <h4 className="text-sm font-semibold text-primary mb-3 flex items-center gap-1">
           <GraduationCap className="w-4 h-4" /> Skills to Unlock Next Level
         </h4>
-        <div className="space-y-2">
-          {insight.skillsToLearn.map((s, i) => (
-            <div key={i} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/30">
-              <div className="flex items-center gap-2">
-                <ArrowRight className="w-3 h-3 text-accent" />
-                <span className="text-sm font-medium text-foreground">{s.skill}</span>
+        <div className="space-y-3">
+          {insight.skillsToLearn.map((s, i) => {
+            const resourceIcon = s.resourceType === "certification" ? <Award className="w-3.5 h-3.5" /> :
+              s.resourceType === "project" ? <Code2 className="w-3.5 h-3.5" /> :
+              <BookOpen className="w-3.5 h-3.5" />;
+            return (
+              <div key={i} className="p-3 rounded-lg bg-muted/30 border border-border space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <ArrowRight className="w-3 h-3 text-accent" />
+                    <span className="text-sm font-medium text-foreground">{s.skill}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-[10px]">{s.impact} impact</Badge>
+                    <span className="text-xs text-muted-foreground">{s.timeEstimate}</span>
+                  </div>
+                </div>
+                {s.actionStep && (
+                  <div className="ml-5 space-y-1">
+                    <p className="text-xs text-foreground/80">
+                      <span className="font-semibold text-accent">Action:</span> {s.actionStep}
+                    </p>
+                    {s.resourceSuggestion && (
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        {resourceIcon}
+                        <span className="capitalize">{s.resourceType}</span>
+                        <span>—</span>
+                        <span className="text-foreground/70">{s.resourceSuggestion}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
-              <div className="flex items-center gap-2">
-                <Badge variant="outline" className="text-[10px]">{s.impact} impact</Badge>
-                <span className="text-xs text-muted-foreground">{s.timeEstimate}</span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </Card>
 
