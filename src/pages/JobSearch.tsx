@@ -166,25 +166,47 @@ export default function JobSearchPage() {
         {/* Search Controls */}
         <Card className="p-6 mb-8">
           <div className="space-y-4">
-            {/* Career Level & Target Titles */}
-            {(careerLevel || targetTitles.length > 0) && (
-              <div className="grid sm:grid-cols-2 gap-4">
-                {careerLevel && (
-                  <div>
-                    <label className="text-sm font-semibold text-foreground mb-2 block">Career Level</label>
-                    <Badge variant="default" className="bg-accent text-accent-foreground">{careerLevel}</Badge>
-                  </div>
-                )}
-                {targetTitles.length > 0 && (
-                  <div>
-                    <label className="text-sm font-semibold text-foreground mb-2 block">Target Titles</label>
-                    <div className="flex flex-wrap gap-2">
-                      {targetTitles.map((t, i) => (
-                        <Badge key={i} variant="outline">{t}</Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
+            {/* Target Titles (editable) */}
+            <div>
+              <label className="text-sm font-semibold text-foreground mb-2 block">Target Job Titles</label>
+              <div className="flex gap-2 mb-2">
+                <Input
+                  value={titleInput}
+                  onChange={(e) => setTitleInput(e.target.value)}
+                  placeholder="e.g. Software Engineer"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      const t = titleInput.trim();
+                      if (t && !targetTitles.includes(t)) {
+                        setTargetTitles([...targetTitles, t]);
+                        setTitleInput("");
+                      }
+                    }
+                  }}
+                />
+                <Button variant="outline" size="sm" onClick={() => {
+                  const t = titleInput.trim();
+                  if (t && !targetTitles.includes(t)) {
+                    setTargetTitles([...targetTitles, t]);
+                    setTitleInput("");
+                  }
+                }}><Plus className="w-4 h-4" /></Button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {targetTitles.map((t, i) => (
+                  <Badge key={i} variant="secondary" className="cursor-pointer" onClick={() => setTargetTitles(targetTitles.filter((_, idx) => idx !== i))}>
+                    {t} <X className="w-3 h-3 ml-1" />
+                  </Badge>
+                ))}
+              </div>
+            </div>
+
+            {/* Career Level */}
+            {careerLevel && (
+              <div>
+                <label className="text-sm font-semibold text-foreground mb-2 block">Career Level</label>
+                <Badge variant="default" className="bg-accent text-accent-foreground">{careerLevel}</Badge>
               </div>
             )}
 
