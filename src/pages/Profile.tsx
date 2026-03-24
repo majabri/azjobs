@@ -139,6 +139,10 @@ export default function ProfilePage() {
           preferred_job_types: ((data as any).preferred_job_types as string[]) || [],
           career_level: (data as any).career_level || "",
           target_job_titles: ((data as any).target_job_titles as string[]) || [],
+          salary_min: (data as any).salary_min || "",
+          salary_max: (data as any).salary_max || "",
+          remote_only: (data as any).remote_only || false,
+          min_match_score: (data as any).min_match_score ?? 60,
         });
       }
     } catch (e) {
