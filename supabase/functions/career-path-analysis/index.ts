@@ -58,10 +58,13 @@ Provide a JSON response with this EXACT structure:
     { "skill": "skill name", "impact": "high/medium/low", "timeEstimate": "e.g. 2-3 months" }
   ],
   "industryTrends": ["trend 1", "trend 2"],
-  "advice": "personalized career advice paragraph"
+  "advice": "personalized career advice paragraph",
+  "roadmap": [
+    { "stage": "description of this career stage", "role": "role title", "skills": ["skill1", "skill2"], "timeframe": "e.g. Now - 6 months" }
+  ]
 }
 
-Include 3-4 next roles sorted by attainability, 4-5 skills to learn sorted by impact, and 2-3 industry trends. Be specific and actionable.`;
+Include 3-4 next roles sorted by attainability, 4-5 skills to learn sorted by impact, 2-3 industry trends, and 3-4 roadmap stages showing progression from current to target role. Be specific and actionable.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
