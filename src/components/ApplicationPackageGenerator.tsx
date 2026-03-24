@@ -3,9 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Package, Copy, Download, FileText, Mail, Loader2, CheckCircle2
+  Package, Copy, Download, FileText, Mail, Loader2, CheckCircle2, Save
 } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ApplicationPackageGeneratorProps {
   resume: string;
