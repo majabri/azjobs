@@ -616,6 +616,20 @@ export default function AutoApplyPage() {
                 <span>Higher Quality (90%)</span>
               </div>
             </div>
+
+            {/* Risk Tolerance */}
+            <div>
+              <Label className="text-sm font-semibold">Risk Tolerance: {prefs.riskTolerance}%</Label>
+              <input
+                type="range" min={10} max={90} value={prefs.riskTolerance}
+                onChange={e => setPrefs({ ...prefs, riskTolerance: parseInt(e.target.value) })}
+                className="w-full mt-1 accent-[hsl(var(--accent))]"
+              />
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>Conservative (safe bets only)</span>
+                <span>Aggressive (stretch roles)</span>
+              </div>
+            </div>
           </div>
 
           <div className="mt-6 flex items-center gap-3">
