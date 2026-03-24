@@ -239,11 +239,13 @@ export default function JobSearchPage() {
         allCitations = aiResult.citations;
       }
 
-      // Enrich with probability & tags
+      // Enrich with probability, decision score & tags
       allJobs = allJobs.map(job => {
         const prob = calculateResponseProbability(job, skills);
-        const tag = getSmartTag(job, prob);
-        return { ...job, responseProbability: prob, smartTag: tag.label };
+        const { score: decScore, effort } = calculateDecisionScore(job, prob, skills);
+        const enriched = { ...job, responseProbability: prob, decisionScore: decScore, effortEstimate: effort };
+        const tag = getSmartTag(enriched, prob);
+        return { ...enriched, smartTag: tag.label };
       });
 
       // Sort
