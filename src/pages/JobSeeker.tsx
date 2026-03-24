@@ -1185,6 +1185,43 @@ ${analysis.gaps.slice(0, 3).map((g) => `â€¢ [Relevant ${g.area} certification â€
               </div>
             </div>
 
+            {/* Enhanced Score Breakdown */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="bg-card rounded-xl p-4 border border-border shadow-card text-center">
+                <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1 justify-center"><Target className="w-3 h-3" /> Interview Chance</div>
+                <div className="text-2xl font-display font-bold text-accent">{analysis.interviewProbability}%</div>
+              </div>
+              <div className="bg-card rounded-xl p-4 border border-border shadow-card text-center">
+                <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1 justify-center"><Shield className="w-3 h-3" /> Experience Match</div>
+                <div className={`text-2xl font-display font-bold ${analysis.experienceMatch >= 70 ? "text-success" : analysis.experienceMatch >= 40 ? "text-warning" : "text-destructive"}`}>{analysis.experienceMatch}%</div>
+              </div>
+              <div className="bg-card rounded-xl p-4 border border-border shadow-card text-center">
+                <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1 justify-center"><Zap className="w-3 h-3" /> Keyword Alignment</div>
+                <div className={`text-2xl font-display font-bold ${analysis.keywordAlignment >= 70 ? "text-success" : analysis.keywordAlignment >= 40 ? "text-warning" : "text-destructive"}`}>{analysis.keywordAlignment}%</div>
+              </div>
+              <div className="bg-card rounded-xl p-4 border border-border shadow-card text-center">
+                <div className="text-xs text-muted-foreground mb-1 flex items-center gap-1 justify-center"><TrendingUp className="w-3 h-3" /> Fit Score</div>
+                <div className={`text-2xl font-display font-bold ${analysis.overallScore >= 70 ? "text-success" : analysis.overallScore >= 45 ? "text-warning" : "text-destructive"}`}>{analysis.overallScore}%</div>
+              </div>
+            </div>
+
+            {/* Top Actions to Improve */}
+            {analysis.topActions.length > 0 && (
+              <div className="bg-accent/5 border border-accent/20 rounded-2xl p-5">
+                <h3 className="font-display font-bold text-primary text-base mb-3 flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-accent" /> Top Actions to Improve Your Score
+                </h3>
+                <div className="space-y-2">
+                  {analysis.topActions.map((action, i) => (
+                    <div key={i} className="flex items-start gap-3 text-sm">
+                      <span className="w-6 h-6 rounded-full gradient-teal text-white flex items-center justify-center text-xs font-bold flex-shrink-0">{i + 1}</span>
+                      <span className="text-foreground">{action}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Links bar */}
             {(jobLink || linkedinUrl) && (
               <div className="flex flex-wrap gap-3">
