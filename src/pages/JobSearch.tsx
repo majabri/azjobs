@@ -62,7 +62,7 @@ export default function JobSearchPage() {
       if (!session) return;
       const { data } = await supabase
         .from("job_seeker_profiles")
-        .select("skills, preferred_job_types, location")
+        .select("skills, preferred_job_types, location, career_level, target_job_titles, salary_min, salary_max")
         .eq("user_id", session.user.id)
         .maybeSingle();
       if (data) {
@@ -71,6 +71,8 @@ export default function JobSearchPage() {
         if (data.location) setLocation(data.location);
         if ((data as any).career_level) setCareerLevel((data as any).career_level);
         if ((data as any).target_job_titles) setTargetTitles((data as any).target_job_titles as string[]);
+        if ((data as any).salary_min) setSalaryMin((data as any).salary_min);
+        if ((data as any).salary_max) setSalaryMax((data as any).salary_max);
         setProfileLoaded(true);
       }
     } catch (e) {
