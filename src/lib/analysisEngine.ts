@@ -31,6 +31,11 @@ export interface FitAnalysis {
   strengths: string[];
   improvementPlan: { week: string; action: string }[];
   summary: string;
+  // Enhanced scoring
+  interviewProbability: number;
+  experienceMatch: number;
+  keywordAlignment: number;
+  topActions: string[];
 }
 
 // ─── Categorized Skill Keywords ───────────────────────────────────────────────
