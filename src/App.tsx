@@ -34,6 +34,7 @@ const App = () => (
           <Route path="/job-search" element={<ProtectedRoute><JobSearch /></ProtectedRoute>} />
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/auto-apply" element={<ProtectedRoute><AutoApply /></ProtectedRoute>} />
+          <Route path="/job-board" element={<ProtectedRoute><JobBoard /></ProtectedRoute>} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
