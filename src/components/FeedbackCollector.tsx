@@ -21,7 +21,7 @@ const OUTCOMES = [
   { value: "offer", label: "Got Offer!", icon: CheckCircle2, color: "text-accent" },
 ];
 
-export default function FeedbackCollector({ applicationId, currentStatus, onStatusUpdate }: FeedbackCollectorProps) {
+export default function FeedbackCollector({ applicationId, currentStatus, appliedAt, onStatusUpdate }: FeedbackCollectorProps) {
   const [saving, setSaving] = useState(false);
 
   const handleOutcome = async (outcome: string) => {
@@ -34,12 +34,20 @@ export default function FeedbackCollector({ applicationId, currentStatus, onStat
         offer: "offer",
       };
       const newStatus = statusMap[outcome] || currentStatus;
+
+      // Calculate response days if we have appliedAt
+      let responseDays: number | null = null;
+      if (appliedAt && outcome !== "no_response") {
+        responseDays = Math.round((Date.now() - new Date(appliedAt).getTime()) / (1000 * 60 * 60 * 24));
+      }
+
       await supabase
         .from("job_applications")
         .update({
           status: newStatus,
           follow_up_notes: `Outcome: ${outcome} (logged ${new Date().toLocaleDateString()})`,
           updated_at: new Date().toISOString(),
+          ...(responseDays !== null ? { response_days: responseDays } : {}),
         } as any)
         .eq("id", applicationId);
 
