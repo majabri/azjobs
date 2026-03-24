@@ -15,6 +15,7 @@ import AutoApply from "./pages/AutoApply";
 import Career from "./pages/Career";
 import InterviewPrep from "./pages/InterviewPrep";
 import PublicProfile from "./pages/PublicProfile";
+import ScoreReport from "./pages/ScoreReport";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
 
