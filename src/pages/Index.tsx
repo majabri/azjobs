@@ -185,13 +185,13 @@ export default function Index() {
           )}
 
           <h1 className="text-5xl md:text-7xl font-display font-bold text-white mb-6 animate-fade-up leading-tight" style={{ animationDelay: "0.1s" }}>
-            We Apply to Jobs For You
+            Stop Applying to Jobs.
             <br />
-            <span className="text-gradient-teal">& Get You More Interviews</span>
+            <span className="text-gradient-teal">Your AI Does It For You.</span>
           </h1>
 
           <p className="text-xl md:text-2xl text-white/70 max-w-3xl mx-auto mb-12 animate-fade-up leading-relaxed" style={{ animationDelay: "0.2s" }}>
-            AI finds the best jobs, rewrites your resume, and helps you apply faster — all in one place.
+            FitCheck finds, optimizes, and applies to jobs automatically — while you focus on interviews.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-up" style={{ animationDelay: "0.3s" }}>
