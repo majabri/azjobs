@@ -131,7 +131,7 @@ export default function Dashboard() {
 
         {/* Analysis History */}
         <div>
-          <h2 className="font-display text-2xl font-bold text-primary mb-4">Analysis History</h2>
+          <h2 className="font-display text-2xl font-bold text-primary mb-4">Your Interview Pipeline</h2>
 
           {loading ? (
             <div className="flex items-center justify-center py-16">
