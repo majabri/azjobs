@@ -292,7 +292,7 @@ export default function JobSearchPage() {
                       className="gradient-teal text-white text-xs"
                       onClick={() => handleAnalyzeFit(job)}
                     >
-                      <Target className="w-3.5 h-3.5 mr-1" /> Analyze Fit
+                      <Target className="w-3.5 h-3.5 mr-1" /> Check My Chances
                     </Button>
                     {job.url && (
                       <Button
