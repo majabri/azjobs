@@ -53,6 +53,7 @@ export default function Index() {
               <NavBtn icon={<ClipboardList className="w-4 h-4" />} label="Applications" onClick={() => navigate("/applications")} />
               <NavBtn icon={<UserCircle className="w-4 h-4" />} label="Profile" onClick={() => navigate("/profile")} />
               <NavBtn icon={<BarChart3 className="w-4 h-4" />} label="Dashboard" onClick={() => navigate("/dashboard")} />
+              <NavBtn icon={<Zap className="w-4 h-4" />} label="Auto-Apply" onClick={() => navigate("/auto-apply")} />
               <div className="w-px h-6 bg-white/20 mx-1" />
               <Button
                 size="sm"

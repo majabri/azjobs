@@ -120,6 +120,12 @@ export default function Dashboard() {
         {/* Today's Matches */}
         <TodaysMatches compact />
 
+        {/* Career Path Intelligence */}
+        <CareerPathIntelligence />
+
+        {/* Recruiter Assistant */}
+        <RecruiterAssistant />
+
         {/* Analysis History */}
         <div>
           <h2 className="font-display text-2xl font-bold text-primary mb-4">Analysis History</h2>
