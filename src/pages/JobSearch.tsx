@@ -273,7 +273,24 @@ export default function JobSearchPage() {
               </div>
             </div>
 
-            <Button
+            {/* Salary Range */}
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-semibold text-foreground mb-1 block">Min Salary</label>
+                <div className="flex items-center gap-1">
+                  <DollarSign className="w-4 h-4 text-muted-foreground" />
+                  <Input value={salaryMin} onChange={(e) => setSalaryMin(e.target.value)} placeholder="80,000" />
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-semibold text-foreground mb-1 block">Max Salary</label>
+                <div className="flex items-center gap-1">
+                  <DollarSign className="w-4 h-4 text-muted-foreground" />
+                  <Input value={salaryMax} onChange={(e) => setSalaryMax(e.target.value)} placeholder="150,000" />
+                </div>
+              </div>
+            </div>
+
               className="gradient-teal text-white shadow-teal hover:opacity-90 w-full sm:w-auto"
               disabled={searching}
               onClick={handleSearch}
