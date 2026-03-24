@@ -16,6 +16,8 @@ import { supabase } from "@/integrations/supabase/client";
 import ApplicationToolkit from "@/components/ApplicationToolkit";
 import ApplicationPackageGenerator from "@/components/ApplicationPackageGenerator";
 import ResumeComparison from "@/components/ResumeComparison";
+import GapIntelligence from "@/components/GapIntelligence";
+import InterviewPredictor from "@/components/InterviewPredictor";
 
 const DEMO_JOB = `Senior Cybersecurity Engineer — Cloud Security
 
