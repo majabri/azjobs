@@ -1355,8 +1355,9 @@ ${analysis.gaps.slice(0, 3).map((g) => `• [Relevant ${g.area} certification �
                 <Button
                   size="sm"
                   className="gradient-teal text-white shadow-teal hover:opacity-90 text-sm"
-                  disabled={isGeneratingCover}
+                  disabled={isGeneratingCover || isDemo}
                   onClick={handleGenerateCoverLetter}
+                  title={isDemo ? "Sign up to generate cover letters" : ""}
                 >
                   {isGeneratingCover ? (
                     <><Loader2 className="w-4 h-4 animate-spin mr-1.5" /> Generating…</>
