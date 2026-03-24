@@ -398,6 +398,7 @@ export default function ProfilePage() {
             <span className="text-lg font-bold text-foreground">My Profile</span>
           </div>
           <div className="flex items-center gap-2">
+            <ProfilePdfExport profile={profile} />
             <Button onClick={handleSave} disabled={saving} size="sm">
               {saving ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Save className="w-4 h-4 mr-1" />}
               Save
