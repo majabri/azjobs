@@ -33,6 +33,8 @@ interface JobResult {
   first_seen_at?: string;
   responseProbability?: number;
   smartTag?: string;
+  decisionScore?: number;
+  effortEstimate?: number;
 }
 
 const JOB_TYPE_OPTIONS = [
