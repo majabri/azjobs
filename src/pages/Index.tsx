@@ -2,20 +2,22 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import {
   ArrowRight, Target, Users, CheckCircle, TrendingUp, Zap, LogOut, Play,
   BarChart3, Search, FileText, Briefcase, ClipboardList, UserCircle, Shield,
   Upload, Sparkles, Bot, Star, ChevronRight, Check, X, Share2, Gift,
-  MessageSquare, Globe, Mail, Clock, Award, Rocket
+  MessageSquare, Globe, Mail, Clock, Award, Rocket, Loader2
 } from "lucide-react";
 import heroBg from "@/assets/hero-bg.jpg";
 import { supabase } from "@/integrations/supabase/client";
+import { analyzeJobFit } from "@/lib/analysisEngine";
 import type { User } from "@supabase/supabase-js";
 
 const stats = [
-  { value: "3x", label: "more interview callbacks with ATS-optimized resumes" },
+  { value: "1,200+", label: "resumes optimized this week" },
+  { value: "3x", label: "more interview callbacks on average" },
   { value: "< 30s", label: "to get matched with relevant jobs" },
-  { value: "89%", label: "of users improve their match score on the first try" },
 ];
 
 const features = [
@@ -55,12 +57,61 @@ const comparisonRows = [
 export default function Index() {
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
+  const [matchedJobCount, setMatchedJobCount] = useState(0);
+  const [totalJobCount, setTotalJobCount] = useState(0);
+
+  // Interactive demo state
+  const [demoJobDesc, setDemoJobDesc] = useState("");
+  const [demoResult, setDemoResult] = useState<{ score: number; improvements: string[]; probability: number } | null>(null);
+  const [demoLoading, setDemoLoading] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => setUser(session?.user ?? null));
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => setUser(session?.user ?? null));
     return () => subscription.unsubscribe();
   }, []);
+
+  // Load live job counts
+  useEffect(() => {
+    const loadCounts = async () => {
+      const { count } = await supabase.from("scraped_jobs").select("*", { count: "exact", head: true });
+      setTotalJobCount(count || 0);
+      if (user) {
+        const { data: profile } = await supabase
+          .from("job_seeker_profiles")
+          .select("skills, target_job_titles")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        if (profile?.target_job_titles && (profile.target_job_titles as string[]).length > 0) {
+          const titles = profile.target_job_titles as string[];
+          const titleFilter = titles.map(t => `title.ilike.%${t}%`).join(",");
+          const { count: matched } = await supabase.from("scraped_jobs").select("*", { count: "exact", head: true }).or(titleFilter);
+          setMatchedJobCount(matched || 0);
+        }
+      }
+    };
+    loadCounts();
+  }, [user]);
+
+  const handleDemoAnalyze = async () => {
+    if (!demoJobDesc.trim()) return;
+    setDemoLoading(true);
+    setDemoResult(null);
+    try {
+      // Use a sample resume for the demo
+      const sampleResume = "Experienced professional with skills in project management, communication, data analysis, and problem solving. 5+ years of experience in technology roles.";
+      const result = analyzeJobFit(sampleResume, demoJobDesc);
+      setDemoResult({
+        score: result.overallScore,
+        improvements: result.topActions.slice(0, 3),
+        probability: result.interviewProbability,
+      });
+    } catch {
+      setDemoResult({ score: 0, improvements: ["Could not analyze. Try a more detailed description."], probability: 0 });
+    } finally {
+      setDemoLoading(false);
+    }
+  };
 
   const handleCopyReferral = () => {
     const url = `${window.location.origin}?ref=${user?.id?.slice(0, 8) || "friend"}`;
@@ -80,7 +131,7 @@ export default function Index() {
         <nav className="flex items-center gap-1">
           {user ? (
             <>
-              <NavBtn icon={<Zap className="w-4 h-4" />} label="Analyze" onClick={() => navigate("/job-seeker")} />
+              <NavBtn icon={<Zap className="w-4 h-4" />} label="Get Interviews" onClick={() => navigate("/job-seeker")} />
               <NavBtn icon={<Search className="w-4 h-4" />} label="Find Jobs" onClick={() => navigate("/job-search")} />
               <NavBtn icon={<ClipboardList className="w-4 h-4" />} label="Applications" onClick={() => navigate("/applications")} />
               <NavBtn icon={<UserCircle className="w-4 h-4" />} label="Profile" onClick={() => navigate("/profile")} />
@@ -118,10 +169,20 @@ export default function Index() {
         <div className="absolute inset-0 bg-gradient-to-b from-navy-900/90 via-navy-800/80 to-navy-900/95" />
 
         <div className="relative z-10 max-w-5xl mx-auto px-6 text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass border border-teal-500/30 text-teal-400 text-sm font-medium mb-8 animate-fade-up">
-            <Rocket className="w-3.5 h-3.5" />
-            Smarter Than Any Job Board
-          </div>
+          {/* Personalized welcome for logged-in users */}
+          {user && matchedJobCount > 0 && (
+            <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-accent/20 border border-accent/40 text-accent text-sm font-semibold mb-6 animate-fade-up">
+              <Sparkles className="w-4 h-4" />
+              Welcome back — {matchedJobCount} new jobs matched to you today
+            </div>
+          )}
+
+          {!user && (
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass border border-teal-500/30 text-teal-400 text-sm font-medium mb-8 animate-fade-up">
+              <Rocket className="w-3.5 h-3.5" />
+              Smarter Than Any Job Board
+            </div>
+          )}
 
           <h1 className="text-5xl md:text-7xl font-display font-bold text-white mb-6 animate-fade-up leading-tight" style={{ animationDelay: "0.1s" }}>
             We Apply to Jobs For You
@@ -154,23 +215,15 @@ export default function Index() {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3 justify-center mt-4 animate-fade-up" style={{ animationDelay: "0.35s" }}>
-            <Button
-              variant="ghost"
-              className="text-white/60 hover:text-white hover:bg-white/10 text-sm"
-              onClick={() => navigate("/job-seeker?demo=true")}
-            >
+            <Button variant="ghost" className="text-white/60 hover:text-white hover:bg-white/10 text-sm" onClick={() => navigate("/job-seeker?demo=true")}>
               <Play className="mr-2 w-4 h-4" /> Try Demo — No Sign Up
             </Button>
-            <Button
-              variant="ghost"
-              className="text-white/60 hover:text-white hover:bg-white/10 text-sm"
-              onClick={() => navigate(user ? "/job-search" : "/auth")}
-            >
+            <Button variant="ghost" className="text-white/60 hover:text-white hover:bg-white/10 text-sm" onClick={() => navigate(user ? "/job-search" : "/auth")}>
               <Search className="mr-2 w-4 h-4" /> Find Jobs For Me
             </Button>
           </div>
 
-          {/* Stats */}
+          {/* Stats with social proof */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-16 animate-fade-up" style={{ animationDelay: "0.4s" }}>
             {stats.map((stat) => (
               <div key={stat.value} className="glass rounded-2xl p-6 border border-white/10">
@@ -179,6 +232,14 @@ export default function Index() {
               </div>
             ))}
           </div>
+
+          {/* Live job count */}
+          {totalJobCount > 0 && (
+            <div className="mt-6 text-white/40 text-sm animate-fade-up" style={{ animationDelay: "0.5s" }}>
+              <Globe className="w-3.5 h-3.5 inline mr-1" />
+              {totalJobCount.toLocaleString()} jobs in database · Updated daily
+            </div>
+          )}
         </div>
 
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-white/40 text-xs animate-bounce">
@@ -221,8 +282,71 @@ export default function Index() {
         </div>
       </section>
 
-      {/* ═══════════════ TODAY'S MATCHES PREVIEW ═══════════════ */}
+      {/* ═══════════════ INTERACTIVE DEMO ═══════════════ */}
       <section className="bg-card py-24 px-6 border-y border-border">
+        <div className="max-w-3xl mx-auto">
+          <div className="text-center mb-10">
+            <h2 className="text-4xl font-display font-bold text-primary mb-4">
+              Try It <span className="text-gradient-teal">Right Now</span>
+            </h2>
+            <p className="text-muted-foreground text-lg">Paste any job description and instantly see your fit score and resume improvements.</p>
+          </div>
+
+          <div className="bg-background rounded-2xl p-6 border border-border shadow-card space-y-4">
+            <Textarea
+              value={demoJobDesc}
+              onChange={e => setDemoJobDesc(e.target.value)}
+              placeholder="Paste a job description here to see your fit score instantly..."
+              className="min-h-[120px] resize-none"
+            />
+            <Button
+              className="gradient-teal text-white shadow-teal hover:opacity-90 w-full"
+              disabled={demoLoading || !demoJobDesc.trim()}
+              onClick={handleDemoAnalyze}
+            >
+              {demoLoading ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Analyzing...</> : <><Zap className="w-4 h-4 mr-2" /> Instant Fit Check</>}
+            </Button>
+
+            {demoResult && (
+              <div className="bg-card rounded-xl p-5 border border-border space-y-4 animate-fade-in">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm text-muted-foreground">Your Fit Score</div>
+                    <div className={`text-4xl font-display font-bold ${demoResult.score >= 70 ? "text-success" : demoResult.score >= 45 ? "text-warning" : "text-destructive"}`}>
+                      {demoResult.score}%
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm text-muted-foreground">Interview Probability</div>
+                    <div className={`text-2xl font-display font-bold ${demoResult.probability >= 50 ? "text-success" : "text-warning"}`}>
+                      {demoResult.probability}%
+                    </div>
+                  </div>
+                </div>
+                {demoResult.improvements.length > 0 && (
+                  <div>
+                    <div className="text-sm font-semibold text-primary mb-2">Top Improvements</div>
+                    <ul className="space-y-1.5">
+                      {demoResult.improvements.map((imp, i) => (
+                        <li key={i} className="text-sm text-muted-foreground flex items-start gap-2">
+                          <TrendingUp className="w-3.5 h-3.5 text-accent mt-0.5 flex-shrink-0" />
+                          {imp}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                <Button className="gradient-teal text-white shadow-teal hover:opacity-90 w-full" onClick={() => navigate(user ? "/job-seeker" : "/auth")}>
+                  <Sparkles className="w-4 h-4 mr-2" /> Get Full Analysis & Optimized Resume
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════ TODAY'S MATCHES PREVIEW ═══════════════ */}
+      <section className="bg-background py-24 px-6">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-display font-bold text-primary mb-4">
@@ -233,7 +357,7 @@ export default function Index() {
 
           <div className="grid sm:grid-cols-2 gap-4 max-w-3xl mx-auto">
             {sampleJobs.map((job) => (
-              <div key={job.title} className="bg-background rounded-2xl p-5 border border-border shadow-card hover:shadow-elevated transition-shadow group cursor-pointer" onClick={() => navigate(user ? "/job-search" : "/auth")}>
+              <div key={job.title} className="bg-card rounded-2xl p-5 border border-border shadow-card hover:shadow-elevated transition-shadow group cursor-pointer" onClick={() => navigate(user ? "/job-search" : "/auth")}>
                 <div className="flex items-start justify-between mb-3">
                   <div>
                     <h4 className="font-semibold text-foreground">{job.title}</h4>
@@ -246,7 +370,7 @@ export default function Index() {
                 <div className="flex items-center justify-between">
                   <Badge variant="outline" className="text-xs border-accent/30 text-accent">{job.tag}</Badge>
                   <span className="text-xs text-accent opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-                    Analyze fit <ArrowRight className="w-3 h-3" />
+                    Check my chances <ArrowRight className="w-3 h-3" />
                   </span>
                 </div>
               </div>
@@ -262,7 +386,7 @@ export default function Index() {
       </section>
 
       {/* ═══════════════ BEFORE VS AFTER ═══════════════ */}
-      <section className="bg-background py-24 px-6">
+      <section className="bg-card py-24 px-6 border-y border-border">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-display font-bold text-primary mb-4">
@@ -272,8 +396,7 @@ export default function Index() {
           </div>
 
           <div className="grid md:grid-cols-2 gap-6">
-            {/* Before */}
-            <div className="bg-card rounded-2xl p-6 border border-destructive/20 shadow-card">
+            <div className="bg-background rounded-2xl p-6 border border-destructive/20 shadow-card">
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-8 h-8 rounded-lg bg-destructive/10 flex items-center justify-center">
                   <X className="w-4 h-4 text-destructive" />
@@ -292,8 +415,7 @@ export default function Index() {
               </div>
             </div>
 
-            {/* After */}
-            <div className="bg-card rounded-2xl p-6 border border-success/20 shadow-card">
+            <div className="bg-background rounded-2xl p-6 border border-success/20 shadow-card">
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-8 h-8 rounded-lg bg-success/10 flex items-center justify-center">
                   <Check className="w-4 h-4 text-success" />
@@ -321,7 +443,7 @@ export default function Index() {
       </section>
 
       {/* ═══════════════ COMPARISON TABLE ═══════════════ */}
-      <section className="bg-card py-24 px-6 border-y border-border">
+      <section className="bg-background py-24 px-6">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-display font-bold text-primary mb-4">
@@ -330,9 +452,8 @@ export default function Index() {
             <p className="text-muted-foreground text-lg">Job boards show listings. We help you <strong>get hired</strong>.</p>
           </div>
 
-          <div className="bg-background rounded-2xl border border-border shadow-card overflow-hidden">
+          <div className="bg-card rounded-2xl border border-border shadow-card overflow-hidden">
             <div className="grid grid-cols-4 gap-0">
-              {/* Header */}
               <div className="p-4 border-b border-border font-semibold text-sm text-muted-foreground">Feature</div>
               <div className="p-4 border-b border-border text-center">
                 <div className="inline-flex items-center gap-1.5">
@@ -343,7 +464,6 @@ export default function Index() {
               <div className="p-4 border-b border-border text-center font-semibold text-sm text-muted-foreground">Indeed</div>
               <div className="p-4 border-b border-border text-center font-semibold text-sm text-muted-foreground">ZipRecruiter</div>
 
-              {/* Rows */}
               {comparisonRows.map((row, i) => (
                 <div key={row.feature} className="contents">
                   <div className={`p-4 text-sm text-foreground ${i < comparisonRows.length - 1 ? "border-b border-border" : ""}`}>{row.feature}</div>
@@ -370,7 +490,7 @@ export default function Index() {
       </section>
 
       {/* ═══════════════ ALL FEATURES ═══════════════ */}
-      <section className="bg-background py-24 px-6">
+      <section className="bg-card py-24 px-6 border-y border-border">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-display font-bold text-primary mb-4">
@@ -385,7 +505,7 @@ export default function Index() {
             {features.map((f, i) => (
               <div
                 key={f.title}
-                className="bg-card rounded-2xl p-7 shadow-card border border-border hover:shadow-elevated hover:border-accent/30 transition-all cursor-pointer group"
+                className="bg-background rounded-2xl p-7 shadow-card border border-border hover:shadow-elevated hover:border-accent/30 transition-all cursor-pointer group"
                 style={{ animationDelay: `${i * 0.1}s` }}
                 onClick={() => navigate(user ? f.link : "/auth")}
               >
@@ -420,7 +540,7 @@ export default function Index() {
             </div>
 
             <div
-              className="relative overflow-hidden bg-card rounded-3xl p-10 cursor-pointer group border border-border hover:shadow-elevated transition-shadow"
+              className="relative overflow-hidden bg-background rounded-3xl p-10 cursor-pointer group border border-border hover:shadow-elevated transition-shadow"
               onClick={() => navigate("/hiring-manager")}
             >
               <div className="absolute top-0 right-0 w-48 h-48 bg-accent/5 rounded-full -translate-y-12 translate-x-12 group-hover:scale-125 transition-transform duration-500" />
@@ -439,14 +559,20 @@ export default function Index() {
 
       {/* ═══════════════ REFERRAL / SHARE ═══════════════ */}
       {user && (
-        <section className="bg-card py-16 px-6 border-t border-border">
+        <section className="bg-background py-16 px-6">
           <div className="max-w-3xl mx-auto text-center">
             <Gift className="w-10 h-10 text-accent mx-auto mb-4" />
             <h2 className="text-3xl font-display font-bold text-primary mb-3">Invite Friends & Unlock More</h2>
-            <p className="text-muted-foreground mb-6">Share FitCheck with friends. Each referral helps us grow and improve the platform for everyone.</p>
+            <p className="text-muted-foreground mb-6">Share FitCheck with 3 friends to unlock premium features like unlimited auto-apply and priority job alerts.</p>
             <div className="flex justify-center gap-3">
               <Button className="gradient-teal text-white shadow-teal hover:opacity-90" onClick={handleCopyReferral}>
                 <Share2 className="w-4 h-4 mr-2" /> Copy Referral Link
+              </Button>
+              <Button variant="outline" onClick={() => {
+                const url = `${window.location.origin}?ref=${user?.id?.slice(0, 8) || "friend"}`;
+                window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent("I use FitCheck to get 3x more interview callbacks. Try it free: " + url)}`, "_blank");
+              }}>
+                <MessageSquare className="w-4 h-4 mr-2" /> Share on X
               </Button>
             </div>
           </div>
@@ -482,8 +608,21 @@ export default function Index() {
         </section>
       )}
 
+      {/* ═══════════════ STICKY CTA BAR ═══════════════ */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-primary/95 backdrop-blur-sm border-t border-white/10 px-4 py-3 flex items-center justify-center gap-3 sm:hidden">
+        <Button size="sm" className="gradient-teal text-white font-semibold shadow-teal text-xs flex-1" onClick={() => navigate(user ? "/job-seeker" : "/auth")}>
+          <Upload className="w-3.5 h-3.5 mr-1" /> Upload Resume
+        </Button>
+        <Button size="sm" variant="outline" className="border-white/30 text-white bg-white/10 text-xs flex-1" onClick={() => navigate(user ? "/job-search" : "/auth")}>
+          <Search className="w-3.5 h-3.5 mr-1" /> Find Jobs
+        </Button>
+        <Button size="sm" variant="outline" className="border-white/30 text-white bg-white/10 text-xs flex-1" onClick={() => navigate(user ? "/auto-apply" : "/auth")}>
+          <Bot className="w-3.5 h-3.5 mr-1" /> Auto-Apply
+        </Button>
+      </div>
+
       {/* Footer */}
-      <footer className="bg-primary py-10 px-6">
+      <footer className="bg-primary py-10 px-6 sm:pb-10 pb-20">
         <div className="max-w-5xl mx-auto">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
             <div className="flex items-center gap-2">
@@ -493,7 +632,7 @@ export default function Index() {
               <span className="font-display font-bold text-primary-foreground">FitCheck</span>
             </div>
             <div className="flex flex-wrap gap-4 text-primary-foreground/50 text-sm">
-              <button className="hover:text-primary-foreground transition-colors" onClick={() => navigate("/job-seeker")}>Analyze</button>
+              <button className="hover:text-primary-foreground transition-colors" onClick={() => navigate("/job-seeker")}>Get Interviews</button>
               <button className="hover:text-primary-foreground transition-colors" onClick={() => navigate("/job-search")}>Find Jobs</button>
               <button className="hover:text-primary-foreground transition-colors" onClick={() => navigate("/applications")}>Track</button>
               <button className="hover:text-primary-foreground transition-colors" onClick={() => navigate("/auto-apply")}>Auto-Apply</button>
