@@ -92,6 +92,12 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <Button variant="outline" size="sm" onClick={() => navigate("/career")}>
+              <Map className="w-4 h-4 mr-1" /> Career
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => navigate("/interview-prep")}>
+              <MessageSquare className="w-4 h-4 mr-1" /> Mock Interview
+            </Button>
             <Button variant="outline" size="sm" onClick={() => navigate("/job-seeker")}>
               <Target className="w-4 h-4 mr-1" /> Get More Interviews
             </Button>
@@ -123,6 +129,9 @@ export default function Dashboard() {
 
         {/* Today's Matches */}
         <TodaysMatches compact />
+
+        {/* Learning Insights */}
+        <LearningInsights />
 
         {/* Career Path Intelligence */}
         <CareerPathIntelligence />
