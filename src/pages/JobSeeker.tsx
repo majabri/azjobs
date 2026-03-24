@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useMemo, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,58 @@ import UserMenu from "@/components/UserMenu";
 import { computeDiff, type DiffSegment } from "@/lib/diffUtils";
 import { supabase } from "@/integrations/supabase/client";
 import ApplicationToolkit from "@/components/ApplicationToolkit";
+
+const DEMO_JOB = `Senior Cybersecurity Engineer — Cloud Security
+
+We're looking for an experienced Cybersecurity Engineer to lead our cloud security initiatives.
+
+Requirements:
+- 5+ years of cybersecurity experience
+- Strong knowledge of cloud security (AWS, Azure, or GCP)
+- Experience with SIEM tools and security operations
+- Familiarity with compliance frameworks (NIST, ISO 27001, SOC 2)
+- Incident response and threat detection skills
+- Experience with vulnerability management and penetration testing
+- Strong communication and documentation skills
+- CISSP, CISM, or equivalent certification preferred
+- Experience with zero trust architecture
+- Knowledge of identity and access management (IAM)`;
+
+const DEMO_RESUME = `Alex Morgan | Cybersecurity Professional
+alex.morgan@email.com | (555) 123-4567 | San Francisco, CA
+
+PROFESSIONAL SUMMARY
+Results-driven cybersecurity professional with 6+ years of experience in information security, cloud security, and compliance. Proven track record in vulnerability management, incident response, and security architecture. CISSP certified with deep expertise in AWS and Azure security.
+
+WORK EXPERIENCE
+
+Senior Security Analyst at CloudDefend Inc (3 years)
+- Led cloud security assessments across AWS and Azure environments
+- Implemented SIEM monitoring using Splunk, reducing incident response time by 40%
+- Managed vulnerability scanning program covering 2,000+ assets
+- Developed security policies aligned with NIST CSF and ISO 27001
+- Conducted threat intelligence analysis and created detection rules
+
+Security Engineer at TechSecure Corp (2.5 years)
+- Performed penetration testing on web applications and APIs
+- Designed and implemented zero trust network architecture
+- Managed IAM policies for 500+ users across multi-cloud environment
+- Led incident response for 15+ security incidents
+- Created security awareness training program
+
+Junior Security Analyst at DataShield (1 year)
+- Monitored SOC alerts and escalated security incidents
+- Assisted with compliance audits (SOC 2, PCI DSS)
+- Maintained firewall rules and access control lists
+
+CERTIFICATIONS
+CISSP, CompTIA Security+, AWS Certified Security Specialty
+
+SKILLS
+Cloud Security, AWS, Azure, SIEM, Splunk, Vulnerability Management, Penetration Testing, Incident Response, Threat Detection, NIST, ISO 27001, SOC 2, IAM, Zero Trust, Firewalls, Python, Bash
+
+EDUCATION
+B.S. Computer Science — University of California, Berkeley (2017)`;
 
 const EXAMPLE_JOB = `Senior Product Manager — SaaS Growth
 
