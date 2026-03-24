@@ -111,7 +111,7 @@ export default function JobSearchPage() {
   const [searching, setSearching] = useState(false);
   const [profileLoaded, setProfileLoaded] = useState(false);
   const [searchSource, setSearchSource] = useState<"all" | "ai" | "database">("all");
-  const [sortBy, setSortBy] = useState<"relevance" | "probability" | "newest">("relevance");
+  const [sortBy, setSortBy] = useState<"relevance" | "probability" | "newest" | "decision">("decision");
   const [showFlagged, setShowFlagged] = useState(true);
 
   useEffect(() => { loadProfile(); }, []);
