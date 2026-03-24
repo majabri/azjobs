@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import PortfolioEditor from "@/components/PortfolioEditor";
 import ProfilePdfExport from "@/components/ProfilePdfExport";
+import ReferralDashboard from "@/components/ReferralDashboard";
+import EmailPreferences from "@/components/EmailPreferences";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
