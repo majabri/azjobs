@@ -14,6 +14,7 @@ import UserMenu from "@/components/UserMenu";
 import { computeDiff, type DiffSegment } from "@/lib/diffUtils";
 import { supabase } from "@/integrations/supabase/client";
 import ApplicationToolkit from "@/components/ApplicationToolkit";
+import ApplicationPackageGenerator from "@/components/ApplicationPackageGenerator";
 
 const DEMO_JOB = `Senior Cybersecurity Engineer — Cloud Security
 
