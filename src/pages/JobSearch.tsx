@@ -69,6 +69,8 @@ function calculateResponseProbability(job: JobResult, userSkills: string[]): num
 
 function getSmartTag(job: JobResult, prob: number): { label: string; color: string; icon: any } {
   if (job.is_flagged) return { label: "Low Confidence", color: "text-destructive border-destructive/30", icon: AlertTriangle };
+  // Low ROI: high effort + low probability
+  if ((job.effortEstimate || 0) > 70 && prob < 40) return { label: "Low ROI", color: "text-destructive/70 border-destructive/20", icon: AlertTriangle };
   if (prob >= 70) return { label: "High Chance", color: "text-green-600 border-green-300 dark:text-green-400", icon: TrendingUp };
   if (prob >= 50 && job.first_seen_at) {
     const days = (Date.now() - new Date(job.first_seen_at).getTime()) / (1000 * 60 * 60 * 24);
@@ -76,6 +78,21 @@ function getSmartTag(job: JobResult, prob: number): { label: string; color: stri
   }
   if (prob < 35) return { label: "Improve Resume First", color: "text-amber-600 border-amber-300 dark:text-amber-400", icon: Shield };
   return { label: "Worth Applying", color: "text-primary border-primary/30", icon: Target };
+}
+
+function calculateDecisionScore(job: JobResult, prob: number, userSkills: string[]): { score: number; effort: number } {
+  // Effort = % of skills NOT matched (higher = more effort needed)
+  let effort = 50;
+  if (userSkills.length > 0 && job.description) {
+    const desc = job.description.toLowerCase();
+    const matched = userSkills.filter(s => desc.includes(s.toLowerCase())).length;
+    effort = Math.round((1 - matched / Math.max(userSkills.length, 1)) * 100);
+  }
+  // Decision Score = fit(40%) + probability(30%) + ease(30%)
+  const fitScore = job.quality_score || 50;
+  const ease = 100 - effort;
+  const score = Math.round(fitScore * 0.4 + prob * 0.3 + ease * 0.3);
+  return { score: Math.max(5, Math.min(99, score)), effort };
 }
 
 export default function JobSearchPage() {
