@@ -210,6 +210,7 @@ export default function ApplicationsPage() {
           <div className="flex gap-2">
             <Button variant={viewMode === "kanban" ? "default" : "outline"} size="sm" onClick={() => setViewMode("kanban")} className="text-xs">Board</Button>
             <Button variant={viewMode === "list" ? "default" : "outline"} size="sm" onClick={() => setViewMode("list")} className="text-xs">List</Button>
+            <Button variant={viewMode === "timeline" ? "default" : "outline"} size="sm" onClick={() => setViewMode("timeline")} className="text-xs">Timeline</Button>
             <Button variant="outline" size="sm" onClick={() => setAddingApp(!addingApp)} className="text-xs">
               <Plus className="w-3.5 h-3.5 mr-1" /> Add
             </Button>
