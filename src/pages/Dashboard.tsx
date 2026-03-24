@@ -12,6 +12,8 @@ import TodaysMatches from "@/components/TodaysMatches";
 import CareerPathIntelligence from "@/components/CareerPathIntelligence";
 import RecruiterAssistant from "@/components/RecruiterAssistant";
 import LearningInsights from "@/components/LearningInsights";
+import AdaptiveSearchStrategy from "@/components/AdaptiveSearchStrategy";
+import JobBoardImporter from "@/components/JobBoardImporter";
 
 interface AnalysisRecord {
   id: string;
