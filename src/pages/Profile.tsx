@@ -574,6 +574,51 @@ export default function ProfilePage() {
           </div>
         </section>
 
+        {/* Auto-Apply Preferences */}
+        <section>
+          <h2 className="text-base font-semibold text-foreground flex items-center gap-2 mb-4">
+            <Bot className="w-4 h-4 text-primary" /> Auto-Apply Defaults
+          </h2>
+          <p className="text-xs text-muted-foreground mb-4">These defaults are used by the Auto-Apply Agent and Job Search. You can override them per session.</p>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label>Min Salary</Label>
+                <div className="flex items-center gap-1 mt-1">
+                  <DollarSign className="w-4 h-4 text-muted-foreground" />
+                  <Input value={profile.salary_min} onChange={(e) => setProfile({ ...profile, salary_min: e.target.value })} placeholder="80,000" />
+                </div>
+              </div>
+              <div>
+                <Label>Max Salary</Label>
+                <div className="flex items-center gap-1 mt-1">
+                  <DollarSign className="w-4 h-4 text-muted-foreground" />
+                  <Input value={profile.salary_max} onChange={(e) => setProfile({ ...profile, salary_max: e.target.value })} placeholder="150,000" />
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch checked={profile.remote_only} onCheckedChange={(v) => setProfile({ ...profile, remote_only: v })} />
+              <Label className="text-sm">Remote Only</Label>
+            </div>
+            <div>
+              <Label className="text-sm font-semibold">Minimum Match Score: {profile.min_match_score}%</Label>
+              <input
+                type="range"
+                min={30}
+                max={90}
+                value={profile.min_match_score}
+                onChange={(e) => setProfile({ ...profile, min_match_score: parseInt(e.target.value) })}
+                className="w-full mt-1 accent-[hsl(var(--accent))]"
+              />
+              <div className="flex justify-between text-xs text-muted-foreground">
+                <span>More Jobs (30%)</span>
+                <span>Higher Quality (90%)</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* Job Preferences */}
         <section>
           <h2 className="text-base font-semibold text-foreground flex items-center gap-2 mb-4">
