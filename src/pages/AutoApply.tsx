@@ -10,7 +10,7 @@ import {
   ArrowLeft, Bot, Settings, Play, CheckCircle2, Loader2,
   Briefcase, MapPin, DollarSign, FileText, Eye, Copy,
   Shield, Target, Package, Mail,
-  ChevronDown, ChevronUp, Search, X,
+  ChevronDown, ChevronUp, Search, X, ExternalLink,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
