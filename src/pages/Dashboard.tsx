@@ -87,12 +87,12 @@ export default function Dashboard() {
               <div className="w-7 h-7 gradient-teal rounded-lg flex items-center justify-center">
                 <BarChart3 className="w-3.5 h-3.5 text-white" />
               </div>
-              <span className="font-display font-bold text-primary">Dashboard</span>
+              <span className="font-display font-bold text-primary">Interview Dashboard</span>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <Button variant="outline" size="sm" onClick={() => navigate("/job-seeker")}>
-              <Target className="w-4 h-4 mr-1" /> New Analysis
+              <Target className="w-4 h-4 mr-1" /> Get More Interviews
             </Button>
             <UserMenu />
           </div>
@@ -137,10 +137,10 @@ export default function Dashboard() {
           ) : analyses.length === 0 ? (
             <div className="text-center py-16 bg-card rounded-2xl border border-border">
               <BarChart3 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="font-display text-xl font-bold text-primary mb-2">No analyses yet</h3>
-              <p className="text-muted-foreground mb-6">Run your first fit analysis to see results here.</p>
+              <h3 className="font-display text-xl font-bold text-primary mb-2">Start getting interviews</h3>
+              <p className="text-muted-foreground mb-6">Upload your resume and let AI match you with the best opportunities.</p>
               <Button className="gradient-teal text-white shadow-teal hover:opacity-90" onClick={() => navigate("/job-seeker")}>
-                <Target className="w-4 h-4 mr-2" /> Analyze My Fit
+                <Target className="w-4 h-4 mr-2" /> Get Started
               </Button>
             </div>
           ) : (
