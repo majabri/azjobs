@@ -116,6 +116,7 @@ interface ResumeVersionOption {
 export default function JobSeekerPage() {
   const navigate = useNavigate();
   const isDemo = useDemoMode();
+  const [jobDesc, setJobDesc] = useState("");
   const [resume, setResume] = useState("");
   const [jobLink, setJobLink] = useState("");
   const [linkedinUrl, setLinkedinUrl] = useState("");
