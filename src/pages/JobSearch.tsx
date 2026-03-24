@@ -148,10 +148,10 @@ export default function JobSearchPage() {
       <main className="max-w-5xl mx-auto px-6 py-10">
         <div className="text-center mb-10">
           <h1 className="font-display text-4xl font-bold text-primary mb-3">
-            Find jobs that <span className="text-gradient-teal">match your skills</span>
+            Jobs that <span className="text-gradient-teal">get you interviews</span>
           </h1>
           <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-            AI-powered job search based on your profile skills and preferences.
+            AI finds the best opportunities and shows your interview probability for each one.
           </p>
         </div>
 
