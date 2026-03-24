@@ -15,6 +15,8 @@ import { toast } from "sonner";
 import UserMenu from "@/components/UserMenu";
 import OutreachGenerator from "@/components/OutreachGenerator";
 import OutreachTracker from "@/components/OutreachTracker";
+import SalaryProjection from "@/components/SalaryProjection";
+import ProgressMetrics from "@/components/ProgressMetrics";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 
 interface CareerInsight {
@@ -148,6 +150,9 @@ export default function CareerPage() {
       </header>
 
       <main className="max-w-6xl mx-auto px-6 py-8 space-y-8">
+        {/* Progress Metrics */}
+        <ProgressMetrics />
+
         {/* Career Snapshot */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <Card className="p-4">
@@ -318,6 +323,17 @@ export default function CareerPage() {
             </div>
           )}
         </Card>
+
+        {/* Salary Projections */}
+        <SalaryProjection
+          skills={targetTitles}
+          careerLevel={careerLevel}
+          salaryMin={salaryMin}
+          salaryMax={salaryMax}
+          salaryTarget={salaryTarget}
+          targetTitles={targetTitles}
+          experience={[]}
+        />
 
         {/* Networking & Outreach */}
         <div className="space-y-6">
