@@ -103,6 +103,8 @@ export default function AutoApplyPage() {
           remoteOnly: (data as any).remote_only || false,
           requireReview: true,
           minMatchScore: (data as any).min_match_score ?? 60,
+          applyMode: "manual",
+          riskTolerance: 50,
         });
         setProfileLoaded(true);
       }
