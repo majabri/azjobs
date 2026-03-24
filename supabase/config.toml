@@ -32,3 +32,12 @@ verify_jwt = false
 
 [functions.scrape-jobs-ats]
 verify_jwt = false
+
+[functions.mock-interview]
+verify_jwt = false
+
+[functions.generate-outreach]
+verify_jwt = false
+
+[functions.learning-insights]
+verify_jwt = false

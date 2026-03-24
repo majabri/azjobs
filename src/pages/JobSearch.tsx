@@ -33,6 +33,8 @@ interface JobResult {
   first_seen_at?: string;
   responseProbability?: number;
   smartTag?: string;
+  decisionScore?: number;
+  effortEstimate?: number;
 }
 
 const JOB_TYPE_OPTIONS = [
@@ -67,6 +69,8 @@ function calculateResponseProbability(job: JobResult, userSkills: string[]): num
 
 function getSmartTag(job: JobResult, prob: number): { label: string; color: string; icon: any } {
   if (job.is_flagged) return { label: "Low Confidence", color: "text-destructive border-destructive/30", icon: AlertTriangle };
+  // Low ROI: high effort + low probability
+  if ((job.effortEstimate || 0) > 70 && prob < 40) return { label: "Low ROI", color: "text-destructive/70 border-destructive/20", icon: AlertTriangle };
   if (prob >= 70) return { label: "High Chance", color: "text-green-600 border-green-300 dark:text-green-400", icon: TrendingUp };
   if (prob >= 50 && job.first_seen_at) {
     const days = (Date.now() - new Date(job.first_seen_at).getTime()) / (1000 * 60 * 60 * 24);
@@ -74,6 +78,21 @@ function getSmartTag(job: JobResult, prob: number): { label: string; color: stri
   }
   if (prob < 35) return { label: "Improve Resume First", color: "text-amber-600 border-amber-300 dark:text-amber-400", icon: Shield };
   return { label: "Worth Applying", color: "text-primary border-primary/30", icon: Target };
+}
+
+function calculateDecisionScore(job: JobResult, prob: number, userSkills: string[]): { score: number; effort: number } {
+  // Effort = % of skills NOT matched (higher = more effort needed)
+  let effort = 50;
+  if (userSkills.length > 0 && job.description) {
+    const desc = job.description.toLowerCase();
+    const matched = userSkills.filter(s => desc.includes(s.toLowerCase())).length;
+    effort = Math.round((1 - matched / Math.max(userSkills.length, 1)) * 100);
+  }
+  // Decision Score = fit(40%) + probability(30%) + ease(30%)
+  const fitScore = job.quality_score || 50;
+  const ease = 100 - effort;
+  const score = Math.round(fitScore * 0.4 + prob * 0.3 + ease * 0.3);
+  return { score: Math.max(5, Math.min(99, score)), effort };
 }
 
 export default function JobSearchPage() {
@@ -92,7 +111,7 @@ export default function JobSearchPage() {
   const [searching, setSearching] = useState(false);
   const [profileLoaded, setProfileLoaded] = useState(false);
   const [searchSource, setSearchSource] = useState<"all" | "ai" | "database">("all");
-  const [sortBy, setSortBy] = useState<"relevance" | "probability" | "newest">("relevance");
+  const [sortBy, setSortBy] = useState<"relevance" | "probability" | "newest" | "decision">("decision");
   const [showFlagged, setShowFlagged] = useState(true);
 
   useEffect(() => { loadProfile(); }, []);
@@ -220,15 +239,19 @@ export default function JobSearchPage() {
         allCitations = aiResult.citations;
       }
 
-      // Enrich with probability & tags
+      // Enrich with probability, decision score & tags
       allJobs = allJobs.map(job => {
         const prob = calculateResponseProbability(job, skills);
-        const tag = getSmartTag(job, prob);
-        return { ...job, responseProbability: prob, smartTag: tag.label };
+        const { score: decScore, effort } = calculateDecisionScore(job, prob, skills);
+        const enriched = { ...job, responseProbability: prob, decisionScore: decScore, effortEstimate: effort };
+        const tag = getSmartTag(enriched, prob);
+        return { ...enriched, smartTag: tag.label };
       });
 
       // Sort
-      if (sortBy === "probability") {
+      if (sortBy === "decision") {
+        allJobs.sort((a, b) => (b.decisionScore || 0) - (a.decisionScore || 0));
+      } else if (sortBy === "probability") {
         allJobs.sort((a, b) => (b.responseProbability || 0) - (a.responseProbability || 0));
       } else if (sortBy === "newest") {
         allJobs.sort((a, b) => {
@@ -434,10 +457,10 @@ export default function JobSearchPage() {
                   value={sortBy}
                   onChange={e => {
                     setSortBy(e.target.value as any);
-                    // Re-sort
                     setJobs(prev => {
                       const sorted = [...prev];
-                      if (e.target.value === "probability") sorted.sort((a, b) => (b.responseProbability || 0) - (a.responseProbability || 0));
+                      if (e.target.value === "decision") sorted.sort((a, b) => (b.decisionScore || 0) - (a.decisionScore || 0));
+                      else if (e.target.value === "probability") sorted.sort((a, b) => (b.responseProbability || 0) - (a.responseProbability || 0));
                       else if (e.target.value === "newest") sorted.sort((a, b) => {
                         if (!a.first_seen_at && !b.first_seen_at) return 0;
                         if (!a.first_seen_at) return 1;
@@ -448,6 +471,7 @@ export default function JobSearchPage() {
                     });
                   }}
                 >
+                  <option value="decision">Decision Score</option>
                   <option value="relevance">Relevance</option>
                   <option value="probability">Response Probability</option>
                   <option value="newest">Newest First</option>

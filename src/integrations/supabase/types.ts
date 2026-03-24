@@ -65,6 +65,33 @@ export type Database = {
         }
         Relationships: []
       }
+      interview_sessions: {
+        Row: {
+          created_at: string
+          id: string
+          job_title: string
+          messages: Json
+          readiness_score: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          job_title?: string
+          messages?: Json
+          readiness_score?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          job_title?: string
+          messages?: Json
+          readiness_score?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       job_applications: {
         Row: {
           applied_at: string
@@ -73,9 +100,12 @@ export type Database = {
           follow_up_notes: string | null
           followed_up: boolean
           id: string
+          interview_stage: string | null
           job_title: string
           job_url: string | null
           notes: string | null
+          outcome_detail: string | null
+          response_days: number | null
           status: string
           updated_at: string
           user_id: string
@@ -87,9 +117,12 @@ export type Database = {
           follow_up_notes?: string | null
           followed_up?: boolean
           id?: string
+          interview_stage?: string | null
           job_title?: string
           job_url?: string | null
           notes?: string | null
+          outcome_detail?: string | null
+          response_days?: number | null
           status?: string
           updated_at?: string
           user_id: string
@@ -101,9 +134,12 @@ export type Database = {
           follow_up_notes?: string | null
           followed_up?: boolean
           id?: string
+          interview_stage?: string | null
           job_title?: string
           job_url?: string | null
           notes?: string | null
+          outcome_detail?: string | null
+          response_days?: number | null
           status?: string
           updated_at?: string
           user_id?: string
@@ -112,6 +148,8 @@ export type Database = {
       }
       job_seeker_profiles: {
         Row: {
+          career_goals_long: string | null
+          career_goals_short: string | null
           career_level: string | null
           certifications: string[] | null
           education: Json | null
@@ -125,6 +163,7 @@ export type Database = {
           remote_only: boolean | null
           salary_max: string | null
           salary_min: string | null
+          salary_target: string | null
           skills: string[] | null
           summary: string | null
           target_job_titles: string[] | null
@@ -133,6 +172,8 @@ export type Database = {
           work_experience: Json | null
         }
         Insert: {
+          career_goals_long?: string | null
+          career_goals_short?: string | null
           career_level?: string | null
           certifications?: string[] | null
           education?: Json | null
@@ -146,6 +187,7 @@ export type Database = {
           remote_only?: boolean | null
           salary_max?: string | null
           salary_min?: string | null
+          salary_target?: string | null
           skills?: string[] | null
           summary?: string | null
           target_job_titles?: string[] | null
@@ -154,6 +196,8 @@ export type Database = {
           work_experience?: Json | null
         }
         Update: {
+          career_goals_long?: string | null
+          career_goals_short?: string | null
           career_level?: string | null
           certifications?: string[] | null
           education?: Json | null
@@ -167,12 +211,55 @@ export type Database = {
           remote_only?: boolean | null
           salary_max?: string | null
           salary_min?: string | null
+          salary_target?: string | null
           skills?: string[] | null
           summary?: string | null
           target_job_titles?: string[] | null
           updated_at?: string
           user_id?: string
           work_experience?: Json | null
+        }
+        Relationships: []
+      }
+      outreach_contacts: {
+        Row: {
+          company: string
+          contact_name: string
+          created_at: string
+          id: string
+          message_sent: string | null
+          notes: string | null
+          platform: string | null
+          response_status: string
+          role: string | null
+          sent_at: string | null
+          user_id: string
+        }
+        Insert: {
+          company?: string
+          contact_name?: string
+          created_at?: string
+          id?: string
+          message_sent?: string | null
+          notes?: string | null
+          platform?: string | null
+          response_status?: string
+          role?: string | null
+          sent_at?: string | null
+          user_id: string
+        }
+        Update: {
+          company?: string
+          contact_name?: string
+          created_at?: string
+          id?: string
+          message_sent?: string | null
+          notes?: string | null
+          platform?: string | null
+          response_status?: string
+          role?: string | null
+          sent_at?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -301,6 +388,45 @@ export type Database = {
           name?: string
           target_type?: string
           url?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_portfolio_items: {
+        Row: {
+          created_at: string
+          description: string | null
+          display_order: number
+          id: string
+          image_url: string | null
+          item_type: string
+          tags: string[] | null
+          title: string
+          url: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          image_url?: string | null
+          item_type?: string
+          tags?: string[] | null
+          title?: string
+          url?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          display_order?: number
+          id?: string
+          image_url?: string | null
+          item_type?: string
+          tags?: string[] | null
+          title?: string
+          url?: string | null
           user_id?: string
         }
         Relationships: []

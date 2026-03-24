@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Target, Trash2, FileText, BarChart3, Clock, Loader2, TrendingUp, Sparkles, Search } from "lucide-react";
+import { ArrowLeft, Target, Trash2, FileText, BarChart3, Clock, Loader2, TrendingUp, Sparkles, Search, Map, MessageSquare } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import UserMenu from "@/components/UserMenu";
 import { toast } from "sonner";
@@ -10,6 +10,7 @@ import { ScoreRingInline } from "@/components/ScoreDisplay";
 import TodaysMatches from "@/components/TodaysMatches";
 import CareerPathIntelligence from "@/components/CareerPathIntelligence";
 import RecruiterAssistant from "@/components/RecruiterAssistant";
+import LearningInsights from "@/components/LearningInsights";
 
 interface AnalysisRecord {
   id: string;
@@ -91,6 +92,12 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <Button variant="outline" size="sm" onClick={() => navigate("/career")}>
+              <Map className="w-4 h-4 mr-1" /> Career
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => navigate("/interview-prep")}>
+              <MessageSquare className="w-4 h-4 mr-1" /> Mock Interview
+            </Button>
             <Button variant="outline" size="sm" onClick={() => navigate("/job-seeker")}>
               <Target className="w-4 h-4 mr-1" /> Get More Interviews
             </Button>
@@ -122,6 +129,9 @@ export default function Dashboard() {
 
         {/* Today's Matches */}
         <TodaysMatches compact />
+
+        {/* Learning Insights */}
+        <LearningInsights />
 
         {/* Career Path Intelligence */}
         <CareerPathIntelligence />
