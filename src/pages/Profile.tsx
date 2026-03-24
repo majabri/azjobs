@@ -791,9 +791,14 @@ export default function ProfilePage() {
           )}
         </section>
 
-        {/* Bottom Save */}
         {/* Portfolio */}
         <PortfolioEditor />
+
+        {/* Referral & Email Preferences */}
+        <div className="grid gap-6 sm:grid-cols-2">
+          <ReferralDashboard />
+          <EmailPreferences />
+        </div>
 
         <div className="flex justify-end pt-4 border-t border-border">
           <Button onClick={handleSave} disabled={saving}>
