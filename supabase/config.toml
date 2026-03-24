@@ -29,6 +29,3 @@ verify_jwt = false
 
 [functions.recruiter-assistant]
 verify_jwt = false
-
-[functions.scrape-jobs]
-verify_jwt = false
