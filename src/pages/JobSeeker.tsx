@@ -944,29 +944,21 @@ ${analysis.gaps.slice(0, 3).map((g) => `â€¢ [Relevant ${g.area} certification â€
                 <p className="text-xs text-muted-foreground">{jobDesc.length} characters</p>
               </div>
 
-              <div className="space-y-2">
+                <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-sm font-semibold text-primary">Your Resume / Profile</label>
+                  <label className="text-sm font-semibold text-primary flex items-center gap-1.5">
+                    <Upload className="w-3.5 h-3.5 text-accent" /> Your Resume
+                  </label>
                   <div className="flex items-center gap-2">
                     <Button
-                      variant="outline"
+                      variant="default"
                       size="sm"
-                      className="text-xs h-7"
-                      disabled={isLoadingProfile}
-                      onClick={handleLoadFromProfile}
-                    >
-                      {isLoadingProfile ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <User className="w-3 h-3 mr-1" />}
-                      Load from Profile
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-xs h-7"
-                      disabled={isUploadingResume}
+                      className="text-xs h-8 gradient-teal text-white shadow-teal hover:opacity-90"
+                      disabled={isUploadingResume || isDemo}
                       onClick={() => resumeFileRef.current?.click()}
                     >
                       {isUploadingResume ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Upload className="w-3 h-3 mr-1" />}
-                      Upload PDF/Word
+                      Upload PDF / Word
                     </Button>
                     <input
                       ref={resumeFileRef}
@@ -975,12 +967,18 @@ ${analysis.gaps.slice(0, 3).map((g) => `â€¢ [Relevant ${g.area} certification â€
                       className="hidden"
                       onChange={handleResumeUpload}
                     />
-                    <button
-                      className="text-xs text-accent hover:underline"
-                      onClick={() => setResume(EXAMPLE_RESUME)}
-                    >
-                      Use example
-                    </button>
+                    {!isDemo && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-xs h-7"
+                        disabled={isLoadingProfile}
+                        onClick={handleLoadFromProfile}
+                      >
+                        {isLoadingProfile ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <User className="w-3 h-3 mr-1" />}
+                        From Profile
+                      </Button>
+                    )}
                   </div>
                 </div>
                 <Textarea
