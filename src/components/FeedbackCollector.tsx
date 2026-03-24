@@ -10,6 +10,7 @@ import { toast } from "sonner";
 interface FeedbackCollectorProps {
   applicationId: string;
   currentStatus: string;
+  appliedAt?: string;
   onStatusUpdate: (id: string, status: string) => void;
 }
 
