@@ -25,6 +25,8 @@ interface AutoApplyPrefs {
   remoteOnly: boolean;
   requireReview: boolean;
   minMatchScore: number;
+  applyMode: "manual" | "smart" | "full-auto";
+  riskTolerance: number;
 }
 
 interface QueuedApplication {
