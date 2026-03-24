@@ -1,188 +1,90 @@
 
-# MASTER ROADMAP — From Tool → AI Career OS
 
-## Competitive Analysis Summary
+# Build Plan: Complete the AI Career OS (Remaining Gaps)
 
-| Feature | FitCheck (Current) | Indeed | LinkedIn | ZipRecruiter | Glassdoor | Hired |
-|---|---|---|---|---|---|---|
-| AI Job Matching | ✅ | ❌ | ❌ | Partial | ❌ | ✅ |
-| Resume Optimization per Job | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| Fit Score + Interview Probability | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| Auto-Apply Agent | ✅ | ❌ | ❌ | ✅ | ❌ | ❌ |
-| Application Tracker (Kanban) | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| Career Roadmap AI | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| Mock Interview Simulation | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| Outreach Generator + Tracker | ✅ | ❌ | Partial | ❌ | ❌ | ❌ |
-| Public Profile + Portfolio | ✅ | ❌ | ✅ | ❌ | ❌ | ✅ |
-| Decision Engine (composite score) | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| Learning Feedback Loop | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| Salary Projection System | ❌ | ❌ | ✅ | ❌ | ✅ | ❌ |
-| Timeline View for Applications | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| Before/After Resume Comparison | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| Resume Export as PDF | ❌ | ❌ | ✅ | ❌ | ❌ | ❌ |
-| Referral / Growth Engine | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| Email Alerts System | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Skill Gap → Action Steps | Partial | ❌ | ✅ | ❌ | ❌ | ❌ |
-
-## What Already Exists (DO NOT REBUILD)
-
-- ✅ **Application Tracking**: Kanban board with drag-and-drop, status columns (Applied/Interview/Offer/Rejected), follow-up reminders, follow-up email generator
-- ✅ **Feedback & Learning Loop**: FeedbackCollector with outcome tracking (outcome_detail, interview_stage, response_days), LearningInsights edge function correlating scores with outcomes
-- ✅ **Job Decision Engine**: Composite Decision Score (fit 40% + probability 30% + effort 30%), smart tags (High Chance, Apply Fast, Low ROI, Improve Resume First), sorting by decision score
-- ✅ **Interview Probability Model**: calculateResponseProbability() using quality score, job age, skills match, remote factor
-- ✅ **Career Dashboard**: /career page with goals, salary targets, AI roadmap generator, score trend charts
-- ✅ **Mock Interview System**: /interview-prep with streaming chat simulation, answer feedback, readiness scoring, session saving
-- ✅ **Outreach Generator + Tracker**: AI outreach messages (cold/warm/informational), contact tracking with response status
-- ✅ **Recruiter Assistant**: Draft replies to recruiter messages
-- ✅ **Portfolio + Public Profile**: /profile portfolio editor, /p/:userId public page with shareable link
-- ✅ **Job Scraping Engine**: ATS scraping (Greenhouse/Lever), Firecrawl integration, quality scoring, fake job flagging
-- ✅ **Auto-Apply Agent**: Automated review → analyze → generate → track pipeline
-- ✅ **Resume Versioning**: Multiple resume versions, save optimized resumes
-- ✅ **Homepage**: Social proof stats, interactive demo (paste JD → get score), comparison table, feature showcase
+Your platform is ~85% complete. Here are the 4 remaining phases, ordered by impact and complexity.
 
 ---
 
-## What Needs to Be Built (Gaps)
+## Phase 1 — Core Polish (No backend changes)
 
-### PHASE 1 — CORE COMPLETION (Polish & Missing Pieces)
-**Goal**: Fill small gaps in existing systems to reach production-grade quality
+**Application Timeline View**
+- Add a "Timeline" tab to `/applications` showing a vertical chronological view of all application events (applied, status changes, follow-ups)
+- Uses existing `job_applications` data — no new tables
 
-**1a. Application Timeline View**
-- Add a "Timeline" tab to /applications alongside existing Kanban/List views
-- Chronological visualization: vertical timeline showing application events (applied, status changes, follow-ups) with timestamps
-- Pull from job_applications table using applied_at, updated_at, follow_up_date fields
-- No new tables needed
+**Before/After Resume Comparison**
+- New `ResumeComparison` component using existing `diffUtils.ts` to show side-by-side original vs. optimized resume
+- Add to JobSeeker page after AI resume generation with an "improvement score" (% changes)
 
-**1b. Before/After Resume Comparison**
-- New component `ResumeComparison` showing side-by-side diff of original vs. optimized resume
-- Use existing `diffUtils.ts` library already in codebase
-- Add to JobSeeker page after AI resume generation
-- Include "improvement score" showing % of changes made
+**Skill Gap Action Steps**
+- Enhance `CareerPathIntelligence` to convert each gap into a specific action step, resource type (course/cert/project), and estimated timeline
+- Extend the `career-path-analysis` edge function prompt — no new function needed
 
-**1c. Skill Gap Action System Enhancement**
-- Extend existing CareerPathIntelligence component to convert each gap into:
-  - Specific action step (e.g., "Complete AWS Solutions Architect cert")
-  - Suggested learning resource type (course, project, certification)
-  - Estimated timeline (weeks/months)
-- Use existing career-path-analysis edge function, just enhance the prompt to return structured action items
-
-**Migration**: None needed
-**New components**: 2 (TimelineView, ResumeComparison)
-**Modified components**: 2 (Applications.tsx, CareerPathIntelligence)
+**Effort**: 2 components, 2 modified components, 0 migrations
 
 ---
 
-### PHASE 2 — SALARY & CAREER INTELLIGENCE
-**Goal**: Add salary projection to compete with Glassdoor/LinkedIn salary insights
+## Phase 2 — Salary & Career Intelligence
 
-**2a. Salary Projection System**
-- New component `SalaryProjection` on Career Dashboard
-- Create edge function `salary-projection` that analyzes:
-  - User's current career level, skills, location
-  - Target roles and their typical salary ranges
-  - Projected salary growth over 1, 3, 5 years with milestones
-- Visualize as a line chart using recharts (already installed)
-- Use Lovable AI to generate market-realistic projections
+**Salary Projection System**
+- New `SalaryProjection` component on Career Dashboard with a line chart (recharts) showing 1/3/5-year salary projections
+- New `salary-projection` edge function using Lovable AI to generate market-realistic projections based on user profile
 
-**2b. Progress Tracking Dashboard**
-- Add metrics cards to Career Dashboard showing:
-  - Applications this month vs. last month
-  - Average fit score trend
-  - Interview conversion rate (interviews / applications)
-  - Score improvement over time
-- Pull from existing job_applications and analysis_history tables
+**Progress Metrics Dashboard**
+- New `ProgressMetrics` component showing: applications this month vs last, average fit score trend, interview conversion rate
+- Pulls from existing `job_applications` and `analysis_history` tables
 
-**Migration**: None needed
-**New edge functions**: 1 (salary-projection)
-**New components**: 2 (SalaryProjection, ProgressMetrics)
+**Effort**: 2 components, 1 edge function, 0 migrations
 
 ---
 
-### PHASE 3 — EXPORT & PERSONAL BRAND
-**Goal**: Enable shareable/downloadable outputs for viral distribution
+## Phase 3 — Export & Personal Brand
 
-**3a. Profile Export as PDF**
-- Generate downloadable PDF from public profile data (name, summary, skills, experience, portfolio)
-- Use existing jsPDF library (already installed)
-- Add "Download as PDF" button on Profile and PublicProfile pages
+**Profile PDF Export**
+- Add "Download as PDF" button on Profile and PublicProfile pages using jsPDF
+- Exports name, summary, skills, experience, and portfolio items
 
-**3b. Shareable Score Reports**
-- After analysis, generate a shareable report card (fit score, matched skills, top improvements)
-- Create a public route `/report/:analysisId` that renders a read-only score card
-- Add "Share Report" button with copy-to-clipboard link
-- Add RLS policy for public SELECT on specific analysis_history fields (score, skills, job_title — NOT resume text)
+**Shareable Score Reports**
+- New `/report/:analysisId` public route rendering a read-only score card (fit score, matched skills, improvements)
+- Migration: Add public SELECT RLS policy on `analysis_history` for limited fields only (no resume text)
+- "Share Report" button with copy-to-clipboard
 
-**3c. Resume + Portfolio Combined View**
-- On PublicProfile, merge resume summary with portfolio items into a single professional view
-- Add "Download Full Profile" button that exports everything as PDF
+**Combined Resume + Portfolio View**
+- Merge resume summary with portfolio on PublicProfile into a unified professional view
 
-**Migration**: 1 (add public read policy for analysis_history limited fields)
-**New components**: 2 (ScoreReport page, ProfilePDFExport)
-**New routes**: 1 (/report/:analysisId)
+**Effort**: 2 components, 1 route, 1 migration (RLS policy)
 
 ---
 
-### PHASE 4 — GROWTH & ACQUISITION ENGINE
-**Goal**: Build viral loops and re-engagement to steal users from other platforms
+## Phase 4 — Growth & Acquisition Engine
 
-**4a. Referral System**
-- Migration: Create `referrals` table (id, referrer_id, referred_email, referred_user_id, status, reward_claimed, created_at)
-- Generate unique referral codes per user
-- Track signups from referral links
-- Display referral dashboard on Profile page showing invites sent, signups, rewards
-- Reward: unlock premium features or badge after 3 successful referrals
+**Referral System**
+- New `referrals` table with RLS, unique referral codes per user, tracking dashboard on Profile page
+- Reward: unlock features after 3 successful referrals
 
-**4b. Onboarding Funnel Optimization**
-- Modify homepage interactive demo to capture email after showing score
-- Add "Get your full report" CTA that leads to signup
-- Post-signup: immediately redirect to profile setup → job search → first match
+**Onboarding Funnel**
+- Modify homepage demo to capture email after showing score → "Get your full report" → signup → profile setup → first match
 
-**4c. Email Alert System (Database + Edge Function)**
-- Migration: Create `email_preferences` table (id, user_id, daily_job_alerts boolean, weekly_insights boolean, created_at)
-- Edge function `send-job-alerts` that:
-  - Queries user preferences
-  - Finds new scraped_jobs matching user profile
-  - Sends digest email via Supabase Auth email or a transactional email service
-- Edge function `send-weekly-insights` for improvement tips based on learning-insights data
-- Settings page for email preferences
+**Email Alert System**
+- New `email_preferences` table, settings UI for daily job alerts and weekly insights
+- Two edge functions: `send-job-alerts` (matches new jobs to profile) and `send-weekly-insights` (improvement tips)
 
-**4d. Re-engagement System**
-- Track last_active_at on job_seeker_profiles (add column via migration)
-- Edge function `re-engagement` that identifies users inactive >7 days
-- Send "You have X new job matches" email to bring them back
+**Re-engagement System**
+- Add `last_active_at` column to `job_seeker_profiles`
+- Edge function `re-engagement` to email users inactive >7 days
 
-**Migration**: 3 (referrals table, email_preferences table, add last_active_at column)
-**New edge functions**: 3 (send-job-alerts, send-weekly-insights, re-engagement)
-**New components**: 3 (ReferralDashboard, EmailPreferences, OnboardingCapture)
+**Effort**: 3 components, 3 edge functions, 3 migrations (2 new tables + 1 alter)
 
 ---
 
-## Technical Summary
+## Summary
 
-| Phase | New Tables | New Edge Functions | New Components | New Routes |
-|-------|-----------|-------------------|----------------|------------|
-| 1 | 0 | 0 | 2 | 0 |
-| 2 | 0 | 1 | 2 | 0 |
-| 3 | 0 (1 RLS change) | 0 | 2 | 1 |
-| 4 | 2 + 1 alter | 3 | 3 | 0 |
+| Phase | Components | Edge Functions | Migrations | Sessions |
+|-------|-----------|---------------|------------|----------|
+| 1 — Polish | 2 new, 2 modified | 0 | 0 | 1–2 |
+| 2 — Intelligence | 2 new | 1 | 0 | 1–2 |
+| 3 — Export | 2 new + 1 route | 0 | 1 | 1–2 |
+| 4 — Growth | 3 new | 3 | 3 | 2–3 |
 
-**Total new work**: 2 new tables, 4 new edge functions, 9 new components, 1 new route, 4 migrations
+**Total remaining**: 9 components, 4 edge functions, 1 route, 4 migrations
 
-## Build Priority Order
-
-1. **Phase 1** (1-2 sessions) — Highest ROI: polishes existing features, no backend changes
-2. **Phase 2** (1-2 sessions) — Adds unique differentiator (salary projection), uses existing data
-3. **Phase 3** (1-2 sessions) — Enables virality through shareable outputs
-4. **Phase 4** (2-3 sessions) — Growth engine, requires email infrastructure setup
-
-## What's Already Complete (From Previous Builds)
-
-These map to the user's original 8-phase plan:
-- Phase 1 (Core Tracking) → ✅ 90% done (timeline view missing)
-- Phase 2 (Intelligence) → ✅ 85% done (before/after comparison, skill gap actions missing)
-- Phase 3 (Network + Recruiter) → ✅ 100% done
-- Phase 4 (Interview System) → ✅ 100% done
-- Phase 5 (Career OS) → ✅ 80% done (salary projection missing)
-- Phase 6 (Portfolio + Brand) → ✅ 85% done (PDF export, shareable reports missing)
-- Phase 7 (Trust + Quality) → ✅ 100% done
-- Phase 8 (Growth Engine) → ❌ 0% done (referrals, emails, re-engagement all missing)
