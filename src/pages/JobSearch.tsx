@@ -44,6 +44,9 @@ export default function JobSearchPage() {
   const [customQuery, setCustomQuery] = useState("");
   const [careerLevel, setCareerLevel] = useState("");
   const [targetTitles, setTargetTitles] = useState<string[]>([]);
+  const [titleInput, setTitleInput] = useState("");
+  const [salaryMin, setSalaryMin] = useState("");
+  const [salaryMax, setSalaryMax] = useState("");
   const [jobs, setJobs] = useState<JobResult[]>([]);
   const [citations, setCitations] = useState<string[]>([]);
   const [searching, setSearching] = useState(false);
