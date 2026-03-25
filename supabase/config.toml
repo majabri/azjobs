@@ -59,3 +59,9 @@ verify_jwt = false
 
 [functions.interview-predictor]
 verify_jwt = false
+
+[functions.agent-orchestrator]
+verify_jwt = false
+
+[functions.simulate-rejection]
+verify_jwt = false

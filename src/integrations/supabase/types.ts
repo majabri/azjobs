@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      agent_runs: {
+        Row: {
+          agents_completed: Json
+          applications_sent: number | null
+          completed_at: string | null
+          errors: Json | null
+          id: string
+          jobs_found: number | null
+          jobs_matched: number | null
+          started_at: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          agents_completed?: Json
+          applications_sent?: number | null
+          completed_at?: string | null
+          errors?: Json | null
+          id?: string
+          jobs_found?: number | null
+          jobs_matched?: number | null
+          started_at?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          agents_completed?: Json
+          applications_sent?: number | null
+          completed_at?: string | null
+          errors?: Json | null
+          id?: string
+          jobs_found?: number | null
+          jobs_matched?: number | null
+          started_at?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       analysis_history: {
         Row: {
           company: string | null
@@ -175,16 +214,19 @@ export type Database = {
       }
       job_seeker_profiles: {
         Row: {
+          automation_mode: string
           career_goals_long: string | null
           career_goals_short: string | null
           career_level: string | null
           certifications: string[] | null
+          daily_apply_cap: number
           education: Json | null
           email: string | null
           full_name: string | null
           id: string
           last_active_at: string | null
           location: string | null
+          match_threshold: number
           min_match_score: number | null
           phone: string | null
           preferred_job_types: string[] | null
@@ -200,16 +242,19 @@ export type Database = {
           work_experience: Json | null
         }
         Insert: {
+          automation_mode?: string
           career_goals_long?: string | null
           career_goals_short?: string | null
           career_level?: string | null
           certifications?: string[] | null
+          daily_apply_cap?: number
           education?: Json | null
           email?: string | null
           full_name?: string | null
           id?: string
           last_active_at?: string | null
           location?: string | null
+          match_threshold?: number
           min_match_score?: number | null
           phone?: string | null
           preferred_job_types?: string[] | null
@@ -225,16 +270,19 @@ export type Database = {
           work_experience?: Json | null
         }
         Update: {
+          automation_mode?: string
           career_goals_long?: string | null
           career_goals_short?: string | null
           career_level?: string | null
           certifications?: string[] | null
+          daily_apply_cap?: number
           education?: Json | null
           email?: string | null
           full_name?: string | null
           id?: string
           last_active_at?: string | null
           location?: string | null
+          match_threshold?: number
           min_match_score?: number | null
           phone?: string | null
           preferred_job_types?: string[] | null
@@ -250,6 +298,54 @@ export type Database = {
           work_experience?: Json | null
         }
         Relationships: []
+      }
+      learning_events: {
+        Row: {
+          application_id: string | null
+          created_at: string
+          features: Json
+          id: string
+          insights: Json | null
+          job_id: string | null
+          outcome: string
+          user_id: string
+        }
+        Insert: {
+          application_id?: string | null
+          created_at?: string
+          features?: Json
+          id?: string
+          insights?: Json | null
+          job_id?: string | null
+          outcome?: string
+          user_id: string
+        }
+        Update: {
+          application_id?: string | null
+          created_at?: string
+          features?: Json
+          id?: string
+          insights?: Json | null
+          job_id?: string | null
+          outcome?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learning_events_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "job_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "learning_events_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "scraped_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notifications: {
         Row: {
