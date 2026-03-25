@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import {
   ArrowLeft, BarChart3, Target, TrendingUp, Sparkles,
   Bot, ShieldAlert, Search, Map, MessageSquare, Briefcase,
-  Clock,
+  Clock, DollarSign,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import UserMenu from "@/components/UserMenu";
@@ -21,6 +21,7 @@ import AdaptiveSearchStrategy from "@/components/AdaptiveSearchStrategy";
 import JobBoardImporter from "@/components/JobBoardImporter";
 import AgentControlCenter from "@/components/AgentControlCenter";
 import RejectionSimulator from "@/components/RejectionSimulator";
+import CompensationDashboard from "@/components/CompensationDashboard";
 
 interface AnalysisRecord {
   id: string;
@@ -41,7 +42,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"control" | "pipeline" | "insights">("control");
+  const [activeTab, setActiveTab] = useState<"control" | "pipeline" | "compensation" | "insights">("control");
 
   useEffect(() => { loadAnalyses(); }, []);
 
@@ -89,6 +90,7 @@ export default function Dashboard() {
   const tabs = [
     { key: "control" as const, label: "AI Control Center", icon: Bot },
     { key: "pipeline" as const, label: "Pipeline", icon: Briefcase },
+    { key: "compensation" as const, label: "Compensation", icon: DollarSign },
     { key: "insights" as const, label: "Insights", icon: TrendingUp },
   ];
 
@@ -222,6 +224,12 @@ export default function Dashboard() {
                 </div>
               )}
             </div>
+          </div>
+        )}
+
+        {activeTab === "compensation" && (
+          <div className="space-y-6">
+            <CompensationDashboard />
           </div>
         )}
 
