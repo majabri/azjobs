@@ -58,6 +58,32 @@ export default function GapIntelligence({ analysis, onFixAll, onReEvaluate }: Ga
     }
   };
 
+  const handleAddGapsToProfile = async () => {
+    setAddingSkills(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { toast.error("Please sign in"); return; }
+      const { data } = await supabase.from("job_seeker_profiles").select("skills").eq("user_id", session.user.id).maybeSingle();
+      const current = (data?.skills as string[]) || [];
+      const currentLower = current.map(s => s.toLowerCase());
+      const gapSkills = missingSkills.map(s => s.skill).filter(s => !currentLower.includes(s.toLowerCase()));
+      const gapAreas = (analysis.gaps || []).map(g => g.area).filter(a => !currentLower.includes(a.toLowerCase()) && !gapSkills.map(s => s.toLowerCase()).includes(a.toLowerCase()));
+      const allNew = [...gapSkills, ...gapAreas];
+      if (!allNew.length) { toast.info("All gap skills are already in your profile"); return; }
+      await supabase.from("job_seeker_profiles").upsert({
+        user_id: session.user.id,
+        skills: [...current, ...allNew],
+        updated_at: new Date().toISOString(),
+      } as any, { onConflict: "user_id" });
+      setAddedSkills(allNew);
+      toast.success(`${allNew.length} skill(s) added to your profile!`);
+    } catch (e: any) {
+      toast.error(e.message || "Failed to update profile");
+    } finally {
+      setAddingSkills(false);
+    }
+  };
+
   if (!analysis || analysis.overallScore >= 85) return null;
 
   const gaps = analysis.gaps || [];
