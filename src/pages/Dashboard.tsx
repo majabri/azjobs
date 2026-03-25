@@ -97,39 +97,10 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-50 bg-card/90 backdrop-blur-sm border-b border-border">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" onClick={() => navigate("/")} className="text-muted-foreground">
-              <ArrowLeft className="w-4 h-4 mr-1" /> Home
-            </Button>
-            <div className="w-px h-5 bg-border" />
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 gradient-teal rounded-lg flex items-center justify-center">
-                <Bot className="w-3.5 h-3.5 text-white" />
-              </div>
-              <span className="font-display font-bold text-primary">Career Agent</span>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <Button variant="outline" size="sm" onClick={() => navigate("/career")}>
-              <Map className="w-4 h-4 mr-1" /> Career
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => navigate("/interview-prep")}>
-              <MessageSquare className="w-4 h-4 mr-1" /> Interview
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => navigate("/job-search")}>
-              <Search className="w-4 h-4 mr-1" /> Jobs
-            </Button>
-            <NotificationCenter />
-            <UserMenu />
-          </div>
-        </div>
-      </header>
-
+    <div className="bg-background">
       <SmartNotificationEngine />
-      <main className="max-w-6xl mx-auto px-6 py-8 space-y-6">
+      <div className="max-w-6xl mx-auto px-6 py-8 space-y-6">
+        <OnboardingChecklist />
         {/* Stats */}
         {analyses.length > 0 && (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
