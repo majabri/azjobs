@@ -155,8 +155,6 @@ export default function Offers() {
   return (
     <div className="bg-background">
       <div className="max-w-6xl mx-auto px-6 py-8 space-y-6">
-
-      <main className="max-w-6xl mx-auto px-6 py-8 space-y-6">
         {/* Urgent deadline banner */}
         {urgentOffers.length > 0 && (
           <div className="bg-warning/10 border border-warning/30 rounded-lg p-4 flex items-center gap-3">

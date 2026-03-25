@@ -136,8 +136,6 @@ export default function CareerPage() {
   return (
     <div className="bg-background">
       <div className="max-w-6xl mx-auto px-6 py-8 space-y-8">
-
-      <main className="max-w-6xl mx-auto px-6 py-8 space-y-8">
         {/* Progress Metrics */}
         <ProgressMetrics />
 
