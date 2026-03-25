@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Save, Loader2, CheckCircle2 } from "lucide-react";
+import { Save, Loader2, CheckCircle2, TrendingUp } from "lucide-react";
 import { computeDiff, type DiffSegment } from "@/lib/diffUtils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
