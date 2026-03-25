@@ -36,11 +36,11 @@ const howItWorks = [
   { step: "3", icon: Rocket, title: "You Get Interviews", desc: "Wake up to interview invitations. Review what your AI applied to and prep with mock interviews." },
 ];
 
-const sampleJobs = [
-  { title: "Senior Security Engineer", company: "CrowdStrike", location: "Remote", score: 92, tag: "High Chance" },
-  { title: "Cloud Infrastructure Lead", company: "AWS", location: "Arlington, VA", score: 85, tag: "Quick Apply" },
-  { title: "DevOps Engineer", company: "Capital One", location: "McLean, VA", score: 78, tag: "High Chance" },
-  { title: "Cybersecurity Analyst", company: "Booz Allen Hamilton", location: "Washington, DC", score: 71, tag: "Apply Now" },
+const sampleCapabilities = [
+  { title: "Personalized Job Matching", desc: "AI finds roles that fit your skills, experience level, and salary preferences.", icon: Search, score: "Smart" },
+  { title: "Resume Gap Analysis", desc: "Instantly see which keywords and skills you're missing for any role.", icon: Target, score: "Fast" },
+  { title: "ATS-Optimized Resumes", desc: "One-click resume rewrite with the exact keywords each employer's ATS looks for.", icon: FileText, score: "Auto" },
+  { title: "Application Tracking", desc: "Track every application, follow-up date, and interview stage in one place.", icon: ClipboardList, score: "Easy" },
 ];
 
 const comparisonRows = [
