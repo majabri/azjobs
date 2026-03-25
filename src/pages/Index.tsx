@@ -340,33 +340,29 @@ export default function Index() {
         </div>
       </section>
 
-      {/* ═══════════════ TODAY'S MATCHES PREVIEW ═══════════════ */}
+      {/* ═══════════════ WHAT YOU GET ═══════════════ */}
       <section className="bg-background py-24 px-6">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-display font-bold text-primary mb-4">
-              Today's <span className="text-gradient-teal">Matches Preview</span>
+              What <span className="text-gradient-teal">FitCheck Does For You</span>
             </h2>
-            <p className="text-muted-foreground text-lg">See what personalized job matching looks like — these update daily for each user.</p>
+            <p className="text-muted-foreground text-lg">Your entire job search — automated and intelligent.</p>
           </div>
 
           <div className="grid sm:grid-cols-2 gap-4 max-w-3xl mx-auto">
-            {sampleJobs.map((job) => (
-              <div key={job.title} className="bg-card rounded-2xl p-5 border border-border shadow-card hover:shadow-elevated transition-shadow group cursor-pointer" onClick={() => navigate(user ? "/job-search" : "/auth")}>
+            {sampleCapabilities.map((cap) => (
+              <div key={cap.title} className="bg-card rounded-2xl p-5 border border-border shadow-card hover:shadow-elevated transition-shadow group cursor-pointer" onClick={() => navigate(user ? "/job-search" : "/auth")}>
                 <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <h4 className="font-semibold text-foreground">{job.title}</h4>
-                    <p className="text-sm text-muted-foreground">{job.company} · {job.location}</p>
+                  <div className="flex items-start gap-3">
+                    <div className="w-9 h-9 gradient-teal rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <cap.icon className="w-4 h-4 text-white" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-foreground">{cap.title}</h4>
+                      <p className="text-sm text-muted-foreground mt-1">{cap.desc}</p>
+                    </div>
                   </div>
-                  <div className={`text-2xl font-display font-bold ${job.score >= 80 ? "text-success" : job.score >= 60 ? "text-warning" : "text-destructive"}`}>
-                    {job.score}%
-                  </div>
-                </div>
-                <div className="flex items-center justify-between">
-                  <Badge variant="outline" className="text-xs border-accent/30 text-accent">{job.tag}</Badge>
-                  <span className="text-xs text-accent opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-                    Check my chances <ArrowRight className="w-3 h-3" />
-                  </span>
                 </div>
               </div>
             ))}
@@ -374,7 +370,7 @@ export default function Index() {
 
           <div className="text-center mt-8">
             <Button variant="outline" size="lg" className="border-accent/30 text-accent hover:bg-accent/10" onClick={() => navigate(user ? "/job-search" : "/auth")}>
-              <Search className="mr-2 w-4 h-4" /> Find Jobs For Me
+              <Search className="mr-2 w-4 h-4" /> Get Started
             </Button>
           </div>
         </div>
