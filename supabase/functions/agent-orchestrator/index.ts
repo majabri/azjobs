@@ -194,6 +194,7 @@ async function executeAgents(agentNames: string[], ctx: AgentContext): Promise<{
   completed: string[];
   errors: string[];
   metrics: Record<string, number>;
+  timings: Record<string, number>;
 }> {
   // Phase 1: Discovery + Learning (independent, run in parallel)
   // Phase 2: Matching (depends on discovery)
