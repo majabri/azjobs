@@ -1,5 +1,6 @@
 import {
   LayoutDashboard, Search, ClipboardList, UserCircle, Target, Users, ChevronDown,
+  FileText, Calendar, Database,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -22,6 +23,9 @@ const jobSeekerNav = [
 
 const hiringManagerNav = [
   { title: "Candidate Screener", url: "/hiring-manager", icon: Users },
+  { title: "Candidates Database", url: "/candidates", icon: Database },
+  { title: "Job Postings", url: "/job-postings", icon: FileText },
+  { title: "Interview Scheduling", url: "/interview-scheduling", icon: Calendar },
 ];
 
 const modes = [
