@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, TrendingUp, Shield, Zap, ChevronDown, ChevronUp, Target, Loader2, Wrench } from "lucide-react";
+import { AlertTriangle, TrendingUp, Shield, Zap, ChevronDown, ChevronUp, Target, Loader2, Wrench, Plus, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { FitAnalysis } from "@/lib/analysisEngine";
@@ -10,6 +10,7 @@ import type { FitAnalysis } from "@/lib/analysisEngine";
 interface GapIntelligenceProps {
   analysis: FitAnalysis;
   onFixAll?: () => void;
+  onReEvaluate?: () => void;
 }
 
 interface SimulatedProfile {
@@ -32,9 +33,11 @@ function getImpactRank(gap: { area: string; severity: string }, index: number): 
   return { impact: "Medium", color: "text-muted-foreground", probabilityDelta: 3 + Math.floor(Math.random() * 5) };
 }
 
-export default function GapIntelligence({ analysis, onFixAll }: GapIntelligenceProps) {
+export default function GapIntelligence({ analysis, onFixAll, onReEvaluate }: GapIntelligenceProps) {
   const [expanded, setExpanded] = useState(false);
   const [fixingAll, setFixingAll] = useState(false);
+  const [addingSkills, setAddingSkills] = useState(false);
+  const [addedSkills, setAddedSkills] = useState<string[]>([]);
 
   const handleFixAll = async () => {
     setFixingAll(true);
@@ -52,6 +55,32 @@ export default function GapIntelligence({ analysis, onFixAll }: GapIntelligenceP
       toast.error(e.message || "Failed to launch agent");
     } finally {
       setFixingAll(false);
+    }
+  };
+
+  const handleAddGapsToProfile = async () => {
+    setAddingSkills(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { toast.error("Please sign in"); return; }
+      const { data } = await supabase.from("job_seeker_profiles").select("skills").eq("user_id", session.user.id).maybeSingle();
+      const current = (data?.skills as string[]) || [];
+      const currentLower = current.map(s => s.toLowerCase());
+      const gapSkills = missingSkills.map(s => s.skill).filter(s => !currentLower.includes(s.toLowerCase()));
+      const gapAreas = (analysis.gaps || []).map(g => g.area).filter(a => !currentLower.includes(a.toLowerCase()) && !gapSkills.map(s => s.toLowerCase()).includes(a.toLowerCase()));
+      const allNew = [...gapSkills, ...gapAreas];
+      if (!allNew.length) { toast.info("All gap skills are already in your profile"); return; }
+      await supabase.from("job_seeker_profiles").upsert({
+        user_id: session.user.id,
+        skills: [...current, ...allNew],
+        updated_at: new Date().toISOString(),
+      } as any, { onConflict: "user_id" });
+      setAddedSkills(allNew);
+      toast.success(`${allNew.length} skill(s) added to your profile!`);
+    } catch (e: any) {
+      toast.error(e.message || "Failed to update profile");
+    } finally {
+      setAddingSkills(false);
     }
   };
 
@@ -118,18 +147,44 @@ export default function GapIntelligence({ analysis, onFixAll }: GapIntelligenceP
             );
           })}
         </div>
-        <Button
-          onClick={handleFixAll}
-          disabled={fixingAll}
-          className="w-full gradient-teal text-white mt-3"
-          size="sm"
-        >
-          {fixingAll ? (
-            <><Loader2 className="w-4 h-4 animate-spin mr-2" />Launching Agent...</>
-          ) : (
-            <><Wrench className="w-4 h-4 mr-2" />Fix All Gaps — Launch AI Agent</>
-          )}
-        </Button>
+        <div className="flex gap-2 mt-3">
+          <Button
+            onClick={handleFixAll}
+            disabled={fixingAll}
+            className="flex-1 gradient-teal text-white"
+            size="sm"
+          >
+            {fixingAll ? (
+              <><Loader2 className="w-4 h-4 animate-spin mr-2" />Launching Agent...</>
+            ) : (
+              <><Wrench className="w-4 h-4 mr-2" />Fix All Gaps — Launch AI Agent</>
+            )}
+          </Button>
+          <Button
+            onClick={handleAddGapsToProfile}
+            disabled={addingSkills || addedSkills.length > 0}
+            variant="outline"
+            className="flex-1"
+            size="sm"
+          >
+            {addedSkills.length > 0 ? (
+              <><Check className="w-4 h-4 mr-2 text-success" />Added to Profile</>
+            ) : addingSkills ? (
+              <><Loader2 className="w-4 h-4 animate-spin mr-2" />Adding...</>
+            ) : (
+              <><Plus className="w-4 h-4 mr-2" />Add Gaps to Profile</>
+            )}
+          </Button>
+        </div>
+        {addedSkills.length > 0 && onReEvaluate && (
+          <Button
+            onClick={onReEvaluate}
+            className="w-full mt-2 bg-primary text-primary-foreground hover:bg-primary/90"
+            size="sm"
+          >
+            <Target className="w-4 h-4 mr-2" /> Re-Evaluate With Updated Profile
+          </Button>
+        )}
       </div>
 
       {/* Missing Skills ranked by impact */}

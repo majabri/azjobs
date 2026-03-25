@@ -313,7 +313,7 @@ export default function JobSearchPage() {
 
   const handleAnalyzeFit = (job: JobResult) => {
     const jobDesc = `${job.title} at ${job.company}\nLocation: ${job.location}\nType: ${job.type}${job.salary ? `\nSalary: ${job.salary}` : ""}\n\n${job.description}`;
-    navigate("/job-seeker", { state: { prefillJob: jobDesc } });
+    navigate("/job-seeker", { state: { prefillJob: jobDesc, prefillJobLink: job.url || "" } });
   };
 
   const getProbColor = (prob: number) => {

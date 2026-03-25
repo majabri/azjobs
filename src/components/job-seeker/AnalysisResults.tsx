@@ -26,10 +26,11 @@ interface AnalysisResultsProps {
   jobLink: string;
   isDemo: boolean;
   onReset: () => void;
+  onReEvaluate?: () => void;
 }
 
 export default function AnalysisResults({
-  analysis, jobDesc, resume, jobLink, isDemo, onReset,
+  analysis, jobDesc, resume, jobLink, isDemo, onReset, onReEvaluate,
 }: AnalysisResultsProps) {
   const navigate = useNavigate();
   const [aiResume, setAiResume] = useState("");
@@ -220,7 +221,7 @@ export default function AnalysisResults({
         </div>
       )}
 
-      <GapIntelligence analysis={analysis} />
+      <GapIntelligence analysis={analysis} onReEvaluate={onReEvaluate} />
 
       {/* Ready to Apply */}
       <div className="bg-card rounded-2xl p-6 border border-border shadow-sm">
