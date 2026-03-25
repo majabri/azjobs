@@ -2,11 +2,14 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, TrendingUp, Shield, Zap, ChevronDown, ChevronUp, Target } from "lucide-react";
+import { AlertTriangle, TrendingUp, Shield, Zap, ChevronDown, ChevronUp, Target, Loader2, Wrench } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import type { FitAnalysis } from "@/lib/analysisEngine";
 
 interface GapIntelligenceProps {
   analysis: FitAnalysis;
+  onFixAll?: () => void;
 }
 
 interface SimulatedProfile {
