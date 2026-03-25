@@ -221,7 +221,7 @@ export default function Dashboard() {
             <RecruiterAssistant />
           </div>
         )}
-      </main>
+      </div>
     </div>
   );
 }
