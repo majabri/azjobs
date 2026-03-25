@@ -5,6 +5,7 @@ export interface AgentRun {
   id: string;
   status: string;
   agents_completed: string[];
+  agent_timings: Record<string, number>;
   jobs_found: number;
   jobs_matched: number;
   applications_sent: number;

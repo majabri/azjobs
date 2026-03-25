@@ -59,27 +59,45 @@ function RunHistoryCard({ runs }: { runs: AgentRun[] }) {
       </CardHeader>
       <CardContent>
         <div className="space-y-2">
-          {runs.map(run => (
-            <div key={run.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border border-border">
-              <div className="flex items-center gap-2">
-                {run.status === "completed" ? <CheckCircle2 className="w-4 h-4 text-success" /> :
-                 run.status === "completed_with_errors" ? <AlertTriangle className="w-4 h-4 text-warning" /> :
-                 run.status === "running" ? <Loader2 className="w-4 h-4 animate-spin text-accent" /> :
-                 <XCircle className="w-4 h-4 text-destructive" />}
-                <div>
-                  <p className="text-xs font-medium text-foreground">
-                    {run.jobs_found} found · {run.jobs_matched} matched · {run.applications_sent} applied
-                  </p>
-                  <p className="text-[10px] text-muted-foreground">
-                    {new Date(run.started_at).toLocaleString()}
-                  </p>
+          {runs.map(run => {
+            const timings = (run.agent_timings || {}) as Record<string, number>;
+            return (
+              <div key={run.id} className="p-3 bg-muted/30 rounded-lg border border-border space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    {run.status === "completed" ? <CheckCircle2 className="w-4 h-4 text-success" /> :
+                     run.status === "completed_with_errors" ? <AlertTriangle className="w-4 h-4 text-warning" /> :
+                     run.status === "running" ? <Loader2 className="w-4 h-4 animate-spin text-accent" /> :
+                     <XCircle className="w-4 h-4 text-destructive" />}
+                    <div>
+                      <p className="text-xs font-medium text-foreground">
+                        {run.jobs_found} found · {run.jobs_matched} matched · {run.applications_sent} applied
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        {new Date(run.started_at).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                  <Badge variant="outline" className="text-[10px]">
+                    {(run.agents_completed as string[])?.length || 0}/{AGENTS.length} agents
+                  </Badge>
                 </div>
+                {Object.keys(timings).length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {AGENTS.map(a => {
+                      const ms = timings[a.key];
+                      if (ms == null) return null;
+                      return (
+                        <span key={a.key} className="text-[9px] bg-muted px-1.5 py-0.5 rounded text-muted-foreground">
+                          {a.label}: {ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(1)}s`}
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
-              <Badge variant="outline" className="text-[10px]">
-                {(run.agents_completed as string[])?.length || 0}/{AGENTS.length} agents
-              </Badge>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </CardContent>
     </Card>
