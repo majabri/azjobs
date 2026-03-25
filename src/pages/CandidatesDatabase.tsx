@@ -87,7 +87,7 @@ export default function CandidatesDatabase() {
           ].filter(Boolean).join("\n");
 
           const result = analyzeJobFit(jobDescForMatch, resumeText);
-          return { ...c, fitScore: result.overall_score, fitSummary: result.summary };
+          return { ...c, fitScore: result.overallScore, fitSummary: result.summary };
         })
         .sort((a, b) => (b.fitScore || 0) - (a.fitScore || 0));
 
