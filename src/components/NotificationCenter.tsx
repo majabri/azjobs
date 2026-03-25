@@ -21,7 +21,13 @@ const typeIcons: Record<string, React.ReactNode> = {
   job_alert: <Briefcase className="w-4 h-4 text-accent" />,
   insight: <TrendingUp className="w-4 h-4 text-warning" />,
   nudge: <Sparkles className="w-4 h-4 text-primary" />,
+  urgent: <AlertCircle className="w-4 h-4 text-destructive" />,
+  action: <Bell className="w-4 h-4 text-accent" />,
   info: <AlertCircle className="w-4 h-4 text-muted-foreground" />,
+};
+
+const typePriority: Record<string, number> = {
+  urgent: 0, action: 1, job_alert: 2, insight: 3, nudge: 4, info: 5,
 };
 
 export default function NotificationCenter() {
