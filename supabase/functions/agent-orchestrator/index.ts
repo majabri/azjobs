@@ -306,7 +306,7 @@ serve(async (req) => {
     };
 
     // Execute
-    const { completed, errors, metrics } = await executeAgents(validAgents, ctx);
+    const { completed, errors, metrics, timings } = await executeAgents(validAgents, ctx);
 
     // Finalize
     await adminClient.from("agent_runs").update({
