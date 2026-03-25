@@ -208,33 +208,41 @@ async function executeAgents(agentNames: string[], ctx: AgentContext): Promise<{
   const completed: string[] = [];
   const errors: string[] = [];
   const metrics: Record<string, number> = {};
+  const timings: Record<string, number> = {};
 
   for (const phase of phases) {
     const results = await Promise.allSettled(
-      phase.map(name => {
+      phase.map(async name => {
         const fn = AGENT_REGISTRY[name];
-        return fn ? fn(ctx) : Promise.reject(new Error(`Unknown agent: ${name}`));
+        if (!fn) throw new Error(`Unknown agent: ${name}`);
+        const start = performance.now();
+        const result = await withRetry(name, () => fn(ctx));
+        timings[name] = Math.round(performance.now() - start);
+        return result;
       })
     );
 
     for (const result of results) {
       if (result.status === "fulfilled") {
-        completed.push(result.value.name);
+        if (result.value.success) {
+          completed.push(result.value.name);
+        } else {
+          errors.push(result.value.error || `${result.value.name} failed`);
+        }
         Object.assign(metrics, result.value.metrics);
       } else {
-        const msg = result.reason?.message || "Unknown error";
-        errors.push(msg);
+        errors.push(result.reason?.message || "Unknown error");
       }
     }
 
-    // Update progress after each phase
     await ctx.adminClient.from("agent_runs").update({
       agents_completed: completed,
+      agent_timings: timings,
       ...metrics,
     }).eq("user_id", ctx.userId).eq("status", "running");
   }
 
-  return { completed, errors, metrics };
+  return { completed, errors, metrics, timings };
 }
 
 // ─── HTTP Handler ───────────────────────────────────────────────────────────
