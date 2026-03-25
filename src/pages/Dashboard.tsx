@@ -21,6 +21,7 @@ import AdaptiveSearchStrategy from "@/components/AdaptiveSearchStrategy";
 import JobBoardImporter from "@/components/JobBoardImporter";
 import AgentControlCenter from "@/components/AgentControlCenter";
 import RejectionSimulator from "@/components/RejectionSimulator";
+import CompensationDashboard from "@/components/CompensationDashboard";
 
 interface AnalysisRecord {
   id: string;
