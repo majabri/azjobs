@@ -389,6 +389,7 @@ export type Database = {
           bonus: number | null
           company: string
           created_at: string
+          deadline: string | null
           equity: number | null
           id: string
           job_title: string
@@ -405,6 +406,7 @@ export type Database = {
           bonus?: number | null
           company?: string
           created_at?: string
+          deadline?: string | null
           equity?: number | null
           id?: string
           job_title?: string
@@ -421,6 +423,7 @@ export type Database = {
           bonus?: number | null
           company?: string
           created_at?: string
+          deadline?: string | null
           equity?: number | null
           id?: string
           job_title?: string
