@@ -146,6 +146,8 @@ export default function JobSeekerPage() {
   const [isGeneratingEmail, setIsGeneratingEmail] = useState(false);
   const [followUpEmail, setFollowUpEmail] = useState("");
   const [emailType, setEmailType] = useState<string>("follow-up");
+  const [applyDirectUrl, setApplyDirectUrl] = useState("");
+  const [isAutoApplying, setIsAutoApplying] = useState(false);
   const resumeFileRef = useRef<HTMLInputElement>(null);
 
   // Check for prefilled job description from Job Search or demo mode
