@@ -118,6 +118,18 @@ export default function GapIntelligence({ analysis, onFixAll }: GapIntelligenceP
             );
           })}
         </div>
+        <Button
+          onClick={handleFixAll}
+          disabled={fixingAll}
+          className="w-full gradient-teal text-white mt-3"
+          size="sm"
+        >
+          {fixingAll ? (
+            <><Loader2 className="w-4 h-4 animate-spin mr-2" />Launching Agent...</>
+          ) : (
+            <><Wrench className="w-4 h-4 mr-2" />Fix All Gaps — Launch AI Agent</>
+          )}
+        </Button>
       </div>
 
       {/* Missing Skills ranked by impact */}
