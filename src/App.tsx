@@ -10,12 +10,8 @@ import Applications from "./pages/Applications";
 import Profile from "./pages/Profile";
 import JobSearch from "./pages/JobSearch";
 import Dashboard from "./pages/Dashboard";
-import AutoApply from "./pages/AutoApply";
-import Career from "./pages/Career";
-import InterviewPrep from "./pages/InterviewPrep";
 import PublicProfile from "./pages/PublicProfile";
 import ScoreReport from "./pages/ScoreReport";
-import Offers from "./pages/Offers";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AuthenticatedLayout from "./layouts/AuthenticatedLayout";
@@ -45,10 +41,6 @@ const App = () => (
           <Route path="/applications" element={<ProtectedWithLayout><Applications /></ProtectedWithLayout>} />
           <Route path="/profile" element={<ProtectedWithLayout><Profile /></ProtectedWithLayout>} />
           <Route path="/job-search" element={<ProtectedWithLayout><JobSearch /></ProtectedWithLayout>} />
-          <Route path="/auto-apply" element={<ProtectedWithLayout><AutoApply /></ProtectedWithLayout>} />
-          <Route path="/career" element={<ProtectedWithLayout><Career /></ProtectedWithLayout>} />
-          <Route path="/interview-prep" element={<ProtectedWithLayout><InterviewPrep /></ProtectedWithLayout>} />
-          <Route path="/offers" element={<ProtectedWithLayout><Offers /></ProtectedWithLayout>} />
           {/* Public routes */}
           <Route path="/p/:userId" element={<PublicProfile />} />
           <Route path="/report/:analysisId" element={<ScoreReport />} />
