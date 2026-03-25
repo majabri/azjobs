@@ -32,8 +32,28 @@ function getImpactRank(gap: { area: string; severity: string }, index: number): 
   return { impact: "Medium", color: "text-muted-foreground", probabilityDelta: 3 + Math.floor(Math.random() * 5) };
 }
 
-export default function GapIntelligence({ analysis }: GapIntelligenceProps) {
+export default function GapIntelligence({ analysis, onFixAll }: GapIntelligenceProps) {
   const [expanded, setExpanded] = useState(false);
+  const [fixingAll, setFixingAll] = useState(false);
+
+  const handleFixAll = async () => {
+    setFixingAll(true);
+    try {
+      if (onFixAll) {
+        onFixAll();
+      } else {
+        const { data, error } = await supabase.functions.invoke("agent-orchestrator", {
+          body: { agents: ["optimization", "application"] },
+        });
+        if (error) throw error;
+        toast.success("Agent launched! Optimizing your resume and targeting gaps.");
+      }
+    } catch (e: any) {
+      toast.error(e.message || "Failed to launch agent");
+    } finally {
+      setFixingAll(false);
+    }
+  };
 
   if (!analysis || analysis.overallScore >= 85) return null;
 
