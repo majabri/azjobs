@@ -1,15 +1,18 @@
 import {
-  LayoutDashboard, Search, ClipboardList, UserCircle, Target,
+  LayoutDashboard, Search, ClipboardList, UserCircle, Target, Users, ChevronDown,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
   SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
   SidebarFooter, useSidebar,
 } from "@/components/ui/sidebar";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
-const navItems = [
+const jobSeekerNav = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Analyze Job", url: "/job-seeker", icon: Target },
   { title: "Find Jobs", url: "/job-search", icon: Search },
@@ -17,11 +20,26 @@ const navItems = [
   { title: "Profile", url: "/profile", icon: UserCircle },
 ];
 
+const hiringManagerNav = [
+  { title: "Candidate Screener", url: "/hiring-manager", icon: Users },
+];
+
+const modes = [
+  { label: "Job Seeker", icon: Target, value: "seeker" as const },
+  { label: "Hiring Manager", icon: Users, value: "hiring" as const },
+];
+
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
+  const navigate = useNavigate();
   const isActive = (path: string) => location.pathname === path;
+
+  const isHiringMode = location.pathname.startsWith("/hiring-manager");
+  const currentMode = isHiringMode ? "hiring" : "seeker";
+  const navItems = isHiringMode ? hiringManagerNav : jobSeekerNav;
+  const modeInfo = modes.find((m) => m.value === currentMode)!;
 
   return (
     <Sidebar collapsible="icon">
@@ -35,6 +53,33 @@ export function AppSidebar() {
             <span className="font-display text-lg font-bold text-sidebar-foreground">FitCheck</span>
           )}
         </div>
+
+        {/* Mode switcher */}
+        {!collapsed && (
+          <div className="px-3 mb-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="w-full flex items-center gap-2 rounded-lg border border-border bg-sidebar-accent/30 px-3 py-2 text-sm font-medium text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors">
+                  <modeInfo.icon className="h-4 w-4 text-primary" />
+                  <span className="flex-1 text-left">{modeInfo.label}</span>
+                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-48">
+                {modes.map((m) => (
+                  <DropdownMenuItem
+                    key={m.value}
+                    onClick={() => navigate(m.value === "hiring" ? "/hiring-manager" : "/dashboard")}
+                    className={currentMode === m.value ? "bg-accent/50" : ""}
+                  >
+                    <m.icon className="mr-2 h-4 w-4" />
+                    {m.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        )}
 
         <SidebarGroup>
           <SidebarGroupLabel>Navigation</SidebarGroupLabel>
