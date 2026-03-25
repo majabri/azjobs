@@ -383,6 +383,57 @@ export type Database = {
         }
         Relationships: []
       }
+      offers: {
+        Row: {
+          base_salary: number | null
+          bonus: number | null
+          company: string
+          created_at: string
+          equity: number | null
+          id: string
+          job_title: string
+          market_rate: number | null
+          negotiation_strategy: Json | null
+          notes: string | null
+          status: string
+          total_comp: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          base_salary?: number | null
+          bonus?: number | null
+          company?: string
+          created_at?: string
+          equity?: number | null
+          id?: string
+          job_title?: string
+          market_rate?: number | null
+          negotiation_strategy?: Json | null
+          notes?: string | null
+          status?: string
+          total_comp?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          base_salary?: number | null
+          bonus?: number | null
+          company?: string
+          created_at?: string
+          equity?: number | null
+          id?: string
+          job_title?: string
+          market_rate?: number | null
+          negotiation_strategy?: Json | null
+          notes?: string | null
+          status?: string
+          total_comp?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       outreach_contacts: {
         Row: {
           company: string
@@ -491,6 +542,7 @@ export type Database = {
       scraped_jobs: {
         Row: {
           company: string
+          compensation_breakdown: Json | null
           created_at: string
           description: string
           first_seen_at: string
@@ -503,8 +555,10 @@ export type Database = {
           job_url: string | null
           last_seen_at: string
           location: string | null
+          market_rate: number | null
           quality_score: number | null
           salary: string | null
+          salary_range_estimated: Json | null
           seniority: string | null
           source: string
           source_id: string | null
@@ -512,6 +566,7 @@ export type Database = {
         }
         Insert: {
           company: string
+          compensation_breakdown?: Json | null
           created_at?: string
           description?: string
           first_seen_at?: string
@@ -524,8 +579,10 @@ export type Database = {
           job_url?: string | null
           last_seen_at?: string
           location?: string | null
+          market_rate?: number | null
           quality_score?: number | null
           salary?: string | null
+          salary_range_estimated?: Json | null
           seniority?: string | null
           source?: string
           source_id?: string | null
@@ -533,6 +590,7 @@ export type Database = {
         }
         Update: {
           company?: string
+          compensation_breakdown?: Json | null
           created_at?: string
           description?: string
           first_seen_at?: string
@@ -545,8 +603,10 @@ export type Database = {
           job_url?: string | null
           last_seen_at?: string
           location?: string | null
+          market_rate?: number | null
           quality_score?: number | null
           salary?: string | null
+          salary_range_estimated?: Json | null
           seniority?: string | null
           source?: string
           source_id?: string | null
