@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import {
   ArrowLeft, BarChart3, Target, TrendingUp, Sparkles,
   Bot, ShieldAlert, Search, Map, MessageSquare, Briefcase,
-  Clock,
+  Clock, DollarSign,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import UserMenu from "@/components/UserMenu";
