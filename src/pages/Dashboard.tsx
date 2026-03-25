@@ -156,6 +156,7 @@ export default function Dashboard() {
         {/* Tab Content */}
         {activeTab === "control" && (
           <div className="space-y-6">
+            <CareerROIScore />
             <AgentControlCenter />
             <TodaysMatches compact />
             <RejectionSimulator />
