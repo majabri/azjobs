@@ -11,6 +11,26 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import UserMenu from "@/components/UserMenu";
+import { Badge } from "@/components/ui/badge";
+import { DollarSign } from "lucide-react";
+
+function ExpectedOfferRange({ jobTitle }: { jobTitle: string }) {
+  const title = jobTitle.toLowerCase();
+  const seniorityMultiplier = title.includes("senior") ? 1.3 : title.includes("lead") || title.includes("staff") ? 1.5 : title.includes("director") || title.includes("vp") ? 1.8 : title.includes("junior") || title.includes("entry") ? 0.75 : 1;
+  const base = Math.round(95000 * seniorityMultiplier);
+  const low = Math.round(base * 0.85);
+  const high = Math.round(base * 1.2);
+  const fmt = (n: number) => `$${(n / 1000).toFixed(0)}k`;
+  return (
+    <div className="flex items-center gap-4">
+      <DollarSign className="w-5 h-5 text-accent flex-shrink-0" />
+      <div>
+        <p className="text-sm font-semibold text-foreground">{fmt(low)} – {fmt(high)}</p>
+        <p className="text-[10px] text-muted-foreground">Estimated based on role seniority. Use Compensation tab for detailed benchmarks.</p>
+      </div>
+    </div>
+  );
+}
 
 interface ChatMessage {
   role: "user" | "assistant" | "system";
