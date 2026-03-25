@@ -1,6 +1,5 @@
 import {
-  LayoutDashboard, Search, ClipboardList, UserCircle, Bot,
-  MessageSquare, Map, DollarSign, Target,
+  LayoutDashboard, Search, ClipboardList, UserCircle, Target,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -10,18 +9,11 @@ import {
   SidebarFooter, useSidebar,
 } from "@/components/ui/sidebar";
 
-const mainNav = [
+const navItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Analyze Job", url: "/job-seeker", icon: Target },
   { title: "Find Jobs", url: "/job-search", icon: Search },
   { title: "Applications", url: "/applications", icon: ClipboardList },
-  { title: "Auto-Apply", url: "/auto-apply", icon: Bot },
-];
-
-const toolsNav = [
-  { title: "Interview Prep", url: "/interview-prep", icon: MessageSquare },
-  { title: "Career Plan", url: "/career", icon: Map },
-  { title: "Offers", url: "/offers", icon: DollarSign },
   { title: "Profile", url: "/profile", icon: UserCircle },
 ];
 
@@ -45,28 +37,10 @@ export function AppSidebar() {
         </div>
 
         <SidebarGroup>
-          <SidebarGroupLabel>Main</SidebarGroupLabel>
+          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {mainNav.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={isActive(item.url)}>
-                    <NavLink to={item.url} end className="hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
-                      <item.icon className="mr-2 h-4 w-4" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarGroupLabel>Tools</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {toolsNav.map((item) => (
+              {navItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild isActive={isActive(item.url)}>
                     <NavLink to={item.url} end className="hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
