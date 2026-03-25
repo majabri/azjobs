@@ -11,7 +11,6 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import UserMenu from "@/components/UserMenu";
-import { Badge } from "@/components/ui/badge";
 import { DollarSign } from "lucide-react";
 
 function ExpectedOfferRange({ jobTitle }: { jobTitle: string }) {
