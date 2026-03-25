@@ -33,9 +33,11 @@ function getImpactRank(gap: { area: string; severity: string }, index: number): 
   return { impact: "Medium", color: "text-muted-foreground", probabilityDelta: 3 + Math.floor(Math.random() * 5) };
 }
 
-export default function GapIntelligence({ analysis, onFixAll }: GapIntelligenceProps) {
+export default function GapIntelligence({ analysis, onFixAll, onReEvaluate }: GapIntelligenceProps) {
   const [expanded, setExpanded] = useState(false);
   const [fixingAll, setFixingAll] = useState(false);
+  const [addingSkills, setAddingSkills] = useState(false);
+  const [addedSkills, setAddedSkills] = useState<string[]>([]);
 
   const handleFixAll = async () => {
     setFixingAll(true);
