@@ -626,7 +626,7 @@ export default function Index() {
               <button className="hover:text-primary-foreground transition-colors" onClick={() => navigate("/job-seeker")}>Get Interviews</button>
               <button className="hover:text-primary-foreground transition-colors" onClick={() => navigate("/job-search")}>Find Jobs</button>
               <button className="hover:text-primary-foreground transition-colors" onClick={() => navigate("/applications")}>Track</button>
-              <button className="hover:text-primary-foreground transition-colors" onClick={() => navigate("/auto-apply")}>Auto-Apply</button>
+              <button className="hover:text-primary-foreground transition-colors" onClick={() => navigate("/dashboard")}>Dashboard</button>
             </div>
           </div>
           <div className="border-t border-white/10 pt-4 text-center">
