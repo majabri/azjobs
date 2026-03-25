@@ -4,13 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  ArrowLeft, BarChart3, Target, TrendingUp, Sparkles,
-  Bot, ShieldAlert, Search, Map, MessageSquare, Briefcase,
-  Clock, DollarSign,
+  BarChart3, Target, TrendingUp, Sparkles,
+  Bot, Briefcase, Clock, DollarSign,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import UserMenu from "@/components/UserMenu";
-import NotificationCenter from "@/components/NotificationCenter";
+import OnboardingChecklist from "@/components/OnboardingChecklist";
 import { toast } from "sonner";
 import { ScoreRingInline } from "@/components/ScoreDisplay";
 import TodaysMatches from "@/components/TodaysMatches";
