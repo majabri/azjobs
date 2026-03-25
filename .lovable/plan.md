@@ -1,90 +1,123 @@
 
+# Build Plan: Remaining AI Career OS Features
 
-# Build Plan: Complete the AI Career OS (Remaining Gaps)
-
-Your platform is ~85% complete. Here are the 4 remaining phases, ordered by impact and complexity.
-
----
-
-## Phase 1 — Core Polish (No backend changes)
-
-**Application Timeline View**
-- Add a "Timeline" tab to `/applications` showing a vertical chronological view of all application events (applied, status changes, follow-ups)
-- Uses existing `job_applications` data — no new tables
-
-**Before/After Resume Comparison**
-- New `ResumeComparison` component using existing `diffUtils.ts` to show side-by-side original vs. optimized resume
-- Add to JobSeeker page after AI resume generation with an "improvement score" (% changes)
-
-**Skill Gap Action Steps**
-- Enhance `CareerPathIntelligence` to convert each gap into a specific action step, resource type (course/cert/project), and estimated timeline
-- Extend the `career-path-analysis` edge function prompt — no new function needed
-
-**Effort**: 2 components, 2 modified components, 0 migrations
+Everything below was requested in the "Finalize and optimize" message but not yet implemented.
 
 ---
 
-## Phase 2 — Salary & Career Intelligence
+## Phase 1 — UX Trust Layer: Before/After Quantification
 
-**Salary Projection System**
-- New `SalaryProjection` component on Career Dashboard with a line chart (recharts) showing 1/3/5-year salary projections
-- New `salary-projection` edge function using Lovable AI to generate market-realistic projections based on user profile
+**Application Timeline with Impact Metrics**
+- Refine `ApplicationTimeline` to show before/after improvement data per application: original score → optimized score, interview probability delta
+- Pull from `analysis_history` matched by job title/company to correlate with `job_applications`
 
-**Progress Metrics Dashboard**
-- New `ProgressMetrics` component showing: applications this month vs last, average fit score trend, interview conversion rate
-- Pulls from existing `job_applications` and `analysis_history` tables
+**Resume Comparison with Quantified Impact**
+- Enhance `ResumeComparison` to display an "Improvement Score" banner showing: keywords added, ATS compatibility increase, and estimated interview probability change
+- Already uses `diffUtils.ts` — add a summary metrics header
 
-**Effort**: 2 components, 1 edge function, 0 migrations
-
----
-
-## Phase 3 — Export & Personal Brand
-
-**Profile PDF Export**
-- Add "Download as PDF" button on Profile and PublicProfile pages using jsPDF
-- Exports name, summary, skills, experience, and portfolio items
-
-**Shareable Score Reports**
-- New `/report/:analysisId` public route rendering a read-only score card (fit score, matched skills, improvements)
-- Migration: Add public SELECT RLS policy on `analysis_history` for limited fields only (no resume text)
-- "Share Report" button with copy-to-clipboard
-
-**Combined Resume + Portfolio View**
-- Merge resume summary with portfolio on PublicProfile into a unified professional view
-
-**Effort**: 2 components, 1 route, 1 migration (RLS policy)
+**Effort**: 2 component updates, 0 migrations
 
 ---
 
-## Phase 4 — Growth & Acquisition Engine
+## Phase 2 — Distribution Engine: Viral Sharing
 
-**Referral System**
-- New `referrals` table with RLS, unique referral codes per user, tracking dashboard on Profile page
-- Reward: unlock features after 3 successful referrals
+**Enhanced PDF Career Report Card**
+- Upgrade `ProfilePdfExport` to include Career ROI Score, fit score history chart, top skills, salary delta, and improvement plan
+- Brand it as "FitCheck Career Report Card" with consistent styling
 
-**Onboarding Funnel**
-- Modify homepage demo to capture email after showing score → "Get your full report" → signup → profile setup → first match
+**Public Profile OG Enhancements**
+- Add dynamic OG meta tags to `/p/:userId` (PublicProfile) with user's headline, skill count, and portfolio summary
+- Add JSON-LD structured data (Person schema) for SEO
 
-**Email Alert System**
-- New `email_preferences` table, settings UI for daily job alerts and weekly insights
-- Two edge functions: `send-job-alerts` (matches new jobs to profile) and `send-weekly-insights` (improvement tips)
+**Share-to-LinkedIn / Twitter CTAs**
+- Add social share buttons to ScoreReport and PublicProfile with pre-filled share text
 
-**Re-engagement System**
-- Add `last_active_at` column to `job_seeker_profiles`
-- Edge function `re-engagement` to email users inactive >7 days
-
-**Effort**: 3 components, 3 edge functions, 3 migrations (2 new tables + 1 alter)
+**Effort**: 2 component updates, 1 new utility, 0 migrations
 
 ---
 
-## Summary
+## Phase 3 — Integration Points Across Pages
 
-| Phase | Components | Edge Functions | Migrations | Sessions |
-|-------|-----------|---------------|------------|----------|
-| 1 — Polish | 2 new, 2 modified | 0 | 0 | 1–2 |
-| 2 — Intelligence | 2 new | 1 | 0 | 1–2 |
-| 3 — Export | 2 new + 1 route | 0 | 1 | 1–2 |
-| 4 — Growth | 3 new | 3 | 3 | 2–3 |
+**Job Match Screen: Salary Competitiveness**
+- ✅ Already done — salary badges on `/job-search`
 
-**Total remaining**: 9 components, 4 edge functions, 1 route, 4 migrations
+**Interview Stage: Expected Offer Range**
+- Add an "Expected Offer Range" card to `/interview-prep` that uses the user's target role + location to show estimated salary range from the benchmarking engine
+- Calls existing `negotiation-strategy` edge function with `action: "benchmark"`
 
+**Offer Stage: Auto-Activate Negotiation**
+- When a `job_application` status changes to "offer", auto-prompt the user to save it as an offer and launch the negotiation engine
+- Add a banner in `/applications` for apps in "offer" status linking to `/offers`
+
+**Effort**: 2 component updates, 0 new edge functions
+
+---
+
+## Phase 4 — Agent System Hardening
+
+**Already Complete:**
+- ✅ Retry logic with exponential backoff
+- ✅ Per-agent timing metrics (`agent_timings`)
+- ✅ Background scheduling via pg_cron
+- ✅ Agent phase separation (discovery → matching → optimization → application → learning)
+
+**Remaining:**
+- Add agent health dashboard: show success/failure rates per agent over last 30 days (query `agent_runs` + `agent_timings`)
+- Add circuit breaker pattern: if an agent fails 3x consecutively, skip it and notify user
+- Add agent run cost estimation: estimate API token usage per run
+
+**Effort**: 1 new component, 1 edge function update
+
+---
+
+## Phase 5 — Data & Schema Finalization
+
+**Notification Priority Field**
+- Add `priority` column to `notifications` table (values: `low`, `normal`, `urgent`)
+- Update SmartNotificationEngine to set priority based on type
+- Update NotificationCenter UI to sort by priority and show urgent items first
+
+**Computed ROI Fields**
+- Add `roi_score` and `roi_computed_at` columns to `job_seeker_profiles`
+- Periodically compute and cache the Career ROI Score server-side via the agent orchestrator
+- Enables showing ROI in public profiles and reports without client-side recalculation
+
+**Effort**: 2 migrations, 2 component updates
+
+---
+
+## Phase 6 — Performance & Scalability
+
+**API Payload Optimization**
+- Audit all Supabase queries to use `.select()` with specific columns instead of `select("*")`
+- Reduce over-fetching on Dashboard, JobSearch, and Applications pages
+
+**Realtime Memory Safety**
+- Add cleanup to all Supabase Realtime subscriptions (agent_runs, notifications)
+- Ensure channels are properly removed on unmount to prevent memory leaks
+- Already partially done in `useAgentSystem.ts` — audit remaining components
+
+**Parallel Agent Execution**
+- ✅ Already using `Promise.allSettled` for phased parallel execution
+- Add request deduplication: if agent orchestrator is already running for a user, reject duplicate invocations
+
+**Query Caching**
+- Add `staleTime` to React Query where applicable (job search results, profile data)
+- Reduce redundant API calls on page navigation
+
+**Effort**: Code-only changes, 0 migrations
+
+---
+
+## Implementation Priority
+
+| Phase | Impact | Effort | Priority |
+|-------|--------|--------|----------|
+| 1 — Before/After Quantification | High | Low | 🔴 Do First |
+| 2 — Viral Sharing | High | Medium | 🔴 Do First |
+| 3 — Integration Points | Medium | Low | 🟡 Do Second |
+| 5 — Schema Finalization | Medium | Low | 🟡 Do Second |
+| 6 — Performance | Medium | Medium | 🟡 Do Second |
+| 4 — Agent Hardening | Low | Medium | 🟢 Do Third |
+
+**Total remaining**: ~6 component updates, 1 new component, 2 migrations, 1 edge function update
