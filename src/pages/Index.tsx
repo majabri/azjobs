@@ -15,8 +15,8 @@ import { analyzeJobFit } from "@/lib/analysisEngine";
 import type { User } from "@supabase/supabase-js";
 
 const stats = [
-  { value: "2,400+", label: "applications sent by AI this week" },
-  { value: "5x", label: "more interview callbacks vs manual applying" },
+  { value: "AI-Powered", label: "resume optimization for every application" },
+  { value: "Instant", label: "fit score and gap analysis in seconds" },
   { value: "24/7", label: "your AI agent works while you sleep" },
 ];
 
@@ -36,11 +36,11 @@ const howItWorks = [
   { step: "3", icon: Rocket, title: "You Get Interviews", desc: "Wake up to interview invitations. Review what your AI applied to and prep with mock interviews." },
 ];
 
-const sampleJobs = [
-  { title: "Senior Security Engineer", company: "CrowdStrike", location: "Remote", score: 92, tag: "High Chance" },
-  { title: "Cloud Infrastructure Lead", company: "AWS", location: "Arlington, VA", score: 85, tag: "Quick Apply" },
-  { title: "DevOps Engineer", company: "Capital One", location: "McLean, VA", score: 78, tag: "High Chance" },
-  { title: "Cybersecurity Analyst", company: "Booz Allen Hamilton", location: "Washington, DC", score: 71, tag: "Apply Now" },
+const sampleCapabilities = [
+  { title: "Personalized Job Matching", desc: "AI finds roles that fit your skills, experience level, and salary preferences.", icon: Search, score: "Smart" },
+  { title: "Resume Gap Analysis", desc: "Instantly see which keywords and skills you're missing for any role.", icon: Target, score: "Fast" },
+  { title: "ATS-Optimized Resumes", desc: "One-click resume rewrite with the exact keywords each employer's ATS looks for.", icon: FileText, score: "Auto" },
+  { title: "Application Tracking", desc: "Track every application, follow-up date, and interview stage in one place.", icon: ClipboardList, score: "Easy" },
 ];
 
 const comparisonRows = [
@@ -340,33 +340,29 @@ export default function Index() {
         </div>
       </section>
 
-      {/* ═══════════════ TODAY'S MATCHES PREVIEW ═══════════════ */}
+      {/* ═══════════════ WHAT YOU GET ═══════════════ */}
       <section className="bg-background py-24 px-6">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-display font-bold text-primary mb-4">
-              Today's <span className="text-gradient-teal">Matches Preview</span>
+              What <span className="text-gradient-teal">FitCheck Does For You</span>
             </h2>
-            <p className="text-muted-foreground text-lg">See what personalized job matching looks like — these update daily for each user.</p>
+            <p className="text-muted-foreground text-lg">Your entire job search — automated and intelligent.</p>
           </div>
 
           <div className="grid sm:grid-cols-2 gap-4 max-w-3xl mx-auto">
-            {sampleJobs.map((job) => (
-              <div key={job.title} className="bg-card rounded-2xl p-5 border border-border shadow-card hover:shadow-elevated transition-shadow group cursor-pointer" onClick={() => navigate(user ? "/job-search" : "/auth")}>
+            {sampleCapabilities.map((cap) => (
+              <div key={cap.title} className="bg-card rounded-2xl p-5 border border-border shadow-card hover:shadow-elevated transition-shadow group cursor-pointer" onClick={() => navigate(user ? "/job-search" : "/auth")}>
                 <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <h4 className="font-semibold text-foreground">{job.title}</h4>
-                    <p className="text-sm text-muted-foreground">{job.company} · {job.location}</p>
+                  <div className="flex items-start gap-3">
+                    <div className="w-9 h-9 gradient-teal rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <cap.icon className="w-4 h-4 text-white" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-foreground">{cap.title}</h4>
+                      <p className="text-sm text-muted-foreground mt-1">{cap.desc}</p>
+                    </div>
                   </div>
-                  <div className={`text-2xl font-display font-bold ${job.score >= 80 ? "text-success" : job.score >= 60 ? "text-warning" : "text-destructive"}`}>
-                    {job.score}%
-                  </div>
-                </div>
-                <div className="flex items-center justify-between">
-                  <Badge variant="outline" className="text-xs border-accent/30 text-accent">{job.tag}</Badge>
-                  <span className="text-xs text-accent opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-                    Check my chances <ArrowRight className="w-3 h-3" />
-                  </span>
                 </div>
               </div>
             ))}
@@ -374,7 +370,7 @@ export default function Index() {
 
           <div className="text-center mt-8">
             <Button variant="outline" size="lg" className="border-accent/30 text-accent hover:bg-accent/10" onClick={() => navigate(user ? "/job-search" : "/auth")}>
-              <Search className="mr-2 w-4 h-4" /> Find Jobs For Me
+              <Search className="mr-2 w-4 h-4" /> Get Started
             </Button>
           </div>
         </div>
@@ -536,16 +532,16 @@ export default function Index() {
 
             <div
               className="relative overflow-hidden bg-background rounded-3xl p-10 cursor-pointer group border border-border hover:shadow-elevated transition-shadow"
-              onClick={() => navigate("/hiring-manager")}
+              onClick={() => navigate(user ? "/profile" : "/auth")}
             >
               <div className="absolute top-0 right-0 w-48 h-48 bg-accent/5 rounded-full -translate-y-12 translate-x-12 group-hover:scale-125 transition-transform duration-500" />
-              <Users className="w-10 h-10 text-accent mb-6" />
-              <h3 className="font-display text-2xl font-bold text-primary mb-3">Hiring Managers</h3>
+              <UserCircle className="w-10 h-10 text-accent mb-6" />
+              <h3 className="font-display text-2xl font-bold text-primary mb-3">Build Your Profile</h3>
               <p className="text-muted-foreground mb-8 leading-relaxed">
-                Define your requirements and instantly see which candidates qualify — and where others fall short.
+                Upload your resume and let AI extract your skills, experience, and certifications into a smart profile.
               </p>
               <div className="flex items-center gap-2 text-accent font-semibold">
-                Screen candidates <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                Get started <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </div>
             </div>
           </div>
@@ -611,8 +607,8 @@ export default function Index() {
         <Button size="sm" variant="outline" className="border-white/30 text-white bg-white/10 text-xs flex-1" onClick={() => navigate(user ? "/job-search" : "/auth")}>
           <Search className="w-3.5 h-3.5 mr-1" /> Find Jobs
         </Button>
-        <Button size="sm" variant="outline" className="border-white/30 text-white bg-white/10 text-xs flex-1" onClick={() => navigate(user ? "/auto-apply" : "/auth")}>
-          <Bot className="w-3.5 h-3.5 mr-1" /> Auto-Apply
+        <Button size="sm" variant="outline" className="border-white/30 text-white bg-white/10 text-xs flex-1" onClick={() => navigate(user ? "/dashboard" : "/auth")}>
+          <Bot className="w-3.5 h-3.5 mr-1" /> Dashboard
         </Button>
       </div>
 
@@ -630,7 +626,7 @@ export default function Index() {
               <button className="hover:text-primary-foreground transition-colors" onClick={() => navigate("/job-seeker")}>Get Interviews</button>
               <button className="hover:text-primary-foreground transition-colors" onClick={() => navigate("/job-search")}>Find Jobs</button>
               <button className="hover:text-primary-foreground transition-colors" onClick={() => navigate("/applications")}>Track</button>
-              <button className="hover:text-primary-foreground transition-colors" onClick={() => navigate("/auto-apply")}>Auto-Apply</button>
+              <button className="hover:text-primary-foreground transition-colors" onClick={() => navigate("/dashboard")}>Dashboard</button>
             </div>
           </div>
           <div className="border-t border-white/10 pt-4 text-center">
