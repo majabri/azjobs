@@ -163,6 +163,21 @@ export default function ApplicationsPage() {
       </header>
 
       <div className="max-w-7xl mx-auto px-4 py-6 space-y-5">
+        {/* Offer Auto-Prompt Banner */}
+        {stats.offer > 0 && (
+          <div className="bg-success/10 border border-success/30 rounded-2xl p-4 animate-fade-up flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-bold text-success flex items-center gap-2">
+                🎉 You have {stats.offer} offer{stats.offer > 1 ? "s" : ""}!
+              </h3>
+              <p className="text-xs text-muted-foreground mt-1">Save your offer details and launch the negotiation engine to maximize your compensation.</p>
+            </div>
+            <Button size="sm" className="gradient-teal text-white" onClick={() => navigate("/offers")}>
+              <ExternalLink className="w-3.5 h-3.5 mr-1" /> Manage Offers
+            </Button>
+          </div>
+        )}
+
         {/* Follow-up Alerts */}
         {needsFollowUp.length > 0 && (
           <div className="bg-warning/10 border border-warning/30 rounded-2xl p-4 animate-fade-up">

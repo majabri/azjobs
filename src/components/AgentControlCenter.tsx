@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useAgentSystem, type AgentMode, type AgentRun } from "@/hooks/useAgentSystem";
 import { type LucideIcon } from "lucide-react";
+import AgentHealthDashboard from "@/components/AgentHealthDashboard";
 
 const AGENTS: { key: string; label: string; icon: LucideIcon; desc: string }[] = [
   { key: "discovery", label: "Job Discovery", icon: Search, desc: "Finds new opportunities" },
@@ -182,6 +183,7 @@ export default function AgentControlCenter() {
       </div>
 
       <RunHistoryCard runs={recentRuns} />
+      <AgentHealthDashboard />
     </div>
   );
 }

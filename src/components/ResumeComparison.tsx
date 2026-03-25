@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Save, Loader2, CheckCircle2 } from "lucide-react";
+import { Save, Loader2, CheckCircle2, TrendingUp } from "lucide-react";
 import { computeDiff, type DiffSegment } from "@/lib/diffUtils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -51,9 +51,41 @@ export default function ResumeComparison({ original, optimized, jobTitle }: Resu
     }
   };
 
+  // Quantified impact metrics
+  const addedKeywords = diff.modified.filter(s => s.type === "added").length;
+  const removedWords = diff.original.filter(s => s.type === "removed").length;
+  const estimatedATSIncrease = Math.min(35, Math.round(addedKeywords * 1.5));
+  const estimatedInterviewDelta = Math.min(25, Math.round(improvementScore * 0.6));
+
   return (
     <div className="space-y-4">
-      {/* Improvement Score */}
+      {/* Impact Summary Banner */}
+      <div className="p-4 rounded-xl bg-accent/5 border border-accent/20">
+        <div className="flex items-center gap-2 mb-3">
+          <TrendingUp className="w-4 h-4 text-accent" />
+          <span className="text-sm font-bold text-foreground">Resume Optimization Impact</span>
+        </div>
+        <div className="grid grid-cols-4 gap-3">
+          <div className="text-center">
+            <p className="font-display font-bold text-accent text-lg">{improvementScore}%</p>
+            <p className="text-[10px] text-muted-foreground">Content Changed</p>
+          </div>
+          <div className="text-center">
+            <p className="font-display font-bold text-success text-lg">+{addedKeywords}</p>
+            <p className="text-[10px] text-muted-foreground">Keywords Added</p>
+          </div>
+          <div className="text-center">
+            <p className="font-display font-bold text-accent text-lg">+{estimatedATSIncrease}%</p>
+            <p className="text-[10px] text-muted-foreground">ATS Compatibility</p>
+          </div>
+          <div className="text-center">
+            <p className="font-display font-bold text-success text-lg">+{estimatedInterviewDelta}%</p>
+            <p className="text-[10px] text-muted-foreground">Interview Probability</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Improvement Score + Save */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Badge variant="outline" className="border-accent/30 text-accent text-sm font-bold px-3 py-1">

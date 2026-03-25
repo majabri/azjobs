@@ -2,11 +2,14 @@ import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Loader2, User, Briefcase, GraduationCap, Award, ExternalLink, MapPin, Globe, FileText,
+  Share2, Copy,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import ProfilePdfExport from "@/components/ProfilePdfExport";
+import { toast } from "sonner";
 
 interface PortfolioItem {
   id: string;
@@ -50,6 +53,42 @@ export default function PublicProfilePage() {
     finally { setLoading(false); }
   };
 
+  // Dynamic OG + JSON-LD
+  useEffect(() => {
+    if (!profile) return;
+    const name = profile.full_name || "Professional";
+    const title = `${name} — FitCheck Career Profile`;
+    const desc = profile.summary?.slice(0, 155) || `${name}'s professional profile on FitCheck`;
+    document.title = title;
+    const setMeta = (prop: string, content: string) => {
+      let el = document.querySelector(`meta[property="${prop}"]`) || document.querySelector(`meta[name="${prop}"]`);
+      if (!el) { el = document.createElement("meta"); prop.startsWith("og:") ? el.setAttribute("property", prop) : el.setAttribute("name", prop); document.head.appendChild(el); }
+      el.setAttribute("content", content);
+    };
+    setMeta("og:title", title); setMeta("og:description", desc); setMeta("og:type", "profile");
+    setMeta("twitter:title", title); setMeta("twitter:description", desc);
+
+    // JSON-LD
+    let ld = document.querySelector('script[data-ld="profile"]') as HTMLScriptElement;
+    if (!ld) { ld = document.createElement("script"); ld.type = "application/ld+json"; ld.setAttribute("data-ld", "profile"); document.head.appendChild(ld); }
+    ld.textContent = JSON.stringify({
+      "@context": "https://schema.org", "@type": "Person",
+      name, jobTitle: profile.career_level || undefined,
+      address: profile.location ? { "@type": "PostalAddress", addressLocality: profile.location } : undefined,
+      knowsAbout: skills,
+    });
+    return () => { ld?.remove(); };
+  }, [profile]);
+
+  const shareProfile = () => {
+    if (navigator.share) {
+      navigator.share({ title: `${profile.full_name}'s Profile`, url: window.location.href }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+      toast.success("Link copied!");
+    }
+  };
+
   if (loading) return <div className="min-h-screen bg-background flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-accent" /></div>;
   if (notFound) return (
     <div className="min-h-screen bg-background flex items-center justify-center">
@@ -77,7 +116,7 @@ export default function PublicProfilePage() {
           <h1 className="font-display text-3xl font-bold text-primary">{profile.full_name || "Professional"}</h1>
           {profile.career_level && <Badge className="mt-2 bg-accent/10 text-accent border-accent/20">{profile.career_level}</Badge>}
           {profile.location && <p className="text-sm text-muted-foreground mt-2 flex items-center justify-center gap-1"><MapPin className="w-3 h-3" />{profile.location}</p>}
-          <div className="mt-3">
+          <div className="mt-3 flex items-center justify-center gap-2">
             <ProfilePdfExport
               profile={{
                 full_name: profile.full_name,
@@ -93,6 +132,9 @@ export default function PublicProfilePage() {
               }}
               portfolio={portfolio}
             />
+            <Button variant="outline" size="sm" onClick={shareProfile}>
+              <Share2 className="w-4 h-4 mr-1" /> Share
+            </Button>
           </div>
         </div>
 

@@ -11,6 +11,25 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import UserMenu from "@/components/UserMenu";
+import { DollarSign } from "lucide-react";
+
+function ExpectedOfferRange({ jobTitle }: { jobTitle: string }) {
+  const title = jobTitle.toLowerCase();
+  const seniorityMultiplier = title.includes("senior") ? 1.3 : title.includes("lead") || title.includes("staff") ? 1.5 : title.includes("director") || title.includes("vp") ? 1.8 : title.includes("junior") || title.includes("entry") ? 0.75 : 1;
+  const base = Math.round(95000 * seniorityMultiplier);
+  const low = Math.round(base * 0.85);
+  const high = Math.round(base * 1.2);
+  const fmt = (n: number) => `$${(n / 1000).toFixed(0)}k`;
+  return (
+    <div className="flex items-center gap-4">
+      <DollarSign className="w-5 h-5 text-accent flex-shrink-0" />
+      <div>
+        <p className="text-sm font-semibold text-foreground">{fmt(low)} – {fmt(high)}</p>
+        <p className="text-[10px] text-muted-foreground">Estimated based on role seniority. Use Compensation tab for detailed benchmarks.</p>
+      </div>
+    </div>
+  );
+}
 
 interface ChatMessage {
   role: "user" | "assistant" | "system";
@@ -174,6 +193,17 @@ export default function InterviewPrepPage() {
               <h1 className="font-display text-3xl font-bold text-primary mb-2">Interview Simulation</h1>
               <p className="text-muted-foreground">Practice with an AI interviewer that gives real-time feedback on your answers.</p>
             </div>
+
+            {/* Expected Offer Range Card */}
+            {jobTitle.trim() && (
+              <Card className="p-4 border-accent/20 bg-accent/5">
+                <div className="flex items-center gap-2 mb-2">
+                  <BarChart3 className="w-4 h-4 text-accent" />
+                  <span className="text-sm font-bold text-foreground">Expected Offer Range</span>
+                </div>
+                <ExpectedOfferRange jobTitle={jobTitle} />
+              </Card>
+            )}
 
             <Card className="p-6 space-y-4">
               <div>
