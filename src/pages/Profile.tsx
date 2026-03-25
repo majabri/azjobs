@@ -389,28 +389,20 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border bg-card/80 backdrop-blur sticky top-0 z-30">
-        <div className="max-w-4xl mx-auto flex items-center justify-between px-4 h-14">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" onClick={() => navigate("/job-seeker")}>
-              <ArrowLeft className="w-4 h-4 mr-1" /> Back
-            </Button>
-            <span className="text-lg font-bold text-foreground">My Profile</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <ProfilePdfExport profile={profile} />
-            <Button onClick={handleSave} disabled={saving} size="sm">
-              {saving ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Save className="w-4 h-4 mr-1" />}
-              Save
-            </Button>
-            <UserMenu />
-          </div>
+    <div className="bg-background">
+      {/* Save bar */}
+      <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
+        <span className="text-lg font-bold text-foreground">My Profile</span>
+        <div className="flex items-center gap-2">
+          <ProfilePdfExport profile={profile} />
+          <Button onClick={handleSave} disabled={saving} size="sm">
+            {saving ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Save className="w-4 h-4 mr-1" />}
+            Save
+          </Button>
         </div>
-      </header>
+      </div>
 
-      <main className="max-w-4xl mx-auto px-4 py-8 space-y-8">
+      <div className="max-w-4xl mx-auto px-4 pb-8 space-y-8">
         {/* Completeness Indicator */}
         <Card className="p-5">
           <div className="flex items-center justify-between mb-2">
