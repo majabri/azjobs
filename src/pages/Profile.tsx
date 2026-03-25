@@ -798,7 +798,7 @@ export default function ProfilePage() {
             Save Profile
           </Button>
         </div>
-      </main>
+      </div>
     </div>
   );
 }

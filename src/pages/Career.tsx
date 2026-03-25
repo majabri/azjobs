@@ -329,7 +329,7 @@ export default function CareerPage() {
           <OutreachGenerator />
           <OutreachTracker />
         </div>
-      </main>
+      </div>
     </div>
   );
 }

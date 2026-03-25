@@ -327,7 +327,7 @@ export default function Offers() {
             })}
           </div>
         )}
-      </main>
+      </div>
     </div>
   );
 }

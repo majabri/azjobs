@@ -816,7 +816,7 @@ export default function AutoApplyPage() {
             <Shield className="w-3 h-3" /> Nothing happens without your review and approval.
           </p>
         </Card>
-      </main>
+      </div>
     </div>
   );
 }

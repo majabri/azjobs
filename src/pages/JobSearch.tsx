@@ -596,7 +596,7 @@ export default function JobSearchPage() {
             <p className="text-lg">Click "Search Jobs" to find matching opportunities</p>
           </div>
         )}
-      </main>
+      </div>
     </div>
   );
 }

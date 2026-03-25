@@ -273,7 +273,7 @@ export default function InterviewPrepPage() {
             </div>
           </div>
         )}
-      </main>
+      </div>
     </div>
   );
 }
