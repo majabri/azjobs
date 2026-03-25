@@ -607,8 +607,8 @@ export default function Index() {
         <Button size="sm" variant="outline" className="border-white/30 text-white bg-white/10 text-xs flex-1" onClick={() => navigate(user ? "/job-search" : "/auth")}>
           <Search className="w-3.5 h-3.5 mr-1" /> Find Jobs
         </Button>
-        <Button size="sm" variant="outline" className="border-white/30 text-white bg-white/10 text-xs flex-1" onClick={() => navigate(user ? "/auto-apply" : "/auth")}>
-          <Bot className="w-3.5 h-3.5 mr-1" /> Auto-Apply
+        <Button size="sm" variant="outline" className="border-white/30 text-white bg-white/10 text-xs flex-1" onClick={() => navigate(user ? "/dashboard" : "/auth")}>
+          <Bot className="w-3.5 h-3.5 mr-1" /> Dashboard
         </Button>
       </div>
 
