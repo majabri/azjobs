@@ -42,7 +42,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"control" | "pipeline" | "insights">("control");
+  const [activeTab, setActiveTab] = useState<"control" | "pipeline" | "compensation" | "insights">("control");
 
   useEffect(() => { loadAnalyses(); }, []);
 
