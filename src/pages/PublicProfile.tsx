@@ -2,11 +2,14 @@ import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Loader2, User, Briefcase, GraduationCap, Award, ExternalLink, MapPin, Globe, FileText,
+  Share2, Copy,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import ProfilePdfExport from "@/components/ProfilePdfExport";
+import { toast } from "sonner";
 
 interface PortfolioItem {
   id: string;
