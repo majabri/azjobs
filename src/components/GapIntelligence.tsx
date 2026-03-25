@@ -10,6 +10,7 @@ import type { FitAnalysis } from "@/lib/analysisEngine";
 interface GapIntelligenceProps {
   analysis: FitAnalysis;
   onFixAll?: () => void;
+  onReEvaluate?: () => void;
 }
 
 interface SimulatedProfile {
