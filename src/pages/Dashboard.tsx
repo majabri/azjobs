@@ -22,6 +22,8 @@ import JobBoardImporter from "@/components/JobBoardImporter";
 import AgentControlCenter from "@/components/AgentControlCenter";
 import RejectionSimulator from "@/components/RejectionSimulator";
 import CompensationDashboard from "@/components/CompensationDashboard";
+import CareerROIScore from "@/components/CareerROIScore";
+import SmartNotificationEngine from "@/components/SmartNotificationEngine";
 
 interface AnalysisRecord {
   id: string;
