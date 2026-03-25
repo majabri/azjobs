@@ -92,6 +92,9 @@ function calculateDecisionScore(job: JobResult, prob: number, userSkills: string
   const fitScore = job.quality_score || 50;
   const ease = 100 - effort;
   const score = Math.round(fitScore * 0.4 + prob * 0.3 + ease * 0.3);
+  return { score: Math.max(5, Math.min(99, score)), effort };
+}
+
 function parseSalaryNumber(salary: string): number | null {
   const match = salary.replace(/,/g, "").match(/(\d+)/g);
   if (!match) return null;
