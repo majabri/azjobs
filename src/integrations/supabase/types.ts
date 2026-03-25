@@ -134,6 +134,74 @@ export type Database = {
         }
         Relationships: []
       }
+      interview_schedules: {
+        Row: {
+          candidate_email: string | null
+          candidate_name: string
+          candidate_profile_id: string | null
+          created_at: string
+          duration_minutes: number
+          feedback: string | null
+          id: string
+          interview_type: string
+          job_posting_id: string | null
+          location: string | null
+          meeting_link: string | null
+          notes: string | null
+          rating: number | null
+          scheduled_at: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          candidate_email?: string | null
+          candidate_name?: string
+          candidate_profile_id?: string | null
+          created_at?: string
+          duration_minutes?: number
+          feedback?: string | null
+          id?: string
+          interview_type?: string
+          job_posting_id?: string | null
+          location?: string | null
+          meeting_link?: string | null
+          notes?: string | null
+          rating?: number | null
+          scheduled_at: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          candidate_email?: string | null
+          candidate_name?: string
+          candidate_profile_id?: string | null
+          created_at?: string
+          duration_minutes?: number
+          feedback?: string | null
+          id?: string
+          interview_type?: string
+          job_posting_id?: string | null
+          location?: string | null
+          meeting_link?: string | null
+          notes?: string | null
+          rating?: number | null
+          scheduled_at?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interview_schedules_job_posting_id_fkey"
+            columns: ["job_posting_id"]
+            isOneToOne: false
+            referencedRelation: "job_postings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       interview_sessions: {
         Row: {
           created_at: string
@@ -210,6 +278,66 @@ export type Database = {
           outcome_detail?: string | null
           response_days?: number | null
           status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      job_postings: {
+        Row: {
+          candidates_matched: number | null
+          company: string
+          created_at: string
+          department: string | null
+          description: string
+          id: string
+          is_remote: boolean | null
+          job_type: string | null
+          location: string | null
+          nice_to_haves: string | null
+          requirements: string | null
+          salary_max: number | null
+          salary_min: number | null
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          candidates_matched?: number | null
+          company?: string
+          created_at?: string
+          department?: string | null
+          description?: string
+          id?: string
+          is_remote?: boolean | null
+          job_type?: string | null
+          location?: string | null
+          nice_to_haves?: string | null
+          requirements?: string | null
+          salary_max?: number | null
+          salary_min?: number | null
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          candidates_matched?: number | null
+          company?: string
+          created_at?: string
+          department?: string | null
+          description?: string
+          id?: string
+          is_remote?: boolean | null
+          job_type?: string | null
+          location?: string | null
+          nice_to_haves?: string | null
+          requirements?: string | null
+          salary_max?: number | null
+          salary_min?: number | null
+          status?: string
+          title?: string
           updated_at?: string
           user_id?: string
         }

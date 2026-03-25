@@ -1,5 +1,6 @@
 import {
   LayoutDashboard, Search, ClipboardList, UserCircle, Target, Users, ChevronDown,
+  FileText, Calendar, Database,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -22,6 +23,9 @@ const jobSeekerNav = [
 
 const hiringManagerNav = [
   { title: "Candidate Screener", url: "/hiring-manager", icon: Users },
+  { title: "Candidates Database", url: "/candidates", icon: Database },
+  { title: "Job Postings", url: "/job-postings", icon: FileText },
+  { title: "Interview Scheduling", url: "/interview-scheduling", icon: Calendar },
 ];
 
 const modes = [
@@ -36,7 +40,8 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const isActive = (path: string) => location.pathname === path;
 
-  const isHiringMode = location.pathname.startsWith("/hiring-manager");
+  const hiringPaths = ["/hiring-manager", "/candidates", "/job-postings", "/interview-scheduling"];
+  const isHiringMode = hiringPaths.some((p) => location.pathname.startsWith(p));
   const currentMode = isHiringMode ? "hiring" : "seeker";
   const navItems = isHiringMode ? hiringManagerNav : jobSeekerNav;
   const modeInfo = modes.find((m) => m.value === currentMode)!;

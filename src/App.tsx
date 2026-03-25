@@ -5,6 +5,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import JobSeeker from "./pages/JobSeeker";
+import CandidatesDatabase from "./pages/CandidatesDatabase";
+import JobPostings from "./pages/JobPostings";
+import InterviewScheduling from "./pages/InterviewScheduling";
 import Auth from "./pages/Auth";
 import Applications from "./pages/Applications";
 import Profile from "./pages/Profile";
@@ -43,6 +46,9 @@ const App = () => (
           <Route path="/profile" element={<ProtectedWithLayout><Profile /></ProtectedWithLayout>} />
           <Route path="/job-search" element={<ProtectedWithLayout><JobSearch /></ProtectedWithLayout>} />
           <Route path="/hiring-manager" element={<ProtectedWithLayout><HiringManager /></ProtectedWithLayout>} />
+          <Route path="/candidates" element={<ProtectedWithLayout><CandidatesDatabase /></ProtectedWithLayout>} />
+          <Route path="/job-postings" element={<ProtectedWithLayout><JobPostings /></ProtectedWithLayout>} />
+          <Route path="/interview-scheduling" element={<ProtectedWithLayout><InterviewScheduling /></ProtectedWithLayout>} />
           {/* Public routes */}
           <Route path="/p/:userId" element={<PublicProfile />} />
           <Route path="/report/:analysisId" element={<ScoreReport />} />
