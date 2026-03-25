@@ -116,7 +116,7 @@ export default function PublicProfilePage() {
           <h1 className="font-display text-3xl font-bold text-primary">{profile.full_name || "Professional"}</h1>
           {profile.career_level && <Badge className="mt-2 bg-accent/10 text-accent border-accent/20">{profile.career_level}</Badge>}
           {profile.location && <p className="text-sm text-muted-foreground mt-2 flex items-center justify-center gap-1"><MapPin className="w-3 h-3" />{profile.location}</p>}
-          <div className="mt-3">
+          <div className="mt-3 flex items-center justify-center gap-2">
             <ProfilePdfExport
               profile={{
                 full_name: profile.full_name,
@@ -132,6 +132,9 @@ export default function PublicProfilePage() {
               }}
               portfolio={portfolio}
             />
+            <Button variant="outline" size="sm" onClick={shareProfile}>
+              <Share2 className="w-4 h-4 mr-1" /> Share
+            </Button>
           </div>
         </div>
 
