@@ -193,19 +193,19 @@ export default function Index() {
             <Button
               size="lg"
               className="gradient-teal text-white font-semibold text-lg px-8 py-6 rounded-xl shadow-teal hover:opacity-90 transition-opacity animate-pulse-glow"
-              onClick={() => navigate(user ? "/auto-apply" : "/auth")}
+              onClick={() => navigate(user ? "/dashboard" : "/auth")}
             >
               <Bot className="mr-2 w-5 h-5" />
-              Activate My Job Agent
+              {user ? "Go to Dashboard" : "Activate My Job Agent"}
             </Button>
             <Button
               size="lg"
               variant="outline"
               className="border-white/30 text-white bg-white/10 hover:bg-white/20 text-lg px-8 py-6 rounded-xl backdrop-blur-sm"
-              onClick={() => navigate(user ? "/auto-apply" : "/auth")}
+              onClick={() => navigate(user ? "/job-seeker" : "/auth")}
             >
-              <Bot className="mr-2 w-5 h-5" />
-              Start Auto-Applying
+              <Target className="mr-2 w-5 h-5" />
+              {user ? "Analyze a Job" : "Get Started Free"}
             </Button>
           </div>
 
