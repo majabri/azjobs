@@ -90,6 +90,7 @@ export default function Dashboard() {
   const tabs = [
     { key: "control" as const, label: "AI Control Center", icon: Bot },
     { key: "pipeline" as const, label: "Pipeline", icon: Briefcase },
+    { key: "compensation" as const, label: "Compensation", icon: DollarSign },
     { key: "insights" as const, label: "Insights", icon: TrendingUp },
   ];
 
