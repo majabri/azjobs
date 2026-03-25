@@ -45,7 +45,10 @@ export default function NotificationCenter() {
       .eq("user_id", session.user.id)
       .order("created_at", { ascending: false })
       .limit(30);
-    if (data) setNotifications(data);
+    if (data) setNotifications(data.sort((a: any, b: any) => {
+      if (a.is_read !== b.is_read) return a.is_read ? 1 : -1;
+      return (typePriority[a.type] ?? 5) - (typePriority[b.type] ?? 5);
+    }));
   }, []);
 
   useEffect(() => {

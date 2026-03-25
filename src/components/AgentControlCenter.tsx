@@ -183,6 +183,7 @@ export default function AgentControlCenter() {
       </div>
 
       <RunHistoryCard runs={recentRuns} />
+      <AgentHealthDashboard />
     </div>
   );
 }
