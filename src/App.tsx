@@ -16,6 +16,7 @@ import Career from "./pages/Career";
 import InterviewPrep from "./pages/InterviewPrep";
 import PublicProfile from "./pages/PublicProfile";
 import ScoreReport from "./pages/ScoreReport";
+import Offers from "./pages/Offers";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
 
