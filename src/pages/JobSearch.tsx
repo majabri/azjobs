@@ -506,7 +506,12 @@ export default function JobSearchPage() {
                       <span className="flex items-center gap-1"><Building2 className="w-3.5 h-3.5" /> {job.company}</span>
                       <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" /> {job.location}</span>
                       {job.type && <Badge variant="outline" className="capitalize text-xs"><Briefcase className="w-3 h-3 mr-1" /> {job.type}</Badge>}
-                      {job.salary && <Badge variant="outline" className="text-xs"><DollarSign className="w-3 h-3 mr-1" /> {job.salary}</Badge>}
+                      {job.salary && (
+                        <span className="flex items-center gap-1">
+                          <Badge variant="outline" className="text-xs"><DollarSign className="w-3 h-3 mr-1" /> {job.salary}</Badge>
+                          <SalaryBadge salary={job.salary} />
+                        </span>
+                      )}
                       {job.source && <Badge variant="outline" className="text-xs capitalize">{job.source}</Badge>}
                     </div>
                     <p className="text-sm text-muted-foreground mt-2 leading-relaxed line-clamp-3">{job.description}</p>

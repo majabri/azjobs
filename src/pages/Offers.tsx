@@ -6,8 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import {
-  ArrowLeft, Plus, DollarSign, TrendingUp, Trash2, BarChart3,
-  CheckCircle, XCircle, Clock, Loader2, Scale,
+  ArrowLeft, Plus, DollarSign, TrendingUp, Trash2,
+  CheckCircle, XCircle, Clock, Loader2, Scale, Bell, AlertTriangle,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import UserMenu from "@/components/UserMenu";
@@ -30,6 +30,7 @@ interface Offer {
   negotiation_strategy: any;
   created_at: string;
   updated_at: string;
+  deadline: string | null;
 }
 
 const STATUS_CONFIG: Record<string, { label: string; icon: typeof Clock; className: string }> = {
@@ -40,6 +41,18 @@ const STATUS_CONFIG: Record<string, { label: string; icon: typeof Clock; classNa
 
 const fmt = (n: number | null) => n != null ? `$${n.toLocaleString()}` : "—";
 
+function getDeadlineInfo(deadline: string | null): { label: string; urgent: boolean; expired: boolean; daysLeft: number } | null {
+  if (!deadline) return null;
+  const now = new Date();
+  const dl = new Date(deadline);
+  const diff = dl.getTime() - now.getTime();
+  const daysLeft = Math.ceil(diff / (1000 * 60 * 60 * 24));
+  if (daysLeft < 0) return { label: `Expired ${Math.abs(daysLeft)}d ago`, urgent: false, expired: true, daysLeft };
+  if (daysLeft === 0) return { label: "Due today!", urgent: true, expired: false, daysLeft };
+  if (daysLeft <= 3) return { label: `${daysLeft}d left`, urgent: true, expired: false, daysLeft };
+  return { label: `${daysLeft}d left`, urgent: false, expired: false, daysLeft };
+}
+
 export default function Offers() {
   const navigate = useNavigate();
   const [offers, setOffers] = useState<Offer[]>([]);
@@ -48,8 +61,7 @@ export default function Offers() {
   const [showAdd, setShowAdd] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // New offer form
-  const [form, setForm] = useState({ job_title: "", company: "", base_salary: "", bonus: "", equity: "", notes: "" });
+  const [form, setForm] = useState({ job_title: "", company: "", base_salary: "", bonus: "", equity: "", notes: "", deadline: "" });
 
   useEffect(() => { loadOffers(); }, []);
 
@@ -63,7 +75,7 @@ export default function Offers() {
         .eq("user_id", session.user.id)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      setOffers((data as any[]) || []);
+      setOffers((data || []) as Offer[]);
     } catch { toast.error("Failed to load offers"); }
     finally { setLoading(false); }
   };
@@ -77,7 +89,8 @@ export default function Offers() {
       const base = Number(form.base_salary) || 0;
       const bonus = Number(form.bonus) || 0;
       const equity = Number(form.equity) || 0;
-      const { error } = await supabase.from("offers").insert({
+
+      const insertData: Record<string, any> = {
         user_id: session.user.id,
         job_title: form.job_title,
         company: form.company,
@@ -86,13 +99,16 @@ export default function Offers() {
         equity,
         total_comp: base + bonus + equity,
         notes: form.notes || null,
-      } as any);
+        deadline: form.deadline ? new Date(form.deadline).toISOString() : null,
+      };
+
+      const { error } = await supabase.from("offers").insert(insertData as any);
       if (error) throw error;
       toast.success("Offer saved");
-      setForm({ job_title: "", company: "", base_salary: "", bonus: "", equity: "", notes: "" });
+      setForm({ job_title: "", company: "", base_salary: "", bonus: "", equity: "", notes: "", deadline: "" });
       setShowAdd(false);
       loadOffers();
-    } catch (e: any) { toast.error(e.message); }
+    } catch (e: any) { toast.error(e.message || "Failed to save offer"); }
     finally { setSaving(false); }
   };
 
@@ -130,6 +146,12 @@ export default function Offers() {
     Equity: o.equity || 0,
   }));
 
+  // Check for expiring offers and show reminder
+  const urgentOffers = offers.filter(o => {
+    const info = getDeadlineInfo(o.deadline);
+    return info && info.urgent && !info.expired && o.status === "negotiating";
+  });
+
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-50 bg-card/90 backdrop-blur-sm border-b border-border">
@@ -161,6 +183,10 @@ export default function Offers() {
                     <Input placeholder="Bonus ($)" type="number" value={form.bonus} onChange={e => setForm({ ...form, bonus: e.target.value })} />
                     <Input placeholder="Equity ($)" type="number" value={form.equity} onChange={e => setForm({ ...form, equity: e.target.value })} />
                   </div>
+                  <div>
+                    <label className="text-sm text-muted-foreground mb-1 block">Offer Deadline (optional)</label>
+                    <Input type="date" value={form.deadline} onChange={e => setForm({ ...form, deadline: e.target.value })} />
+                  </div>
                   <Input placeholder="Notes (optional)" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} />
                   <Button onClick={addOffer} disabled={saving} className="w-full gradient-teal text-white">
                     {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
@@ -175,6 +201,21 @@ export default function Offers() {
       </header>
 
       <main className="max-w-6xl mx-auto px-6 py-8 space-y-6">
+        {/* Urgent deadline banner */}
+        {urgentOffers.length > 0 && (
+          <div className="bg-warning/10 border border-warning/30 rounded-lg p-4 flex items-center gap-3">
+            <Bell className="w-5 h-5 text-warning flex-shrink-0" />
+            <div>
+              <p className="text-sm font-semibold text-warning">
+                {urgentOffers.length} offer{urgentOffers.length > 1 ? "s" : ""} expiring soon!
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {urgentOffers.map(o => `${o.company} (${getDeadlineInfo(o.deadline)?.label})`).join(" • ")}
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Comparison Chart */}
         {comparedOffers.length >= 2 && (
           <Card className="p-6">
@@ -199,7 +240,6 @@ export default function Offers() {
               </ResponsiveContainer>
             </div>
 
-            {/* Comparison Table */}
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -238,6 +278,17 @@ export default function Offers() {
                       </td>
                     ))}
                   </tr>
+                  <tr>
+                    <td className="py-2 text-muted-foreground">Deadline</td>
+                    {comparedOffers.map(o => {
+                      const info = getDeadlineInfo(o.deadline);
+                      return (
+                        <td key={o.id} className={`text-right py-2 text-sm ${info?.urgent ? "text-warning font-semibold" : info?.expired ? "text-destructive" : "text-foreground"}`}>
+                          {info ? info.label : "—"}
+                        </td>
+                      );
+                    })}
+                  </tr>
                 </tbody>
               </table>
             </div>
@@ -268,15 +319,23 @@ export default function Offers() {
               const isCompared = comparing.includes(offer.id);
               const cfg = STATUS_CONFIG[offer.status] || STATUS_CONFIG.negotiating;
               const StatusIcon = cfg.icon;
+              const deadlineInfo = getDeadlineInfo(offer.deadline);
               return (
-                <Card key={offer.id} className={`overflow-hidden transition-all ${isCompared ? "ring-2 ring-accent/50" : ""}`}>
+                <Card key={offer.id} className={`overflow-hidden transition-all ${isCompared ? "ring-2 ring-accent/50" : ""} ${deadlineInfo?.urgent ? "border-warning/40" : ""}`}>
                   <CardContent className="p-5 space-y-4">
                     <div className="flex items-start justify-between">
                       <div>
                         <h3 className="font-display font-bold text-foreground">{offer.job_title}</h3>
                         <p className="text-sm text-muted-foreground">{offer.company}</p>
                       </div>
-                      <Badge className={cfg.className}><StatusIcon className="w-3 h-3 mr-1" />{cfg.label}</Badge>
+                      <div className="flex flex-col items-end gap-1">
+                        <Badge className={cfg.className}><StatusIcon className="w-3 h-3 mr-1" />{cfg.label}</Badge>
+                        {deadlineInfo && (
+                          <Badge variant="outline" className={`text-[10px] ${deadlineInfo.expired ? "text-destructive border-destructive/30" : deadlineInfo.urgent ? "text-warning border-warning/30" : "text-muted-foreground"}`}>
+                            <Clock className="w-3 h-3 mr-1" /> {deadlineInfo.label}
+                          </Badge>
+                        )}
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-4 gap-2">
