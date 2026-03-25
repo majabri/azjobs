@@ -34,6 +34,27 @@ interface AgentResult {
 
 type AgentFn = (ctx: AgentContext) => Promise<AgentResult>;
 
+const RETRYABLE_AGENTS = new Set(["discovery", "matching"]);
+const MAX_RETRIES = 3;
+const BASE_DELAY_MS = 500;
+
+async function withRetry(name: string, fn: () => Promise<AgentResult>): Promise<AgentResult> {
+  if (!RETRYABLE_AGENTS.has(name)) return fn();
+  let lastErr: Error | undefined;
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      return await fn();
+    } catch (e) {
+      lastErr = e instanceof Error ? e : new Error(String(e));
+      if (attempt < MAX_RETRIES) {
+        const delay = BASE_DELAY_MS * Math.pow(2, attempt);
+        await new Promise(r => setTimeout(r, delay));
+      }
+    }
+  }
+  return { name, success: false, metrics: {}, error: `Failed after ${MAX_RETRIES + 1} attempts: ${lastErr?.message}` };
+}
+
 // ─── Agent Registry ─────────────────────────────────────────────────────────
 const AGENT_REGISTRY: Record<string, AgentFn> = {
   discovery: runDiscovery,
