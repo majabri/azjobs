@@ -83,6 +83,21 @@ export default function AnalysisForm({ onAnalyze, isAnalyzing, isDemo }: Analysi
     }
     const state = window.history.state?.usr;
     if (state?.prefillJob) setJobDesc(state.prefillJob);
+    if (state?.prefillJobLink) {
+      setJobLink(state.prefillJobLink);
+      // Auto-fetch job description from the link
+      (async () => {
+        setIsFetchingJob(true);
+        try {
+          const result = await scrapeUrl(state.prefillJobLink);
+          if (result.success && result.markdown) {
+            setJobDesc(result.markdown);
+            toast.success("Job description fetched from link!");
+          }
+        } catch {}
+        finally { setIsFetchingJob(false); }
+      })();
+    }
     const params = new URLSearchParams(window.location.search);
     const prefillFromUrl = params.get("prefillJob");
     if (prefillFromUrl) setJobDesc(prefillFromUrl);
