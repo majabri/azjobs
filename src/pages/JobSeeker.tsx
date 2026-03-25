@@ -64,6 +64,11 @@ export default function JobSeekerPage() {
     setAnalysis(null);
   };
 
+  const handleReEvaluate = () => {
+    // Re-run analysis with current job desc and resume
+    handleAnalyze(currentJobDesc, currentResume, currentJobLink);
+  };
+
   return (
     <div className="bg-background">
       <main className="max-w-5xl mx-auto px-6 py-8">
