@@ -83,6 +83,7 @@ export default function JobSeekerPage() {
             jobLink={currentJobLink}
             isDemo={isDemo}
             onReset={handleReset}
+            onReEvaluate={handleReEvaluate}
           />
         )}
       </main>
