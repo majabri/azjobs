@@ -1302,8 +1302,8 @@ ${analysis.gaps.slice(0, 3).map((g) => `â€¢ [Relevant ${g.area} certification â€
                         if (!session) { toast.error("Please sign in first"); return; }
 
                         // Track as application
-                        const jobTitle = analysis?.jobTitle || jobDesc.split("\n")[0]?.slice(0, 80) || "Unknown Role";
-                        const company = analysis?.company || "Unknown Company";
+                        const jobTitle = jobDesc.split("\n")[0]?.slice(0, 80) || "Unknown Role";
+                        const company = "Unknown Company";
                         await supabase.from("job_applications").insert({
                           user_id: session.user.id,
                           job_title: jobTitle,
