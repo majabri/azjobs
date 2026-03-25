@@ -2,11 +2,14 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, TrendingUp, Shield, Zap, ChevronDown, ChevronUp, Target } from "lucide-react";
+import { AlertTriangle, TrendingUp, Shield, Zap, ChevronDown, ChevronUp, Target, Loader2, Wrench } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import type { FitAnalysis } from "@/lib/analysisEngine";
 
 interface GapIntelligenceProps {
   analysis: FitAnalysis;
+  onFixAll?: () => void;
 }
 
 interface SimulatedProfile {
@@ -29,8 +32,28 @@ function getImpactRank(gap: { area: string; severity: string }, index: number): 
   return { impact: "Medium", color: "text-muted-foreground", probabilityDelta: 3 + Math.floor(Math.random() * 5) };
 }
 
-export default function GapIntelligence({ analysis }: GapIntelligenceProps) {
+export default function GapIntelligence({ analysis, onFixAll }: GapIntelligenceProps) {
   const [expanded, setExpanded] = useState(false);
+  const [fixingAll, setFixingAll] = useState(false);
+
+  const handleFixAll = async () => {
+    setFixingAll(true);
+    try {
+      if (onFixAll) {
+        onFixAll();
+      } else {
+        const { data, error } = await supabase.functions.invoke("agent-orchestrator", {
+          body: { agents: ["optimization", "application"] },
+        });
+        if (error) throw error;
+        toast.success("Agent launched! Optimizing your resume and targeting gaps.");
+      }
+    } catch (e: any) {
+      toast.error(e.message || "Failed to launch agent");
+    } finally {
+      setFixingAll(false);
+    }
+  };
 
   if (!analysis || analysis.overallScore >= 85) return null;
 
@@ -95,6 +118,18 @@ export default function GapIntelligence({ analysis }: GapIntelligenceProps) {
             );
           })}
         </div>
+        <Button
+          onClick={handleFixAll}
+          disabled={fixingAll}
+          className="w-full gradient-teal text-white mt-3"
+          size="sm"
+        >
+          {fixingAll ? (
+            <><Loader2 className="w-4 h-4 animate-spin mr-2" />Launching Agent...</>
+          ) : (
+            <><Wrench className="w-4 h-4 mr-2" />Fix All Gaps — Launch AI Agent</>
+          )}
+        </Button>
       </div>
 
       {/* Missing Skills ranked by impact */}

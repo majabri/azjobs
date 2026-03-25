@@ -22,6 +22,8 @@ import JobBoardImporter from "@/components/JobBoardImporter";
 import AgentControlCenter from "@/components/AgentControlCenter";
 import RejectionSimulator from "@/components/RejectionSimulator";
 import CompensationDashboard from "@/components/CompensationDashboard";
+import CareerROIScore from "@/components/CareerROIScore";
+import SmartNotificationEngine from "@/components/SmartNotificationEngine";
 
 interface AnalysisRecord {
   id: string;
@@ -126,6 +128,7 @@ export default function Dashboard() {
         </div>
       </header>
 
+      <SmartNotificationEngine />
       <main className="max-w-6xl mx-auto px-6 py-8 space-y-6">
         {/* Stats */}
         {analyses.length > 0 && (
@@ -154,6 +157,7 @@ export default function Dashboard() {
         {/* Tab Content */}
         {activeTab === "control" && (
           <div className="space-y-6">
+            <CareerROIScore />
             <AgentControlCenter />
             <TodaysMatches compact />
             <RejectionSimulator />
