@@ -34,6 +34,27 @@ interface AgentResult {
 
 type AgentFn = (ctx: AgentContext) => Promise<AgentResult>;
 
+const RETRYABLE_AGENTS = new Set(["discovery", "matching"]);
+const MAX_RETRIES = 3;
+const BASE_DELAY_MS = 500;
+
+async function withRetry(name: string, fn: () => Promise<AgentResult>): Promise<AgentResult> {
+  if (!RETRYABLE_AGENTS.has(name)) return fn();
+  let lastErr: Error | undefined;
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      return await fn();
+    } catch (e) {
+      lastErr = e instanceof Error ? e : new Error(String(e));
+      if (attempt < MAX_RETRIES) {
+        const delay = BASE_DELAY_MS * Math.pow(2, attempt);
+        await new Promise(r => setTimeout(r, delay));
+      }
+    }
+  }
+  return { name, success: false, metrics: {}, error: `Failed after ${MAX_RETRIES + 1} attempts: ${lastErr?.message}` };
+}
+
 // ─── Agent Registry ─────────────────────────────────────────────────────────
 const AGENT_REGISTRY: Record<string, AgentFn> = {
   discovery: runDiscovery,
@@ -173,6 +194,7 @@ async function executeAgents(agentNames: string[], ctx: AgentContext): Promise<{
   completed: string[];
   errors: string[];
   metrics: Record<string, number>;
+  timings: Record<string, number>;
 }> {
   // Phase 1: Discovery + Learning (independent, run in parallel)
   // Phase 2: Matching (depends on discovery)
@@ -186,33 +208,41 @@ async function executeAgents(agentNames: string[], ctx: AgentContext): Promise<{
   const completed: string[] = [];
   const errors: string[] = [];
   const metrics: Record<string, number> = {};
+  const timings: Record<string, number> = {};
 
   for (const phase of phases) {
     const results = await Promise.allSettled(
-      phase.map(name => {
+      phase.map(async name => {
         const fn = AGENT_REGISTRY[name];
-        return fn ? fn(ctx) : Promise.reject(new Error(`Unknown agent: ${name}`));
+        if (!fn) throw new Error(`Unknown agent: ${name}`);
+        const start = performance.now();
+        const result = await withRetry(name, () => fn(ctx));
+        timings[name] = Math.round(performance.now() - start);
+        return result;
       })
     );
 
     for (const result of results) {
       if (result.status === "fulfilled") {
-        completed.push(result.value.name);
+        if (result.value.success) {
+          completed.push(result.value.name);
+        } else {
+          errors.push(result.value.error || `${result.value.name} failed`);
+        }
         Object.assign(metrics, result.value.metrics);
       } else {
-        const msg = result.reason?.message || "Unknown error";
-        errors.push(msg);
+        errors.push(result.reason?.message || "Unknown error");
       }
     }
 
-    // Update progress after each phase
     await ctx.adminClient.from("agent_runs").update({
       agents_completed: completed,
+      agent_timings: timings,
       ...metrics,
     }).eq("user_id", ctx.userId).eq("status", "running");
   }
 
-  return { completed, errors, metrics };
+  return { completed, errors, metrics, timings };
 }
 
 // ─── HTTP Handler ───────────────────────────────────────────────────────────
@@ -276,12 +306,13 @@ serve(async (req) => {
     };
 
     // Execute
-    const { completed, errors, metrics } = await executeAgents(validAgents, ctx);
+    const { completed, errors, metrics, timings } = await executeAgents(validAgents, ctx);
 
     // Finalize
     await adminClient.from("agent_runs").update({
       status: errors.length ? "completed_with_errors" : "completed",
       agents_completed: completed,
+      agent_timings: timings,
       jobs_found: metrics.jobs_found || 0,
       jobs_matched: metrics.jobs_matched || 0,
       applications_sent: metrics.applications_sent || 0,
@@ -301,6 +332,7 @@ serve(async (req) => {
       runId: run.id,
       status: "completed",
       agentsCompleted: completed,
+      timings,
       ...metrics,
       errors,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });

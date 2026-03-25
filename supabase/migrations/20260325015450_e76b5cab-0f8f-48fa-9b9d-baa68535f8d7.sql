@@ -1,0 +1,1 @@
+ALTER TABLE public.agent_runs ADD COLUMN IF NOT EXISTS agent_timings jsonb DEFAULT '{}'::jsonb;

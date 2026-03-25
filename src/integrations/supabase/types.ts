@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       agent_runs: {
         Row: {
+          agent_timings: Json | null
           agents_completed: Json
           applications_sent: number | null
           completed_at: string | null
@@ -28,6 +29,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          agent_timings?: Json | null
           agents_completed?: Json
           applications_sent?: number | null
           completed_at?: string | null
@@ -40,6 +42,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          agent_timings?: Json | null
           agents_completed?: Json
           applications_sent?: number | null
           completed_at?: string | null
