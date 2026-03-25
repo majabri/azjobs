@@ -15,8 +15,8 @@ import { analyzeJobFit } from "@/lib/analysisEngine";
 import type { User } from "@supabase/supabase-js";
 
 const stats = [
-  { value: "2,400+", label: "applications sent by AI this week" },
-  { value: "5x", label: "more interview callbacks vs manual applying" },
+  { value: "AI-Powered", label: "resume optimization for every application" },
+  { value: "Instant", label: "fit score and gap analysis in seconds" },
   { value: "24/7", label: "your AI agent works while you sleep" },
 ];
 
