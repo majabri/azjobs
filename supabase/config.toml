@@ -65,3 +65,6 @@ verify_jwt = false
 
 [functions.simulate-rejection]
 verify_jwt = false
+
+[functions.negotiation-strategy]
+verify_jwt = false

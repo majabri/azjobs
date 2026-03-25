@@ -227,6 +227,12 @@ export default function Dashboard() {
           </div>
         )}
 
+        {activeTab === "compensation" && (
+          <div className="space-y-6">
+            <CompensationDashboard />
+          </div>
+        )}
+
         {activeTab === "insights" && (
           <div className="space-y-6">
             <LearningInsights />
