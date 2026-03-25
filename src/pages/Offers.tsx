@@ -155,7 +155,39 @@ export default function Offers() {
   return (
     <div className="bg-background">
       <div className="max-w-6xl mx-auto px-6 py-8 space-y-6">
-        {/* Urgent deadline banner */}
+        {/* Page header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="font-display text-2xl font-bold text-primary">Offers</h1>
+            <p className="text-sm text-muted-foreground">Manage and compare your job offers</p>
+          </div>
+          <Dialog open={showAdd} onOpenChange={setShowAdd}>
+            <DialogTrigger asChild>
+              <Button size="sm" className="gradient-teal text-white"><Plus className="w-4 h-4 mr-1" /> Add Offer</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader><DialogTitle>Add New Offer</DialogTitle></DialogHeader>
+              <div className="space-y-3 pt-2">
+                <Input placeholder="Job Title *" value={form.job_title} onChange={e => setForm({ ...form, job_title: e.target.value })} />
+                <Input placeholder="Company *" value={form.company} onChange={e => setForm({ ...form, company: e.target.value })} />
+                <div className="grid grid-cols-3 gap-3">
+                  <Input placeholder="Base Salary ($)" type="number" value={form.base_salary} onChange={e => setForm({ ...form, base_salary: e.target.value })} />
+                  <Input placeholder="Bonus ($)" type="number" value={form.bonus} onChange={e => setForm({ ...form, bonus: e.target.value })} />
+                  <Input placeholder="Equity ($)" type="number" value={form.equity} onChange={e => setForm({ ...form, equity: e.target.value })} />
+                </div>
+                <div>
+                  <label className="text-sm text-muted-foreground mb-1 block">Offer Deadline (optional)</label>
+                  <Input type="date" value={form.deadline} onChange={e => setForm({ ...form, deadline: e.target.value })} />
+                </div>
+                <Input placeholder="Notes (optional)" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} />
+                <Button onClick={addOffer} disabled={saving} className="w-full gradient-teal text-white">
+                  {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
+                  Save Offer
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
         {urgentOffers.length > 0 && (
           <div className="bg-warning/10 border border-warning/30 rounded-lg p-4 flex items-center gap-3">
             <Bell className="w-5 h-5 text-warning flex-shrink-0" />
