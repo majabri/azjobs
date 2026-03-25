@@ -11,6 +11,7 @@ import Profile from "./pages/Profile";
 import JobSearch from "./pages/JobSearch";
 import Dashboard from "./pages/Dashboard";
 import PublicProfile from "./pages/PublicProfile";
+import HiringManager from "./pages/HiringManager";
 import ScoreReport from "./pages/ScoreReport";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -41,6 +42,7 @@ const App = () => (
           <Route path="/applications" element={<ProtectedWithLayout><Applications /></ProtectedWithLayout>} />
           <Route path="/profile" element={<ProtectedWithLayout><Profile /></ProtectedWithLayout>} />
           <Route path="/job-search" element={<ProtectedWithLayout><JobSearch /></ProtectedWithLayout>} />
+          <Route path="/hiring-manager" element={<ProtectedWithLayout><HiringManager /></ProtectedWithLayout>} />
           {/* Public routes */}
           <Route path="/p/:userId" element={<PublicProfile />} />
           <Route path="/report/:analysisId" element={<ScoreReport />} />
