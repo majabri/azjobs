@@ -175,6 +175,17 @@ export default function InterviewPrepPage() {
               <p className="text-muted-foreground">Practice with an AI interviewer that gives real-time feedback on your answers.</p>
             </div>
 
+            {/* Expected Offer Range Card */}
+            {jobTitle.trim() && (
+              <Card className="p-4 border-accent/20 bg-accent/5">
+                <div className="flex items-center gap-2 mb-2">
+                  <BarChart3 className="w-4 h-4 text-accent" />
+                  <span className="text-sm font-bold text-foreground">Expected Offer Range</span>
+                </div>
+                <ExpectedOfferRange jobTitle={jobTitle} />
+              </Card>
+            )}
+
             <Card className="p-6 space-y-4">
               <div>
                 <label className="text-sm font-semibold text-foreground block mb-1">Job Title</label>
