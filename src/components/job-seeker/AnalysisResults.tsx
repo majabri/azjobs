@@ -26,6 +26,7 @@ interface AnalysisResultsProps {
   jobLink: string;
   isDemo: boolean;
   onReset: () => void;
+  onReEvaluate?: () => void;
 }
 
 export default function AnalysisResults({
