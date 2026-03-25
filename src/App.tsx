@@ -5,7 +5,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import JobSeeker from "./pages/JobSeeker";
-import HiringManager from "./pages/HiringManager";
 import Auth from "./pages/Auth";
 import Applications from "./pages/Applications";
 import Profile from "./pages/Profile";
@@ -19,8 +18,17 @@ import ScoreReport from "./pages/ScoreReport";
 import Offers from "./pages/Offers";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
+import AuthenticatedLayout from "./layouts/AuthenticatedLayout";
 
 const queryClient = new QueryClient();
+
+function ProtectedWithLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <ProtectedRoute>
+      <AuthenticatedLayout>{children}</AuthenticatedLayout>
+    </ProtectedRoute>
+  );
+}
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -31,16 +39,17 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/auth" element={<Auth />} />
+          {/* JobSeeker supports demo mode (no auth) */}
           <Route path="/job-seeker" element={<JobSeeker />} />
-          <Route path="/hiring-manager" element={<ProtectedRoute><HiringManager /></ProtectedRoute>} />
-          <Route path="/applications" element={<ProtectedRoute><Applications /></ProtectedRoute>} />
-          <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-          <Route path="/job-search" element={<ProtectedRoute><JobSearch /></ProtectedRoute>} />
-          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-          <Route path="/auto-apply" element={<ProtectedRoute><AutoApply /></ProtectedRoute>} />
-          <Route path="/career" element={<ProtectedRoute><Career /></ProtectedRoute>} />
-          <Route path="/interview-prep" element={<ProtectedRoute><InterviewPrep /></ProtectedRoute>} />
-          <Route path="/offers" element={<ProtectedRoute><Offers /></ProtectedRoute>} />
+          <Route path="/dashboard" element={<ProtectedWithLayout><Dashboard /></ProtectedWithLayout>} />
+          <Route path="/applications" element={<ProtectedWithLayout><Applications /></ProtectedWithLayout>} />
+          <Route path="/profile" element={<ProtectedWithLayout><Profile /></ProtectedWithLayout>} />
+          <Route path="/job-search" element={<ProtectedWithLayout><JobSearch /></ProtectedWithLayout>} />
+          <Route path="/auto-apply" element={<ProtectedWithLayout><AutoApply /></ProtectedWithLayout>} />
+          <Route path="/career" element={<ProtectedWithLayout><Career /></ProtectedWithLayout>} />
+          <Route path="/interview-prep" element={<ProtectedWithLayout><InterviewPrep /></ProtectedWithLayout>} />
+          <Route path="/offers" element={<ProtectedWithLayout><Offers /></ProtectedWithLayout>} />
+          {/* Public routes */}
           <Route path="/p/:userId" element={<PublicProfile />} />
           <Route path="/report/:analysisId" element={<ScoreReport />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
