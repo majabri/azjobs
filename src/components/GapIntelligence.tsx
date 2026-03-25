@@ -147,18 +147,44 @@ export default function GapIntelligence({ analysis, onFixAll, onReEvaluate }: Ga
             );
           })}
         </div>
-        <Button
-          onClick={handleFixAll}
-          disabled={fixingAll}
-          className="w-full gradient-teal text-white mt-3"
-          size="sm"
-        >
-          {fixingAll ? (
-            <><Loader2 className="w-4 h-4 animate-spin mr-2" />Launching Agent...</>
-          ) : (
-            <><Wrench className="w-4 h-4 mr-2" />Fix All Gaps — Launch AI Agent</>
-          )}
-        </Button>
+        <div className="flex gap-2 mt-3">
+          <Button
+            onClick={handleFixAll}
+            disabled={fixingAll}
+            className="flex-1 gradient-teal text-white"
+            size="sm"
+          >
+            {fixingAll ? (
+              <><Loader2 className="w-4 h-4 animate-spin mr-2" />Launching Agent...</>
+            ) : (
+              <><Wrench className="w-4 h-4 mr-2" />Fix All Gaps — Launch AI Agent</>
+            )}
+          </Button>
+          <Button
+            onClick={handleAddGapsToProfile}
+            disabled={addingSkills || addedSkills.length > 0}
+            variant="outline"
+            className="flex-1"
+            size="sm"
+          >
+            {addedSkills.length > 0 ? (
+              <><Check className="w-4 h-4 mr-2 text-success" />Added to Profile</>
+            ) : addingSkills ? (
+              <><Loader2 className="w-4 h-4 animate-spin mr-2" />Adding...</>
+            ) : (
+              <><Plus className="w-4 h-4 mr-2" />Add Gaps to Profile</>
+            )}
+          </Button>
+        </div>
+        {addedSkills.length > 0 && onReEvaluate && (
+          <Button
+            onClick={onReEvaluate}
+            className="w-full mt-2 bg-primary text-primary-foreground hover:bg-primary/90"
+            size="sm"
+          >
+            <Target className="w-4 h-4 mr-2" /> Re-Evaluate With Updated Profile
+          </Button>
+        )}
       </div>
 
       {/* Missing Skills ranked by impact */}
