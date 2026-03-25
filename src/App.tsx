@@ -11,6 +11,7 @@ import Profile from "./pages/Profile";
 import JobSearch from "./pages/JobSearch";
 import Dashboard from "./pages/Dashboard";
 import PublicProfile from "./pages/PublicProfile";
+import HiringManager from "./pages/HiringManager";
 import ScoreReport from "./pages/ScoreReport";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
