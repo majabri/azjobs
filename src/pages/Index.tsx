@@ -131,12 +131,10 @@ export default function Index() {
         <nav className="flex items-center gap-1">
           {user ? (
             <>
-              <NavBtn icon={<Zap className="w-4 h-4" />} label="Get Interviews" onClick={() => navigate("/job-seeker")} />
+              <NavBtn icon={<BarChart3 className="w-4 h-4" />} label="Dashboard" onClick={() => navigate("/dashboard")} />
               <NavBtn icon={<Search className="w-4 h-4" />} label="Find Jobs" onClick={() => navigate("/job-search")} />
               <NavBtn icon={<ClipboardList className="w-4 h-4" />} label="Applications" onClick={() => navigate("/applications")} />
               <NavBtn icon={<UserCircle className="w-4 h-4" />} label="Profile" onClick={() => navigate("/profile")} />
-              <NavBtn icon={<BarChart3 className="w-4 h-4" />} label="Dashboard" onClick={() => navigate("/dashboard")} />
-              <NavBtn icon={<Bot className="w-4 h-4" />} label="Auto-Apply" onClick={() => navigate("/auto-apply")} />
               <div className="w-px h-6 bg-white/20 mx-1" />
               <Button
                 size="sm"
@@ -149,11 +147,8 @@ export default function Index() {
             </>
           ) : (
             <>
-              <Button variant="ghost" className="text-primary-foreground/80 hover:text-primary-foreground hover:bg-white/10 text-sm" onClick={() => navigate("/job-seeker")}>
-                Job Seekers
-              </Button>
-              <Button variant="ghost" className="text-primary-foreground/80 hover:text-primary-foreground hover:bg-white/10 text-sm" onClick={() => navigate("/hiring-manager")}>
-                Hiring Managers
+              <Button variant="ghost" className="text-primary-foreground/80 hover:text-primary-foreground hover:bg-white/10 text-sm" onClick={() => navigate("/job-seeker?demo=true")}>
+                Try Demo
               </Button>
               <Button size="sm" className="gradient-teal text-white font-semibold shadow-teal hover:opacity-90 ml-2" onClick={() => navigate("/auth")}>
                 Sign In
@@ -198,19 +193,19 @@ export default function Index() {
             <Button
               size="lg"
               className="gradient-teal text-white font-semibold text-lg px-8 py-6 rounded-xl shadow-teal hover:opacity-90 transition-opacity animate-pulse-glow"
-              onClick={() => navigate(user ? "/auto-apply" : "/auth")}
+              onClick={() => navigate(user ? "/dashboard" : "/auth")}
             >
               <Bot className="mr-2 w-5 h-5" />
-              Activate My Job Agent
+              {user ? "Go to Dashboard" : "Activate My Job Agent"}
             </Button>
             <Button
               size="lg"
               variant="outline"
               className="border-white/30 text-white bg-white/10 hover:bg-white/20 text-lg px-8 py-6 rounded-xl backdrop-blur-sm"
-              onClick={() => navigate(user ? "/auto-apply" : "/auth")}
+              onClick={() => navigate(user ? "/job-seeker" : "/auth")}
             >
-              <Bot className="mr-2 w-5 h-5" />
-              Start Auto-Applying
+              <Target className="mr-2 w-5 h-5" />
+              {user ? "Analyze a Job" : "Get Started Free"}
             </Button>
           </div>
 

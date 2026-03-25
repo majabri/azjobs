@@ -144,24 +144,7 @@ export default function ApplicationsPage() {
   const getColumnApps = (status: string) => filtered.filter((a) => a.status === status);
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="gradient-hero text-primary-foreground">
-        <div className="max-w-7xl mx-auto px-4 py-6 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/")} className="text-primary-foreground/70 hover:text-primary-foreground hover:bg-primary-foreground/10">
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-            <div>
-              <h1 className="font-display text-2xl font-bold flex items-center gap-2">
-                <Briefcase className="w-6 h-6" /> Applications
-              </h1>
-              <p className="text-primary-foreground/60 text-sm mt-0.5">Track, manage & follow up on your job applications</p>
-            </div>
-          </div>
-          <UserMenu />
-        </div>
-      </header>
-
+    <div className="bg-background">
       <div className="max-w-7xl mx-auto px-4 py-6 space-y-5">
         {/* Offer Auto-Prompt Banner */}
         {stats.offer > 0 && (

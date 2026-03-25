@@ -153,55 +153,41 @@ export default function Offers() {
   });
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-50 bg-card/90 backdrop-blur-sm border-b border-border">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard")} className="text-muted-foreground">
-              <ArrowLeft className="w-4 h-4 mr-1" /> Dashboard
-            </Button>
-            <div className="w-px h-5 bg-border" />
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 gradient-teal rounded-lg flex items-center justify-center">
-                <DollarSign className="w-3.5 h-3.5 text-white" />
-              </div>
-              <span className="font-display font-bold text-primary">Offers</span>
-            </div>
+    <div className="bg-background">
+      <div className="max-w-6xl mx-auto px-6 py-8 space-y-6">
+        {/* Page header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="font-display text-2xl font-bold text-primary">Offers</h1>
+            <p className="text-sm text-muted-foreground">Manage and compare your job offers</p>
           </div>
-          <div className="flex items-center gap-3">
-            <Dialog open={showAdd} onOpenChange={setShowAdd}>
-              <DialogTrigger asChild>
-                <Button size="sm" className="gradient-teal text-white"><Plus className="w-4 h-4 mr-1" /> Add Offer</Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader><DialogTitle>Add New Offer</DialogTitle></DialogHeader>
-                <div className="space-y-3 pt-2">
-                  <Input placeholder="Job Title *" value={form.job_title} onChange={e => setForm({ ...form, job_title: e.target.value })} />
-                  <Input placeholder="Company *" value={form.company} onChange={e => setForm({ ...form, company: e.target.value })} />
-                  <div className="grid grid-cols-3 gap-3">
-                    <Input placeholder="Base Salary ($)" type="number" value={form.base_salary} onChange={e => setForm({ ...form, base_salary: e.target.value })} />
-                    <Input placeholder="Bonus ($)" type="number" value={form.bonus} onChange={e => setForm({ ...form, bonus: e.target.value })} />
-                    <Input placeholder="Equity ($)" type="number" value={form.equity} onChange={e => setForm({ ...form, equity: e.target.value })} />
-                  </div>
-                  <div>
-                    <label className="text-sm text-muted-foreground mb-1 block">Offer Deadline (optional)</label>
-                    <Input type="date" value={form.deadline} onChange={e => setForm({ ...form, deadline: e.target.value })} />
-                  </div>
-                  <Input placeholder="Notes (optional)" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} />
-                  <Button onClick={addOffer} disabled={saving} className="w-full gradient-teal text-white">
-                    {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
-                    Save Offer
-                  </Button>
+          <Dialog open={showAdd} onOpenChange={setShowAdd}>
+            <DialogTrigger asChild>
+              <Button size="sm" className="gradient-teal text-white"><Plus className="w-4 h-4 mr-1" /> Add Offer</Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader><DialogTitle>Add New Offer</DialogTitle></DialogHeader>
+              <div className="space-y-3 pt-2">
+                <Input placeholder="Job Title *" value={form.job_title} onChange={e => setForm({ ...form, job_title: e.target.value })} />
+                <Input placeholder="Company *" value={form.company} onChange={e => setForm({ ...form, company: e.target.value })} />
+                <div className="grid grid-cols-3 gap-3">
+                  <Input placeholder="Base Salary ($)" type="number" value={form.base_salary} onChange={e => setForm({ ...form, base_salary: e.target.value })} />
+                  <Input placeholder="Bonus ($)" type="number" value={form.bonus} onChange={e => setForm({ ...form, bonus: e.target.value })} />
+                  <Input placeholder="Equity ($)" type="number" value={form.equity} onChange={e => setForm({ ...form, equity: e.target.value })} />
                 </div>
-              </DialogContent>
-            </Dialog>
-            <UserMenu />
-          </div>
+                <div>
+                  <label className="text-sm text-muted-foreground mb-1 block">Offer Deadline (optional)</label>
+                  <Input type="date" value={form.deadline} onChange={e => setForm({ ...form, deadline: e.target.value })} />
+                </div>
+                <Input placeholder="Notes (optional)" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} />
+                <Button onClick={addOffer} disabled={saving} className="w-full gradient-teal text-white">
+                  {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
+                  Save Offer
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
-      </header>
-
-      <main className="max-w-6xl mx-auto px-6 py-8 space-y-6">
-        {/* Urgent deadline banner */}
         {urgentOffers.length > 0 && (
           <div className="bg-warning/10 border border-warning/30 rounded-lg p-4 flex items-center gap-3">
             <Bell className="w-5 h-5 text-warning flex-shrink-0" />
@@ -371,7 +357,7 @@ export default function Offers() {
             })}
           </div>
         )}
-      </main>
+      </div>
     </div>
   );
 }

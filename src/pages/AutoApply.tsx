@@ -433,26 +433,8 @@ export default function AutoApplyPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-50 bg-card/90 backdrop-blur-sm border-b border-border">
-        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" onClick={() => navigate("/")} className="text-muted-foreground">
-              <ArrowLeft className="w-4 h-4 mr-1" /> Home
-            </Button>
-            <div className="w-px h-5 bg-border" />
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 gradient-teal rounded-lg flex items-center justify-center">
-                <Bot className="w-3.5 h-3.5 text-white" />
-              </div>
-              <span className="font-display font-bold text-primary">Auto-Apply Agent</span>
-            </div>
-          </div>
-          <UserMenu />
-        </div>
-      </header>
-
-      <main className="max-w-5xl mx-auto px-6 py-8 space-y-8">
+    <div className="bg-background">
+      <div className="max-w-5xl mx-auto px-6 py-8 space-y-8">
         {/* Mode Selector */}
         <div className="grid grid-cols-3 gap-3">
           {([
@@ -834,7 +816,7 @@ export default function AutoApplyPage() {
             <Shield className="w-3 h-3" /> Nothing happens without your review and approval.
           </p>
         </Card>
-      </main>
+      </div>
     </div>
   );
 }
