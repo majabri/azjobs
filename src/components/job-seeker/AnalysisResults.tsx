@@ -30,7 +30,7 @@ interface AnalysisResultsProps {
 }
 
 export default function AnalysisResults({
-  analysis, jobDesc, resume, jobLink, isDemo, onReset,
+  analysis, jobDesc, resume, jobLink, isDemo, onReset, onReEvaluate,
 }: AnalysisResultsProps) {
   const navigate = useNavigate();
   const [aiResume, setAiResume] = useState("");
