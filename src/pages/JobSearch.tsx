@@ -540,7 +540,7 @@ export default function JobSearchPage() {
                       {job.salary && (
                         <span className="flex items-center gap-1">
                           <Badge variant="outline" className="text-xs"><DollarSign className="w-3 h-3 mr-1" /> {job.salary}</Badge>
-                          <SalaryBadge salary={job.salary} />
+                          <SalaryBadge salary={job.salary} title={job.title} />
                         </span>
                       )}
                       {job.source && <Badge variant="outline" className="text-xs capitalize">{job.source}</Badge>}
