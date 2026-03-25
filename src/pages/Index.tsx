@@ -532,16 +532,16 @@ export default function Index() {
 
             <div
               className="relative overflow-hidden bg-background rounded-3xl p-10 cursor-pointer group border border-border hover:shadow-elevated transition-shadow"
-              onClick={() => navigate("/hiring-manager")}
+              onClick={() => navigate(user ? "/profile" : "/auth")}
             >
               <div className="absolute top-0 right-0 w-48 h-48 bg-accent/5 rounded-full -translate-y-12 translate-x-12 group-hover:scale-125 transition-transform duration-500" />
-              <Users className="w-10 h-10 text-accent mb-6" />
-              <h3 className="font-display text-2xl font-bold text-primary mb-3">Hiring Managers</h3>
+              <UserCircle className="w-10 h-10 text-accent mb-6" />
+              <h3 className="font-display text-2xl font-bold text-primary mb-3">Build Your Profile</h3>
               <p className="text-muted-foreground mb-8 leading-relaxed">
-                Define your requirements and instantly see which candidates qualify — and where others fall short.
+                Upload your resume and let AI extract your skills, experience, and certifications into a smart profile.
               </p>
               <div className="flex items-center gap-2 text-accent font-semibold">
-                Screen candidates <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                Get started <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </div>
             </div>
           </div>
