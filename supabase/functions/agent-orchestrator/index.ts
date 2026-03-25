@@ -312,6 +312,7 @@ serve(async (req) => {
     await adminClient.from("agent_runs").update({
       status: errors.length ? "completed_with_errors" : "completed",
       agents_completed: completed,
+      agent_timings: timings,
       jobs_found: metrics.jobs_found || 0,
       jobs_matched: metrics.jobs_matched || 0,
       applications_sent: metrics.applications_sent || 0,
@@ -331,6 +332,7 @@ serve(async (req) => {
       runId: run.id,
       status: "completed",
       agentsCompleted: completed,
+      timings,
       ...metrics,
       errors,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
