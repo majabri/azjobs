@@ -40,7 +40,8 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const isActive = (path: string) => location.pathname === path;
 
-  const isHiringMode = location.pathname.startsWith("/hiring-manager");
+  const hiringPaths = ["/hiring-manager", "/candidates", "/job-postings", "/interview-scheduling"];
+  const isHiringMode = hiringPaths.some((p) => location.pathname.startsWith(p));
   const currentMode = isHiringMode ? "hiring" : "seeker";
   const navItems = isHiringMode ? hiringManagerNav : jobSeekerNav;
   const modeInfo = modes.find((m) => m.value === currentMode)!;
