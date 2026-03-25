@@ -92,7 +92,38 @@ function calculateDecisionScore(job: JobResult, prob: number, userSkills: string
   const fitScore = job.quality_score || 50;
   const ease = 100 - effort;
   const score = Math.round(fitScore * 0.4 + prob * 0.3 + ease * 0.3);
-  return { score: Math.max(5, Math.min(99, score)), effort };
+function parseSalaryNumber(salary: string): number | null {
+  const match = salary.replace(/,/g, "").match(/(\d+)/g);
+  if (!match) return null;
+  const nums = match.map(Number);
+  if (nums.length >= 2) return (nums[0] + nums[1]) / 2;
+  return nums[0];
+}
+
+const MARKET_BENCHMARKS: Record<string, number> = {
+  "entry": 65000, "junior": 75000, "mid": 105000, "senior": 140000, "lead": 165000, "staff": 185000, "principal": 210000, "director": 195000, "vp": 230000,
+};
+
+function estimateMarketRate(title: string): number {
+  const lower = title.toLowerCase();
+  for (const [key, val] of Object.entries(MARKET_BENCHMARKS)) {
+    if (lower.includes(key)) return val;
+  }
+  if (lower.includes("engineer") || lower.includes("developer")) return 120000;
+  if (lower.includes("manager")) return 130000;
+  if (lower.includes("analyst")) return 90000;
+  if (lower.includes("designer")) return 100000;
+  return 100000;
+}
+
+function SalaryBadge({ salary, title }: { salary: string; title?: string }) {
+  const parsed = parseSalaryNumber(salary);
+  if (!parsed) return null;
+  const market = estimateMarketRate(title || "");
+  const diff = ((parsed - market) / market) * 100;
+  if (diff >= 10) return <Badge variant="outline" className="text-[10px] bg-success/10 text-success border-success/30">↑ Above Market</Badge>;
+  if (diff <= -10) return <Badge variant="outline" className="text-[10px] bg-destructive/10 text-destructive border-destructive/30">↓ Below Market</Badge>;
+  return <Badge variant="outline" className="text-[10px] bg-accent/10 text-accent border-accent/30">≈ Market Rate</Badge>;
 }
 
 export default function JobSearchPage() {
@@ -506,7 +537,12 @@ export default function JobSearchPage() {
                       <span className="flex items-center gap-1"><Building2 className="w-3.5 h-3.5" /> {job.company}</span>
                       <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" /> {job.location}</span>
                       {job.type && <Badge variant="outline" className="capitalize text-xs"><Briefcase className="w-3 h-3 mr-1" /> {job.type}</Badge>}
-                      {job.salary && <Badge variant="outline" className="text-xs"><DollarSign className="w-3 h-3 mr-1" /> {job.salary}</Badge>}
+                      {job.salary && (
+                        <span className="flex items-center gap-1">
+                          <Badge variant="outline" className="text-xs"><DollarSign className="w-3 h-3 mr-1" /> {job.salary}</Badge>
+                          <SalaryBadge salary={job.salary} title={job.title} />
+                        </span>
+                      )}
                       {job.source && <Badge variant="outline" className="text-xs capitalize">{job.source}</Badge>}
                     </div>
                     <p className="text-sm text-muted-foreground mt-2 leading-relaxed line-clamp-3">{job.description}</p>
