@@ -146,6 +146,8 @@ export default function JobSeekerPage() {
   const [isGeneratingEmail, setIsGeneratingEmail] = useState(false);
   const [followUpEmail, setFollowUpEmail] = useState("");
   const [emailType, setEmailType] = useState<string>("follow-up");
+  const [applyDirectUrl, setApplyDirectUrl] = useState("");
+  const [isAutoApplying, setIsAutoApplying] = useState(false);
   const resumeFileRef = useRef<HTMLInputElement>(null);
 
   // Check for prefilled job description from Job Search or demo mode
@@ -1233,6 +1235,109 @@ ${analysis.gaps.slice(0, 3).map((g) => `• [Relevant ${g.area} certification �
 
             {/* Gap Intelligence Panel */}
             <GapIntelligence analysis={analysis} />
+
+            {/* Apply Action Section */}
+            <div className="bg-card rounded-2xl p-6 border border-border shadow-card">
+              <h3 className="font-display font-bold text-primary text-lg mb-4 flex items-center gap-2">
+                <Zap className="w-5 h-5 text-accent" /> Ready to Apply
+              </h3>
+              <p className="text-sm text-muted-foreground mb-5">
+                Choose how you'd like to apply for this role. Apply directly via the job posting, or let the AI agent auto-fill your application.
+              </p>
+              <div className="grid sm:grid-cols-2 gap-4">
+                {/* Option 1: Direct Apply */}
+                <div className="border border-border rounded-xl p-5 flex flex-col gap-3">
+                  <div className="flex items-center gap-2">
+                    <ExternalLink className="w-4 h-4 text-accent" />
+                    <span className="font-semibold text-sm text-foreground">Apply via Direct Link</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground flex-1">
+                    Open the original job posting and apply manually with your optimized resume and cover letter.
+                  </p>
+                  {jobLink ? (
+                    <a href={jobLink} target="_blank" rel="noopener noreferrer">
+                      <Button className="w-full gradient-teal text-white shadow-teal hover:opacity-90" size="sm">
+                        <ExternalLink className="w-4 h-4 mr-1.5" /> Open Job & Apply
+                      </Button>
+                    </a>
+                  ) : (
+                    <div className="space-y-2">
+                      <Input
+                        placeholder="Paste job application URL…"
+                        value={applyDirectUrl}
+                        onChange={(e) => setApplyDirectUrl(e.target.value)}
+                        className="text-sm"
+                      />
+                      <Button
+                        className="w-full gradient-teal text-white shadow-teal hover:opacity-90"
+                        size="sm"
+                        disabled={!applyDirectUrl}
+                        onClick={() => window.open(applyDirectUrl, "_blank")}
+                      >
+                        <ExternalLink className="w-4 h-4 mr-1.5" /> Open & Apply
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Option 2: AI Auto-Fill Apply */}
+                <div className="border border-accent/30 rounded-xl p-5 flex flex-col gap-3 bg-accent/5">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-accent" />
+                    <span className="font-semibold text-sm text-foreground">AI Auto-Fill & Apply</span>
+                    <Badge variant="secondary" className="text-[10px]">Agent</Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground flex-1">
+                    The AI agent will generate a tailored resume, cover letter, and track the application automatically.
+                  </p>
+                  <Button
+                    className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+                    size="sm"
+                    disabled={isAutoApplying || isDemo}
+                    onClick={async () => {
+                      if (isDemo) { toast.info("Sign up to use auto-apply"); return; }
+                      setIsAutoApplying(true);
+                      try {
+                        const { data: { session } } = await supabase.auth.getSession();
+                        if (!session) { toast.error("Please sign in first"); return; }
+
+                        // Track as application
+                        const jobTitle = jobDesc.split("\n")[0]?.slice(0, 80) || "Unknown Role";
+                        const company = "Unknown Company";
+                        await supabase.from("job_applications").insert({
+                          user_id: session.user.id,
+                          job_title: jobTitle,
+                          company,
+                          job_url: jobLink || applyDirectUrl || null,
+                          status: "applied",
+                          notes: `Auto-applied via AI Agent. Fit score: ${analysis?.overallScore || 0}%`,
+                        });
+
+                        // Trigger agent for optimization
+                        await supabase.functions.invoke("agent-orchestrator", {
+                          body: { agents: ["optimization", "application"] },
+                        });
+
+                        toast.success("Application tracked & agent triggered!", {
+                          description: `${jobTitle} at ${company} added to your applications.`,
+                        });
+                        navigate("/applications");
+                      } catch (e: any) {
+                        toast.error("Auto-apply failed", { description: e.message });
+                      } finally {
+                        setIsAutoApplying(false);
+                      }
+                    }}
+                  >
+                    {isAutoApplying ? (
+                      <><Loader2 className="w-4 h-4 animate-spin mr-1.5" /> Processing…</>
+                    ) : (
+                      <><Sparkles className="w-4 h-4 mr-1.5" /> Auto-Fill & Track Application</>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </div>
 
             {/* Interview Predictor */}
             <InterviewPredictor jobDescription={jobDesc} resumeText={resume} />
