@@ -577,14 +577,18 @@ export default function JobSearchPage() {
             const prob = job.responseProbability || 0;
             const tag = getSmartTag(job, prob);
             const TagIcon = tag.icon;
+            const trustCfg = job.trustLevel ? TRUST_LEVEL_CONFIG[job.trustLevel] : TRUST_LEVEL_CONFIG.trusted;
+            const TrustIcon = trustCfg.icon === "shield-check" ? ShieldCheck : trustCfg.icon === "shield-alert" ? ShieldAlert : ShieldX;
+            const hasFlags = job.flags && job.flags.length > 0;
+            const hasDanger = job.flags?.some(f => f.severity === "danger");
 
             return (
-              <Card key={job.id || i} className={`p-5 transition-colors ${job.is_flagged ? "border-destructive/30 bg-destructive/5" : "hover:border-accent/50"}`}>
+              <Card key={job.id || i} className={`p-5 transition-colors ${hasDanger ? "border-destructive/30 bg-destructive/5" : hasFlags ? "border-warning/30 bg-warning/5" : "hover:border-accent/50"}`}>
                 <div className="flex flex-col sm:flex-row sm:items-start gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start gap-2 mb-1">
                       <h3 className="font-semibold text-foreground text-lg">{job.title}</h3>
-                      {job.is_flagged && <AlertTriangle className="w-4 h-4 text-destructive flex-shrink-0 mt-1" />}
+                      {hasDanger && <AlertTriangle className="w-4 h-4 text-destructive flex-shrink-0 mt-1" />}
                     </div>
                     <div className="flex flex-wrap items-center gap-3 mt-1 text-sm text-muted-foreground">
                       <span className="flex items-center gap-1"><Building2 className="w-3.5 h-3.5" /> {job.company}</span>
@@ -600,17 +604,18 @@ export default function JobSearchPage() {
                     </div>
                     <p className="text-sm text-muted-foreground mt-2 leading-relaxed line-clamp-3">{job.description}</p>
 
-                    {/* Smart Tags & Probability */}
+                    {/* Trust + Probability + Smart Tags */}
                     <div className="flex flex-wrap items-center gap-3 mt-3">
+                      <div className="flex items-center gap-1">
+                        <TrustIcon className={`w-3.5 h-3.5 ${trustCfg.colorClass}`} />
+                        <span className={`text-xs font-semibold ${trustCfg.colorClass}`}>{trustCfg.label}</span>
+                      </div>
                       <Badge variant="outline" className={`text-xs ${tag.color}`}>
                         <TagIcon className="w-3 h-3 mr-1" /> {tag.label}
                       </Badge>
                       <span className={`text-sm font-semibold ${getProbColor(prob)}`}>
                         {prob}% response probability
                       </span>
-                      {job.quality_score !== undefined && job.quality_score < 60 && (
-                        <span className="text-xs text-muted-foreground">Quality: {job.quality_score}/100</span>
-                      )}
                       {job.first_seen_at && (
                         <span className="text-xs text-muted-foreground flex items-center gap-1">
                           <Clock className="w-3 h-3" />
@@ -619,13 +624,20 @@ export default function JobSearchPage() {
                       )}
                     </div>
 
-                    {job.is_flagged && job.flag_reasons && (job.flag_reasons as string[]).length > 0 && (
-                      <div className="mt-2 text-xs text-destructive">
-                        ⚠️ {(job.flag_reasons as string[]).join(" • ")}
+                    {/* Flag warnings */}
+                    {hasFlags && (
+                      <div className="flex flex-wrap gap-1.5 mt-2">
+                        {job.flags!.map((flag, fi) => (
+                          <Badge key={fi} variant="outline" className={`text-[10px] ${
+                            flag.severity === "danger" ? "border-destructive/40 text-destructive bg-destructive/5" : "border-warning/40 text-warning bg-warning/5"
+                          }`}>
+                            <AlertTriangle className="w-3 h-3 mr-1" /> {flag.label}
+                          </Badge>
+                        ))}
                       </div>
                     )}
 
-                    {job.matchReason && !job.is_flagged && (
+                    {job.matchReason && !hasDanger && (
                       <p className="text-xs text-accent mt-2 italic">💡 {job.matchReason}</p>
                     )}
                   </div>
