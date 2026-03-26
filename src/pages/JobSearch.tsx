@@ -156,6 +156,7 @@ export default function JobSearchPage() {
   const [searchSource, setSearchSource] = useState<"all" | "ai" | "database">("all");
   const [sortBy, setSortBy] = useState<"relevance" | "probability" | "newest" | "decision">("decision");
   const [showFlagged, setShowFlagged] = useState(true);
+  const [historicalOutcomes, setHistoricalOutcomes] = useState<HistoricalOutcomes | undefined>();
 
   useEffect(() => { loadProfile(); }, []);
 
