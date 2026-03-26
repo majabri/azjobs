@@ -35,8 +35,8 @@ Return 8-10 real, currently active job listings that would match these qualifica
 - company: the real company name
 - location: job location
 - type: remote/hybrid/in-office/full-time/part-time/contract
-- description: 2-3 sentence summary of the role
-- url: the REAL, ACTUAL application URL on the company's careers page or job board (e.g. https://careers.google.com/jobs/results/12345, https://www.linkedin.com/jobs/view/12345, https://boards.greenhouse.io/company/jobs/12345). The URL must be a real link where someone can actually apply. Do NOT make up or fabricate URLs.
+- description: A DETAILED 4-6 sentence summary of the role including key responsibilities, required qualifications, and what the team does. This must be substantive enough to evaluate fit.
+- url: the REAL, ACTUAL application URL on the company's careers page or job board (e.g. https://careers.google.com/jobs/results/12345, https://www.linkedin.com/jobs/view/12345, https://boards.greenhouse.io/company/jobs/12345). The URL must be a real link where someone can actually apply. Do NOT make up or fabricate URLs. If you cannot find a real URL, use the company's main careers page URL (e.g. https://careers.google.com).
 - matchReason: why this job matches the given skills
 
 IMPORTANT: Only include jobs with real, working application URLs. If you cannot provide a real URL for a job, do not include that job.`;
