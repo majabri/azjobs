@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Search, ClipboardList, UserCircle, Target, Users, ChevronDown,
-  FileText, Calendar, Database,
+  FileText, Calendar, Database, DollarSign, Compass, Mic, Zap,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -18,6 +18,10 @@ const jobSeekerNav = [
   { title: "Analyze Job", url: "/job-seeker", icon: Target },
   { title: "Find Jobs", url: "/job-search", icon: Search },
   { title: "Applications", url: "/applications", icon: ClipboardList },
+  { title: "Offers", url: "/offers", icon: DollarSign },
+  { title: "Career", url: "/career", icon: Compass },
+  { title: "Interview Prep", url: "/interview-prep", icon: Mic },
+  { title: "Auto Apply", url: "/auto-apply", icon: Zap },
   { title: "Profile", url: "/profile", icon: UserCircle },
 ];
 
