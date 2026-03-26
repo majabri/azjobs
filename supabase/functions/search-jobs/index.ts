@@ -35,8 +35,8 @@ Return 8-10 real, currently active job listings that would match these qualifica
 - company: the real company name
 - location: job location
 - type: remote/hybrid/in-office/full-time/part-time/contract
-- description: 2-3 sentence summary of the role
-- url: the REAL, ACTUAL application URL on the company's careers page or job board (e.g. https://careers.google.com/jobs/results/12345, https://www.linkedin.com/jobs/view/12345, https://boards.greenhouse.io/company/jobs/12345). The URL must be a real link where someone can actually apply. Do NOT make up or fabricate URLs.
+- description: A DETAILED 4-6 sentence summary of the role including key responsibilities, required qualifications, and what the team does. This must be substantive enough to evaluate fit.
+- url: the REAL, ACTUAL application URL on the company's careers page or job board (e.g. https://careers.google.com/jobs/results/12345, https://www.linkedin.com/jobs/view/12345, https://boards.greenhouse.io/company/jobs/12345). The URL must be a real link where someone can actually apply. Do NOT make up or fabricate URLs. If you cannot find a real URL, use the company's main careers page URL (e.g. https://careers.google.com).
 - matchReason: why this job matches the given skills
 
 IMPORTANT: Only include jobs with real, working application URLs. If you cannot provide a real URL for a job, do not include that job.`;
@@ -127,7 +127,61 @@ IMPORTANT: Only include jobs with real, working application URLs. If you cannot 
       }
     }
 
-    return new Response(JSON.stringify({ jobs, citations: [] }), {
+    // Filter out jobs with no URL, no description, or suspicious/empty URLs
+    const validJobs = jobs.filter((job: any) => {
+      if (!job.url || job.url.trim().length < 10) return false;
+      if (!job.description || job.description.trim().length < 30) return false;
+      if (job.url.includes("example.com") || job.url.includes("placeholder")) return false;
+      return true;
+    });
+
+    // Validate URLs by checking they're well-formed
+    const checkedJobs = await Promise.all(
+      validJobs.map(async (job: any) => {
+        try {
+          const url = new URL(job.url.startsWith("http") ? job.url : `https://${job.url}`);
+          // Quick HEAD check with timeout
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 3000);
+          try {
+            const check = await fetch(url.toString(), {
+              method: "HEAD",
+              signal: controller.signal,
+              redirect: "follow",
+            });
+            clearTimeout(timeout);
+            if (check.status >= 400 && check.status !== 403 && check.status !== 405) {
+              // Try GET as fallback (some servers reject HEAD)
+              const controller2 = new AbortController();
+              const timeout2 = setTimeout(() => controller2.abort(), 3000);
+              try {
+                const check2 = await fetch(url.toString(), {
+                  method: "GET",
+                  signal: controller2.signal,
+                  redirect: "follow",
+                });
+                clearTimeout(timeout2);
+                if (check2.status >= 400) return null;
+              } catch {
+                clearTimeout(timeout2);
+                return null;
+              }
+            }
+            return { ...job, url: url.toString() };
+          } catch {
+            clearTimeout(timeout);
+            // If request fails (timeout/network), still include but normalize URL
+            return { ...job, url: url.toString() };
+          }
+        } catch {
+          return null; // Invalid URL format
+        }
+      })
+    );
+
+    const finalJobs = checkedJobs.filter(Boolean);
+
+    return new Response(JSON.stringify({ jobs: finalJobs, citations: [] }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {

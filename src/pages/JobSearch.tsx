@@ -390,12 +390,26 @@ export default function JobSearchPage() {
               </div>
             </div>
 
-            {careerLevel && (
-              <div>
-                <label className="text-sm font-semibold text-foreground mb-2 block">Career Level</label>
-                <Badge variant="default" className="bg-accent text-accent-foreground">{careerLevel}</Badge>
+            <div>
+              <label className="text-sm font-semibold text-foreground mb-2 block">Career Level <span className="text-xs text-muted-foreground font-normal">(select multiple)</span></label>
+              <div className="flex flex-wrap gap-2">
+                {["Entry-Level / Junior", "Mid-Level", "Senior", "Manager", "Director", "VP / Senior Leadership", "C-Level / Executive"].map(level => {
+                  const levels = careerLevel ? careerLevel.split(", ").filter(Boolean) : [];
+                  const isSelected = levels.includes(level);
+                  return (
+                    <Badge
+                      key={level}
+                      variant={isSelected ? "default" : "outline"}
+                      className={`cursor-pointer text-xs ${isSelected ? "bg-primary text-primary-foreground" : "hover:bg-accent/10"}`}
+                      onClick={() => {
+                        const newLevels = isSelected ? levels.filter(l => l !== level) : [...levels, level];
+                        setCareerLevel(newLevels.join(", "));
+                      }}
+                    >{level}</Badge>
+                  );
+                })}
               </div>
-            )}
+            </div>
 
             <div>
               <label className="text-sm font-semibold text-foreground mb-2 block">Your Skills</label>
