@@ -46,6 +46,30 @@ interface JobResult {
   strategy?: "apply_now" | "apply_fast" | "improve_first" | "skip";
 }
 
+const GENERIC_JOB_PATH_SEGMENTS = new Set([
+  "careers",
+  "career",
+  "jobs",
+  "job",
+  "job-search",
+  "open-positions",
+  "positions",
+  "vacancies",
+  "opportunities",
+  "join-us",
+  "work-with-us",
+  "employment",
+]);
+
+const LISTING_TAIL_SEGMENTS = new Set([
+  "search",
+  "results",
+  "all",
+  "openings",
+  "index",
+  "list",
+]);
+
 function normalizeJobUrl(rawUrl?: string | null): string {
   if (!rawUrl) return "";
 
@@ -71,6 +95,50 @@ function normalizeJobUrl(rawUrl?: string | null): string {
   } catch {
     return "";
   }
+}
+
+function isGenericJobListingUrl(rawUrl: string): boolean {
+  try {
+    const url = new URL(rawUrl);
+    const parts = url.pathname
+      .split("/")
+      .map((p) => p.trim().toLowerCase())
+      .filter(Boolean);
+
+    if (parts.length === 0) return true;
+
+    const allGeneric = parts.every((p) => GENERIC_JOB_PATH_SEGMENTS.has(p) || LISTING_TAIL_SEGMENTS.has(p));
+    if (allGeneric) return true;
+
+    if (parts.length === 1 && GENERIC_JOB_PATH_SEGMENTS.has(parts[0])) return true;
+
+    if (parts.length === 2 && GENERIC_JOB_PATH_SEGMENTS.has(parts[0]) && LISTING_TAIL_SEGMENTS.has(parts[1])) {
+      return true;
+    }
+
+    const last = parts[parts.length - 1];
+    if (GENERIC_JOB_PATH_SEGMENTS.has(last) || LISTING_TAIL_SEGMENTS.has(last)) return true;
+
+    const qp = url.searchParams;
+    if (
+      ["q", "query", "keywords", "search", "location", "department", "team"].some((key) => qp.has(key)) &&
+      parts.length <= 2
+    ) {
+      return true;
+    }
+
+    return false;
+  } catch {
+    return true;
+  }
+}
+
+function hasSubstantiveJobDescription(description?: string | null): boolean {
+  if (!description) return false;
+  const text = description.trim();
+  if (text.length < 140) return false;
+  if (text.split(/\s+/).length < 24) return false;
+  return true;
 }
 
 function sanitizeTitleForFilter(title: string): string {
@@ -273,24 +341,26 @@ export default function JobSearchPage() {
     const { data, error } = await query;
     if (error) { console.error("DB search error:", error); return []; }
 
-    return (data || []).map((job: any) => ({
-      id: job.id,
-      title: job.title,
-      company: job.company,
-      location: job.location || (job.is_remote ? "Remote" : "Not specified"),
-      type: job.job_type || "full-time",
-      description: job.description || "",
-      url: normalizeJobUrl(job.job_url),
-      matchReason: `Source: ${job.source}${job.seniority ? ` • ${job.seniority} level` : ""}`,
-      quality_score: job.quality_score,
-      is_flagged: job.is_flagged,
-      flag_reasons: job.flag_reasons || [],
-      salary: job.salary,
-      seniority: job.seniority,
-      is_remote: job.is_remote,
-      source: job.source,
-      first_seen_at: job.first_seen_at,
-    }));
+    return (data || [])
+      .map((job: any) => ({
+        id: job.id,
+        title: job.title,
+        company: job.company,
+        location: job.location || (job.is_remote ? "Remote" : "Not specified"),
+        type: job.job_type || "full-time",
+        description: job.description || "",
+        url: normalizeJobUrl(job.job_url),
+        matchReason: `Source: ${job.source}${job.seniority ? ` • ${job.seniority} level` : ""}`,
+        quality_score: job.quality_score,
+        is_flagged: job.is_flagged,
+        flag_reasons: job.flag_reasons || [],
+        salary: job.salary,
+        seniority: job.seniority,
+        is_remote: job.is_remote,
+        source: job.source,
+        first_seen_at: job.first_seen_at,
+      }))
+      .filter((job) => Boolean(job.url) && !isGenericJobListingUrl(job.url) && hasSubstantiveJobDescription(job.description));
   };
 
   const searchAIJobs = async (): Promise<{ jobs: JobResult[]; citations: string[] }> => {
@@ -314,7 +384,7 @@ export default function JobSearchPage() {
         ...job,
         url: normalizeJobUrl(job.url),
       }))
-      .filter((job) => Boolean(job.url));
+      .filter((job) => Boolean(job.url) && !isGenericJobListingUrl(job.url) && hasSubstantiveJobDescription(job.description));
 
     return { jobs: normalizedJobs, citations: data.citations || [] };
   };
@@ -343,7 +413,15 @@ export default function JobSearchPage() {
         allCitations = aiResult.citations;
       }
 
-      allJobs = allJobs.filter((job) => Boolean(job.url));
+      allJobs = allJobs.filter((job) => Boolean(job.url) && !isGenericJobListingUrl(job.url) && hasSubstantiveJobDescription(job.description));
+
+      const uniqueByUrl = new Map<string, JobResult>();
+      for (const job of allJobs) {
+        if (!uniqueByUrl.has(job.url)) {
+          uniqueByUrl.set(job.url, job);
+        }
+      }
+      allJobs = Array.from(uniqueByUrl.values());
 
       // Enrich with trust engine + probability + decision score
       const allTitles = allJobs.map(j => j.title || "");
