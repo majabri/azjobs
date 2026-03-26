@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { Save, Upload, Plus, X, Loader2, Briefcase, GraduationCap, Award, User, FileText, Settings, DollarSign, Bot } from "lucide-react";
+import { Save, Upload, Plus, X, Loader2, Briefcase, GraduationCap, Award, User, FileText, Settings, DollarSign, Bot, Linkedin } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,6 +18,7 @@ interface Education { degree: string; institution: string; year: string; }
 
 export interface ProfileData {
   full_name: string; email: string; phone: string; location: string; summary: string;
+  linkedin_url: string;
   skills: string[]; work_experience: WorkExperience[]; education: Education[];
   certifications: string[]; preferred_job_types: string[]; career_level: string;
   target_job_titles: string[]; salary_min: string; salary_max: string;
@@ -26,6 +27,7 @@ export interface ProfileData {
 
 export const emptyProfile: ProfileData = {
   full_name: "", email: "", phone: "", location: "", summary: "",
+  linkedin_url: "",
   skills: [], work_experience: [], education: [], certifications: [],
   preferred_job_types: [], career_level: "", target_job_titles: [],
   salary_min: "", salary_max: "", remote_only: false, min_match_score: 60,
@@ -144,6 +146,14 @@ export default function ProfileForm({ profile, setProfile, onSave, saving }: Pro
           <div><Label>Email</Label><Input type="email" value={profile.email} onChange={e => setProfile({ ...profile, email: e.target.value })} placeholder="jane@email.com" /></div>
           <div><Label>Phone</Label><Input value={profile.phone} onChange={e => setProfile({ ...profile, phone: e.target.value })} placeholder="+1 555-123-4567" /></div>
           <div><Label>Location</Label><Input value={profile.location} onChange={e => setProfile({ ...profile, location: e.target.value })} placeholder="City, State" /></div>
+          <div className="sm:col-span-2">
+            <Label className="flex items-center gap-2"><Linkedin className="w-4 h-4 text-primary" /> LinkedIn Profile URL</Label>
+            <Input
+              value={profile.linkedin_url}
+              onChange={e => setProfile({ ...profile, linkedin_url: e.target.value })}
+              placeholder="https://www.linkedin.com/in/your-profile"
+            />
+          </div>
         </div>
       </section>
 
