@@ -70,6 +70,18 @@ const LISTING_TAIL_SEGMENTS = new Set([
   "list",
 ]);
 
+const NON_JOB_PAGE_SEGMENTS = new Set([
+  "about",
+  "company",
+  "team",
+  "culture",
+  "people",
+  "mission",
+  "values",
+  "home",
+  "contact",
+]);
+
 function normalizeJobUrl(rawUrl?: string | null): string {
   if (!rawUrl) return "";
 
@@ -139,6 +151,34 @@ function hasSubstantiveJobDescription(description?: string | null): boolean {
   if (text.length < 140) return false;
   if (text.split(/\s+/).length < 24) return false;
   return true;
+}
+
+function isLikelyDirectJobPostingUrl(rawUrl: string): boolean {
+  try {
+    const url = new URL(rawUrl);
+    const parts = url.pathname
+      .split("/")
+      .map((p) => p.trim().toLowerCase())
+      .filter(Boolean);
+
+    if (parts.length === 0) return false;
+
+    const last = parts[parts.length - 1];
+    if (NON_JOB_PAGE_SEGMENTS.has(last)) return false;
+
+    const hasJobWordInPath = parts.some((p) => /job|jobs|position|opening|opportunit|career/.test(p));
+    const hasNumericId = parts.some((p) => /\d{4,}/.test(p));
+    const hasLongSlug = parts.some((p) => p.includes("-") && p.length >= 16);
+    const hasKnownJobQuery = ["gh_jid", "job", "jobid", "jk", "lever-source", "oid"].some((k) =>
+      url.searchParams.has(k)
+    );
+
+    if (parts.length === 1 && !hasNumericId && !hasLongSlug && !hasKnownJobQuery) return false;
+
+    return hasJobWordInPath || hasNumericId || hasLongSlug || hasKnownJobQuery;
+  } catch {
+    return false;
+  }
 }
 
 function sanitizeTitleForFilter(title: string): string {
@@ -360,7 +400,7 @@ export default function JobSearchPage() {
         source: job.source,
         first_seen_at: job.first_seen_at,
       }))
-      .filter((job) => Boolean(job.url) && !isGenericJobListingUrl(job.url) && hasSubstantiveJobDescription(job.description));
+      .filter((job) => Boolean(job.url) && !isGenericJobListingUrl(job.url) && isLikelyDirectJobPostingUrl(job.url) && hasSubstantiveJobDescription(job.description));
   };
 
   const searchAIJobs = async (): Promise<{ jobs: JobResult[]; citations: string[] }> => {
@@ -384,7 +424,7 @@ export default function JobSearchPage() {
         ...job,
         url: normalizeJobUrl(job.url),
       }))
-      .filter((job) => Boolean(job.url) && !isGenericJobListingUrl(job.url) && hasSubstantiveJobDescription(job.description));
+      .filter((job) => Boolean(job.url) && !isGenericJobListingUrl(job.url) && isLikelyDirectJobPostingUrl(job.url) && hasSubstantiveJobDescription(job.description));
 
     return { jobs: normalizedJobs, citations: data.citations || [] };
   };
@@ -413,7 +453,7 @@ export default function JobSearchPage() {
         allCitations = aiResult.citations;
       }
 
-      allJobs = allJobs.filter((job) => Boolean(job.url) && !isGenericJobListingUrl(job.url) && hasSubstantiveJobDescription(job.description));
+      allJobs = allJobs.filter((job) => Boolean(job.url) && !isGenericJobListingUrl(job.url) && isLikelyDirectJobPostingUrl(job.url) && hasSubstantiveJobDescription(job.description));
 
       const uniqueByUrl = new Map<string, JobResult>();
       for (const job of allJobs) {
@@ -776,7 +816,7 @@ export default function JobSearchPage() {
                     <Button size="sm" className="gradient-teal text-white text-xs" onClick={() => handleAnalyzeFit(job)}>
                       <Target className="w-3.5 h-3.5 mr-1" /> Check My Chances
                     </Button>
-                    {job.url && (
+                    {job.url && isLikelyDirectJobPostingUrl(job.url) && (
                       <Button variant="outline" size="sm" className="text-xs" onClick={() => {
                         const url = job.url.startsWith("http") ? job.url : `https://${job.url}`;
                         window.open(url, "_blank", "noopener,noreferrer");
