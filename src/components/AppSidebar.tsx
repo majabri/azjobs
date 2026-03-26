@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Search, ClipboardList, UserCircle, Target, Users, ChevronDown,
-  FileText, Calendar, Database,
+  FileText, Calendar, Database, DollarSign, Compass, Mic, Zap,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
