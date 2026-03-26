@@ -1,0 +1,1 @@
+ALTER TABLE public.job_seeker_profiles ADD COLUMN IF NOT EXISTS linkedin_url text;

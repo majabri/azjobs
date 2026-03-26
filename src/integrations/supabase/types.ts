@@ -356,6 +356,7 @@ export type Database = {
           full_name: string | null
           id: string
           last_active_at: string | null
+          linkedin_url: string | null
           location: string | null
           match_threshold: number
           min_match_score: number | null
@@ -384,6 +385,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           last_active_at?: string | null
+          linkedin_url?: string | null
           location?: string | null
           match_threshold?: number
           min_match_score?: number | null
@@ -412,6 +414,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           last_active_at?: string | null
+          linkedin_url?: string | null
           location?: string | null
           match_threshold?: number
           min_match_score?: number | null
