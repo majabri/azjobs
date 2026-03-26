@@ -34,6 +34,94 @@ interface JobMatch {
   strategy?: "apply_now" | "apply_fast" | "improve_first" | "skip";
 }
 
+const GENERIC_JOB_PATH_SEGMENTS = new Set([
+  "careers",
+  "career",
+  "jobs",
+  "job",
+  "job-search",
+  "open-positions",
+  "positions",
+  "vacancies",
+  "opportunities",
+  "join-us",
+  "work-with-us",
+  "employment",
+]);
+
+const LISTING_TAIL_SEGMENTS = new Set(["search", "results", "all", "openings", "index", "list"]);
+
+function normalizeJobUrl(rawUrl?: string | null): string {
+  if (!rawUrl) return "";
+
+  let value = rawUrl.trim();
+  if (!value) return "";
+
+  const markdownUrl = value.match(/\((https?:\/\/[^)\s]+)\)/i);
+  if (markdownUrl?.[1]) value = markdownUrl[1];
+
+  const plainHttpUrl = value.match(/https?:\/\/[^\s<>'"\])]+/i);
+  if (plainHttpUrl?.[0]) value = plainHttpUrl[0];
+
+  value = value.replace(/[),.;]+$/g, "").trim();
+  if (!value) return "";
+
+  const withProtocol = /^https?:\/\//i.test(value) ? value : `https://${value}`;
+
+  try {
+    const parsed = new URL(withProtocol);
+    const host = parsed.hostname.toLowerCase();
+    if (!host || host.includes("example.com") || host.includes("placeholder")) return "";
+    return parsed.toString();
+  } catch {
+    return "";
+  }
+}
+
+function isGenericJobListingUrl(rawUrl: string): boolean {
+  try {
+    const url = new URL(rawUrl);
+    const parts = url.pathname
+      .split("/")
+      .map((p) => p.trim().toLowerCase())
+      .filter(Boolean);
+
+    if (parts.length === 0) return true;
+
+    const allGeneric = parts.every((p) => GENERIC_JOB_PATH_SEGMENTS.has(p) || LISTING_TAIL_SEGMENTS.has(p));
+    if (allGeneric) return true;
+
+    if (parts.length === 1 && GENERIC_JOB_PATH_SEGMENTS.has(parts[0])) return true;
+
+    if (parts.length === 2 && GENERIC_JOB_PATH_SEGMENTS.has(parts[0]) && LISTING_TAIL_SEGMENTS.has(parts[1])) {
+      return true;
+    }
+
+    const last = parts[parts.length - 1];
+    if (GENERIC_JOB_PATH_SEGMENTS.has(last) || LISTING_TAIL_SEGMENTS.has(last)) return true;
+
+    const qp = url.searchParams;
+    if (
+      ["q", "query", "keywords", "search", "location", "department", "team"].some((key) => qp.has(key)) &&
+      parts.length <= 2
+    ) {
+      return true;
+    }
+
+    return false;
+  } catch {
+    return true;
+  }
+}
+
+function hasSubstantiveJobDescription(description?: string | null): boolean {
+  if (!description) return false;
+  const text = description.trim();
+  if (text.length < 140) return false;
+  if (text.split(/\s+/).length < 24) return false;
+  return true;
+}
+
 function estimateMatchScore(matchReason: string, skills: string[]): number {
   const lower = matchReason.toLowerCase();
   let score = 50;
@@ -84,15 +172,22 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
     setHasProfile(true);
     setHistoricalOutcomes(outcomes);
 
-    const cacheKey = `fitcheck_daily_jobs_${session.user.id}`;
+    const cacheKey = `fitcheck_daily_jobs_v2_${session.user.id}`;
     const cached = localStorage.getItem(cacheKey);
     if (cached) {
       try {
         const { jobs: cachedJobs, timestamp } = JSON.parse(cached);
         if (Date.now() - timestamp < 4 * 60 * 60 * 1000) {
-          setJobs(cachedJobs);
-          setLastFetched(new Date(timestamp).toLocaleTimeString());
-          return;
+          const vettedCachedJobs = (cachedJobs || []).filter((job: JobMatch) => {
+            const normalizedUrl = normalizeJobUrl(job.url);
+            return Boolean(normalizedUrl) && !isGenericJobListingUrl(normalizedUrl) && hasSubstantiveJobDescription(job.description);
+          });
+
+          if (vettedCachedJobs.length > 0) {
+            setJobs(vettedCachedJobs);
+            setLastFetched(new Date(timestamp).toLocaleTimeString());
+            return;
+          }
         }
       } catch {}
     }
@@ -159,7 +254,20 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
       });
       if (!resp.ok) throw new Error("Search failed");
       const data = await resp.json();
-      const enriched = enrichJobs(data.jobs || [], profile.skills || [], outcomes);
+
+      const vettedJobs = ((data.jobs || []) as JobMatch[])
+        .map((job) => ({
+          ...job,
+          url: normalizeJobUrl(job.url),
+        }))
+        .filter((job) => Boolean(job.url) && !isGenericJobListingUrl(job.url) && hasSubstantiveJobDescription(job.description));
+
+      const uniqueByUrl = new Map<string, JobMatch>();
+      for (const job of vettedJobs) {
+        if (!uniqueByUrl.has(job.url)) uniqueByUrl.set(job.url, job);
+      }
+
+      const enriched = enrichJobs(Array.from(uniqueByUrl.values()), profile.skills || [], outcomes);
       setJobs(enriched);
       setLastFetched(new Date().toLocaleTimeString());
       localStorage.setItem(cacheKey, JSON.stringify({ jobs: enriched, timestamp: Date.now() }));
