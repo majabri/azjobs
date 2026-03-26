@@ -30,6 +30,18 @@ const LISTING_TAIL_SEGMENTS = new Set([
   "list",
 ]);
 
+const NON_JOB_PAGE_SEGMENTS = new Set([
+  "about",
+  "company",
+  "team",
+  "culture",
+  "people",
+  "mission",
+  "values",
+  "home",
+  "contact",
+]);
+
 function normalizeJobUrl(rawUrl: string): string {
   const trimmed = rawUrl.trim();
   if (!trimmed) return "";
@@ -94,6 +106,34 @@ function hasSubstantiveDescription(description: unknown): boolean {
   if (text.length < 140) return false;
   if (text.split(/\s+/).length < 24) return false;
   return true;
+}
+
+function isLikelyDirectJobPostingUrl(rawUrl: string): boolean {
+  try {
+    const url = new URL(rawUrl);
+    const parts = url.pathname
+      .split("/")
+      .map((p) => p.trim().toLowerCase())
+      .filter(Boolean);
+
+    if (parts.length === 0) return false;
+
+    const last = parts[parts.length - 1];
+    if (NON_JOB_PAGE_SEGMENTS.has(last)) return false;
+
+    const hasJobWordInPath = parts.some((p) => /job|jobs|position|opening|opportunit|career/.test(p));
+    const hasNumericId = parts.some((p) => /\d{4,}/.test(p));
+    const hasLongSlug = parts.some((p) => p.includes("-") && p.length >= 16);
+    const hasKnownJobQuery = ["gh_jid", "job", "jobid", "jk", "lever-source", "oid"].some((k) =>
+      url.searchParams.has(k)
+    );
+
+    if (parts.length === 1 && !hasNumericId && !hasLongSlug && !hasKnownJobQuery) return false;
+
+    return hasJobWordInPath || hasNumericId || hasLongSlug || hasKnownJobQuery;
+  } catch {
+    return false;
+  }
 }
 
 serve(async (req) => {
@@ -226,6 +266,7 @@ IMPORTANT: Only include jobs with real, working application URLs. If you cannot 
       .filter((job: any) => {
         if (!job.url) return false;
         if (isGenericJobListingUrl(job.url)) return false;
+        if (!isLikelyDirectJobPostingUrl(job.url)) return false;
         if (!hasSubstantiveDescription(job.description)) return false;
         return true;
       });
@@ -274,7 +315,7 @@ IMPORTANT: Only include jobs with real, working application URLs. If you cannot 
                 if (check2.status >= 400) return null;
 
                   const resolvedUrl = normalizeJobUrl(check2.url || url.toString());
-                  if (!resolvedUrl || isGenericJobListingUrl(resolvedUrl)) return null;
+                  if (!resolvedUrl || isGenericJobListingUrl(resolvedUrl) || !isLikelyDirectJobPostingUrl(resolvedUrl)) return null;
                   return { ...job, url: resolvedUrl };
               } catch {
                 clearTimeout(timeout2);
@@ -283,7 +324,7 @@ IMPORTANT: Only include jobs with real, working application URLs. If you cannot 
             }
 
               const resolvedUrl = normalizeJobUrl(check.url || url.toString());
-              if (!resolvedUrl || isGenericJobListingUrl(resolvedUrl)) return null;
+              if (!resolvedUrl || isGenericJobListingUrl(resolvedUrl) || !isLikelyDirectJobPostingUrl(resolvedUrl)) return null;
               return { ...job, url: resolvedUrl };
           } catch {
             clearTimeout(timeout);

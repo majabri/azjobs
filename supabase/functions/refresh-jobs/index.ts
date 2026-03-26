@@ -18,6 +18,15 @@ const DEFAULT_LEVER_COMPANIES = [
   "doordash", "lyft", "snap", "spotify", "hubspot",
 ];
 
+const GENERIC_JOB_PATH_SEGMENTS = new Set([
+  "careers", "career", "jobs", "job", "job-search", "open-positions",
+  "positions", "vacancies", "opportunities", "join-us", "work-with-us", "employment",
+]);
+
+const LISTING_TAIL_SEGMENTS = new Set(["search", "results", "all", "openings", "index", "list"]);
+
+const NON_JOB_PAGE_SEGMENTS = new Set(["about", "company", "team", "culture", "people", "mission", "values", "home", "contact"]);
+
 // ── Helpers (reused from scrape-jobs-ats) ──
 function detectJobType(title: string, desc: string): string | null {
   const t = `${title} ${desc}`.toLowerCase();
@@ -47,6 +56,94 @@ function scoreJob(job: any): { score: number; flagged: boolean; reasons: string[
   if (job.description && /\b(urgent|immediately|asap)\b/i.test(job.description)) { score -= 15; reasons.push("Urgency keywords"); }
   if (job.description && /\b(commission only|unpaid|volunteer)\b/i.test(job.description)) { score -= 25; reasons.push("Potentially unpaid"); }
   return { score: Math.max(0, score), flagged: score < 60, reasons };
+}
+
+function normalizeJobUrl(rawUrl?: string | null): string {
+  if (!rawUrl) return "";
+  const trimmed = rawUrl.trim();
+  if (!trimmed) return "";
+
+  const markdownMatch = trimmed.match(/\((https?:\/\/[^)\s]+)\)/i);
+  const plainMatch = trimmed.match(/https?:\/\/[^\s<>'"\])]+/i);
+  const extracted = (markdownMatch?.[1] || plainMatch?.[0] || trimmed).replace(/[),.;]+$/g, "").trim();
+  if (!extracted) return "";
+
+  const withProtocol = /^https?:\/\//i.test(extracted) ? extracted : `https://${extracted}`;
+
+  try {
+    const parsed = new URL(withProtocol);
+    const host = parsed.hostname.toLowerCase();
+    if (!host || host.includes("example.com") || host.includes("placeholder")) return "";
+    return parsed.toString();
+  } catch {
+    return "";
+  }
+}
+
+function isGenericJobListingUrl(rawUrl: string): boolean {
+  try {
+    const url = new URL(rawUrl);
+    const parts = url.pathname
+      .split("/")
+      .map((p) => p.trim().toLowerCase())
+      .filter(Boolean);
+
+    if (parts.length === 0) return true;
+
+    const allGeneric = parts.every((p) => GENERIC_JOB_PATH_SEGMENTS.has(p) || LISTING_TAIL_SEGMENTS.has(p));
+    if (allGeneric) return true;
+
+    if (parts.length === 1 && GENERIC_JOB_PATH_SEGMENTS.has(parts[0])) return true;
+    if (parts.length === 2 && GENERIC_JOB_PATH_SEGMENTS.has(parts[0]) && LISTING_TAIL_SEGMENTS.has(parts[1])) return true;
+
+    const last = parts[parts.length - 1];
+    if (GENERIC_JOB_PATH_SEGMENTS.has(last) || LISTING_TAIL_SEGMENTS.has(last)) return true;
+
+    const qp = url.searchParams;
+    if (["q", "query", "keywords", "search", "location", "department", "team"].some((key) => qp.has(key)) && parts.length <= 2) {
+      return true;
+    }
+
+    return false;
+  } catch {
+    return true;
+  }
+}
+
+function isLikelyDirectJobPostingUrl(rawUrl: string): boolean {
+  try {
+    const url = new URL(rawUrl);
+    const parts = url.pathname
+      .split("/")
+      .map((p) => p.trim().toLowerCase())
+      .filter(Boolean);
+
+    if (parts.length === 0) return false;
+
+    const last = parts[parts.length - 1];
+    if (NON_JOB_PAGE_SEGMENTS.has(last)) return false;
+
+    const hasJobWordInPath = parts.some((p) => /job|jobs|position|opening|opportunit|career/.test(p));
+    const hasNumericId = parts.some((p) => /\d{4,}/.test(p));
+    const hasLongSlug = parts.some((p) => p.includes("-") && p.length >= 16);
+    const hasKnownJobQuery = ["gh_jid", "job", "jobid", "jk", "lever-source", "oid"].some((k) =>
+      url.searchParams.has(k)
+    );
+
+    if (parts.length === 1 && !hasNumericId && !hasLongSlug && !hasKnownJobQuery) return false;
+
+    return hasJobWordInPath || hasNumericId || hasLongSlug || hasKnownJobQuery;
+  } catch {
+    return false;
+  }
+}
+
+function hasSubstantiveDescription(description: unknown): boolean {
+  if (typeof description !== "string") return false;
+  const text = description.trim();
+  if (text.length < 140) return false;
+  if (text.split(/\s+/).length < 24) return false;
+  return true;
 }
 
 // ── ATS scrapers ──
@@ -181,7 +278,7 @@ CRITICAL: Only include jobs with REAL, WORKING URLs pointing to SPECIFIC job det
           salary: j.salary || null,
           job_url: j.url || null,
           source: "ai_crawl",
-          source_id: `ai-${j.company}-${j.title}`.replace(/\s+/g, "-").toLowerCase().substring(0, 200),
+          source_id: `ai-${j.url || `${j.company}-${j.title}`}`.replace(/\s+/g, "-").toLowerCase().substring(0, 200),
           job_type: j.type || detectJobType(j.title, j.description || ""),
           seniority: detectSeniority(j.title),
           industry: null,
@@ -313,12 +410,16 @@ Deno.serve(async (req) => {
     // ── Step 4: Deduplicate ──
     const seen = new Set<string>();
     const unique = allJobs.filter((j) => {
+      const normalizedUrl = normalizeJobUrl(j.job_url);
+      j.job_url = normalizedUrl;
+
       const key = j.source_id || `${j.company}-${j.title}`.toLowerCase().replace(/\s+/g, "-");
       if (seen.has(key)) return false;
       seen.add(key);
-      // Must have a valid URL and description
-      if (!j.job_url || j.job_url.length < 10) return false;
-      if (!j.description || j.description.length < 50) return false;
+      if (!j.job_url) return false;
+      if (isGenericJobListingUrl(j.job_url)) return false;
+      if (!isLikelyDirectJobPostingUrl(j.job_url)) return false;
+      if (!hasSubstantiveDescription(j.description)) return false;
       return true;
     });
 
