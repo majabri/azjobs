@@ -7,11 +7,16 @@ import { Card } from "@/components/ui/card";
 import {
   ArrowLeft, Search, Loader2, MapPin, Building2, ExternalLink, Target,
   Briefcase, Globe, Plus, X, DollarSign, AlertTriangle, TrendingUp,
-  Zap, Shield, Clock, Database, Filter,
+  Zap, Shield, Clock, Database, Filter, ShieldCheck, ShieldAlert, ShieldX,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import UserMenu from "@/components/UserMenu";
+import {
+  detectFakeJobFlags, getTrustScore, calculateResponseProbability as calcResponseProb,
+  getJobStrategy, STRATEGY_CONFIG, TRUST_LEVEL_CONFIG,
+  type FakeJobFlag, type HistoricalOutcomes,
+} from "@/lib/jobQualityEngine";
 
 interface JobResult {
   title: string;
@@ -21,7 +26,6 @@ interface JobResult {
   description: string;
   url: string;
   matchReason: string;
-  // Scraped job extras
   id?: string;
   quality_score?: number;
   is_flagged?: boolean;
@@ -35,6 +39,11 @@ interface JobResult {
   smartTag?: string;
   decisionScore?: number;
   effortEstimate?: number;
+  // New trust engine fields
+  flags?: FakeJobFlag[];
+  trustScore?: number;
+  trustLevel?: "trusted" | "caution" | "risky";
+  strategy?: "apply_now" | "apply_fast" | "improve_first" | "skip";
 }
 
 const JOB_TYPE_OPTIONS = [
@@ -147,6 +156,7 @@ export default function JobSearchPage() {
   const [searchSource, setSearchSource] = useState<"all" | "ai" | "database">("all");
   const [sortBy, setSortBy] = useState<"relevance" | "probability" | "newest" | "decision">("decision");
   const [showFlagged, setShowFlagged] = useState(true);
+  const [historicalOutcomes, setHistoricalOutcomes] = useState<HistoricalOutcomes | undefined>();
 
   useEffect(() => { loadProfile(); }, []);
 
@@ -154,11 +164,12 @@ export default function JobSearchPage() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
-      const { data } = await supabase
-        .from("job_seeker_profiles")
-        .select("skills, preferred_job_types, location, career_level, target_job_titles, salary_min, salary_max")
-        .eq("user_id", session.user.id)
-        .maybeSingle();
+      const [{ data }, { data: appData }] = await Promise.all([
+        supabase.from("job_seeker_profiles")
+          .select("skills, preferred_job_types, location, career_level, target_job_titles, salary_min, salary_max")
+          .eq("user_id", session.user.id).maybeSingle(),
+        supabase.from("job_applications").select("status, response_days").eq("user_id", session.user.id),
+      ]);
       if (data) {
         if (data.skills) setSkills(data.skills as string[]);
         if (data.preferred_job_types) setJobTypes(data.preferred_job_types as string[]);
@@ -168,6 +179,14 @@ export default function JobSearchPage() {
         if (data.salary_min) setSalaryMin(data.salary_min);
         if (data.salary_max) setSalaryMax(data.salary_max);
         setProfileLoaded(true);
+      }
+      // Build historical outcomes for response probability model
+      if (appData && appData.length >= 3) {
+        const total = appData.length;
+        const responded = appData.filter(a => a.status !== "applied" && a.status !== "no_response").length;
+        const days = appData.filter(a => a.response_days).map(a => a.response_days!);
+        const avgDays = days.length > 0 ? days.reduce((a, b) => a + b, 0) / days.length : 14;
+        setHistoricalOutcomes({ totalApplications: total, totalResponses: responded, avgResponseRate: (responded / total) * 100, avgDaysToResponse: avgDays });
       }
     } catch (e) { console.error(e); }
   };
@@ -273,13 +292,48 @@ export default function JobSearchPage() {
         allCitations = aiResult.citations;
       }
 
-      // Enrich with probability, decision score & tags
+      // Enrich with trust engine + probability + decision score
+      const allTitles = allJobs.map(j => j.title || "");
       allJobs = allJobs.map(job => {
-        const prob = calculateResponseProbability(job, skills);
+        const jobAge = job.first_seen_at
+          ? Math.round((Date.now() - new Date(job.first_seen_at).getTime()) / (1000 * 60 * 60 * 24))
+          : undefined;
+
+        // Fake job detection
+        const flags = detectFakeJobFlags({
+          title: job.title, company: job.company, description: job.description,
+          url: job.url, location: job.location, jobAge, allJobTitles: allTitles,
+        });
+        const { score: trustScore, level: trustLevel } = getTrustScore(flags);
+
+        // Merge with existing flag_reasons from DB
+        const combinedFlagged = job.is_flagged || flags.length > 0;
+        const combinedFlagReasons = [
+          ...(job.flag_reasons || []),
+          ...flags.map(f => f.label),
+        ];
+
+        // Response probability from engine
+        const matchScore = job.quality_score || 50;
+        const descLower = (job.description || "").toLowerCase();
+        const matched = skills.filter(s => descLower.includes(s.toLowerCase())).length;
+        const skillMatchRatio = skills.length > 0 ? matched / skills.length : 0.5;
+        const competitionLevel = job.is_remote ? "high" : "medium";
+
+        const prob = calcResponseProb({
+          matchScore, jobAge: jobAge || 7, competitionLevel,
+          trustScore, historicalOutcomes, skillMatchRatio, isRemote: job.is_remote,
+        });
+
         const { score: decScore, effort } = calculateDecisionScore(job, prob, skills);
-        const enriched = { ...job, responseProbability: prob, decisionScore: decScore, effortEstimate: effort };
-        const tag = getSmartTag(enriched, prob);
-        return { ...enriched, smartTag: tag.label };
+        const strategy = getJobStrategy(matchScore, prob, trustLevel, jobAge || 7);
+        const tag = getSmartTag({ ...job, responseProbability: prob, effortEstimate: effort, is_flagged: combinedFlagged }, prob);
+
+        return {
+          ...job, responseProbability: prob, decisionScore: decScore, effortEstimate: effort,
+          smartTag: tag.label, flags, trustScore, trustLevel, strategy,
+          is_flagged: combinedFlagged, flag_reasons: combinedFlagReasons,
+        };
       });
 
       // Sort
@@ -523,14 +577,18 @@ export default function JobSearchPage() {
             const prob = job.responseProbability || 0;
             const tag = getSmartTag(job, prob);
             const TagIcon = tag.icon;
+            const trustCfg = job.trustLevel ? TRUST_LEVEL_CONFIG[job.trustLevel] : TRUST_LEVEL_CONFIG.trusted;
+            const TrustIcon = trustCfg.icon === "shield-check" ? ShieldCheck : trustCfg.icon === "shield-alert" ? ShieldAlert : ShieldX;
+            const hasFlags = job.flags && job.flags.length > 0;
+            const hasDanger = job.flags?.some(f => f.severity === "danger");
 
             return (
-              <Card key={job.id || i} className={`p-5 transition-colors ${job.is_flagged ? "border-destructive/30 bg-destructive/5" : "hover:border-accent/50"}`}>
+              <Card key={job.id || i} className={`p-5 transition-colors ${hasDanger ? "border-destructive/30 bg-destructive/5" : hasFlags ? "border-warning/30 bg-warning/5" : "hover:border-accent/50"}`}>
                 <div className="flex flex-col sm:flex-row sm:items-start gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start gap-2 mb-1">
                       <h3 className="font-semibold text-foreground text-lg">{job.title}</h3>
-                      {job.is_flagged && <AlertTriangle className="w-4 h-4 text-destructive flex-shrink-0 mt-1" />}
+                      {hasDanger && <AlertTriangle className="w-4 h-4 text-destructive flex-shrink-0 mt-1" />}
                     </div>
                     <div className="flex flex-wrap items-center gap-3 mt-1 text-sm text-muted-foreground">
                       <span className="flex items-center gap-1"><Building2 className="w-3.5 h-3.5" /> {job.company}</span>
@@ -546,17 +604,18 @@ export default function JobSearchPage() {
                     </div>
                     <p className="text-sm text-muted-foreground mt-2 leading-relaxed line-clamp-3">{job.description}</p>
 
-                    {/* Smart Tags & Probability */}
+                    {/* Trust + Probability + Smart Tags */}
                     <div className="flex flex-wrap items-center gap-3 mt-3">
+                      <div className="flex items-center gap-1">
+                        <TrustIcon className={`w-3.5 h-3.5 ${trustCfg.colorClass}`} />
+                        <span className={`text-xs font-semibold ${trustCfg.colorClass}`}>{trustCfg.label}</span>
+                      </div>
                       <Badge variant="outline" className={`text-xs ${tag.color}`}>
                         <TagIcon className="w-3 h-3 mr-1" /> {tag.label}
                       </Badge>
                       <span className={`text-sm font-semibold ${getProbColor(prob)}`}>
                         {prob}% response probability
                       </span>
-                      {job.quality_score !== undefined && job.quality_score < 60 && (
-                        <span className="text-xs text-muted-foreground">Quality: {job.quality_score}/100</span>
-                      )}
                       {job.first_seen_at && (
                         <span className="text-xs text-muted-foreground flex items-center gap-1">
                           <Clock className="w-3 h-3" />
@@ -565,13 +624,20 @@ export default function JobSearchPage() {
                       )}
                     </div>
 
-                    {job.is_flagged && job.flag_reasons && (job.flag_reasons as string[]).length > 0 && (
-                      <div className="mt-2 text-xs text-destructive">
-                        ⚠️ {(job.flag_reasons as string[]).join(" • ")}
+                    {/* Flag warnings */}
+                    {hasFlags && (
+                      <div className="flex flex-wrap gap-1.5 mt-2">
+                        {job.flags!.map((flag, fi) => (
+                          <Badge key={fi} variant="outline" className={`text-[10px] ${
+                            flag.severity === "danger" ? "border-destructive/40 text-destructive bg-destructive/5" : "border-warning/40 text-warning bg-warning/5"
+                          }`}>
+                            <AlertTriangle className="w-3 h-3 mr-1" /> {flag.label}
+                          </Badge>
+                        ))}
                       </div>
                     )}
 
-                    {job.matchReason && !job.is_flagged && (
+                    {job.matchReason && !hasDanger && (
                       <p className="text-xs text-accent mt-2 italic">💡 {job.matchReason}</p>
                     )}
                   </div>
