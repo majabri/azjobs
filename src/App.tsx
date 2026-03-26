@@ -69,6 +69,10 @@ const App = () => (
           <Route path="/candidates" element={<ProtectedWithLayout><CandidatesDatabase /></ProtectedWithLayout>} />
           <Route path="/job-postings" element={<ProtectedWithLayout><JobPostings /></ProtectedWithLayout>} />
           <Route path="/interview-scheduling" element={<ProtectedWithLayout><InterviewScheduling /></ProtectedWithLayout>} />
+          <Route path="/offers" element={<ProtectedWithLayout><Offers /></ProtectedWithLayout>} />
+          <Route path="/career" element={<ProtectedWithLayout><Career /></ProtectedWithLayout>} />
+          <Route path="/interview-prep" element={<ProtectedWithLayout><InterviewPrep /></ProtectedWithLayout>} />
+          <Route path="/auto-apply" element={<ProtectedWithLayout><AutoApply /></ProtectedWithLayout>} />
           {/* Public routes */}
           <Route path="/p/:userId" element={<PublicProfile />} />
           <Route path="/report/:analysisId" element={<ScoreReport />} />

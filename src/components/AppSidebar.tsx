@@ -18,6 +18,10 @@ const jobSeekerNav = [
   { title: "Analyze Job", url: "/job-seeker", icon: Target },
   { title: "Find Jobs", url: "/job-search", icon: Search },
   { title: "Applications", url: "/applications", icon: ClipboardList },
+  { title: "Offers", url: "/offers", icon: DollarSign },
+  { title: "Career", url: "/career", icon: Compass },
+  { title: "Interview Prep", url: "/interview-prep", icon: Mic },
+  { title: "Auto Apply", url: "/auto-apply", icon: Zap },
   { title: "Profile", url: "/profile", icon: UserCircle },
 ];
 

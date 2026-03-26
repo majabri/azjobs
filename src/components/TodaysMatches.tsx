@@ -105,8 +105,12 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
 
     const enriched = rawJobs.map(job => {
       const matchScore = estimateMatchScore(job.matchReason || "", skills);
-      const jobAge = Math.floor(Math.random() * 30) + 1;
-      const competitionLevel = (["low", "medium", "high"] as const)[Math.floor(Math.random() * 3)];
+      // Use real posted date if available, otherwise estimate from data
+      const postedDate = job.postedDate || job.created_at || job.first_seen_at;
+      const jobAge = postedDate
+        ? Math.max(1, Math.floor((Date.now() - new Date(postedDate).getTime()) / 86400000))
+        : 7; // default to 7 days if no date available
+      const competitionLevel: "low" | "medium" | "high" = jobAge <= 3 ? "low" : jobAge <= 14 ? "medium" : "high";
 
       // Fake job detection
       const flags = detectFakeJobFlags({
