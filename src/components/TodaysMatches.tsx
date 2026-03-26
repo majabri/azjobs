@@ -51,6 +51,8 @@ const GENERIC_JOB_PATH_SEGMENTS = new Set([
 
 const LISTING_TAIL_SEGMENTS = new Set(["search", "results", "all", "openings", "index", "list"]);
 
+const NON_JOB_PAGE_SEGMENTS = new Set(["about", "company", "team", "culture", "people", "mission", "values", "home", "contact"]);
+
 function normalizeJobUrl(rawUrl?: string | null): string {
   if (!rawUrl) return "";
 
@@ -122,6 +124,34 @@ function hasSubstantiveJobDescription(description?: string | null): boolean {
   return true;
 }
 
+function isLikelyDirectJobPostingUrl(rawUrl: string): boolean {
+  try {
+    const url = new URL(rawUrl);
+    const parts = url.pathname
+      .split("/")
+      .map((p) => p.trim().toLowerCase())
+      .filter(Boolean);
+
+    if (parts.length === 0) return false;
+
+    const last = parts[parts.length - 1];
+    if (NON_JOB_PAGE_SEGMENTS.has(last)) return false;
+
+    const hasJobWordInPath = parts.some((p) => /job|jobs|position|opening|opportunit|career/.test(p));
+    const hasNumericId = parts.some((p) => /\d{4,}/.test(p));
+    const hasLongSlug = parts.some((p) => p.includes("-") && p.length >= 16);
+    const hasKnownJobQuery = ["gh_jid", "job", "jobid", "jk", "lever-source", "oid"].some((k) =>
+      url.searchParams.has(k)
+    );
+
+    if (parts.length === 1 && !hasNumericId && !hasLongSlug && !hasKnownJobQuery) return false;
+
+    return hasJobWordInPath || hasNumericId || hasLongSlug || hasKnownJobQuery;
+  } catch {
+    return false;
+  }
+}
+
 function estimateMatchScore(matchReason: string, skills: string[]): number {
   const lower = matchReason.toLowerCase();
   let score = 50;
@@ -180,7 +210,7 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
         if (Date.now() - timestamp < 4 * 60 * 60 * 1000) {
           const vettedCachedJobs = (cachedJobs || []).filter((job: JobMatch) => {
             const normalizedUrl = normalizeJobUrl(job.url);
-            return Boolean(normalizedUrl) && !isGenericJobListingUrl(normalizedUrl) && hasSubstantiveJobDescription(job.description);
+            return Boolean(normalizedUrl) && !isGenericJobListingUrl(normalizedUrl) && isLikelyDirectJobPostingUrl(normalizedUrl) && hasSubstantiveJobDescription(job.description);
           });
 
           if (vettedCachedJobs.length > 0) {
@@ -260,7 +290,7 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
           ...job,
           url: normalizeJobUrl(job.url),
         }))
-        .filter((job) => Boolean(job.url) && !isGenericJobListingUrl(job.url) && hasSubstantiveJobDescription(job.description));
+        .filter((job) => Boolean(job.url) && !isGenericJobListingUrl(job.url) && isLikelyDirectJobPostingUrl(job.url) && hasSubstantiveJobDescription(job.description));
 
       const uniqueByUrl = new Map<string, JobMatch>();
       for (const job of vettedJobs) {
@@ -282,7 +312,7 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
       .select("skills, preferred_job_types, location, career_level, target_job_titles")
       .eq("user_id", session.user.id).maybeSingle();
     if (!profile) return;
-    const cacheKey = `fitcheck_daily_jobs_${session.user.id}`;
+    const cacheKey = `fitcheck_daily_jobs_v2_${session.user.id}`;
     localStorage.removeItem(cacheKey);
     fetchJobs(profile, session, cacheKey, historicalOutcomes);
   };
@@ -407,7 +437,7 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
                     <Button size="sm" className="gradient-teal text-white text-xs" onClick={() => handleAnalyzeFit(job)}>
                       <Target className="w-3.5 h-3.5 mr-1" /> Analyze Fit
                     </Button>
-                    {job.url && (
+                    {job.url && isLikelyDirectJobPostingUrl(job.url) && (
                       <Button variant="outline" size="sm" className="text-xs" onClick={() => {
                         const url = job.url.startsWith("http") ? job.url : `https://${job.url}`;
                         window.open(url, "_blank", "noopener,noreferrer");
