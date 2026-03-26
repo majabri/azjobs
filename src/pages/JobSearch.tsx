@@ -292,13 +292,48 @@ export default function JobSearchPage() {
         allCitations = aiResult.citations;
       }
 
-      // Enrich with probability, decision score & tags
+      // Enrich with trust engine + probability + decision score
+      const allTitles = allJobs.map(j => j.title || "");
       allJobs = allJobs.map(job => {
-        const prob = calculateResponseProbability(job, skills);
+        const jobAge = job.first_seen_at
+          ? Math.round((Date.now() - new Date(job.first_seen_at).getTime()) / (1000 * 60 * 60 * 24))
+          : undefined;
+
+        // Fake job detection
+        const flags = detectFakeJobFlags({
+          title: job.title, company: job.company, description: job.description,
+          url: job.url, location: job.location, jobAge, allJobTitles: allTitles,
+        });
+        const { score: trustScore, level: trustLevel } = getTrustScore(flags);
+
+        // Merge with existing flag_reasons from DB
+        const combinedFlagged = job.is_flagged || flags.length > 0;
+        const combinedFlagReasons = [
+          ...(job.flag_reasons || []),
+          ...flags.map(f => f.label),
+        ];
+
+        // Response probability from engine
+        const matchScore = job.quality_score || 50;
+        const descLower = (job.description || "").toLowerCase();
+        const matched = skills.filter(s => descLower.includes(s.toLowerCase())).length;
+        const skillMatchRatio = skills.length > 0 ? matched / skills.length : 0.5;
+        const competitionLevel = job.is_remote ? "high" : "medium";
+
+        const prob = calcResponseProb({
+          matchScore, jobAge: jobAge || 7, competitionLevel,
+          trustScore, historicalOutcomes, skillMatchRatio, isRemote: job.is_remote,
+        });
+
         const { score: decScore, effort } = calculateDecisionScore(job, prob, skills);
-        const enriched = { ...job, responseProbability: prob, decisionScore: decScore, effortEstimate: effort };
-        const tag = getSmartTag(enriched, prob);
-        return { ...enriched, smartTag: tag.label };
+        const strategy = getJobStrategy(matchScore, prob, trustLevel, jobAge || 7);
+        const tag = getSmartTag({ ...job, responseProbability: prob, effortEstimate: effort, is_flagged: combinedFlagged }, prob);
+
+        return {
+          ...job, responseProbability: prob, decisionScore: decScore, effortEstimate: effort,
+          smartTag: tag.label, flags, trustScore, trustLevel, strategy,
+          is_flagged: combinedFlagged, flag_reasons: combinedFlagReasons,
+        };
       });
 
       // Sort
