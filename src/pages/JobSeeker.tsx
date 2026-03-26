@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useLocation } from "react-router-dom";
 import { analyzeJobFit, type FitAnalysis } from "@/lib/analysisEngine";
 import AnalysisForm from "@/components/job-seeker/AnalysisForm";
 import AnalysisResults from "@/components/job-seeker/AnalysisResults";
@@ -14,6 +14,8 @@ function useDemoMode() {
 
 export default function JobSeekerPage() {
   const isDemo = useDemoMode();
+  const location = useLocation();
+  const navState = location.state as { prefillJob?: string; prefillJobLink?: string } | null;
   const [step, setStep] = useState<Step>("input");
   const [analysis, setAnalysis] = useState<FitAnalysis | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -73,7 +75,13 @@ export default function JobSeekerPage() {
     <div className="bg-background">
       <main className="max-w-5xl mx-auto px-6 py-8">
         {step === "input" && (
-          <AnalysisForm onAnalyze={handleAnalyze} isAnalyzing={isAnalyzing} isDemo={isDemo} />
+          <AnalysisForm
+            onAnalyze={handleAnalyze}
+            isAnalyzing={isAnalyzing}
+            isDemo={isDemo}
+            prefillJob={navState?.prefillJob}
+            prefillJobLink={navState?.prefillJobLink}
+          />
         )}
         {step === "result" && analysis && (
           <AnalysisResults

@@ -24,6 +24,8 @@ interface AnalysisFormProps {
   onAnalyze: (jobDesc: string, resume: string, jobLink: string) => void;
   isAnalyzing: boolean;
   isDemo: boolean;
+  prefillJob?: string;
+  prefillJobLink?: string;
 }
 
 const DEMO_JOB = `Senior Cybersecurity Engineer — Cloud Security
@@ -62,7 +64,7 @@ Cloud Security, AWS, Azure, SIEM, Splunk, Vulnerability Management, Penetration 
 EDUCATION
 B.S. Computer Science — University of California, Berkeley (2017)`;
 
-export default function AnalysisForm({ onAnalyze, isAnalyzing, isDemo }: AnalysisFormProps) {
+export default function AnalysisForm({ onAnalyze, isAnalyzing, isDemo, prefillJob, prefillJobLink }: AnalysisFormProps) {
   const [jobDesc, setJobDesc] = useState("");
   const [resume, setResume] = useState("");
   const [jobLink, setJobLink] = useState("");
@@ -74,22 +76,23 @@ export default function AnalysisForm({ onAnalyze, isAnalyzing, isDemo }: Analysi
   const [autoLoaded, setAutoLoaded] = useState(false);
   const resumeFileRef = useRef<HTMLInputElement>(null);
 
-  // Auto-load resume from vault on mount (Phase 1 fix)
+  // Auto-load resume from vault on mount & handle prefill from navigation
   useEffect(() => {
     if (isDemo) {
       setJobDesc(DEMO_JOB);
       setResume(DEMO_RESUME);
       return;
     }
-    const state = window.history.state?.usr;
-    if (state?.prefillJob) setJobDesc(state.prefillJob);
-    if (state?.prefillJobLink) {
-      setJobLink(state.prefillJobLink);
+
+    // Handle prefill from navigation state (e.g. from Job Search "Check My Chances")
+    if (prefillJob) setJobDesc(prefillJob);
+    if (prefillJobLink) {
+      setJobLink(prefillJobLink);
       // Auto-fetch job description from the link
       (async () => {
         setIsFetchingJob(true);
         try {
-          const result = await scrapeUrl(state.prefillJobLink);
+          const result = await scrapeUrl(prefillJobLink);
           if (result.success && result.markdown) {
             setJobDesc(result.markdown);
             toast.success("Job description fetched from link!");
@@ -98,6 +101,7 @@ export default function AnalysisForm({ onAnalyze, isAnalyzing, isDemo }: Analysi
         finally { setIsFetchingJob(false); }
       })();
     }
+
     const params = new URLSearchParams(window.location.search);
     const prefillFromUrl = params.get("prefillJob");
     if (prefillFromUrl) setJobDesc(prefillFromUrl);
@@ -106,7 +110,7 @@ export default function AnalysisForm({ onAnalyze, isAnalyzing, isDemo }: Analysi
       autoLoadResume();
       setAutoLoaded(true);
     }
-  }, [isDemo]);
+  }, [isDemo, prefillJob, prefillJobLink]);
 
   const autoLoadResume = async () => {
     try {

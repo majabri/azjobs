@@ -84,12 +84,12 @@ export default function GapIntelligence({ analysis, onFixAll, onReEvaluate }: Ga
     }
   };
 
-  if (!analysis || analysis.overallScore >= 85) return null;
-
-  const gaps = analysis.gaps || [];
-  const missingSkills = analysis.matchedSkills?.filter(s => !s.matched) || [];
+  const gaps = analysis?.gaps || [];
+  const missingSkills = analysis?.matchedSkills?.filter(s => !s.matched) || [];
   const topFixes = gaps.slice(0, 3);
   const totalProbDelta = topFixes.reduce((sum, g, i) => sum + getImpactRank(g, i).probabilityDelta, 0);
+
+  if (!analysis || (!gaps.length && !missingSkills.length)) return null;
 
   // ATS weaknesses
   const atsWeaknesses: string[] = [];

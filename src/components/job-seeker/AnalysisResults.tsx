@@ -288,9 +288,19 @@ export default function AnalysisResults({
           <div className="space-y-4">
             {analysis.gaps.map(gap => (
               <div key={gap.area} className={`rounded-xl p-4 border ${severityBg[gap.severity]}`}>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className={`text-sm font-semibold ${severityColor[gap.severity]}`}>{gap.area}</span>
-                  <Badge variant="outline" className="text-xs capitalize">{gap.severity}</Badge>
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-2">
+                    <span className={`text-sm font-semibold ${severityColor[gap.severity]}`}>{gap.area}</span>
+                    <Badge variant="outline" className="text-xs capitalize">{gap.severity}</Badge>
+                  </div>
+                  <Button
+                    variant="outline" size="sm" className="text-xs h-7 border-accent/30 text-accent"
+                    disabled={addingSkill === gap.area}
+                    onClick={() => handleAddSkillToProfile(gap.area)}
+                  >
+                    {addingSkill === gap.area ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Plus className="w-3 h-3 mr-1" />}
+                    Add to Profile
+                  </Button>
                 </div>
                 <p className="text-sm text-muted-foreground">{gap.action}</p>
               </div>
