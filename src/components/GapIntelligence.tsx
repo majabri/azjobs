@@ -76,7 +76,9 @@ export default function GapIntelligence({ analysis, onFixAll, onReEvaluate }: Ga
         updated_at: new Date().toISOString(),
       } as any, { onConflict: "user_id" });
       setAddedSkills(allNew);
-      toast.success(`${allNew.length} skill(s) added to your profile!`);
+      toast.success(`${allNew.length} skill(s) added to your profile! Re-evaluating...`);
+      // Auto re-evaluate after adding skills
+      setTimeout(() => { onReEvaluate?.(); }, 500);
     } catch (e: any) {
       toast.error(e.message || "Failed to update profile");
     } finally {
