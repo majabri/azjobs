@@ -26,7 +26,6 @@ interface JobResult {
   description: string;
   url: string;
   matchReason: string;
-  // Scraped job extras
   id?: string;
   quality_score?: number;
   is_flagged?: boolean;
@@ -40,6 +39,11 @@ interface JobResult {
   smartTag?: string;
   decisionScore?: number;
   effortEstimate?: number;
+  // New trust engine fields
+  flags?: FakeJobFlag[];
+  trustScore?: number;
+  trustLevel?: "trusted" | "caution" | "risky";
+  strategy?: "apply_now" | "apply_fast" | "improve_first" | "skip";
 }
 
 const JOB_TYPE_OPTIONS = [
