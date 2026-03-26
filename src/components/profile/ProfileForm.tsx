@@ -167,9 +167,23 @@ export default function ProfileForm({ profile, setProfile, onSave, saving }: Pro
 
       {/* Career Level */}
       <section>
-        <h2 className="text-base font-semibold text-foreground flex items-center gap-2 mb-3"><Briefcase className="w-4 h-4 text-primary" /> Career Level</h2>
+        <h2 className="text-base font-semibold text-foreground flex items-center gap-2 mb-3"><Briefcase className="w-4 h-4 text-primary" /> Career Level <span className="text-xs text-muted-foreground font-normal">(select multiple)</span></h2>
         <div className="flex flex-wrap gap-2">
-          {CAREER_LEVELS.map(level => <Badge key={level} variant={profile.career_level === level ? "default" : "outline"} className={`cursor-pointer text-xs ${profile.career_level === level ? "bg-primary text-primary-foreground" : "hover:bg-accent/10"}`} onClick={() => setProfile({ ...profile, career_level: level })}>{level}</Badge>)}
+          {CAREER_LEVELS.map(level => {
+            const levels = profile.career_level ? profile.career_level.split(", ").filter(Boolean) : [];
+            const isSelected = levels.includes(level);
+            return (
+              <Badge
+                key={level}
+                variant={isSelected ? "default" : "outline"}
+                className={`cursor-pointer text-xs ${isSelected ? "bg-primary text-primary-foreground" : "hover:bg-accent/10"}`}
+                onClick={() => {
+                  const newLevels = isSelected ? levels.filter(l => l !== level) : [...levels, level];
+                  setProfile({ ...profile, career_level: newLevels.join(", ") });
+                }}
+              >{level}</Badge>
+            );
+          })}
         </div>
       </section>
 

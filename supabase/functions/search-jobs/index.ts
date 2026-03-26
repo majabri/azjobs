@@ -127,7 +127,61 @@ IMPORTANT: Only include jobs with real, working application URLs. If you cannot 
       }
     }
 
-    return new Response(JSON.stringify({ jobs, citations: [] }), {
+    // Filter out jobs with no URL, no description, or suspicious/empty URLs
+    const validJobs = jobs.filter((job: any) => {
+      if (!job.url || job.url.trim().length < 10) return false;
+      if (!job.description || job.description.trim().length < 30) return false;
+      if (job.url.includes("example.com") || job.url.includes("placeholder")) return false;
+      return true;
+    });
+
+    // Validate URLs by checking they're well-formed
+    const checkedJobs = await Promise.all(
+      validJobs.map(async (job: any) => {
+        try {
+          const url = new URL(job.url.startsWith("http") ? job.url : `https://${job.url}`);
+          // Quick HEAD check with timeout
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 3000);
+          try {
+            const check = await fetch(url.toString(), {
+              method: "HEAD",
+              signal: controller.signal,
+              redirect: "follow",
+            });
+            clearTimeout(timeout);
+            if (check.status >= 400 && check.status !== 403 && check.status !== 405) {
+              // Try GET as fallback (some servers reject HEAD)
+              const controller2 = new AbortController();
+              const timeout2 = setTimeout(() => controller2.abort(), 3000);
+              try {
+                const check2 = await fetch(url.toString(), {
+                  method: "GET",
+                  signal: controller2.signal,
+                  redirect: "follow",
+                });
+                clearTimeout(timeout2);
+                if (check2.status >= 400) return null;
+              } catch {
+                clearTimeout(timeout2);
+                return null;
+              }
+            }
+            return { ...job, url: url.toString() };
+          } catch {
+            clearTimeout(timeout);
+            // If request fails (timeout/network), still include but normalize URL
+            return { ...job, url: url.toString() };
+          }
+        } catch {
+          return null; // Invalid URL format
+        }
+      })
+    );
+
+    const finalJobs = checkedJobs.filter(Boolean);
+
+    return new Response(JSON.stringify({ jobs: finalJobs, citations: [] }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
