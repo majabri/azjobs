@@ -204,7 +204,7 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
 
   const handleAnalyzeFit = (job: JobMatch) => {
     const jobDesc = `${job.title} at ${job.company}\nLocation: ${job.location}\nType: ${job.type}\n\n${job.description}`;
-    navigate("/job-seeker", { state: { prefillJob: jobDesc } });
+    navigate("/job-seeker", { state: { prefillJob: jobDesc, prefillJobLink: job.url || "" } });
   };
 
   if (!hasProfile) {
