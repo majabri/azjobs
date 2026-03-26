@@ -19,6 +19,8 @@ import ScoreReport from "./pages/ScoreReport";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AuthenticatedLayout from "./layouts/AuthenticatedLayout";
+import { useEffect, useState } from "react";
+import { supabase } from "./integrations/supabase/client";
 
 const queryClient = new QueryClient();
 
@@ -30,6 +32,21 @@ function ProtectedWithLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
+/** Wraps content in AuthenticatedLayout when user is logged in, otherwise renders standalone */
+function OptionalLayout({ children }: { children: React.ReactNode }) {
+  const [isAuth, setIsAuth] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setIsAuth(!!data.session));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => setIsAuth(!!session));
+    return () => subscription.unsubscribe();
+  }, []);
+
+  if (isAuth === null) return null; // loading
+  if (isAuth) return <AuthenticatedLayout>{children}</AuthenticatedLayout>;
+  return <>{children}</>;
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -39,8 +56,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/auth" element={<Auth />} />
-          {/* JobSeeker supports demo mode (no auth) */}
-          <Route path="/job-seeker" element={<JobSeeker />} />
+          <Route path="/job-seeker" element={<OptionalLayout><JobSeeker /></OptionalLayout>} />
           <Route path="/dashboard" element={<ProtectedWithLayout><Dashboard /></ProtectedWithLayout>} />
           <Route path="/applications" element={<ProtectedWithLayout><Applications /></ProtectedWithLayout>} />
           <Route path="/profile" element={<ProtectedWithLayout><Profile /></ProtectedWithLayout>} />
