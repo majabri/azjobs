@@ -66,10 +66,32 @@ export default function JobSeekerPage() {
     setAnalysis(null);
   };
 
-  const handleReEvaluate = () => {
-    // Re-run analysis with current job desc and resume
-    handleAnalyze(currentJobDesc, currentResume, currentJobLink);
-  };
+  const handleReEvaluate = useCallback(async () => {
+    // Fetch latest profile skills and append to resume before re-analyzing
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      let enrichedResume = currentResume;
+      if (session) {
+        const { data: profile } = await supabase.from("job_seeker_profiles")
+          .select("skills, certifications, target_job_titles, career_level")
+          .eq("user_id", session.user.id).maybeSingle();
+        if (profile) {
+          const additions: string[] = [];
+          if (profile.skills?.length) additions.push(`Skills: ${(profile.skills as string[]).join(", ")}`);
+          if (profile.certifications?.length) additions.push(`Certifications: ${(profile.certifications as string[]).join(", ")}`);
+          if (profile.career_level) additions.push(`Career Level: ${profile.career_level}`);
+          if (profile.target_job_titles?.length) additions.push(`Target Roles: ${(profile.target_job_titles as string[]).join(", ")}`);
+          if (additions.length) {
+            enrichedResume = currentResume + "\n\n--- Updated Profile Skills ---\n" + additions.join("\n");
+          }
+        }
+      }
+      setCurrentResume(enrichedResume);
+      handleAnalyze(currentJobDesc, enrichedResume, currentJobLink);
+    } catch {
+      handleAnalyze(currentJobDesc, currentResume, currentJobLink);
+    }
+  }, [currentJobDesc, currentResume, currentJobLink, handleAnalyze]);
 
   return (
     <div className="bg-background">

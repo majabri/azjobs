@@ -158,7 +158,9 @@ export default function AnalysisResults({
       const current = (data?.skills as string[]) || [];
       if (current.includes(skill)) { toast.info(`"${skill}" already in profile`); return; }
       await supabase.from("job_seeker_profiles").upsert({ user_id: session.user.id, skills: [...current, skill], updated_at: new Date().toISOString() } as any, { onConflict: "user_id" });
-      toast.success(`"${skill}" added to profile!`);
+      toast.success(`"${skill}" added to profile! Re-evaluating...`);
+      // Auto re-evaluate after adding a skill
+      setTimeout(() => { onReEvaluate?.(); }, 500);
     } catch { toast.error("Failed to add skill"); }
     finally { setAddingSkill(null); }
   };
