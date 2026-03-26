@@ -84,7 +84,7 @@ export default function GapIntelligence({ analysis, onFixAll, onReEvaluate }: Ga
     }
   };
 
-  if (!analysis || analysis.overallScore >= 85) return null;
+  if (!analysis || (!gaps.length && !missingSkills.length)) return null;
 
   const gaps = analysis.gaps || [];
   const missingSkills = analysis.matchedSkills?.filter(s => !s.matched) || [];
