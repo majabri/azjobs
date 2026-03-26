@@ -315,7 +315,10 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
                       <Target className="w-3.5 h-3.5 mr-1" /> Analyze Fit
                     </Button>
                     {job.url && (
-                      <Button variant="outline" size="sm" className="text-xs" onClick={() => window.open(job.url, "_blank")}>
+                      <Button variant="outline" size="sm" className="text-xs" onClick={() => {
+                        const url = job.url.startsWith("http") ? job.url : `https://${job.url}`;
+                        window.open(url, "_blank", "noopener,noreferrer");
+                      }}>
                         <ExternalLink className="w-3.5 h-3.5 mr-1" /> Apply
                       </Button>
                     )}

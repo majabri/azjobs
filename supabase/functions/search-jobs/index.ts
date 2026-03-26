@@ -30,14 +30,16 @@ serve(async (req) => {
       customQuery ? ` Additional criteria: ${customQuery}.` : ""
     }
 
-Return 8-10 realistic job listings that would match these qualifications. For each job provide:
-- title: the job title
-- company: the company name
+Return 8-10 real, currently active job listings that would match these qualifications. For each job provide:
+- title: the exact job title
+- company: the real company name
 - location: job location
 - type: remote/hybrid/in-office/full-time/part-time/contract
 - description: 2-3 sentence summary of the role
-- url: a plausible application URL for the company careers page
-- matchReason: why this job matches the given skills`;
+- url: the REAL, ACTUAL application URL on the company's careers page or job board (e.g. https://careers.google.com/jobs/results/12345, https://www.linkedin.com/jobs/view/12345, https://boards.greenhouse.io/company/jobs/12345). The URL must be a real link where someone can actually apply. Do NOT make up or fabricate URLs.
+- matchReason: why this job matches the given skills
+
+IMPORTANT: Only include jobs with real, working application URLs. If you cannot provide a real URL for a job, do not include that job.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
