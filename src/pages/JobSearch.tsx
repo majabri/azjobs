@@ -7,11 +7,16 @@ import { Card } from "@/components/ui/card";
 import {
   ArrowLeft, Search, Loader2, MapPin, Building2, ExternalLink, Target,
   Briefcase, Globe, Plus, X, DollarSign, AlertTriangle, TrendingUp,
-  Zap, Shield, Clock, Database, Filter,
+  Zap, Shield, Clock, Database, Filter, ShieldCheck, ShieldAlert, ShieldX,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import UserMenu from "@/components/UserMenu";
+import {
+  detectFakeJobFlags, getTrustScore, calculateResponseProbability as calcResponseProb,
+  getJobStrategy, STRATEGY_CONFIG, TRUST_LEVEL_CONFIG,
+  type FakeJobFlag, type HistoricalOutcomes,
+} from "@/lib/jobQualityEngine";
 
 interface JobResult {
   title: string;
