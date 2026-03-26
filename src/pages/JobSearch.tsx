@@ -164,11 +164,12 @@ export default function JobSearchPage() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
-      const { data } = await supabase
-        .from("job_seeker_profiles")
-        .select("skills, preferred_job_types, location, career_level, target_job_titles, salary_min, salary_max")
-        .eq("user_id", session.user.id)
-        .maybeSingle();
+      const [{ data }, { data: appData }] = await Promise.all([
+        supabase.from("job_seeker_profiles")
+          .select("skills, preferred_job_types, location, career_level, target_job_titles, salary_min, salary_max")
+          .eq("user_id", session.user.id).maybeSingle(),
+        supabase.from("job_applications").select("status, response_days").eq("user_id", session.user.id),
+      ]);
       if (data) {
         if (data.skills) setSkills(data.skills as string[]);
         if (data.preferred_job_types) setJobTypes(data.preferred_job_types as string[]);
@@ -178,6 +179,14 @@ export default function JobSearchPage() {
         if (data.salary_min) setSalaryMin(data.salary_min);
         if (data.salary_max) setSalaryMax(data.salary_max);
         setProfileLoaded(true);
+      }
+      // Build historical outcomes for response probability model
+      if (appData && appData.length >= 3) {
+        const total = appData.length;
+        const responded = appData.filter(a => a.status !== "applied" && a.status !== "no_response").length;
+        const days = appData.filter(a => a.response_days).map(a => a.response_days!);
+        const avgDays = days.length > 0 ? days.reduce((a, b) => a + b, 0) / days.length : 14;
+        setHistoricalOutcomes({ totalApplications: total, totalResponses: responded, avgResponseRate: (responded / total) * 100, avgDaysToResponse: avgDays });
       }
     } catch (e) { console.error(e); }
   };
