@@ -24,6 +24,8 @@ interface AnalysisFormProps {
   onAnalyze: (jobDesc: string, resume: string, jobLink: string) => void;
   isAnalyzing: boolean;
   isDemo: boolean;
+  prefillJob?: string;
+  prefillJobLink?: string;
 }
 
 const DEMO_JOB = `Senior Cybersecurity Engineer — Cloud Security
