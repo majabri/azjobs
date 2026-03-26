@@ -46,6 +46,40 @@ interface JobResult {
   strategy?: "apply_now" | "apply_fast" | "improve_first" | "skip";
 }
 
+function normalizeJobUrl(rawUrl?: string | null): string {
+  if (!rawUrl) return "";
+
+  let value = rawUrl.trim();
+  if (!value) return "";
+
+  const markdownUrl = value.match(/\((https?:\/\/[^)\s]+)\)/i);
+  if (markdownUrl?.[1]) value = markdownUrl[1];
+
+  const plainHttpUrl = value.match(/https?:\/\/[^\s<>'"\])]+/i);
+  if (plainHttpUrl?.[0]) value = plainHttpUrl[0];
+
+  value = value.replace(/[),.;]+$/g, "").trim();
+  if (!value) return "";
+
+  const withProtocol = /^https?:\/\//i.test(value) ? value : `https://${value}`;
+
+  try {
+    const parsed = new URL(withProtocol);
+    const host = parsed.hostname.toLowerCase();
+    if (!host || host.includes("example.com") || host.includes("placeholder")) return "";
+    return parsed.toString();
+  } catch {
+    return "";
+  }
+}
+
+function sanitizeTitleForFilter(title: string): string {
+  return title
+    .replace(/[,%()]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 const JOB_TYPE_OPTIONS = [
   "remote", "hybrid", "in-office", "full-time", "part-time", "contract", "short-term",
 ];
@@ -200,8 +234,17 @@ export default function JobSearchPage() {
 
     // Filter by title keywords
     if (targetTitles.length > 0) {
-      const titleFilter = targetTitles.map(t => `title.ilike.%${t}%`).join(",");
-      query = query.or(titleFilter);
+      const safeTitles = targetTitles
+        .map(sanitizeTitleForFilter)
+        .filter(Boolean)
+        .slice(0, 10);
+
+      if (safeTitles.length === 1) {
+        query = query.ilike("title", `%${safeTitles[0]}%`);
+      } else if (safeTitles.length > 1) {
+        const titleFilter = safeTitles.map(t => `title.ilike.%${t}%`).join(",");
+        query = query.or(titleFilter);
+      }
     }
 
     // Filter by location
@@ -237,7 +280,7 @@ export default function JobSearchPage() {
       location: job.location || (job.is_remote ? "Remote" : "Not specified"),
       type: job.job_type || "full-time",
       description: job.description || "",
-      url: job.job_url || "",
+      url: normalizeJobUrl(job.job_url),
       matchReason: `Source: ${job.source}${job.seniority ? ` • ${job.seniority} level` : ""}`,
       quality_score: job.quality_score,
       is_flagged: job.is_flagged,
@@ -265,7 +308,15 @@ export default function JobSearchPage() {
     );
     if (!resp.ok) return { jobs: [], citations: [] };
     const data = await resp.json();
-    return { jobs: data.jobs || [], citations: data.citations || [] };
+
+    const normalizedJobs = ((data.jobs || []) as JobResult[])
+      .map((job) => ({
+        ...job,
+        url: normalizeJobUrl(job.url),
+      }))
+      .filter((job) => Boolean(job.url));
+
+    return { jobs: normalizedJobs, citations: data.citations || [] };
   };
 
   const handleSearch = async () => {
@@ -291,6 +342,8 @@ export default function JobSearchPage() {
         allJobs = allJobs.concat(aiResult.jobs);
         allCitations = aiResult.citations;
       }
+
+      allJobs = allJobs.filter((job) => Boolean(job.url));
 
       // Enrich with trust engine + probability + decision score
       const allTitles = allJobs.map(j => j.title || "");
