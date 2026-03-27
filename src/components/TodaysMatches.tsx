@@ -420,7 +420,7 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
     );
   }
 
-  const displayJobs = compact ? jobs.slice(0, 5) : jobs;
+  const displayJobs = compact ? jobs.slice(0, 3) : jobs;
 
   return (
     <div className="space-y-4">
@@ -531,7 +531,7 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
                   </div>
 
                   {/* Warning flags */}
-                  {hasFlags && (
+                  {hasFlags && !compact && (
                     <div className="flex flex-wrap gap-2">
                       {job.flags!.map((flag, fi) => (
                         <Badge
@@ -550,8 +550,13 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
                   )}
 
                   {/* Description */}
-                  <p className="text-sm text-muted-foreground leading-relaxed">{job.description}</p>
-                  {job.matchReason && <p className="text-xs text-accent italic">💡 {job.matchReason}</p>}
+                  {!compact && (
+                    <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3">{job.description}</p>
+                  )}
+                  {compact && (
+                    <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">{job.description}</p>
+                  )}
+                  {job.matchReason && <p className="text-xs text-accent italic truncate">💡 {job.matchReason}</p>}
 
                   {/* Actions */}
                   <div className="flex items-center gap-2">
