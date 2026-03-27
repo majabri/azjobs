@@ -11,11 +11,16 @@ const DEFAULT_GREENHOUSE_BOARDS = [
   "airbnb", "figma", "stripe", "notion", "databricks", "cloudflare",
   "discord", "instacart", "robinhood", "coinbase", "grammarly",
   "plaid", "brex", "airtable", "vercel", "netlify",
+  "dropbox", "squarespace", "hashicorp", "elastic", "confluent",
+  "datadog", "snyk", "mongodb", "cockroachlabs", "dbt-labs",
+  "samsara", "benchling", "retool", "linear", "loom",
 ];
 
 const DEFAULT_LEVER_COMPANIES = [
   "netflix", "shopify", "twitch", "palantir", "reddit",
   "doordash", "lyft", "snap", "spotify", "hubspot",
+  "nerdwallet", "webflow", "postman", "calendly", "miro",
+  "lucidchart", "gong", "lattice", "greenhouse", "gusto",
 ];
 
 const GENERIC_JOB_PATH_SEGMENTS = new Set([
@@ -202,7 +207,10 @@ async function aiWebCrawl(searchQuery: string, lovableApiKey: string) {
   try {
     const prompt = `Search the entire internet for REAL, CURRENTLY ACTIVE job postings matching: "${searchQuery}".
 
-Find jobs from all major job boards (LinkedIn, Indeed, Glassdoor, ZipRecruiter, Dice, etc.), company career pages, and ATS platforms.
+Find jobs from ALL sources including:
+- Job boards: LinkedIn, Indeed, Glassdoor, ZipRecruiter, Dice, SimplyHired
+- ATS platforms: Workday (myworkdayjobs.com), iCIMS, Jobvite, Lever, Greenhouse, SmartRecruiters
+- Company career pages hosted on Workday, iCIMS, Jobvite, and other enterprise ATS systems
 
 Return 15-20 real job listings. For each:
 - title: exact job title
@@ -210,10 +218,10 @@ Return 15-20 real job listings. For each:
 - location: job location
 - type: remote/hybrid/in-office/full-time/part-time/contract
 - description: 4-6 sentence detailed summary with responsibilities and requirements
-- url: the REAL direct URL to the specific job posting page (NOT a careers landing page or search page)
+- url: the REAL direct URL to the SPECIFIC job posting page (e.g. myworkdayjobs.com/en-US/company/job/..., icims.com/jobs/.../job, jobvite.com/...). NOT a careers landing page, NOT a search results page, NOT a company homepage.
 - salary: salary range if available, null otherwise
 
-CRITICAL: Only include jobs with REAL, WORKING URLs pointing to SPECIFIC job detail pages. No generic career pages.`;
+CRITICAL: Only include jobs with REAL, WORKING URLs pointing to SPECIFIC individual job detail pages. No generic career pages, no search result pages, no company homepages.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -384,6 +392,16 @@ Deno.serve(async (req) => {
       "project manager job openings",
       "business analyst job openings",
       "marketing manager job openings",
+      "cybersecurity engineer job openings",
+      "cloud architect job openings",
+      "VP information technology job openings",
+      "CISO chief information security officer job openings",
+      "IT director job openings",
+      "data engineer job openings",
+      "machine learning engineer job openings",
+      "site:myworkdayjobs.com software engineer",
+      "site:myworkdayjobs.com data analyst",
+      "site:icims.com software engineer jobs",
     ];
     for (const s of broadSearches) searchQueries.add(s);
 
