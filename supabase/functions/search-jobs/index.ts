@@ -669,7 +669,7 @@ serve(async (req) => {
       ? qualityFirst
       : strictFiltered.length > 0
         ? strictFiltered
-        : rankedCandidates.filter((job) => job.urlVerified && job.finalScore >= 75)
+        : rankedCandidates.filter((job) => job.finalScore >= 40)
     )
       .slice(0, limit)
       .map((job) => ({
