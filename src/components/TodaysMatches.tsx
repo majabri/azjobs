@@ -4,16 +4,33 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import {
-  Loader2, Target, MapPin, Building2, ExternalLink,
-  AlertTriangle, TrendingUp, Clock, Sparkles, RefreshCw, Shield,
-  ShieldCheck, ShieldAlert, ShieldX, Zap,
+  Loader2,
+  Target,
+  MapPin,
+  Building2,
+  ExternalLink,
+  AlertTriangle,
+  TrendingUp,
+  Clock,
+  Sparkles,
+  RefreshCw,
+  Shield,
+  ShieldCheck,
+  ShieldAlert,
+  ShieldX,
+  Zap,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
-  detectFakeJobFlags, getTrustScore, calculateResponseProbability,
-  getJobStrategy, STRATEGY_CONFIG, TRUST_LEVEL_CONFIG,
-  type FakeJobFlag, type HistoricalOutcomes,
+  detectFakeJobFlags,
+  getTrustScore,
+  calculateResponseProbability,
+  getJobStrategy,
+  STRATEGY_CONFIG,
+  TRUST_LEVEL_CONFIG,
+  type FakeJobFlag,
+  type HistoricalOutcomes,
 } from "@/lib/jobQualityEngine";
 
 interface JobMatch {
@@ -51,7 +68,17 @@ const GENERIC_JOB_PATH_SEGMENTS = new Set([
 
 const LISTING_TAIL_SEGMENTS = new Set(["search", "results", "all", "openings", "index", "list"]);
 
-const NON_JOB_PAGE_SEGMENTS = new Set(["about", "company", "team", "culture", "people", "mission", "values", "home", "contact"]);
+const NON_JOB_PAGE_SEGMENTS = new Set([
+  "about",
+  "company",
+  "team",
+  "culture",
+  "people",
+  "mission",
+  "values",
+  "home",
+  "contact",
+]);
 
 function normalizeJobUrl(rawUrl?: string | null): string {
   if (!rawUrl) return "";
@@ -141,7 +168,7 @@ function isLikelyDirectJobPostingUrl(rawUrl: string): boolean {
     const hasNumericId = parts.some((p) => /\d{4,}/.test(p));
     const hasLongSlug = parts.some((p) => p.includes("-") && p.length >= 16);
     const hasKnownJobQuery = ["gh_jid", "job", "jobid", "jk", "lever-source", "oid"].some((k) =>
-      url.searchParams.has(k)
+      url.searchParams.has(k),
     );
 
     if (parts.length === 1 && !hasNumericId && !hasLongSlug && !hasKnownJobQuery) return false;
@@ -155,14 +182,18 @@ function isLikelyDirectJobPostingUrl(rawUrl: string): boolean {
 function estimateMatchScore(matchReason: string, skills: string[]): number {
   const lower = matchReason.toLowerCase();
   let score = 50;
-  skills.forEach(s => { if (lower.includes(s.toLowerCase())) score += 5; });
+  skills.forEach((s) => {
+    if (lower.includes(s.toLowerCase())) score += 5;
+  });
   return Math.min(95, Math.max(30, score));
 }
 
 const TRUST_ICONS = { "shield-check": ShieldCheck, "shield-alert": ShieldAlert, "shield-x": ShieldX };
 const STRATEGY_ICONS = { apply_now: Sparkles, apply_fast: Zap, improve_first: TrendingUp, skip: Clock };
 
-interface TodaysMatchesProps { compact?: boolean; }
+interface TodaysMatchesProps {
+  compact?: boolean;
+}
 
 export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
   const navigate = useNavigate();
@@ -172,33 +203,60 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
   const [lastFetched, setLastFetched] = useState<string | null>(null);
   const [historicalOutcomes, setHistoricalOutcomes] = useState<HistoricalOutcomes | undefined>();
 
-  useEffect(() => { checkAndFetch(); }, []);
+  useEffect(() => {
+    checkAndFetch();
+  }, []); // Still OK here since checkAndFetch doesn't use external deps
+
+  // But add a listener for auth state changes:
+  useEffect(() => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(() => {
+      checkAndFetch();
+    });
+    return () => subscription?.unsubscribe();
+  }, []);
+
+  // 03/27/2026  useEffect(() => { checkAndFetch(); }, []);
 
   const loadHistoricalOutcomes = async (userId: string): Promise<HistoricalOutcomes | undefined> => {
     try {
-      const { data } = await supabase
-        .from("job_applications")
-        .select("status, response_days")
-        .eq("user_id", userId);
+      const { data } = await supabase.from("job_applications").select("status, response_days").eq("user_id", userId);
       if (!data || data.length < 3) return undefined;
       const total = data.length;
-      const responded = data.filter(a => a.status !== "applied" && a.status !== "no_response").length;
-      const responseDays = data.filter(a => a.response_days).map(a => a.response_days!);
+      const responded = data.filter((a) => a.status !== "applied" && a.status !== "no_response").length;
+      const responseDays = data.filter((a) => a.response_days).map((a) => a.response_days!);
       const avgDays = responseDays.length > 0 ? responseDays.reduce((a, b) => a + b, 0) / responseDays.length : 14;
-      return { totalApplications: total, totalResponses: responded, avgResponseRate: (responded / total) * 100, avgDaysToResponse: avgDays };
-    } catch { return undefined; }
+      return {
+        totalApplications: total,
+        totalResponses: responded,
+        avgResponseRate: (responded / total) * 100,
+        avgDaysToResponse: avgDays,
+      };
+    } catch {
+      return undefined;
+    }
   };
 
   const checkAndFetch = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
     if (!session) return;
 
     const [{ data: profile }, outcomes] = await Promise.all([
-      supabase.from("job_seeker_profiles").select("skills, preferred_job_types, location, career_level, target_job_titles").eq("user_id", session.user.id).maybeSingle(),
+      supabase
+        .from("job_seeker_profiles")
+        .select("skills, preferred_job_types, location, career_level, target_job_titles")
+        .eq("user_id", session.user.id)
+        .maybeSingle(),
       loadHistoricalOutcomes(session.user.id),
     ]);
 
-    if (!profile?.skills?.length) { setHasProfile(false); return; }
+    if (!profile?.skills?.length) {
+      setHasProfile(false);
+      return;
+    }
     setHasProfile(true);
     setHistoricalOutcomes(outcomes);
 
@@ -210,7 +268,12 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
         if (Date.now() - timestamp < 4 * 60 * 60 * 1000) {
           const vettedCachedJobs = (cachedJobs || []).filter((job: JobMatch) => {
             const normalizedUrl = normalizeJobUrl(job.url);
-            return Boolean(normalizedUrl) && !isGenericJobListingUrl(normalizedUrl) && isLikelyDirectJobPostingUrl(normalizedUrl) && hasSubstantiveJobDescription(job.description);
+            return (
+              Boolean(normalizedUrl) &&
+              !isGenericJobListingUrl(normalizedUrl) &&
+              isLikelyDirectJobPostingUrl(normalizedUrl) &&
+              hasSubstantiveJobDescription(job.description)
+            );
           });
 
           if (vettedCachedJobs.length > 0) {
@@ -226,38 +289,55 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
   };
 
   const enrichJobs = (rawJobs: any[], skills: string[], outcomes?: HistoricalOutcomes): JobMatch[] => {
-    const allTitles = rawJobs.map(j => j.title || "");
+    const allTitles = rawJobs.map((j) => j.title || "");
 
-    const enriched = rawJobs.map(job => {
+    const enriched = rawJobs.map((job) => {
       const matchScore = estimateMatchScore(job.matchReason || "", skills);
       // Use real posted date if available, otherwise estimate from data
       const postedDate = job.postedDate || job.created_at || job.first_seen_at;
-      const jobAge = postedDate
-        ? Math.max(1, Math.floor((Date.now() - new Date(postedDate).getTime()) / 86400000))
-        : 7; // default to 7 days if no date available
+      const jobAge = postedDate ? Math.max(1, Math.floor((Date.now() - new Date(postedDate).getTime()) / 86400000)) : 7; // default to 7 days if no date available
       const competitionLevel: "low" | "medium" | "high" = jobAge <= 3 ? "low" : jobAge <= 14 ? "medium" : "high";
 
       // Fake job detection
       const flags = detectFakeJobFlags({
-        title: job.title, company: job.company, description: job.description,
-        url: job.url, location: job.location, jobAge, allJobTitles: allTitles,
+        title: job.title,
+        company: job.company,
+        description: job.description,
+        url: job.url,
+        location: job.location,
+        jobAge,
+        allJobTitles: allTitles,
       });
       const { score: trustScore, level: trustLevel } = getTrustScore(flags);
 
       // Response probability with historical data
-      const skillWords = skills.map(s => s.toLowerCase());
+      const skillWords = skills.map((s) => s.toLowerCase());
       const descLower = (job.description || "").toLowerCase();
-      const matched = skillWords.filter(s => descLower.includes(s)).length;
+      const matched = skillWords.filter((s) => descLower.includes(s)).length;
       const skillMatchRatio = skills.length > 0 ? matched / skills.length : 0.5;
 
       const responseProbability = calculateResponseProbability({
-        matchScore, jobAge, competitionLevel, trustScore,
-        historicalOutcomes: outcomes, skillMatchRatio,
+        matchScore,
+        jobAge,
+        competitionLevel,
+        trustScore,
+        historicalOutcomes: outcomes,
+        skillMatchRatio,
       });
 
       const strategy = getJobStrategy(matchScore, responseProbability, trustLevel, jobAge);
 
-      return { ...job, matchScore, jobAge, competitionLevel, flags, trustScore, trustLevel, responseProbability, strategy };
+      return {
+        ...job,
+        matchScore,
+        jobAge,
+        competitionLevel,
+        flags,
+        trustScore,
+        trustLevel,
+        responseProbability,
+        strategy,
+      };
     });
 
     // Sort: apply_fast > apply_now > improve_first > skip, then by match score
@@ -277,8 +357,10 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
         body: JSON.stringify({
-          skills: profile.skills?.slice(0, 10) || [], jobTypes: profile.preferred_job_types || [],
-          location: profile.location || "", careerLevel: profile.career_level || "",
+          skills: profile.skills?.slice(0, 10) || [],
+          jobTypes: profile.preferred_job_types || [],
+          location: profile.location || "",
+          careerLevel: profile.career_level || "",
           targetTitles: profile.target_job_titles || [],
         }),
       });
@@ -290,7 +372,13 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
           ...job,
           url: normalizeJobUrl(job.url),
         }))
-        .filter((job) => Boolean(job.url) && !isGenericJobListingUrl(job.url) && isLikelyDirectJobPostingUrl(job.url) && hasSubstantiveJobDescription(job.description));
+        .filter(
+          (job) =>
+            Boolean(job.url) &&
+            !isGenericJobListingUrl(job.url) &&
+            isLikelyDirectJobPostingUrl(job.url) &&
+            hasSubstantiveJobDescription(job.description),
+        );
 
       const uniqueByUrl = new Map<string, JobMatch>();
       for (const job of vettedJobs) {
@@ -301,16 +389,23 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
       setJobs(enriched);
       setLastFetched(new Date().toLocaleTimeString());
       localStorage.setItem(cacheKey, JSON.stringify({ jobs: enriched, timestamp: Date.now() }));
-    } catch { toast.error("Failed to fetch job matches"); }
-    finally { setLoading(false); }
+    } catch {
+      toast.error("Failed to fetch job matches");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleRefresh = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
     if (!session) return;
-    const { data: profile } = await supabase.from("job_seeker_profiles")
+    const { data: profile } = await supabase
+      .from("job_seeker_profiles")
       .select("skills, preferred_job_types, location, career_level, target_job_titles")
-      .eq("user_id", session.user.id).maybeSingle();
+      .eq("user_id", session.user.id)
+      .maybeSingle();
     if (!profile) return;
     const cacheKey = `fitcheck_daily_jobs_v2_${session.user.id}`;
     localStorage.removeItem(cacheKey);
@@ -327,8 +422,12 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
       <Card className="p-6 text-center">
         <Sparkles className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
         <h3 className="font-display font-bold text-primary mb-2">Set up your profile to see matches</h3>
-        <p className="text-sm text-muted-foreground mb-4">Add your skills and preferences to get personalized job recommendations.</p>
-        <Button variant="outline" size="sm" onClick={() => navigate("/profile")}>Complete Profile</Button>
+        <p className="text-sm text-muted-foreground mb-4">
+          Add your skills and preferences to get personalized job recommendations.
+        </p>
+        <Button variant="outline" size="sm" onClick={() => navigate("/profile")}>
+          Complete Profile
+        </Button>
       </Card>
     );
   }
@@ -342,7 +441,7 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
           <h2 className="font-display font-bold text-primary text-xl">Today's Matches For You</h2>
           {jobs.length > 0 && (
             <Badge className="bg-accent/15 text-accent border-accent/30 text-xs">
-              {jobs.filter(j => j.strategy === "apply_now" || j.strategy === "apply_fast").length} ready to apply
+              {jobs.filter((j) => j.strategy === "apply_now" || j.strategy === "apply_fast").length} ready to apply
             </Badge>
           )}
         </div>
@@ -360,7 +459,9 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
           <span className="text-muted-foreground">Finding your best matches...</span>
         </div>
       ) : jobs.length === 0 ? (
-        <Card className="p-6 text-center text-muted-foreground"><p>No matches yet. Click refresh to search.</p></Card>
+        <Card className="p-6 text-center text-muted-foreground">
+          <p>No matches yet. Click refresh to search.</p>
+        </Card>
       ) : (
         <div className="space-y-3">
           {displayJobs.map((job, i) => {
@@ -369,10 +470,13 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
             const trustCfg = TRUST_LEVEL_CONFIG[job.trustLevel || "trusted"];
             const TrustIcon = TRUST_ICONS[trustCfg.icon];
             const hasFlags = job.flags && job.flags.length > 0;
-            const hasDanger = job.flags?.some(f => f.severity === "danger");
+            const hasDanger = job.flags?.some((f) => f.severity === "danger");
 
             return (
-              <Card key={i} className={`p-4 hover:border-accent/40 transition-colors ${hasDanger ? "border-destructive/40 bg-destructive/5" : hasFlags ? "border-warning/40" : ""}`}>
+              <Card
+                key={i}
+                className={`p-4 hover:border-accent/40 transition-colors ${hasDanger ? "border-destructive/40 bg-destructive/5" : hasFlags ? "border-warning/40" : ""}`}
+              >
                 <div className="flex flex-col gap-3">
                   {/* Header */}
                   <div className="flex items-start justify-between gap-3">
@@ -382,12 +486,23 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
                         {hasDanger && <AlertTriangle className="w-4 h-4 text-destructive flex-shrink-0" />}
                       </div>
                       <div className="flex flex-wrap items-center gap-3 mt-1 text-sm text-muted-foreground">
-                        <span className="flex items-center gap-1"><Building2 className="w-3.5 h-3.5" /> {job.company}</span>
-                        <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" /> {job.location}</span>
-                        {job.type && <Badge variant="outline" className="capitalize text-xs">{job.type}</Badge>}
+                        <span className="flex items-center gap-1">
+                          <Building2 className="w-3.5 h-3.5" /> {job.company}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <MapPin className="w-3.5 h-3.5" /> {job.location}
+                        </span>
+                        {job.type && (
+                          <Badge variant="outline" className="capitalize text-xs">
+                            {job.type}
+                          </Badge>
+                        )}
                         {job.jobAge && <span className="text-xs">{job.jobAge}d ago</span>}
                         {job.url && isLikelyDirectJobPostingUrl(job.url) && (
-                          <Badge variant="outline" className="text-xs border-emerald-500/40 text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-400">
+                          <Badge
+                            variant="outline"
+                            className="text-xs border-emerald-500/40 text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-400"
+                          >
                             <ShieldCheck className="w-3 h-3 mr-1" /> Direct Link Verified
                           </Badge>
                         )}
@@ -406,10 +521,17 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
                     <div className="flex items-center gap-1.5">
                       <Target className="w-3.5 h-3.5 text-accent" />
                       <span className="text-muted-foreground">Response chance:</span>
-                      <span className={`font-semibold ${
-                        (job.responseProbability || 0) >= 60 ? "text-success" :
-                        (job.responseProbability || 0) >= 35 ? "text-warning" : "text-destructive"
-                      }`}>{job.responseProbability}%</span>
+                      <span
+                        className={`font-semibold ${
+                          (job.responseProbability || 0) >= 60
+                            ? "text-success"
+                            : (job.responseProbability || 0) >= 35
+                              ? "text-warning"
+                              : "text-destructive"
+                        }`}
+                      >
+                        {job.responseProbability}%
+                      </span>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <TrustIcon className={`w-3.5 h-3.5 ${trustCfg.colorClass}`} />
@@ -424,9 +546,15 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
                   {hasFlags && (
                     <div className="flex flex-wrap gap-2">
                       {job.flags!.map((flag, fi) => (
-                        <Badge key={fi} variant="outline" className={`text-[10px] ${
-                          flag.severity === "danger" ? "border-destructive/40 text-destructive bg-destructive/5" : "border-warning/40 text-warning bg-warning/5"
-                        }`}>
+                        <Badge
+                          key={fi}
+                          variant="outline"
+                          className={`text-[10px] ${
+                            flag.severity === "danger"
+                              ? "border-destructive/40 text-destructive bg-destructive/5"
+                              : "border-warning/40 text-warning bg-warning/5"
+                          }`}
+                        >
                           <AlertTriangle className="w-3 h-3 mr-1" /> {flag.label}
                         </Badge>
                       ))}
@@ -439,14 +567,23 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
 
                   {/* Actions */}
                   <div className="flex items-center gap-2">
-                    <Button size="sm" className="gradient-teal text-white text-xs" onClick={() => handleAnalyzeFit(job)}>
+                    <Button
+                      size="sm"
+                      className="gradient-teal text-white text-xs"
+                      onClick={() => handleAnalyzeFit(job)}
+                    >
                       <Target className="w-3.5 h-3.5 mr-1" /> Analyze Fit
                     </Button>
                     {job.url && isLikelyDirectJobPostingUrl(job.url) && (
-                      <Button variant="outline" size="sm" className="text-xs" onClick={() => {
-                        const url = job.url.startsWith("http") ? job.url : `https://${job.url}`;
-                        window.open(url, "_blank", "noopener,noreferrer");
-                      }}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-xs"
+                        onClick={() => {
+                          const url = job.url.startsWith("http") ? job.url : `https://${job.url}`;
+                          window.open(url, "_blank", "noopener,noreferrer");
+                        }}
+                      >
                         <ExternalLink className="w-3.5 h-3.5 mr-1" /> Apply
                       </Button>
                     )}
