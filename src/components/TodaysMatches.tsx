@@ -562,33 +562,16 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
                     >
                       <Target className="w-3.5 h-3.5 mr-1" /> Analyze Fit
                     </Button>
-                    {job.url && isLikelyDirectJobPostingUrl(job.url) && (
+                    {job.url && (
                       <Button
                         variant="outline"
                         size="sm"
                         className="text-xs"
                         onClick={() => {
-                          const url = job.url.startsWith("http") ? job.url : `https://${job.url}`;
-                          //                          window.open(url, "_blank", "noopener,noreferrer");
-                          // Validate URL is truly HTTP/HTTPS
-                          const isValidUrl = (urlStr: string): boolean => {
-                            try {
-                              const url = new URL(urlStr);
-                              return url.protocol === "http:" || url.protocol === "https:";
-                            } catch {
-                              return false;
-                            }
-                          };
-
-                          // In button click handler:
-                          if (isValidUrl(job.url)) {
-                            window.open(job.url, "_blank", "noopener,noreferrer");
-                          } else {
-                            toast.error("Invalid job URL");
-                          }
+                          window.open(job.url, "_blank", "noopener,noreferrer");
                         }}
                       >
-                        <ExternalLink className="w-3.5 h-3.5 mr-1" /> Apply
+                        <ExternalLink className="w-3.5 h-3.5 mr-1" /> Find & Apply
                       </Button>
                     )}
                   </div>
