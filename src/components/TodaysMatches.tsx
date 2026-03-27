@@ -550,8 +550,13 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
                   )}
 
                   {/* Description */}
-                  <p className="text-sm text-muted-foreground leading-relaxed">{job.description}</p>
-                  {job.matchReason && <p className="text-xs text-accent italic">💡 {job.matchReason}</p>}
+                  {!compact && (
+                    <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3">{job.description}</p>
+                  )}
+                  {compact && (
+                    <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">{job.description}</p>
+                  )}
+                  {job.matchReason && <p className="text-xs text-accent italic truncate">💡 {job.matchReason}</p>}
 
                   {/* Actions */}
                   <div className="flex items-center gap-2">
