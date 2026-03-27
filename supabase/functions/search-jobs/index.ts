@@ -120,6 +120,12 @@ function extractCompany(rawCompany: string, title: string, url: string): string 
   const fromUrl = extractCompanyFromUrl(url);
   if (fromUrl) return fromUrl;
 
+  const hiringPrefixMatch = title.match(/^(.{2,80}?)\s+hiring\b/i);
+  if (hiringPrefixMatch?.[1]) {
+    const candidate = normalizeText(hiringPrefixMatch[1]);
+    if (candidate && !GENERIC_COMPANY_NAMES.has(candidate.toLowerCase())) return candidate;
+  }
+
   const atMatch = title.match(/\s+at\s+([^|\-]{2,80})/i);
   if (atMatch?.[1]) return normalizeText(atMatch[1]);
 
@@ -215,6 +221,55 @@ function hasMinimalDescription(description: string): boolean {
   return text.length >= 50 && text.split(/\s+/).length >= 8;
 }
 
+function cleanSearchFragment(input: string, maxWords = 10): string {
+  const ignoredTokens = new Set(["and", "or", "with", "for", "the", "of", "to", "in", "at"]);
+  const tokens = normalizeText(input)
+    .replace(/\([^)]*\)/g, " ")
+    .replace(/[^a-zA-Z0-9+\-\/\s]/g, " ")
+    .split(/\s+/)
+    .filter((token) => token.length >= 2)
+    .filter((token) => !ignoredTokens.has(token.toLowerCase()));
+
+  return tokens.slice(0, maxWords).join(" ");
+}
+
+function buildSearchQueries(params: {
+  query: string;
+  targetTitles: string[];
+  skills: string[];
+  careerLevel: string;
+  jobTypes: string[];
+}): string[] {
+  const titles = params.targetTitles
+    .map((title) => cleanSearchFragment(title, 8))
+    .filter(Boolean)
+    .slice(0, 3);
+
+  const skills = params.skills
+    .map((skill) => cleanSearchFragment(skill, 4))
+    .filter(Boolean)
+    .slice(0, 4);
+
+  const explicitQuery = cleanSearchFragment(params.query, 10);
+  const level = cleanSearchFragment(params.careerLevel, 4);
+  const remoteHint = params.jobTypes.some((type) => /remote/i.test(type)) ? "remote" : "";
+
+  const primaryRole = explicitQuery || titles[0] || skills[0] || "software engineer";
+  const secondaryRole = titles[1] || cleanSearchFragment(`${primaryRole} ${skills[0] || ""}`, 10);
+  const roleWithLevel = cleanSearchFragment(`${level} ${primaryRole}`, 10);
+
+  const candidates = [
+    cleanSearchFragment(`${primaryRole} ${remoteHint}`, 10),
+    cleanSearchFragment(`${secondaryRole} ${remoteHint}`, 10),
+    cleanSearchFragment(`${roleWithLevel} ${remoteHint}`, 10),
+    cleanSearchFragment(`${primaryRole} ${skills.slice(0, 2).join(" ")}`, 10),
+    cleanSearchFragment(`${skills[0] || "software"} engineer ${remoteHint}`, 10),
+    "software engineer remote",
+  ];
+
+  return [...new Set(candidates.filter((candidate) => candidate.length >= 4))].slice(0, 6);
+}
+
 async function fetchDatabaseJobs(supabaseAdmin: ReturnType<typeof createClient>): Promise<NormalizedJob[]> {
   const { data, error } = await supabaseAdmin
     .from("scraped_jobs")
@@ -253,7 +308,7 @@ async function fetchDatabaseJobs(supabaseAdmin: ReturnType<typeof createClient>)
 
 async function searchFirecrawlJobs(
   firecrawlApiKey: string,
-  query: string,
+  queries: string[],
   location: string,
   limit: number,
 ): Promise<NormalizedJob[]> {
@@ -266,68 +321,81 @@ async function searchFirecrawlJobs(
     "site:wellfound.com/jobs",
     "site:glassdoor.com/job-listing",
   ].join(" OR ");
-  const q = `${query} ${location} (${sites})`;
+  const locationHint = cleanSearchFragment(location, 5);
+  const mergedJobs = new Map<string, NormalizedJob>();
 
-  console.log("Firecrawl search query:", q);
+  for (const [index, query] of queries.entries()) {
+    const q = normalizeText(`${query} ${locationHint} (${sites})`).slice(0, 320);
+    console.log(`Firecrawl search query #${index + 1}:`, q);
 
-  const response = await fetch("https://api.firecrawl.dev/v1/search", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${firecrawlApiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      query: q,
-      limit: Math.max(20, Math.min(limit * 4, 50)),
-      tbs: "qdr:m",
-      scrapeOptions: {
-        formats: ["markdown"],
+    const response = await fetch("https://api.firecrawl.dev/v1/search", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${firecrawlApiKey}`,
+        "Content-Type": "application/json",
       },
-    }),
-  });
+      body: JSON.stringify({
+        query: q,
+        limit: Math.max(20, Math.min(limit * 4, 50)),
+        tbs: "qdr:m",
+        scrapeOptions: {
+          formats: ["markdown"],
+        },
+      }),
+    });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error("Firecrawl search failed:", response.status, errorText);
-    return [];
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Firecrawl search failed for query #${index + 1}:`, response.status, errorText);
+      continue;
+    }
+
+    const payload = await response.json();
+    const rows = Array.isArray(payload?.data) ? payload.data : Array.isArray(payload?.results) ? payload.results : [];
+    console.log(`Firecrawl returned ${rows.length} raw results for query #${index + 1}`);
+
+    const jobs = rows
+      .map((row: any) => {
+        const url = normalizeText(row.url || row.link || "");
+        const description = cleanMarkdownText(row.markdown || row.description || "").slice(0, 5000);
+        const title = normalizeText(row.title || "Job Opportunity")
+          .replace(/\s+-\s+(lever|linkedin|workday|icims|jobvite)\.?$/i, "");
+        const company = extractCompany(row.company || "", title, url) || extractCompanyFromHost(url);
+        const detectedType = inferJobType(`${title} ${description}`);
+        const resolvedLocation = extractLocation(row.location || "", title, description, location || "Remote");
+
+        const wordCount = description.split(/\s+/).length;
+        const semanticScore = Math.min(95, Math.max(50, Math.floor(wordCount / 3) + 40));
+
+        return {
+          title,
+          company,
+          location: resolvedLocation,
+          type: detectedType,
+          description,
+          url,
+          source: "firecrawl" as const,
+          qualityScore: semanticScore,
+          urlVerified: isDirectJobPostingUrl(url),
+        };
+      })
+      .filter((job) => !isBlockedUrl(job.url))
+      .filter((job) => job.company && !GENERIC_COMPANY_NAMES.has(job.company.toLowerCase()))
+      .filter((job) => hasMinimalDescription(job.description));
+
+    console.log(`After filtering query #${index + 1}: ${jobs.length} jobs`);
+
+    for (const job of jobs) {
+      const existing = mergedJobs.get(job.url);
+      if (!existing || job.qualityScore > existing.qualityScore) {
+        mergedJobs.set(job.url, job);
+      }
+    }
+
+    if (mergedJobs.size >= Math.max(limit * 2, 30)) break;
   }
 
-  const payload = await response.json();
-  const rows = Array.isArray(payload?.data) ? payload.data : Array.isArray(payload?.results) ? payload.results : [];
-
-  console.log(`Firecrawl returned ${rows.length} raw results`);
-
-  const jobs = rows
-    .map((row: any) => {
-      const url = normalizeText(row.url || row.link || "");
-      const description = cleanMarkdownText(row.markdown || row.description || "").slice(0, 5000);
-      const title = normalizeText(row.title || "Job Opportunity")
-        .replace(/\s+-\s+(lever|linkedin|workday|icims|jobvite)\.?$/i, "");
-      const company = extractCompany(row.company || "", title, url) || extractCompanyFromHost(url);
-      const detectedType = inferJobType(`${title} ${description}`);
-      const resolvedLocation = extractLocation(row.location || "", title, description, location || "Remote");
-
-      const wordCount = description.split(/\s+/).length;
-      const semanticScore = Math.min(95, Math.max(50, Math.floor(wordCount / 3) + 40));
-
-      return {
-        title,
-        company,
-        location: resolvedLocation,
-        type: detectedType,
-        description,
-        url,
-        source: "firecrawl" as const,
-        qualityScore: semanticScore,
-        urlVerified: isDirectJobPostingUrl(url),
-      };
-    })
-    .filter((job) => !isBlockedUrl(job.url))
-    .filter((job) => job.company && !GENERIC_COMPANY_NAMES.has(job.company.toLowerCase()))
-    .filter((job) => hasMinimalDescription(job.description));
-
-  console.log(`After filtering: ${jobs.length} jobs`);
-  return jobs;
+  return [...mergedJobs.values()];
 }
 
 // Build a LinkedIn search URL as fallback when no direct URL
@@ -353,11 +421,16 @@ serve(async (req) => {
     const careerLevel = normalizeText(requestBody.careerLevel);
     const limit = Math.max(5, Math.min(Number(requestBody.limit || 12), 20));
 
-    const mergedQuery = normalizeText(
-      [query, targetTitles.join(" "), skills.join(" "), careerLevel, jobTypes.join(" ")].join(" "),
-    ) || "software engineer";
+    const searchQueries = buildSearchQueries({
+      query,
+      targetTitles,
+      skills,
+      careerLevel,
+      jobTypes,
+    });
+    const primaryQuery = searchQueries[0] || "software engineer";
 
-    console.log("Search query:", mergedQuery, "location:", location);
+    console.log("Search queries:", searchQueries, "location:", location);
 
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -366,12 +439,12 @@ serve(async (req) => {
 
     const [databaseJobs, crawledJobs] = await Promise.all([
       fetchDatabaseJobs(supabaseAdmin),
-      searchFirecrawlJobs(firecrawlApiKey, mergedQuery, location, limit),
+      searchFirecrawlJobs(firecrawlApiKey, searchQueries, location, limit),
     ]);
 
     console.log(`DB jobs: ${databaseJobs.length}, Crawled jobs: ${crawledJobs.length}`);
 
-    const tokens = tokenize(`${mergedQuery} ${location}`);
+    const tokens = tokenize(`${primaryQuery} ${searchQueries.slice(1, 3).join(" ")} ${location}`);
 
     const dedupedByUrl = new Map<string, NormalizedJob>();
     for (const job of [...databaseJobs, ...crawledJobs]) {
