@@ -487,23 +487,12 @@ async function searchFirecrawlJobs(
   location: string,
   limit: number,
 ): Promise<NormalizedJob[]> {
-  // Target specific job board sites for individual postings
-  const sites = [
-    "site:boards.greenhouse.io",
-    "site:job-boards.greenhouse.io",
-    "site:jobs.lever.co",
-    "site:myworkdayjobs.com",
-    "site:icims.com/jobs",
-    "site:jobs.jobvite.com",
-    "site:smartrecruiters.com",
-    "site:ashbyhq.com",
-    "site:wellfound.com/jobs",
-  ].join(" OR ");
+  // Search broadly — no site: restrictions — like Perplexity did
   const locationHint = cleanSearchFragment(location, 5);
   const mergedJobs = new Map<string, NormalizedJob>();
 
   for (const [index, query] of queries.entries()) {
-    const q = normalizeText(`${query} ${locationHint} (${sites})`).slice(0, 320);
+    const q = normalizeText(`${query} ${locationHint} job opening apply`).slice(0, 200);
     console.log(`Firecrawl search query #${index + 1}:`, q);
 
     const response = await fetch("https://api.firecrawl.dev/v1/search", {
@@ -514,7 +503,7 @@ async function searchFirecrawlJobs(
       },
       body: JSON.stringify({
         query: q,
-        limit: Math.max(20, Math.min(limit * 4, 50)),
+        limit: Math.max(25, Math.min(limit * 5, 50)),
         tbs: "qdr:m",
         scrapeOptions: {
           formats: ["markdown"],
@@ -556,13 +545,10 @@ async function searchFirecrawlJobs(
           urlVerified: isDirectJobPostingUrl(url),
         };
       })
+      // Only block obviously bad URLs — let ranking handle quality
       .filter((job) => !isBlockedUrl(job.url))
-      .filter((job) => !isGenericListingUrl(job.url))
-      .filter((job) => isHighSignalHost(job.url))
       .filter((job) => job.company && !GENERIC_COMPANY_NAMES.has(job.company.toLowerCase()))
-      .filter((job) => hasMinimalDescription(job.description))
-      .filter((job) => job.urlVerified)
-      .filter((job) => !isLowSignalDescription(job.description, job.url));
+      .filter((job) => hasMinimalDescription(job.description));
 
     console.log(`After filtering query #${index + 1}: ${jobs.length} jobs`);
 
