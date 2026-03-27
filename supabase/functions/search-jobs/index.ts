@@ -26,54 +26,48 @@ type NormalizedJob = {
   url: string;
   source: "db" | "firecrawl";
   qualityScore: number;
-  lastSeenAt?: string;
+  urlVerified: boolean;
 };
 
-const NOISY_DESCRIPTION_PATTERNS = [
-  /skip to main content/i,
-  /all rights reserved/i,
-  /jobs powered by/i,
-  /follow us/i,
-  /privacy policy/i,
-  /terms of (use|service)/i,
-  /cookie/i,
+const GENERIC_COMPANY_NAMES = new Set([
+  "jobs", "job", "careers", "career", "linkedin", "workday", "lever",
+]);
+
+// URLs we never want to show
+const BLOCKED_URL_PATTERNS = [
+  /linkedin\.com\/company\//i,
+  /linkedin\.com\/jobs\/search/i,
+  /linkedin\.com\/jobs\/collections/i,
+  /linkedin\.com\/feed/i,
+  /linkedin\.com\/in\//i,
+  /facebook\.com/i,
+  /twitter\.com/i,
+  /instagram\.com/i,
+  /youtube\.com/i,
+  /wikipedia\.org/i,
+  /reddit\.com/i,
 ];
 
-const GENERIC_COMPANY_NAMES = new Set([
-  "jobs",
-  "job",
-  "careers",
-  "career",
-  "linkedin",
-  "workday",
-  "lever",
-]);
+// URLs that are definitely direct job postings
+const DIRECT_JOB_PATTERNS = [
+  /linkedin\.com\/jobs\/view\//i,
+  /boards\.greenhouse\.io\/.+\/jobs\//i,
+  /job-boards\.greenhouse\.io\/.+\/jobs\//i,
+  /jobs\.lever\.co\/.+\/.+/i,
+  /myworkdayjobs\.com\/.+\/job\//i,
+  /icims\.com\/jobs\//i,
+  /jobvite\.com\/(?:job|jobs|careers)\//i,
+  /smartrecruiters\.com\/.+\/jobs\//i,
+  /ashbyhq\.com\/.+\/job\//i,
+  /applytojob\.com\/apply\//i,
+  /indeed\.com\/viewjob/i,
+  /glassdoor\.com\/job-listing/i,
+  /ziprecruiter\.com\/jobs\//i,
+  /wellfound\.com\/jobs/i,
+];
 
 function normalizeText(value: string | null | undefined): string {
   return (value || "").replace(/\s+/g, " ").trim();
-}
-
-function hasSubstantiveDescription(description: string): boolean {
-  const text = normalizeText(description);
-  if (text.length < 140) return false;
-  if (text.split(/\s+/).length < 24) return false;
-  if (NOISY_DESCRIPTION_PATTERNS.some((pattern) => pattern.test(text))) return false;
-
-  const signalWords = [
-    "responsibilities",
-    "requirements",
-    "qualifications",
-    "experience",
-    "team",
-    "role",
-    "position",
-    "skills",
-    "benefits",
-  ];
-  const hits = signalWords.reduce((acc, word) => acc + (text.toLowerCase().includes(word) ? 1 : 0), 0);
-  if (hits < 2) return false;
-
-  return true;
 }
 
 function inferJobType(text: string): string {
@@ -108,21 +102,11 @@ function extractCompanyFromUrl(rawUrl: string): string {
     const parts = parsed.pathname.split("/").filter(Boolean);
 
     if (host.includes("jobs.lever.co") && parts[0]) {
-      return parts[0]
-        .split(/[-_]/g)
-        .filter(Boolean)
-        .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
-        .join(" ");
+      return parts[0].split(/[-_]/g).filter(Boolean).map((p) => p.charAt(0).toUpperCase() + p.slice(1)).join(" ");
     }
-
     if ((host.includes("greenhouse.io") || host.includes("greenhouse.com")) && parts[0]) {
-      return parts[0]
-        .split(/[-_]/g)
-        .filter(Boolean)
-        .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
-        .join(" ");
+      return parts[0].split(/[-_]/g).filter(Boolean).map((p) => p.charAt(0).toUpperCase() + p.slice(1)).join(" ");
     }
-
     return "";
   } catch {
     return "";
@@ -148,6 +132,17 @@ function extractCompany(rawCompany: string, title: string, url: string): string 
   return cleanedRaw || "Company";
 }
 
+function extractCompanyFromHost(rawUrl: string): string {
+  try {
+    const { hostname } = new URL(rawUrl);
+    const host = hostname.replace(/^www\./, "");
+    const base = host.split(".")[0] || "company";
+    return base.split(/[-_]/g).filter(Boolean).map((part) => part[0]?.toUpperCase() + part.slice(1)).join(" ");
+  } catch {
+    return "Company";
+  }
+}
+
 function extractLocation(rawLocation: string, title: string, description: string, fallback: string): string {
   const candidate = normalizeText(rawLocation);
   if (candidate && candidate.length <= 80) return inferLocation(candidate, fallback);
@@ -161,54 +156,21 @@ function extractLocation(rawLocation: string, title: string, description: string
   return fallback || "Remote";
 }
 
-function extractCompanyFromHost(rawUrl: string): string {
+function isBlockedUrl(rawUrl: string): boolean {
+  if (!rawUrl) return true;
   try {
-    const { hostname } = new URL(rawUrl);
-    const host = hostname.replace(/^www\./, "");
-    const base = host.split(".")[0] || "company";
-    return base
-      .split(/[-_]/g)
-      .filter(Boolean)
-      .map((part) => part[0]?.toUpperCase() + part.slice(1))
-      .join(" ");
+    const href = new URL(rawUrl.trim()).toString();
+    return BLOCKED_URL_PATTERNS.some((p) => p.test(href));
   } catch {
-    return "Company";
+    return true;
   }
 }
-
-const DIRECT_JOB_PATTERNS = [
-  /linkedin\.com\/jobs\/view\//i,
-  /boards\.greenhouse\.io\/.+\/jobs\//i,
-  /job-boards\.greenhouse\.io\/.+\/jobs\//i,
-  /jobs\.lever\.co\/.+\/.+/i,
-  /myworkdayjobs\.com\/.+\/job\//i,
-  /icims\.com\/jobs\//i,
-  /jobvite\.com\/(?:job|jobs|careers)\//i,
-  /smartrecruiters\.com\/.+\/jobs\//i,
-  /ashbyhq\.com\/.+\/job\//i,
-  /applytojob\.com\/apply\//i,
-];
-
-const BLOCKED_URL_PATTERNS = [
-  /linkedin\.com\/company\//i,
-  /linkedin\.com\/jobs\/search/i,
-  /linkedin\.com\/jobs\/collections/i,
-  /\/careers?(?:\/)?$/i,
-  /\/jobs?(?:\/)?$/i,
-  /\/job-search(?:\/)?$/i,
-  /\/search(?:\/)?$/i,
-];
 
 function isDirectJobPostingUrl(rawUrl: string): boolean {
   if (!rawUrl) return false;
   try {
-    const url = new URL(rawUrl.trim());
-    const href = url.toString();
-
-    if (BLOCKED_URL_PATTERNS.some((pattern) => pattern.test(href))) return false;
-    if (!DIRECT_JOB_PATTERNS.some((pattern) => pattern.test(href))) return false;
-
-    return true;
+    const href = new URL(rawUrl.trim()).toString();
+    return DIRECT_JOB_PATTERNS.some((p) => p.test(href));
   } catch {
     return false;
   }
@@ -242,14 +204,22 @@ function scoreJobMatch(job: NormalizedJob, tokens: string[], locationPref: strin
   }
 
   if (/remote/i.test(job.location)) score += 4;
+  // Bonus for verified direct URLs
+  if (job.urlVerified) score += 10;
   return score;
+}
+
+function hasMinimalDescription(description: string): boolean {
+  const text = normalizeText(description);
+  // Just require 50+ chars and 8+ words — much more lenient
+  return text.length >= 50 && text.split(/\s+/).length >= 8;
 }
 
 async function fetchDatabaseJobs(supabaseAdmin: ReturnType<typeof createClient>): Promise<NormalizedJob[]> {
   const { data, error } = await supabaseAdmin
     .from("scraped_jobs")
     .select("title, company, location, job_type, description, job_url, quality_score, last_seen_at, is_flagged")
-    .gte("quality_score", 65)
+    .gte("quality_score", 50)
     .eq("is_flagged", false)
     .not("job_url", "is", null)
     .order("quality_score", { ascending: false })
@@ -274,12 +244,11 @@ async function fetchDatabaseJobs(supabaseAdmin: ReturnType<typeof createClient>)
         url,
         source: "db" as const,
         qualityScore: Number(row.quality_score || 0),
-        lastSeenAt: row.last_seen_at,
+        urlVerified: isDirectJobPostingUrl(url),
       };
     })
     .filter((job) => job.title && job.company)
-    .filter((job) => hasSubstantiveDescription(job.description))
-    .filter((job) => isDirectJobPostingUrl(job.url));
+    .filter((job) => !isBlockedUrl(job.url));
 }
 
 async function searchFirecrawlJobs(
@@ -288,7 +257,18 @@ async function searchFirecrawlJobs(
   location: string,
   limit: number,
 ): Promise<NormalizedJob[]> {
-  const q = `${query} ${location} site:linkedin.com/jobs/view OR site:boards.greenhouse.io OR site:jobs.lever.co OR site:myworkdayjobs.com OR site:icims.com/jobs OR site:jobvite.com`;
+  // Target specific job board sites for individual postings
+  const sites = [
+    "site:linkedin.com/jobs/view",
+    "site:boards.greenhouse.io",
+    "site:jobs.lever.co",
+    "site:myworkdayjobs.com",
+    "site:wellfound.com/jobs",
+    "site:glassdoor.com/job-listing",
+  ].join(" OR ");
+  const q = `${query} ${location} (${sites})`;
+
+  console.log("Firecrawl search query:", q);
 
   const response = await fetch("https://api.firecrawl.dev/v1/search", {
     method: "POST",
@@ -298,8 +278,8 @@ async function searchFirecrawlJobs(
     },
     body: JSON.stringify({
       query: q,
-      limit: Math.max(12, Math.min(limit * 3, 36)),
-      tbs: "qdr:w",
+      limit: Math.max(20, Math.min(limit * 4, 50)),
+      tbs: "qdr:m",
       scrapeOptions: {
         formats: ["markdown"],
       },
@@ -315,17 +295,20 @@ async function searchFirecrawlJobs(
   const payload = await response.json();
   const rows = Array.isArray(payload?.data) ? payload.data : Array.isArray(payload?.results) ? payload.results : [];
 
-  return rows
+  console.log(`Firecrawl returned ${rows.length} raw results`);
+
+  const jobs = rows
     .map((row: any) => {
       const url = normalizeText(row.url || row.link || "");
       const description = cleanMarkdownText(row.markdown || row.description || "").slice(0, 5000);
-      const title = normalizeText(row.title || "Job Opportunity").replace(/\s+-\s+(lever|linkedin|workday|icims|jobvite)\.?$/i, "");
+      const title = normalizeText(row.title || "Job Opportunity")
+        .replace(/\s+-\s+(lever|linkedin|workday|icims|jobvite)\.?$/i, "");
       const company = extractCompany(row.company || "", title, url) || extractCompanyFromHost(url);
       const detectedType = inferJobType(`${title} ${description}`);
       const resolvedLocation = extractLocation(row.location || "", title, description, location || "Remote");
 
-      const keywordHits = tokenize(`${title} ${description}`).length;
-      const semanticScore = Math.min(95, Math.max(68, Math.floor(description.length / 40) + Math.min(15, keywordHits)));
+      const wordCount = description.split(/\s+/).length;
+      const semanticScore = Math.min(95, Math.max(50, Math.floor(wordCount / 3) + 40));
 
       return {
         title,
@@ -336,11 +319,21 @@ async function searchFirecrawlJobs(
         url,
         source: "firecrawl" as const,
         qualityScore: semanticScore,
+        urlVerified: isDirectJobPostingUrl(url),
       };
     })
-    .filter((job) => job.url && isDirectJobPostingUrl(job.url))
+    .filter((job) => !isBlockedUrl(job.url))
     .filter((job) => job.company && !GENERIC_COMPANY_NAMES.has(job.company.toLowerCase()))
-    .filter((job) => hasSubstantiveDescription(job.description));
+    .filter((job) => hasMinimalDescription(job.description));
+
+  console.log(`After filtering: ${jobs.length} jobs`);
+  return jobs;
+}
+
+// Build a LinkedIn search URL as fallback when no direct URL
+function buildSearchUrl(title: string, company: string): string {
+  const q = encodeURIComponent(`${title} ${company}`);
+  return `https://www.linkedin.com/jobs/search/?keywords=${q}`;
 }
 
 serve(async (req) => {
@@ -361,14 +354,10 @@ serve(async (req) => {
     const limit = Math.max(5, Math.min(Number(requestBody.limit || 12), 20));
 
     const mergedQuery = normalizeText(
-      [
-        query,
-        targetTitles.join(" "),
-        skills.join(" "),
-        careerLevel,
-        jobTypes.join(" "),
-      ].join(" "),
+      [query, targetTitles.join(" "), skills.join(" "), careerLevel, jobTypes.join(" ")].join(" "),
     ) || "software engineer";
+
+    console.log("Search query:", mergedQuery, "location:", location);
 
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -380,10 +369,13 @@ serve(async (req) => {
       searchFirecrawlJobs(firecrawlApiKey, mergedQuery, location, limit),
     ]);
 
+    console.log(`DB jobs: ${databaseJobs.length}, Crawled jobs: ${crawledJobs.length}`);
+
     const tokens = tokenize(`${mergedQuery} ${location}`);
 
     const dedupedByUrl = new Map<string, NormalizedJob>();
     for (const job of [...databaseJobs, ...crawledJobs]) {
+      if (!job.url) continue;
       const existing = dedupedByUrl.get(job.url);
       if (!existing || job.qualityScore > existing.qualityScore) {
         dedupedByUrl.set(job.url, job);
@@ -403,14 +395,16 @@ serve(async (req) => {
         location: job.location,
         type: job.type,
         description: job.description,
-        matchReason:
-          job.source === "db"
-            ? "Matched from verified postings in the job database"
-            : "Matched from live web crawl with direct posting URL verification",
-        url: job.url,
-        urlVerified: true,
-        urlType: "direct",
+        matchReason: job.urlVerified
+          ? "Direct job posting link verified"
+          : "Matched from web search — click to find the listing",
+        url: job.urlVerified ? job.url : job.url,
+        googleUrl: buildSearchUrl(job.title, job.company),
+        urlVerified: job.urlVerified,
+        urlType: job.urlVerified ? "direct" : "search",
       }));
+
+    console.log(`Returning ${ranked.length} jobs`);
 
     return new Response(JSON.stringify({ jobs: ranked, citations: [] }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
