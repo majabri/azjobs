@@ -29,6 +29,26 @@ type NormalizedJob = {
   lastSeenAt?: string;
 };
 
+const NOISY_DESCRIPTION_PATTERNS = [
+  /skip to main content/i,
+  /all rights reserved/i,
+  /jobs powered by/i,
+  /follow us/i,
+  /privacy policy/i,
+  /terms of (use|service)/i,
+  /cookie/i,
+];
+
+const GENERIC_COMPANY_NAMES = new Set([
+  "jobs",
+  "job",
+  "careers",
+  "career",
+  "linkedin",
+  "workday",
+  "lever",
+]);
+
 function normalizeText(value: string | null | undefined): string {
   return (value || "").replace(/\s+/g, " ").trim();
 }
@@ -37,6 +57,22 @@ function hasSubstantiveDescription(description: string): boolean {
   const text = normalizeText(description);
   if (text.length < 140) return false;
   if (text.split(/\s+/).length < 24) return false;
+  if (NOISY_DESCRIPTION_PATTERNS.some((pattern) => pattern.test(text))) return false;
+
+  const signalWords = [
+    "responsibilities",
+    "requirements",
+    "qualifications",
+    "experience",
+    "team",
+    "role",
+    "position",
+    "skills",
+    "benefits",
+  ];
+  const hits = signalWords.reduce((acc, word) => acc + (text.toLowerCase().includes(word) ? 1 : 0), 0);
+  if (hits < 2) return false;
+
   return true;
 }
 
@@ -53,6 +89,76 @@ function inferLocation(input: string, fallback: string): string {
   if (!text) return fallback || "Remote";
   if (/\bremote\b/i.test(text)) return "Remote";
   return text;
+}
+
+function cleanMarkdownText(input: string): string {
+  return normalizeText(
+    input
+      .replace(/!\[[^\]]*\]\([^)]*\)/g, " ")
+      .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+      .replace(/[#>*_`~\-|]+/g, " ")
+      .replace(/\s{2,}/g, " "),
+  );
+}
+
+function extractCompanyFromUrl(rawUrl: string): string {
+  try {
+    const parsed = new URL(rawUrl);
+    const host = parsed.hostname.toLowerCase();
+    const parts = parsed.pathname.split("/").filter(Boolean);
+
+    if (host.includes("jobs.lever.co") && parts[0]) {
+      return parts[0]
+        .split(/[-_]/g)
+        .filter(Boolean)
+        .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
+        .join(" ");
+    }
+
+    if ((host.includes("greenhouse.io") || host.includes("greenhouse.com")) && parts[0]) {
+      return parts[0]
+        .split(/[-_]/g)
+        .filter(Boolean)
+        .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
+        .join(" ");
+    }
+
+    return "";
+  } catch {
+    return "";
+  }
+}
+
+function extractCompany(rawCompany: string, title: string, url: string): string {
+  const cleanedRaw = normalizeText(rawCompany);
+  if (cleanedRaw && !GENERIC_COMPANY_NAMES.has(cleanedRaw.toLowerCase())) return cleanedRaw;
+
+  const fromUrl = extractCompanyFromUrl(url);
+  if (fromUrl) return fromUrl;
+
+  const atMatch = title.match(/\s+at\s+([^|\-]{2,80})/i);
+  if (atMatch?.[1]) return normalizeText(atMatch[1]);
+
+  const dashMatch = title.split(" - ");
+  if (dashMatch.length >= 2) {
+    const candidate = normalizeText(dashMatch[dashMatch.length - 1]);
+    if (candidate && !/lever|linkedin|workday|icims|jobvite/i.test(candidate)) return candidate;
+  }
+
+  return cleanedRaw || "Company";
+}
+
+function extractLocation(rawLocation: string, title: string, description: string, fallback: string): string {
+  const candidate = normalizeText(rawLocation);
+  if (candidate && candidate.length <= 80) return inferLocation(candidate, fallback);
+
+  const text = `${title} ${description}`;
+  if (/\bremote\b/i.test(text)) return "Remote";
+
+  const usCityState = text.match(/\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*,\s*[A-Z]{2})\b/);
+  if (usCityState?.[1]) return usCityState[1];
+
+  return fallback || "Remote";
 }
 
 function extractCompanyFromHost(rawUrl: string): string {
@@ -212,23 +318,28 @@ async function searchFirecrawlJobs(
   return rows
     .map((row: any) => {
       const url = normalizeText(row.url || row.link || "");
-      const description = normalizeText(row.markdown || row.description || "").slice(0, 5000);
-      const title = normalizeText(row.title || "Job Opportunity");
-      const company = normalizeText(row.company || extractCompanyFromHost(url));
+      const description = cleanMarkdownText(row.markdown || row.description || "").slice(0, 5000);
+      const title = normalizeText(row.title || "Job Opportunity").replace(/\s+-\s+(lever|linkedin|workday|icims|jobvite)\.?$/i, "");
+      const company = extractCompany(row.company || "", title, url) || extractCompanyFromHost(url);
       const detectedType = inferJobType(`${title} ${description}`);
+      const resolvedLocation = extractLocation(row.location || "", title, description, location || "Remote");
+
+      const keywordHits = tokenize(`${title} ${description}`).length;
+      const semanticScore = Math.min(95, Math.max(68, Math.floor(description.length / 40) + Math.min(15, keywordHits)));
 
       return {
         title,
         company,
-        location: inferLocation(row.location || description, location || "Remote"),
+        location: resolvedLocation,
         type: detectedType,
         description,
         url,
         source: "firecrawl" as const,
-        qualityScore: Math.min(95, Math.max(68, Math.floor(description.length / 30))),
+        qualityScore: semanticScore,
       };
     })
     .filter((job) => job.url && isDirectJobPostingUrl(job.url))
+    .filter((job) => job.company && !GENERIC_COMPANY_NAMES.has(job.company.toLowerCase()))
     .filter((job) => hasSubstantiveDescription(job.description));
 }
 
