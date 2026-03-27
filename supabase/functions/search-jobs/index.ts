@@ -500,7 +500,7 @@ async function searchFirecrawlJobs(
   const mergedJobs = new Map<string, NormalizedJob>();
 
   for (const [index, query] of queries.entries()) {
-    const q = normalizeText(`${query} ${locationHint} job opening apply`).slice(0, 200);
+    const q = normalizeText(`${query} ${locationHint} hiring`).slice(0, 200);
     console.log(`Firecrawl search query #${index + 1}:`, q);
 
     const response = await fetch("https://api.firecrawl.dev/v1/search", {
