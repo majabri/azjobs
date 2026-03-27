@@ -486,8 +486,6 @@ async function fetchDatabaseJobs(supabaseAdmin: ReturnType<typeof createClient>)
     .filter((job) => job.title && !isSuspiciousCompanyName(job.company))
     .filter((job) => !isBlockedUrl(job.url))
     .filter((job) => !isGenericListingUrl(job.url))
-    .filter((job) => job.urlVerified)
-    .filter((job) => isHighSignalHost(job.url))
     .filter((job) => !isLowSignalDescription(job.description, job.url));
 }
 
@@ -502,7 +500,7 @@ async function searchFirecrawlJobs(
   const mergedJobs = new Map<string, NormalizedJob>();
 
   for (const [index, query] of queries.entries()) {
-    const q = normalizeText(`${query} ${locationHint} job opening apply`).slice(0, 200);
+    const q = normalizeText(`${query} ${locationHint} hiring`).slice(0, 200);
     console.log(`Firecrawl search query #${index + 1}:`, q);
 
     const response = await fetch("https://api.firecrawl.dev/v1/search", {
@@ -654,14 +652,15 @@ serve(async (req) => {
       .sort((a, b) => b.finalScore - a.finalScore);
 
     const strictFiltered = rankedCandidates.filter((job) => {
-      if (skillTokens.length > 0) {
-        return job.intent.skillHits >= 1 && (job.intent.titleHits >= 1 || job.intent.phraseHit || job.finalScore >= 90);
-      }
-      return job.intent.titleHits >= 1 || job.intent.phraseHit;
+      // Accept jobs with any meaningful signal — don't require strict skill hits
+      if (job.intent.phraseHit) return true;
+      if (job.intent.skillHits >= 1) return true;
+      if (job.intent.titleHits >= 1) return true;
+      return job.finalScore >= 60;
     });
 
     const qualityFirst = strictFiltered.filter((job) =>
-      job.intent.phraseHit || job.intent.skillHits >= 1 || job.finalScore >= 85,
+      job.intent.phraseHit || job.intent.skillHits >= 1 || job.finalScore >= 70,
     );
 
     const ranked = (qualityFirst.length > 0
