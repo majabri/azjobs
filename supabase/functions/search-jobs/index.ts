@@ -656,7 +656,7 @@ serve(async (req) => {
 
     const strictFiltered = rankedCandidates.filter((job) => {
       if (skillTokens.length > 0) {
-        return job.intent.skillHits >= 1 || job.intent.titleHits >= 2 || job.intent.phraseHit;
+        return job.intent.skillHits >= 1 && (job.intent.titleHits >= 1 || job.intent.phraseHit || job.finalScore >= 90);
       }
       return job.intent.titleHits >= 1 || job.intent.phraseHit;
     });
