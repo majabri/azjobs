@@ -772,6 +772,11 @@ export default function JobSearchPage() {
                         </span>
                       )}
                       {job.source && <Badge variant="outline" className="text-xs capitalize">{job.source}</Badge>}
+                      {job.url && isLikelyDirectJobPostingUrl(job.url) && (
+                        <Badge variant="outline" className="text-xs border-emerald-500/40 text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-400">
+                          <ShieldCheck className="w-3 h-3 mr-1" /> Direct Link Verified
+                        </Badge>
+                      )}
                     </div>
                     <p className="text-sm text-muted-foreground mt-2 leading-relaxed line-clamp-3">{job.description}</p>
 
