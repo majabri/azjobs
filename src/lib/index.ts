@@ -1,4 +1,4 @@
 export * from './validation';
 export * from './safeAsync';
-export * from './urlUtils';
+export { normalizeUrl, isDirectJobPostingUrl, buildSearchUrl, extractDomain } from './urlUtils';
 export * from './supabaseClient';
