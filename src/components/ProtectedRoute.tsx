@@ -6,11 +6,20 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
   const navigate = useNavigate();
   const [ready, setReady] = useState(false);
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) {
-        navigate("/auth", { replace: true });
-      } else {
+//  useEffect(() => {
+//    supabase.auth.getSession().then(({ data: { session } }) => {
+//      if (!session) {
+//        navigate("/auth", { replace: true });
+useEffect(() => {
+  supabase.auth.getSession()
+    .then(({ data: { session } }) => {
+      if (!session) navigate("/auth", { replace: true });
+      else setReady(true);
+    })
+    .catch((err) => {
+      console.error("Auth session error:", err);
+      navigate("/auth", { replace: true });
+} else {
         setReady(true);
       }
     });
