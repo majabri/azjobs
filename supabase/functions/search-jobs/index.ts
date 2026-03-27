@@ -652,14 +652,15 @@ serve(async (req) => {
       .sort((a, b) => b.finalScore - a.finalScore);
 
     const strictFiltered = rankedCandidates.filter((job) => {
-      if (skillTokens.length > 0) {
-        return job.intent.skillHits >= 1 && (job.intent.titleHits >= 1 || job.intent.phraseHit || job.finalScore >= 90);
-      }
-      return job.intent.titleHits >= 1 || job.intent.phraseHit;
+      // Accept jobs with any meaningful signal — don't require strict skill hits
+      if (job.intent.phraseHit) return true;
+      if (job.intent.skillHits >= 1) return true;
+      if (job.intent.titleHits >= 1) return true;
+      return job.finalScore >= 60;
     });
 
     const qualityFirst = strictFiltered.filter((job) =>
-      job.intent.phraseHit || job.intent.skillHits >= 1 || job.finalScore >= 85,
+      job.intent.phraseHit || job.intent.skillHits >= 1 || job.finalScore >= 70,
     );
 
     const ranked = (qualityFirst.length > 0
