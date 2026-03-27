@@ -54,6 +54,16 @@ const BLOCKED_URL_PATTERNS = [
   /youtube\.com/i,
   /wikipedia\.org/i,
   /reddit\.com/i,
+  // Block aggregator search/listing pages (not individual postings)
+  /indeed\.com\/q-/i,
+  /indeed\.com\/jobs\?/i,
+  /ziprecruiter\.com\/Jobs\/[^/]+\/-*in-/i,
+  /careercircle\.com\/jobs$/i,
+  /glassdoor\.com\/Job\/.*-jobs-/i,
+  /monster\.com\/jobs\/search/i,
+  /salary\.com/i,
+  /payscale\.com/i,
+  /comparably\.com/i,
 ];
 
 // URLs that are definitely direct job postings
@@ -487,23 +497,12 @@ async function searchFirecrawlJobs(
   location: string,
   limit: number,
 ): Promise<NormalizedJob[]> {
-  // Target specific job board sites for individual postings
-  const sites = [
-    "site:boards.greenhouse.io",
-    "site:job-boards.greenhouse.io",
-    "site:jobs.lever.co",
-    "site:myworkdayjobs.com",
-    "site:icims.com/jobs",
-    "site:jobs.jobvite.com",
-    "site:smartrecruiters.com",
-    "site:ashbyhq.com",
-    "site:wellfound.com/jobs",
-  ].join(" OR ");
+  // Search broadly — no site: restrictions — like Perplexity did
   const locationHint = cleanSearchFragment(location, 5);
   const mergedJobs = new Map<string, NormalizedJob>();
 
   for (const [index, query] of queries.entries()) {
-    const q = normalizeText(`${query} ${locationHint} (${sites})`).slice(0, 320);
+    const q = normalizeText(`${query} ${locationHint} job opening apply`).slice(0, 200);
     console.log(`Firecrawl search query #${index + 1}:`, q);
 
     const response = await fetch("https://api.firecrawl.dev/v1/search", {
@@ -514,7 +513,7 @@ async function searchFirecrawlJobs(
       },
       body: JSON.stringify({
         query: q,
-        limit: Math.max(20, Math.min(limit * 4, 50)),
+        limit: Math.max(25, Math.min(limit * 5, 50)),
         tbs: "qdr:m",
         scrapeOptions: {
           formats: ["markdown"],
@@ -556,12 +555,12 @@ async function searchFirecrawlJobs(
           urlVerified: isDirectJobPostingUrl(url),
         };
       })
+      // Block bad URLs and generic listing/aggregator pages
       .filter((job) => !isBlockedUrl(job.url))
       .filter((job) => !isGenericListingUrl(job.url))
-      .filter((job) => isHighSignalHost(job.url))
       .filter((job) => job.company && !GENERIC_COMPANY_NAMES.has(job.company.toLowerCase()))
+      .filter((job) => !isSuspiciousCompanyName(job.company))
       .filter((job) => hasMinimalDescription(job.description))
-      .filter((job) => job.urlVerified)
       .filter((job) => !isLowSignalDescription(job.description, job.url));
 
     console.log(`After filtering query #${index + 1}: ${jobs.length} jobs`);
@@ -573,7 +572,7 @@ async function searchFirecrawlJobs(
       }
     }
 
-    if (mergedJobs.size >= Math.max(limit * 2, 30)) break;
+    if (mergedJobs.size >= Math.max(limit * 3, 40)) break;
   }
 
   return [...mergedJobs.values()];
@@ -669,7 +668,7 @@ serve(async (req) => {
       ? qualityFirst
       : strictFiltered.length > 0
         ? strictFiltered
-        : rankedCandidates.filter((job) => job.urlVerified && job.finalScore >= 75)
+        : rankedCandidates.filter((job) => job.finalScore >= 40)
     )
       .slice(0, limit)
       .map((job) => ({
