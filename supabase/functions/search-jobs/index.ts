@@ -257,8 +257,16 @@ async function searchFirecrawlJobs(
   location: string,
   limit: number,
 ): Promise<NormalizedJob[]> {
-  // Search for job postings — include broader job sites
-  const q = `${query} ${location} job posting apply`;
+  // Target specific job board sites for individual postings
+  const sites = [
+    "site:linkedin.com/jobs/view",
+    "site:boards.greenhouse.io",
+    "site:jobs.lever.co",
+    "site:myworkdayjobs.com",
+    "site:wellfound.com/jobs",
+    "site:glassdoor.com/job-listing",
+  ].join(" OR ");
+  const q = `${query} ${location} (${sites})`;
 
   console.log("Firecrawl search query:", q);
 
@@ -270,8 +278,8 @@ async function searchFirecrawlJobs(
     },
     body: JSON.stringify({
       query: q,
-      limit: Math.max(15, Math.min(limit * 4, 40)),
-      tbs: "qdr:m", // last month instead of last week for more results
+      limit: Math.max(20, Math.min(limit * 4, 50)),
+      tbs: "qdr:m",
       scrapeOptions: {
         formats: ["markdown"],
       },
