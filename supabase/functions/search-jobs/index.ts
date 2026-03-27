@@ -29,8 +29,16 @@ type NormalizedJob = {
   urlVerified: boolean;
 };
 
+type IntentMatch = {
+  skillHits: number;
+  titleHits: number;
+  phraseHit: boolean;
+  score: number;
+};
+
 const GENERIC_COMPANY_NAMES = new Set([
   "jobs", "job", "careers", "career", "linkedin", "workday", "lever",
+  "company", "unknown",
 ]);
 
 // URLs we never want to show
@@ -53,7 +61,7 @@ const DIRECT_JOB_PATTERNS = [
   /linkedin\.com\/jobs\/view\//i,
   /boards\.greenhouse\.io\/.+\/jobs\//i,
   /job-boards\.greenhouse\.io\/.+\/jobs\//i,
-  /jobs\.lever\.co\/.+\/.+/i,
+  /jobs\.lever\.co\/[^/?#]+\/[^/?#]+/i,
   /myworkdayjobs\.com\/.+\/job\//i,
   /icims\.com\/jobs\//i,
   /jobvite\.com\/(?:job|jobs|careers)\//i,
@@ -63,8 +71,36 @@ const DIRECT_JOB_PATTERNS = [
   /indeed\.com\/viewjob/i,
   /glassdoor\.com\/job-listing/i,
   /ziprecruiter\.com\/jobs\//i,
-  /wellfound\.com\/jobs/i,
+  /wellfound\.com\/jobs\/[a-z0-9-]+/i,
 ];
+
+const HIGH_SIGNAL_HOST_PATTERNS = [
+  /myworkdayjobs\.com/i,
+  /icims\.com/i,
+  /jobvite\.com/i,
+  /boards\.greenhouse\.io/i,
+  /job-boards\.greenhouse\.io/i,
+  /jobs\.lever\.co/i,
+  /smartrecruiters\.com/i,
+  /ashbyhq\.com/i,
+  /wellfound\.com/i,
+  /applytojob\.com/i,
+];
+
+const GENERIC_LISTING_PATH_SEGMENTS = new Set([
+  "jobs",
+  "job",
+  "careers",
+  "career",
+  "open-positions",
+  "positions",
+  "search",
+  "results",
+  "openings",
+  "all",
+  "index",
+  "list",
+]);
 
 function normalizeText(value: string | null | undefined): string {
   return (value || "").replace(/\s+/g, " ").trim();
@@ -92,6 +128,76 @@ function cleanMarkdownText(input: string): string {
       .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
       .replace(/[#>*_`~\-|]+/g, " ")
       .replace(/\s{2,}/g, " "),
+  );
+}
+
+function getUrlHost(rawUrl: string): string {
+  try {
+    return new URL(rawUrl).hostname.toLowerCase();
+  } catch {
+    return "";
+  }
+}
+
+function looksLikeLocationText(value: string): boolean {
+  const v = normalizeText(value).toLowerCase();
+  if (!v) return false;
+  if (/\bremote\b/.test(v)) return true;
+  if (/^[a-z\s]+,\s*[a-z]{2}$/.test(v)) return true;
+  if (/\b(united states|usa|us|canada|uk|united kingdom)\b/.test(v)) return true;
+  return false;
+}
+
+function isSuspiciousCompanyName(company: string): boolean {
+  const cleaned = normalizeText(company);
+  if (!cleaned) return true;
+  if (GENERIC_COMPANY_NAMES.has(cleaned.toLowerCase())) return true;
+  if (looksLikeLocationText(cleaned)) return true;
+  return cleaned.length < 2;
+}
+
+function isLowSignalDescription(description: string, rawUrl: string): boolean {
+  const text = normalizeText(description).toLowerCase();
+  const host = getUrlHost(rawUrl);
+  if (!text) return true;
+
+  if (text.length < 120 || text.split(/\s+/).length < 20) return true;
+
+  const generalLowSignalPatterns = [
+    /jobs powered by/i,
+    /view all jobs/i,
+    /join our talent network/i,
+    /all locations/i,
+  ];
+  if (generalLowSignalPatterns.some((pattern) => pattern.test(text))) return true;
+
+  // LinkedIn snippets often contain related-job boilerplate, not real descriptions
+  if (host.includes("linkedin.com")) {
+    const lowSignalPatterns = [
+      /get notified about new/i,
+      /similar searches/i,
+      /open jobs/i,
+      /jobs\s*[·|]/i,
+      /see who .* has hired for this role/i,
+    ];
+    if (lowSignalPatterns.some((pattern) => pattern.test(text))) return true;
+  }
+
+  return false;
+}
+
+function normalizeJobTitle(rawTitle: string): string {
+  const title = normalizeText(rawTitle);
+  if (!title) return "Job Opportunity";
+
+  // Example: "Deloitte hiring ServiceNow Consultant in Detroit, MI | LinkedIn"
+  const linkedInHiringMatch = title.match(/^.+?\s+hiring\s+(.+?)\s+in\s+.+\|\s*linkedin$/i);
+  if (linkedInHiringMatch?.[1]) return normalizeText(linkedInHiringMatch[1]);
+
+  return normalizeText(
+    title
+      .replace(/\s+-\s+(lever|linkedin|workday|icims|jobvite)\.?$/i, "")
+      .replace(/\|\s*linkedin$/i, ""),
   );
 }
 
@@ -132,10 +238,12 @@ function extractCompany(rawCompany: string, title: string, url: string): string 
   const dashMatch = title.split(" - ");
   if (dashMatch.length >= 2) {
     const candidate = normalizeText(dashMatch[dashMatch.length - 1]);
-    if (candidate && !/lever|linkedin|workday|icims|jobvite/i.test(candidate)) return candidate;
+    if (candidate && !looksLikeLocationText(candidate) && !/lever|linkedin|workday|icims|jobvite/i.test(candidate)) {
+      return candidate;
+    }
   }
 
-  return cleanedRaw || "Company";
+  return cleanedRaw;
 }
 
 function extractCompanyFromHost(rawUrl: string): string {
@@ -143,9 +251,10 @@ function extractCompanyFromHost(rawUrl: string): string {
     const { hostname } = new URL(rawUrl);
     const host = hostname.replace(/^www\./, "");
     const base = host.split(".")[0] || "company";
-    return base.split(/[-_]/g).filter(Boolean).map((part) => part[0]?.toUpperCase() + part.slice(1)).join(" ");
+    const inferred = base.split(/[-_]/g).filter(Boolean).map((part) => part[0]?.toUpperCase() + part.slice(1)).join(" ");
+    return isSuspiciousCompanyName(inferred) ? "" : inferred;
   } catch {
-    return "Company";
+    return "";
   }
 }
 
@@ -182,6 +291,42 @@ function isDirectJobPostingUrl(rawUrl: string): boolean {
   }
 }
 
+function isHighSignalHost(rawUrl: string): boolean {
+  const host = getUrlHost(rawUrl);
+  if (!host) return false;
+  if (host.includes("linkedin.com")) return false;
+  return HIGH_SIGNAL_HOST_PATTERNS.some((pattern) => pattern.test(host));
+}
+
+function isGenericListingUrl(rawUrl: string): boolean {
+  try {
+    const parsed = new URL(rawUrl);
+    const host = parsed.hostname.toLowerCase();
+    const parts = parsed.pathname
+      .split("/")
+      .map((p) => p.trim().toLowerCase())
+      .filter(Boolean);
+
+    if (parts.length === 0) return true;
+    if (host.includes("jobs.lever.co") && parts.length <= 1) return true;
+    if ((host.includes("greenhouse.io") || host.includes("greenhouse.com")) && parts.length <= 1) return true;
+
+    const allGeneric = parts.every((segment) => GENERIC_LISTING_PATH_SEGMENTS.has(segment));
+    if (allGeneric) return true;
+
+    if (parts.length <= 2) {
+      const hasSearchQuery = ["q", "query", "keywords", "search", "location", "department", "team"].some((k) =>
+        parsed.searchParams.has(k),
+      );
+      if (hasSearchQuery) return true;
+    }
+
+    return false;
+  } catch {
+    return true;
+  }
+}
+
 function tokenize(text: string): string[] {
   const stopWords = new Set([
     "the", "and", "for", "with", "from", "that", "this", "job", "jobs", "role", "work", "full", "time", "part",
@@ -195,9 +340,28 @@ function tokenize(text: string): string[] {
     .filter((token) => token.length >= 3 && !stopWords.has(token));
 }
 
+function buildIntentMatch(
+  job: NormalizedJob,
+  skillTokens: string[],
+  titleTokens: string[],
+  titlePhrases: string[],
+): IntentMatch {
+  const haystack = `${job.title} ${job.description} ${job.company} ${job.type}`.toLowerCase();
+  const skillHits = skillTokens.filter((token) => haystack.includes(token)).length;
+  const titleHits = titleTokens.filter((token) => haystack.includes(token)).length;
+  const phraseHit = titlePhrases.some((phrase) => phrase && job.title.toLowerCase().includes(phrase));
+
+  let score = skillHits * 12 + titleHits * 7 + (phraseHit ? 20 : 0);
+  if (/\bhiring\b.+\|\s*linkedin/i.test(job.title)) score -= 10;
+  if (isSuspiciousCompanyName(job.company)) score -= 14;
+
+  return { skillHits, titleHits, phraseHit, score };
+}
+
 function scoreJobMatch(job: NormalizedJob, tokens: string[], locationPref: string): number {
   let score = job.qualityScore;
   const haystack = `${job.title} ${job.company} ${job.description} ${job.type} ${job.location}`.toLowerCase();
+  const host = getUrlHost(job.url);
 
   for (const token of tokens) {
     if (haystack.includes(token)) score += 8;
@@ -212,6 +376,13 @@ function scoreJobMatch(job: NormalizedJob, tokens: string[], locationPref: strin
   if (/remote/i.test(job.location)) score += 4;
   // Bonus for verified direct URLs
   if (job.urlVerified) score += 10;
+
+  if (host.includes("myworkdayjobs.com") || host.includes("icims.com") || host.includes("jobvite.com")) score += 10;
+  if (host.includes("greenhouse.io") || host.includes("job-boards.greenhouse.io") || host.includes("jobs.lever.co")) score += 9;
+  if (host.includes("smartrecruiters.com") || host.includes("ashbyhq.com")) score += 7;
+  if (host.includes("linkedin.com")) score -= 6;
+
+  if (isLowSignalDescription(job.description, job.url)) score -= 20;
   return score;
 }
 
@@ -263,11 +434,11 @@ function buildSearchQueries(params: {
     cleanSearchFragment(`${secondaryRole} ${remoteHint}`, 10),
     cleanSearchFragment(`${roleWithLevel} ${remoteHint}`, 10),
     cleanSearchFragment(`${primaryRole} ${skills.slice(0, 2).join(" ")}`, 10),
-    cleanSearchFragment(`${skills[0] || "software"} engineer ${remoteHint}`, 10),
-    "software engineer remote",
+    cleanSearchFragment(`${titles[0] || primaryRole} ${skills.slice(0, 2).join(" ")} ${remoteHint}`, 10),
   ];
 
-  return [...new Set(candidates.filter((candidate) => candidate.length >= 4))].slice(0, 6);
+  const deduped = [...new Set(candidates.filter((candidate) => candidate.length >= 4))].slice(0, 6);
+  return deduped.length ? deduped : ["software engineer remote"];
 }
 
 async function fetchDatabaseJobs(supabaseAdmin: ReturnType<typeof createClient>): Promise<NormalizedJob[]> {
@@ -302,8 +473,12 @@ async function fetchDatabaseJobs(supabaseAdmin: ReturnType<typeof createClient>)
         urlVerified: isDirectJobPostingUrl(url),
       };
     })
-    .filter((job) => job.title && job.company)
-    .filter((job) => !isBlockedUrl(job.url));
+    .filter((job) => job.title && !isSuspiciousCompanyName(job.company))
+    .filter((job) => !isBlockedUrl(job.url))
+    .filter((job) => !isGenericListingUrl(job.url))
+    .filter((job) => job.urlVerified)
+    .filter((job) => isHighSignalHost(job.url))
+    .filter((job) => !isLowSignalDescription(job.description, job.url));
 }
 
 async function searchFirecrawlJobs(
@@ -314,12 +489,15 @@ async function searchFirecrawlJobs(
 ): Promise<NormalizedJob[]> {
   // Target specific job board sites for individual postings
   const sites = [
-    "site:linkedin.com/jobs/view",
     "site:boards.greenhouse.io",
+    "site:job-boards.greenhouse.io",
     "site:jobs.lever.co",
     "site:myworkdayjobs.com",
+    "site:icims.com/jobs",
+    "site:jobs.jobvite.com",
+    "site:smartrecruiters.com",
+    "site:ashbyhq.com",
     "site:wellfound.com/jobs",
-    "site:glassdoor.com/job-listing",
   ].join(" OR ");
   const locationHint = cleanSearchFragment(location, 5);
   const mergedJobs = new Map<string, NormalizedJob>();
@@ -358,8 +536,7 @@ async function searchFirecrawlJobs(
       .map((row: any) => {
         const url = normalizeText(row.url || row.link || "");
         const description = cleanMarkdownText(row.markdown || row.description || "").slice(0, 5000);
-        const title = normalizeText(row.title || "Job Opportunity")
-          .replace(/\s+-\s+(lever|linkedin|workday|icims|jobvite)\.?$/i, "");
+        const title = normalizeJobTitle(row.title || "Job Opportunity");
         const company = extractCompany(row.company || "", title, url) || extractCompanyFromHost(url);
         const detectedType = inferJobType(`${title} ${description}`);
         const resolvedLocation = extractLocation(row.location || "", title, description, location || "Remote");
@@ -380,8 +557,12 @@ async function searchFirecrawlJobs(
         };
       })
       .filter((job) => !isBlockedUrl(job.url))
+      .filter((job) => !isGenericListingUrl(job.url))
+      .filter((job) => isHighSignalHost(job.url))
       .filter((job) => job.company && !GENERIC_COMPANY_NAMES.has(job.company.toLowerCase()))
-      .filter((job) => hasMinimalDescription(job.description));
+      .filter((job) => hasMinimalDescription(job.description))
+      .filter((job) => job.urlVerified)
+      .filter((job) => !isLowSignalDescription(job.description, job.url));
 
     console.log(`After filtering query #${index + 1}: ${jobs.length} jobs`);
 
@@ -429,6 +610,12 @@ serve(async (req) => {
       jobTypes,
     });
     const primaryQuery = searchQueries[0] || "software engineer";
+    const skillTokens = tokenize(skills.join(" ")).slice(0, 24);
+    const titleTokens = tokenize(`${targetTitles.join(" ")} ${query} ${careerLevel}`).slice(0, 24);
+    const titlePhrases = targetTitles
+      .map((title) => cleanSearchFragment(title, 8).toLowerCase())
+      .filter((title) => title.length >= 5)
+      .slice(0, 6);
 
     console.log("Search queries:", searchQueries, "location:", location);
 
@@ -455,12 +642,35 @@ serve(async (req) => {
       }
     }
 
-    const ranked = [...dedupedByUrl.values()]
+    const rankedCandidates = [...dedupedByUrl.values()]
       .map((job) => ({
         ...job,
         matchScore: scoreJobMatch(job, tokens, location),
+        intent: buildIntentMatch(job, skillTokens, titleTokens, titlePhrases),
       }))
-      .sort((a, b) => b.matchScore - a.matchScore)
+      .map((job) => ({
+        ...job,
+        finalScore: job.matchScore + job.intent.score,
+      }))
+      .sort((a, b) => b.finalScore - a.finalScore);
+
+    const strictFiltered = rankedCandidates.filter((job) => {
+      if (skillTokens.length > 0) {
+        return job.intent.skillHits >= 1 && (job.intent.titleHits >= 1 || job.intent.phraseHit || job.finalScore >= 90);
+      }
+      return job.intent.titleHits >= 1 || job.intent.phraseHit;
+    });
+
+    const qualityFirst = strictFiltered.filter((job) =>
+      job.intent.phraseHit || job.intent.skillHits >= 1 || job.finalScore >= 85,
+    );
+
+    const ranked = (qualityFirst.length > 0
+      ? qualityFirst
+      : strictFiltered.length > 0
+        ? strictFiltered
+        : rankedCandidates.filter((job) => job.urlVerified && job.finalScore >= 75)
+    )
       .slice(0, limit)
       .map((job) => ({
         title: job.title,
@@ -469,8 +679,8 @@ serve(async (req) => {
         type: job.type,
         description: job.description,
         matchReason: job.urlVerified
-          ? "Direct job posting link verified"
-          : "Matched from web search — click to find the listing",
+          ? `Direct posting verified • ${job.intent.skillHits} skill matches`
+          : `Matched from web search • ${job.intent.skillHits} skill matches`,
         url: job.urlVerified ? job.url : job.url,
         googleUrl: buildSearchUrl(job.title, job.company),
         urlVerified: job.urlVerified,
