@@ -29,6 +29,13 @@ type NormalizedJob = {
   urlVerified: boolean;
 };
 
+type IntentMatch = {
+  skillHits: number;
+  titleHits: number;
+  phraseHit: boolean;
+  score: number;
+};
+
 const GENERIC_COMPANY_NAMES = new Set([
   "jobs", "job", "careers", "career", "linkedin", "workday", "lever",
 ]);
@@ -92,6 +99,21 @@ function cleanMarkdownText(input: string): string {
       .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
       .replace(/[#>*_`~\-|]+/g, " ")
       .replace(/\s{2,}/g, " "),
+  );
+}
+
+function normalizeJobTitle(rawTitle: string): string {
+  const title = normalizeText(rawTitle);
+  if (!title) return "Job Opportunity";
+
+  // Example: "Deloitte hiring ServiceNow Consultant in Detroit, MI | LinkedIn"
+  const linkedInHiringMatch = title.match(/^.+?\s+hiring\s+(.+?)\s+in\s+.+\|\s*linkedin$/i);
+  if (linkedInHiringMatch?.[1]) return normalizeText(linkedInHiringMatch[1]);
+
+  return normalizeText(
+    title
+      .replace(/\s+-\s+(lever|linkedin|workday|icims|jobvite)\.?$/i, "")
+      .replace(/\|\s*linkedin$/i, ""),
   );
 }
 
@@ -195,6 +217,24 @@ function tokenize(text: string): string[] {
     .filter((token) => token.length >= 3 && !stopWords.has(token));
 }
 
+function buildIntentMatch(
+  job: NormalizedJob,
+  skillTokens: string[],
+  titleTokens: string[],
+  titlePhrases: string[],
+): IntentMatch {
+  const haystack = `${job.title} ${job.description} ${job.company} ${job.type}`.toLowerCase();
+  const skillHits = skillTokens.filter((token) => haystack.includes(token)).length;
+  const titleHits = titleTokens.filter((token) => haystack.includes(token)).length;
+  const phraseHit = titlePhrases.some((phrase) => phrase && job.title.toLowerCase().includes(phrase));
+
+  let score = skillHits * 12 + titleHits * 7 + (phraseHit ? 20 : 0);
+  if (/\bhiring\b.+\|\s*linkedin/i.test(job.title)) score -= 10;
+  if (job.company === "Company") score -= 12;
+
+  return { skillHits, titleHits, phraseHit, score };
+}
+
 function scoreJobMatch(job: NormalizedJob, tokens: string[], locationPref: string): number {
   let score = job.qualityScore;
   const haystack = `${job.title} ${job.company} ${job.description} ${job.type} ${job.location}`.toLowerCase();
@@ -263,11 +303,11 @@ function buildSearchQueries(params: {
     cleanSearchFragment(`${secondaryRole} ${remoteHint}`, 10),
     cleanSearchFragment(`${roleWithLevel} ${remoteHint}`, 10),
     cleanSearchFragment(`${primaryRole} ${skills.slice(0, 2).join(" ")}`, 10),
-    cleanSearchFragment(`${skills[0] || "software"} engineer ${remoteHint}`, 10),
-    "software engineer remote",
+    cleanSearchFragment(`${titles[0] || primaryRole} ${skills.slice(0, 2).join(" ")} ${remoteHint}`, 10),
   ];
 
-  return [...new Set(candidates.filter((candidate) => candidate.length >= 4))].slice(0, 6);
+  const deduped = [...new Set(candidates.filter((candidate) => candidate.length >= 4))].slice(0, 6);
+  return deduped.length ? deduped : ["software engineer remote"];
 }
 
 async function fetchDatabaseJobs(supabaseAdmin: ReturnType<typeof createClient>): Promise<NormalizedJob[]> {
@@ -318,6 +358,9 @@ async function searchFirecrawlJobs(
     "site:boards.greenhouse.io",
     "site:jobs.lever.co",
     "site:myworkdayjobs.com",
+    "site:icims.com/jobs",
+    "site:jobs.jobvite.com",
+    "site:smartrecruiters.com",
     "site:wellfound.com/jobs",
     "site:glassdoor.com/job-listing",
   ].join(" OR ");
@@ -358,8 +401,7 @@ async function searchFirecrawlJobs(
       .map((row: any) => {
         const url = normalizeText(row.url || row.link || "");
         const description = cleanMarkdownText(row.markdown || row.description || "").slice(0, 5000);
-        const title = normalizeText(row.title || "Job Opportunity")
-          .replace(/\s+-\s+(lever|linkedin|workday|icims|jobvite)\.?$/i, "");
+        const title = normalizeJobTitle(row.title || "Job Opportunity");
         const company = extractCompany(row.company || "", title, url) || extractCompanyFromHost(url);
         const detectedType = inferJobType(`${title} ${description}`);
         const resolvedLocation = extractLocation(row.location || "", title, description, location || "Remote");
@@ -429,6 +471,12 @@ serve(async (req) => {
       jobTypes,
     });
     const primaryQuery = searchQueries[0] || "software engineer";
+    const skillTokens = tokenize(skills.join(" ")).slice(0, 24);
+    const titleTokens = tokenize(`${targetTitles.join(" ")} ${query} ${careerLevel}`).slice(0, 24);
+    const titlePhrases = targetTitles
+      .map((title) => cleanSearchFragment(title, 8).toLowerCase())
+      .filter((title) => title.length >= 5)
+      .slice(0, 6);
 
     console.log("Search queries:", searchQueries, "location:", location);
 
@@ -455,12 +503,26 @@ serve(async (req) => {
       }
     }
 
-    const ranked = [...dedupedByUrl.values()]
+    const rankedCandidates = [...dedupedByUrl.values()]
       .map((job) => ({
         ...job,
         matchScore: scoreJobMatch(job, tokens, location),
+        intent: buildIntentMatch(job, skillTokens, titleTokens, titlePhrases),
       }))
-      .sort((a, b) => b.matchScore - a.matchScore)
+      .map((job) => ({
+        ...job,
+        finalScore: job.matchScore + job.intent.score,
+      }))
+      .sort((a, b) => b.finalScore - a.finalScore);
+
+    const strictFiltered = rankedCandidates.filter((job) => {
+      if (skillTokens.length > 0) {
+        return job.intent.skillHits >= 1 || job.intent.titleHits >= 2 || job.intent.phraseHit;
+      }
+      return job.intent.titleHits >= 1 || job.intent.phraseHit;
+    });
+
+    const ranked = (strictFiltered.length >= Math.ceil(limit / 2) ? strictFiltered : rankedCandidates)
       .slice(0, limit)
       .map((job) => ({
         title: job.title,
@@ -469,8 +531,8 @@ serve(async (req) => {
         type: job.type,
         description: job.description,
         matchReason: job.urlVerified
-          ? "Direct job posting link verified"
-          : "Matched from web search — click to find the listing",
+          ? `Direct posting verified • ${job.intent.skillHits} skill matches`
+          : `Matched from web search • ${job.intent.skillHits} skill matches`,
         url: job.urlVerified ? job.url : job.url,
         googleUrl: buildSearchUrl(job.title, job.company),
         urlVerified: job.urlVerified,
