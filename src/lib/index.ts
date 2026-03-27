@@ -1,4 +1,4 @@
 export * from './validation';
 export * from './safeAsync';
-export * from './urlUtils';
+export { sanitizeURL } from './urlUtils';
 export * from './supabaseClient';
