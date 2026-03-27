@@ -531,7 +531,7 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
                   </div>
 
                   {/* Warning flags */}
-                  {hasFlags && (
+                  {hasFlags && !compact && (
                     <div className="flex flex-wrap gap-2">
                       {job.flags!.map((flag, fi) => (
                         <Badge
