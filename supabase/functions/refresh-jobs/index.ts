@@ -11,11 +11,16 @@ const DEFAULT_GREENHOUSE_BOARDS = [
   "airbnb", "figma", "stripe", "notion", "databricks", "cloudflare",
   "discord", "instacart", "robinhood", "coinbase", "grammarly",
   "plaid", "brex", "airtable", "vercel", "netlify",
+  "dropbox", "squarespace", "hashicorp", "elastic", "confluent",
+  "datadog", "snyk", "mongodb", "cockroachlabs", "dbt-labs",
+  "samsara", "benchling", "retool", "linear", "loom",
 ];
 
 const DEFAULT_LEVER_COMPANIES = [
   "netflix", "shopify", "twitch", "palantir", "reddit",
   "doordash", "lyft", "snap", "spotify", "hubspot",
+  "nerdwallet", "webflow", "postman", "calendly", "miro",
+  "lucidchart", "gong", "lattice", "greenhouse", "gusto",
 ];
 
 const GENERIC_JOB_PATH_SEGMENTS = new Set([
