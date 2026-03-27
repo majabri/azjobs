@@ -386,6 +386,11 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
                         <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" /> {job.location}</span>
                         {job.type && <Badge variant="outline" className="capitalize text-xs">{job.type}</Badge>}
                         {job.jobAge && <span className="text-xs">{job.jobAge}d ago</span>}
+                        {job.url && isLikelyDirectJobPostingUrl(job.url) && (
+                          <Badge variant="outline" className="text-xs border-emerald-500/40 text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-400">
+                            <ShieldCheck className="w-3 h-3 mr-1" /> Direct Link Verified
+                          </Badge>
+                        )}
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-1 flex-shrink-0">
