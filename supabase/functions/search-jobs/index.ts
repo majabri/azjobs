@@ -57,7 +57,7 @@ const BLOCKED_URL_PATTERNS = [
   // Block aggregator search/listing pages (not individual postings)
   /indeed\.com\/q-/i,
   /indeed\.com\/jobs\?/i,
-  /ziprecruiter\.com\/Jobs\/[^/]+\/-in-/i,
+  /ziprecruiter\.com\/Jobs\/[^/]+\/-*in-/i,
   /careercircle\.com\/jobs$/i,
   /glassdoor\.com\/Job\/.*-jobs-/i,
   /monster\.com\/jobs\/search/i,
