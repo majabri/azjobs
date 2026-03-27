@@ -259,7 +259,6 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
             return (
               Boolean(normalizedUrl) &&
               !isGenericJobListingUrl(normalizedUrl) &&
-              isLikelyDirectJobPostingUrl(normalizedUrl) &&
               hasSubstantiveJobDescription(job.description)
             );
           });
@@ -364,7 +363,6 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
           (job) =>
             Boolean(job.url) &&
             !isGenericJobListingUrl(job.url) &&
-            isLikelyDirectJobPostingUrl(job.url) &&
             hasSubstantiveJobDescription(job.description),
         );
 
