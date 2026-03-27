@@ -205,19 +205,7 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
 
   useEffect(() => {
     checkAndFetch();
-  }, []); // Still OK here since checkAndFetch doesn't use external deps
-
-  // But add a listener for auth state changes:
-  useEffect(() => {
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(() => {
-      checkAndFetch();
-    });
-    return () => subscription?.unsubscribe();
   }, []);
-
-  // 03/27/2026  useEffect(() => { checkAndFetch(); }, []);
 
   const loadHistoricalOutcomes = async (userId: string): Promise<HistoricalOutcomes | undefined> => {
     try {
