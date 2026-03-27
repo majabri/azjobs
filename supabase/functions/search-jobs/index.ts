@@ -54,6 +54,16 @@ const BLOCKED_URL_PATTERNS = [
   /youtube\.com/i,
   /wikipedia\.org/i,
   /reddit\.com/i,
+  // Block aggregator search/listing pages (not individual postings)
+  /indeed\.com\/q-/i,
+  /indeed\.com\/jobs\?/i,
+  /ziprecruiter\.com\/Jobs\/[^/]+\/-in-/i,
+  /careercircle\.com\/jobs$/i,
+  /glassdoor\.com\/Job\/.*-jobs-/i,
+  /monster\.com\/jobs\/search/i,
+  /salary\.com/i,
+  /payscale\.com/i,
+  /comparably\.com/i,
 ];
 
 // URLs that are definitely direct job postings
