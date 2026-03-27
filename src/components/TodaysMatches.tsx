@@ -420,7 +420,7 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
     );
   }
 
-  const displayJobs = compact ? jobs.slice(0, 5) : jobs;
+  const displayJobs = compact ? jobs.slice(0, 3) : jobs;
 
   return (
     <div className="space-y-4">
