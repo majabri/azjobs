@@ -392,6 +392,16 @@ Deno.serve(async (req) => {
       "project manager job openings",
       "business analyst job openings",
       "marketing manager job openings",
+      "cybersecurity engineer job openings",
+      "cloud architect job openings",
+      "VP information technology job openings",
+      "CISO chief information security officer job openings",
+      "IT director job openings",
+      "data engineer job openings",
+      "machine learning engineer job openings",
+      "site:myworkdayjobs.com software engineer",
+      "site:myworkdayjobs.com data analyst",
+      "site:icims.com software engineer jobs",
     ];
     for (const s of broadSearches) searchQueries.add(s);
 
