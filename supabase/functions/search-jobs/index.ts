@@ -545,10 +545,13 @@ async function searchFirecrawlJobs(
           urlVerified: isDirectJobPostingUrl(url),
         };
       })
-      // Only block obviously bad URLs — let ranking handle quality
+      // Block bad URLs and generic listing/aggregator pages
       .filter((job) => !isBlockedUrl(job.url))
+      .filter((job) => !isGenericListingUrl(job.url))
       .filter((job) => job.company && !GENERIC_COMPANY_NAMES.has(job.company.toLowerCase()))
-      .filter((job) => hasMinimalDescription(job.description));
+      .filter((job) => !isSuspiciousCompanyName(job.company))
+      .filter((job) => hasMinimalDescription(job.description))
+      .filter((job) => !isLowSignalDescription(job.description, job.url));
 
     console.log(`After filtering query #${index + 1}: ${jobs.length} jobs`);
 
