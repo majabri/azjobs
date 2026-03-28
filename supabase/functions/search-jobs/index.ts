@@ -911,7 +911,10 @@ serve(async (req) => {
       }))
       .sort((a, b) => b.finalScore - a.finalScore);
 
-    const liveRankedCandidates = await filterLiveDirectJobs(rankedCandidates, Math.max(limit * 5, 40));
+    const liveRankedCandidates = await filterLiveDirectJobs(
+      rankedCandidates,
+      Math.min(Math.max(limit * 4, 30), 45),
+    );
 
     const strictFiltered = liveRankedCandidates.filter((job) => {
       // Accept jobs with any meaningful signal — don't require strict skill hits
