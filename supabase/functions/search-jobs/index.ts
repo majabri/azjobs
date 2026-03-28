@@ -112,6 +112,181 @@ const GENERIC_LISTING_PATH_SEGMENTS = new Set([
   "list",
 ]);
 
+const REDIRECT_QUERY_KEYS = [
+  "url",
+  "u",
+  "target",
+  "dest",
+  "destination",
+  "redirect",
+  "redirect_url",
+  "redirect_uri",
+  "job_url",
+  "jobUrl",
+  "apply",
+  "apply_url",
+  "applyUrl",
+  "to",
+];
+
+const NON_JOB_PAGE_SEGMENTS = new Set([
+  "about",
+  "company",
+  "team",
+  "culture",
+  "people",
+  "mission",
+  "values",
+  "home",
+  "contact",
+  "index",
+  "search",
+  "results",
+  "openings",
+  "all",
+]);
+
+function extractJsonFromResponseText(responseText: string): unknown {
+  const text = (responseText || "").trim();
+  if (!text) return {};
+
+  const parseCandidate = (candidate: string) => JSON.parse(candidate);
+
+  const stripMarkdown = text
+    .replace(/```json\s*/gi, "")
+    .replace(/```\s*/g, "")
+    .trim();
+
+  const firstObject = stripMarkdown.search(/[\[{]/);
+  if (firstObject === -1) {
+    return parseCandidate(stripMarkdown);
+  }
+
+  const expectedCloser = stripMarkdown[firstObject] === "[" ? "]" : "}";
+  const lastCloser = stripMarkdown.lastIndexOf(expectedCloser);
+  const bounded = lastCloser >= firstObject
+    ? stripMarkdown.slice(firstObject, lastCloser + 1)
+    : stripMarkdown.slice(firstObject);
+
+  try {
+    return parseCandidate(bounded);
+  } catch {
+    const repaired = bounded
+      .replace(/,\s*([}\]])/g, "$1")
+      .replace(/[\u0000-\u001F\u007F]/g, "");
+    return parseCandidate(repaired);
+  }
+}
+
+function extractUrlCandidatesFromText(input: string): string[] {
+  if (!input) return [];
+  const markdownMatches = [...input.matchAll(/\((https?:\/\/[^)\s]+)\)/gi)].map((m) => m[1]);
+  const plainMatches = input.match(/https?:\/\/[^\s<>'"\])]+/gi) || [];
+  return [...markdownMatches, ...plainMatches];
+}
+
+function normalizeJobUrl(rawValue: unknown): string {
+  if (typeof rawValue !== "string") return "";
+
+  let value = normalizeText(rawValue);
+  if (!value) return "";
+
+  const markdownUrl = value.match(/\((https?:\/\/[^)\s]+)\)/i);
+  if (markdownUrl?.[1]) value = markdownUrl[1];
+
+  const plainHttpUrl = value.match(/https?:\/\/[^\s<>'"\])]+/i);
+  if (plainHttpUrl?.[0]) value = plainHttpUrl[0];
+
+  value = value.replace(/[),.;]+$/g, "").trim();
+  if (!value) return "";
+
+  const withProtocol = /^https?:\/\//i.test(value) ? value : `https://${value}`;
+
+  try {
+    let parsed = new URL(withProtocol);
+
+    for (let i = 0; i < 3; i += 1) {
+      const wrapped = REDIRECT_QUERY_KEYS
+        .map((key) => parsed.searchParams.get(key))
+        .find((candidate) => typeof candidate === "string" && candidate.trim().length > 0);
+
+      if (!wrapped) break;
+
+      const decoded = decodeURIComponent(wrapped).trim();
+      const nextValue = /^https?:\/\//i.test(decoded) ? decoded : `https://${decoded}`;
+      try {
+        parsed = new URL(nextValue);
+      } catch {
+        break;
+      }
+    }
+
+    const host = parsed.hostname.toLowerCase();
+    if (!host || host.includes("example.com") || host.includes("placeholder")) return "";
+
+    return parsed.toString();
+  } catch {
+    return "";
+  }
+}
+
+function hasDirectPathSignals(rawUrl: string): boolean {
+  try {
+    const url = new URL(rawUrl);
+    const parts = url.pathname
+      .split("/")
+      .map((p) => p.trim().toLowerCase())
+      .filter(Boolean);
+
+    if (parts.length === 0) return false;
+
+    const last = parts[parts.length - 1] || "";
+    if (NON_JOB_PAGE_SEGMENTS.has(last)) return false;
+
+    const hasJobWordInPath = parts.some((p) => /job|jobs|position|opening|opportunit|career/.test(p));
+    const hasNumericId = parts.some((p) => /\d{4,}/.test(p));
+    const hasLongSlug = parts.some((p) => p.includes("-") && p.length >= 16);
+    const hasKnownJobQuery = ["gh_jid", "job", "jobid", "jk", "lever-source", "oid", "gh_src"]
+      .some((k) => url.searchParams.has(k));
+    const explicitJobPath = /(\/jobs?\/|\/careers?\/).+/.test(url.pathname.toLowerCase());
+
+    if (parts.length <= 2 && !hasNumericId && !hasLongSlug && !hasKnownJobQuery && !explicitJobPath) {
+      return false;
+    }
+
+    return hasJobWordInPath || hasNumericId || hasLongSlug || hasKnownJobQuery || explicitJobPath;
+  } catch {
+    return false;
+  }
+}
+
+function scoreCandidateUrl(rawCandidate: string): number {
+  const normalized = normalizeJobUrl(rawCandidate);
+  if (!normalized) return -999;
+
+  if (isBlockedUrl(normalized)) return -500;
+
+  let score = 0;
+  if (DIRECT_JOB_PATTERNS.some((p) => p.test(normalized))) score += 120;
+  if (isHighSignalHost(normalized)) score += 30;
+  if (hasDirectPathSignals(normalized)) score += 40;
+  if (isGenericListingUrl(normalized)) score -= 120;
+
+  return score;
+}
+
+function pickBestJobUrl(candidates: string[]): string {
+  if (!candidates.length) return "";
+
+  const scored = [...new Set(candidates.map((candidate) => normalizeJobUrl(candidate)).filter(Boolean))]
+    .map((url) => ({ url, score: scoreCandidateUrl(url) }))
+    .sort((a, b) => b.score - a.score);
+
+  const best = scored[0];
+  if (!best || best.score < 20) return "";
+  return best.url;
+}
+
 function normalizeText(value: string | null | undefined): string {
   return (value || "").replace(/\s+/g, " ").trim();
 }
@@ -292,13 +467,13 @@ function isBlockedUrl(rawUrl: string): boolean {
 }
 
 function isDirectJobPostingUrl(rawUrl: string): boolean {
-  if (!rawUrl) return false;
-  try {
-    const href = new URL(rawUrl.trim()).toString();
-    return DIRECT_JOB_PATTERNS.some((p) => p.test(href));
-  } catch {
-    return false;
-  }
+  const normalized = normalizeJobUrl(rawUrl);
+  if (!normalized) return false;
+  if (isBlockedUrl(normalized)) return false;
+  if (isGenericListingUrl(normalized)) return false;
+
+  if (DIRECT_JOB_PATTERNS.some((p) => p.test(normalized))) return true;
+  return hasDirectPathSignals(normalized);
 }
 
 function isHighSignalHost(rawUrl: string): boolean {
@@ -469,7 +644,7 @@ async function fetchDatabaseJobs(supabaseAdmin: ReturnType<typeof createClient>)
 
   return (data || [])
     .map((row: any) => {
-      const url = normalizeText(row.job_url);
+      const url = normalizeJobUrl(row.job_url);
       const description = normalizeText(row.description);
       return {
         title: normalizeText(row.title),
@@ -525,13 +700,34 @@ async function searchFirecrawlJobs(
       continue;
     }
 
-    const payload = await response.json();
-    const rows = Array.isArray(payload?.data) ? payload.data : Array.isArray(payload?.results) ? payload.results : [];
+    const payloadText = await response.text();
+    let payload: any = {};
+    try {
+      payload = extractJsonFromResponseText(payloadText);
+    } catch (parseError) {
+      console.error(`Failed to parse Firecrawl payload for query #${index + 1}:`, parseError);
+      continue;
+    }
+
+    const rows = Array.isArray((payload as any)?.data)
+      ? (payload as any).data
+      : Array.isArray((payload as any)?.results)
+        ? (payload as any).results
+        : [];
     console.log(`Firecrawl returned ${rows.length} raw results for query #${index + 1}`);
 
     const jobs = rows
       .map((row: any) => {
-        const url = normalizeText(row.url || row.link || "");
+        const urlCandidates = [
+          row.url,
+          row.link,
+          row.sourceURL,
+          row?.metadata?.sourceURL,
+          row?.metadata?.url,
+          ...extractUrlCandidatesFromText(`${row.title || ""} ${row.description || ""} ${row.markdown || ""}`),
+        ].filter((item): item is string => typeof item === "string" && item.trim().length > 0);
+
+        const url = pickBestJobUrl(urlCandidates);
         const description = cleanMarkdownText(row.markdown || row.description || "").slice(0, 5000);
         const title = normalizeJobTitle(row.title || "Job Opportunity");
         const company = extractCompany(row.company || "", title, url) || extractCompanyFromHost(url);
@@ -553,9 +749,8 @@ async function searchFirecrawlJobs(
           urlVerified: isDirectJobPostingUrl(url),
         };
       })
-      // Block bad URLs and generic listing/aggregator pages
-      .filter((job) => !isBlockedUrl(job.url))
-      .filter((job) => !isGenericListingUrl(job.url))
+      .filter((job) => Boolean(job.url))
+      .filter((job) => isDirectJobPostingUrl(job.url))
       .filter((job) => job.company && !GENERIC_COMPANY_NAMES.has(job.company.toLowerCase()))
       .filter((job) => !isSuspiciousCompanyName(job.company))
       .filter((job) => hasMinimalDescription(job.description))
@@ -574,6 +769,71 @@ async function searchFirecrawlJobs(
   }
 
   return [...mergedJobs.values()];
+}
+
+async function isReachableDirectJobUrl(rawUrl: string): Promise<boolean> {
+  const normalized = normalizeJobUrl(rawUrl);
+  if (!isDirectJobPostingUrl(normalized)) return false;
+
+  const attempt = async (method: "HEAD" | "GET") => {
+    const response = await fetch(normalized, {
+      method,
+      redirect: "follow",
+      signal: AbortSignal.timeout(4500),
+      headers: {
+        "User-Agent": "Mozilla/5.0 (compatible; FitCheckBot/1.0; +https://fitcheck.ai)",
+      },
+    });
+
+    const finalUrl = normalizeJobUrl(response.url || normalized);
+    const status = response.status;
+    const contentType = (response.headers.get("content-type") || "").toLowerCase();
+
+    if (!finalUrl || !isDirectJobPostingUrl(finalUrl)) return false;
+
+    if (status >= 200 && status < 400) {
+      if (contentType && !contentType.includes("text/html") && !contentType.includes("application/xhtml+xml")) {
+        return false;
+      }
+      return true;
+    }
+
+    if ([401, 403, 429].includes(status) && (isHighSignalHost(finalUrl) || DIRECT_JOB_PATTERNS.some((p) => p.test(finalUrl)))) {
+      return true;
+    }
+
+    return false;
+  };
+
+  try {
+    const headValid = await attempt("HEAD");
+    if (headValid) return true;
+  } catch {
+    // fall through to GET
+  }
+
+  try {
+    return await attempt("GET");
+  } catch {
+    return false;
+  }
+}
+
+async function filterLiveDirectJobs<T extends { url: string }>(jobs: T[], maxToCheck: number): Promise<T[]> {
+  if (!jobs.length) return [];
+
+  const candidates = jobs.slice(0, maxToCheck);
+  const checks = await Promise.all(
+    candidates.map(async (job) => ({
+      job,
+      isReachable: await isReachableDirectJobUrl(job.url),
+    })),
+  );
+
+  const liveJobs = checks.filter((entry) => entry.isReachable).map((entry) => entry.job);
+  if (liveJobs.length > 0) return liveJobs;
+
+  return candidates.filter((job) => isDirectJobPostingUrl(job.url));
 }
 
 // Build a LinkedIn search URL as fallback when no direct URL
@@ -651,7 +911,12 @@ serve(async (req) => {
       }))
       .sort((a, b) => b.finalScore - a.finalScore);
 
-    const strictFiltered = rankedCandidates.filter((job) => {
+    const liveRankedCandidates = await filterLiveDirectJobs(
+      rankedCandidates,
+      Math.min(Math.max(limit * 4, 30), 45),
+    );
+
+    const strictFiltered = liveRankedCandidates.filter((job) => {
       // Accept jobs with any meaningful signal — don't require strict skill hits
       if (job.intent.phraseHit) return true;
       if (job.intent.skillHits >= 1) return true;
@@ -667,7 +932,7 @@ serve(async (req) => {
       ? qualityFirst
       : strictFiltered.length > 0
         ? strictFiltered
-        : rankedCandidates.filter((job) => job.finalScore >= 40)
+        : liveRankedCandidates.filter((job) => job.finalScore >= 40)
     )
       .slice(0, limit)
       .map((job) => ({

@@ -19,6 +19,7 @@ import {
   ShieldAlert,
   ShieldX,
   Zap,
+  Plus,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -32,6 +33,7 @@ import {
   type FakeJobFlag,
   type HistoricalOutcomes,
 } from "@/lib/jobQualityEngine";
+import { saveJobToApplications } from "@/lib/saveJob";
 
 interface JobMatch {
   title: string;
@@ -202,6 +204,7 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
   const [hasProfile, setHasProfile] = useState(false);
   const [lastFetched, setLastFetched] = useState<string | null>(null);
   const [historicalOutcomes, setHistoricalOutcomes] = useState<HistoricalOutcomes | undefined>();
+  const [savingJobKeys, setSavingJobKeys] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     checkAndFetch();
@@ -403,6 +406,42 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
     navigate("/job-seeker", { state: { prefillJob: jobDesc, prefillJobLink: job.url || "" } });
   };
 
+  const getJobSaveKey = (job: JobMatch): string => {
+    const urlPart = (job.url || "").trim().toLowerCase();
+    return `${urlPart}|${job.title.trim().toLowerCase()}|${job.company.trim().toLowerCase()}`;
+  };
+
+  const handleSaveJob = async (job: JobMatch) => {
+    const saveKey = getJobSaveKey(job);
+    if (savingJobKeys[saveKey]) return;
+
+    setSavingJobKeys((prev) => ({ ...prev, [saveKey]: true }));
+    try {
+      const result = await saveJobToApplications({
+        title: job.title,
+        company: job.company,
+        url: job.url,
+        description: job.description,
+        location: job.location,
+        type: job.type,
+      });
+
+      if (!result.ok) {
+        toast.error(result.error || "Failed to save job");
+        return;
+      }
+
+      if (result.alreadySaved) {
+        toast.info("Job already saved");
+        return;
+      }
+
+      toast.success("Job saved to Applications");
+    } finally {
+      setSavingJobKeys((prev) => ({ ...prev, [saveKey]: false }));
+    }
+  };
+
   if (!hasProfile) {
     return (
       <Card className="p-6 text-center">
@@ -457,6 +496,7 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
             const TrustIcon = TRUST_ICONS[trustCfg.icon];
             const hasFlags = job.flags && job.flags.length > 0;
             const hasDanger = job.flags?.some((f) => f.severity === "danger");
+            const saveKey = getJobSaveKey(job);
 
             return (
               <Card
@@ -558,6 +598,23 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
 
                   {/* Actions */}
                   <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-xs"
+                      onClick={() => handleSaveJob(job)}
+                      disabled={!!savingJobKeys[saveKey]}
+                    >
+                      {savingJobKeys[saveKey] ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> Saving
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="w-3.5 h-3.5 mr-1" /> Save Job
+                        </>
+                      )}
+                    </Button>
                     <Button
                       size="sm"
                       className="gradient-teal text-white text-xs"

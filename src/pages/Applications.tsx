@@ -29,6 +29,7 @@ interface JobApplication {
 }
 
 const COLUMNS = [
+  { id: "saved", label: "Saved", emoji: "🔖", color: "border-primary/40 bg-primary/5" },
   { id: "applied", label: "Applied", emoji: "📤", color: "border-accent/40 bg-accent/5" },
   { id: "interview", label: "Interview", emoji: "🎤", color: "border-warning/40 bg-warning/5" },
   { id: "offer", label: "Offer", emoji: "🎉", color: "border-success/40 bg-success/5" },
@@ -36,6 +37,7 @@ const COLUMNS = [
 ] as const;
 
 const statusColors: Record<string, string> = {
+  saved: "bg-primary/15 text-primary border-primary/30",
   applied: "bg-accent/15 text-accent border-accent/30",
   interview: "bg-warning/15 text-warning border-warning/30",
   offer: "bg-success/15 text-success border-success/30",
@@ -135,6 +137,7 @@ export default function ApplicationsPage() {
 
   const stats = {
     total: applications.length,
+    saved: applications.filter((a) => a.status === "saved").length,
     applied: applications.filter((a) => a.status === "applied").length,
     interview: applications.filter((a) => a.status === "interview").length,
     offer: applications.filter((a) => a.status === "offer").length,
@@ -184,9 +187,10 @@ export default function ApplicationsPage() {
         )}
 
         {/* Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-6 gap-3">
           {[
             { label: "Total", value: stats.total, color: "text-foreground" },
+            { label: "Saved", value: stats.saved, color: "text-primary" },
             { label: "Applied", value: stats.applied, color: "text-accent" },
             { label: "Interview", value: stats.interview, color: "text-warning" },
             { label: "Offer", value: stats.offer, color: "text-success" },

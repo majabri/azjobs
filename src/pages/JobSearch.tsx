@@ -17,6 +17,7 @@ import {
   getJobStrategy, STRATEGY_CONFIG, TRUST_LEVEL_CONFIG,
   type FakeJobFlag, type HistoricalOutcomes,
 } from "@/lib/jobQualityEngine";
+import { saveJobToApplications } from "@/lib/saveJob";
 
 interface JobResult {
   title: string;
@@ -280,6 +281,11 @@ function SalaryBadge({ salary, title }: { salary: string; title?: string }) {
   return <Badge variant="outline" className="text-[10px] bg-accent/10 text-accent border-accent/30">≈ Market Rate</Badge>;
 }
 
+function getJobSaveKey(job: JobResult): string {
+  const urlPart = (job.url || "").trim().toLowerCase();
+  return `${urlPart}|${job.title.trim().toLowerCase()}|${job.company.trim().toLowerCase()}`;
+}
+
 export default function JobSearchPage() {
   const navigate = useNavigate();
   const [skills, setSkills] = useState<string[]>([]);
@@ -299,6 +305,7 @@ export default function JobSearchPage() {
   const [sortBy, setSortBy] = useState<"relevance" | "probability" | "newest" | "decision">("decision");
   const [showFlagged, setShowFlagged] = useState(true);
   const [historicalOutcomes, setHistoricalOutcomes] = useState<HistoricalOutcomes | undefined>();
+  const [savingJobKeys, setSavingJobKeys] = useState<Record<string, boolean>>({});
 
   useEffect(() => { loadProfile(); }, []);
 
@@ -541,6 +548,37 @@ export default function JobSearchPage() {
     navigate("/job-seeker", { state: { prefillJob: jobDesc, prefillJobLink: job.url || "" } });
   };
 
+  const handleSaveJob = async (job: JobResult) => {
+    const saveKey = getJobSaveKey(job);
+    if (savingJobKeys[saveKey]) return;
+
+    setSavingJobKeys((prev) => ({ ...prev, [saveKey]: true }));
+    try {
+      const result = await saveJobToApplications({
+        title: job.title,
+        company: job.company,
+        url: job.url,
+        description: job.description,
+        location: job.location,
+        type: job.type,
+      });
+
+      if (!result.ok) {
+        toast.error(result.error || "Failed to save job");
+        return;
+      }
+
+      if (result.alreadySaved) {
+        toast.info("Job already saved");
+        return;
+      }
+
+      toast.success("Job saved to Applications");
+    } finally {
+      setSavingJobKeys((prev) => ({ ...prev, [saveKey]: false }));
+    }
+  };
+
   const getProbColor = (prob: number) => {
     if (prob >= 70) return "text-green-600 dark:text-green-400";
     if (prob >= 50) return "text-amber-600 dark:text-amber-400";
@@ -752,6 +790,7 @@ export default function JobSearchPage() {
             const TrustIcon = trustCfg.icon === "shield-check" ? ShieldCheck : trustCfg.icon === "shield-alert" ? ShieldAlert : ShieldX;
             const hasFlags = job.flags && job.flags.length > 0;
             const hasDanger = job.flags?.some(f => f.severity === "danger");
+            const saveKey = getJobSaveKey(job);
 
             return (
               <Card key={job.id || i} className={`p-5 transition-colors ${hasDanger ? "border-destructive/30 bg-destructive/5" : hasFlags ? "border-warning/30 bg-warning/5" : "hover:border-accent/50"}`}>
@@ -818,6 +857,17 @@ export default function JobSearchPage() {
                     )}
                   </div>
                   <div className="flex sm:flex-col gap-2 flex-shrink-0">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="text-xs"
+                      onClick={() => handleSaveJob(job)}
+                      disabled={!!savingJobKeys[saveKey]}
+                    >
+                      {savingJobKeys[saveKey]
+                        ? <><Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> Saving</>
+                        : <><Plus className="w-3.5 h-3.5 mr-1" /> Save Job</>}
+                    </Button>
                     <Button size="sm" className="gradient-teal text-white text-xs" onClick={() => handleAnalyzeFit(job)}>
                       <Target className="w-3.5 h-3.5 mr-1" /> Check My Chances
                     </Button>
