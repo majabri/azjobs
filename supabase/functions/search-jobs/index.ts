@@ -700,7 +700,6 @@ async function searchFirecrawlJobs(
       continue;
     }
 
-    const payload = await response.json();
     const payloadText = await response.text();
     let payload: any = {};
     try {
