@@ -697,6 +697,7 @@ async function fetchDatabaseJobs(supabaseAdmin: ReturnType<typeof createClient>)
       };
     })
     .filter((job) => job.title && !isSuspiciousCompanyName(job.company))
+    .filter((job) => !isAggregatorListingTitle(job.title))
     .filter((job) => !isBlockedUrl(job.url))
     .filter((job) => !isGenericListingUrl(job.url))
     .filter((job) => !isLowSignalDescription(job.description, job.url));
