@@ -64,6 +64,17 @@ const BLOCKED_URL_PATTERNS = [
   /salary\.com/i,
   /payscale\.com/i,
   /comparably\.com/i,
+  // Block known aggregator sites that never have direct postings
+  /jobleads\.com/i,
+  /jooble\./i,
+  /talent\.com\/view/i,
+  /simplyhired\.com\/search/i,
+  /careerbuilder\.com\/job\/search/i,
+  /getwork\.com\/details/i,
+  /jobrapido\.com/i,
+  /neuvoo\./i,
+  /adzuna\./i,
+  /snagajob\.com\/jobs\/search/i,
 ];
 
 // URLs that are definitely direct job postings
