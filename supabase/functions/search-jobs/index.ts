@@ -64,6 +64,17 @@ const BLOCKED_URL_PATTERNS = [
   /salary\.com/i,
   /payscale\.com/i,
   /comparably\.com/i,
+  // Block known aggregator sites that never have direct postings
+  /jobleads\.com/i,
+  /jooble\./i,
+  /talent\.com\/view/i,
+  /simplyhired\.com\/search/i,
+  /careerbuilder\.com\/job\/search/i,
+  /getwork\.com\/details/i,
+  /jobrapido\.com/i,
+  /neuvoo\./i,
+  /adzuna\./i,
+  /snagajob\.com\/jobs\/search/i,
 ];
 
 // URLs that are definitely direct job postings
@@ -353,6 +364,16 @@ function isLowSignalDescription(description: string, rawUrl: string): boolean {
     /view all jobs/i,
     /join our talent network/i,
     /all locations/i,
+    /showing \d+ results/i,
+    /search results for/i,
+    /browse \d+ jobs/i,
+    /related searches/i,
+    /sign up for job alerts/i,
+    /create a free account/i,
+    /filter by location/i,
+    /sort by relevance/i,
+    /page \d+ of \d+/i,
+    /\d+ new jobs added/i,
   ];
   if (generalLowSignalPatterns.some((pattern) => pattern.test(text))) return true;
 
@@ -375,15 +396,42 @@ function normalizeJobTitle(rawTitle: string): string {
   const title = normalizeText(rawTitle);
   if (!title) return "Job Opportunity";
 
-  // Example: "Deloitte hiring ServiceNow Consultant in Detroit, MI | LinkedIn"
+  // "Deloitte hiring ServiceNow Consultant in Detroit, MI | LinkedIn"
   const linkedInHiringMatch = title.match(/^.+?\s+hiring\s+(.+?)\s+in\s+.+\|\s*linkedin$/i);
   if (linkedInHiringMatch?.[1]) return normalizeText(linkedInHiringMatch[1]);
 
   return normalizeText(
     title
-      .replace(/\s+-\s+(lever|linkedin|workday|icims|jobvite)\.?$/i, "")
-      .replace(/\|\s*linkedin$/i, ""),
+      // Strip platform/aggregator suffixes: "Title | LinkedIn", "Title - Lever", "Title | JobLeads.com"
+      .replace(/\s*[|\-–—]\s*(lever|linkedin|workday|icims|jobvite|jobleads|jooble|indeed|glassdoor|ziprecruiter|monster|simplyhired|talent|adzuna|jobrapido|getwork|snagajob)\.?\w*$/i, "")
+      // Strip "| City" or "| Location" suffixes from aggregators
+      .replace(/\s*\|\s*[A-Z][a-z]+(?:\s*,\s*[A-Z]{2})?\s*\|\s*\w+\.com$/i, "")
+      // Strip trailing ".com" site references
+      .replace(/\s*\|\s*\S+\.com$/i, ""),
   );
+}
+
+// Detect titles that are actually aggregator listing page titles, not real job postings
+function isAggregatorListingTitle(title: string): boolean {
+  const t = normalizeText(title).toLowerCase();
+  if (!t) return true;
+
+  // "Masters cyber security jobs in Remote"
+  // "Vp Marketing Jobs"
+  // "Data Analyst Jobs in New York"
+  if (/\bjobs?\s+(in|near|around|for)\s+/i.test(t)) return true;
+  if (/\bjobs?\s*$/i.test(t) && t.split(/\s+/).length <= 5) return true;
+
+  // "Search Results for..." or "Browse Jobs..."
+  if (/^(search|browse|find|explore|view|all)\s+(results|jobs|positions|openings)/i.test(t)) return true;
+
+  // "50+ Jobs in..." or "100 Remote Jobs"
+  if (/^\d+\+?\s+(jobs|positions|openings)/i.test(t)) return true;
+
+  // "Job Opportunity" (our fallback — shouldn't be shown)
+  if (t === "job opportunity") return true;
+
+  return false;
 }
 
 function extractCompanyFromUrl(rawUrl: string): string {
@@ -573,8 +621,8 @@ function scoreJobMatch(job: NormalizedJob, tokens: string[], locationPref: strin
 
 function hasMinimalDescription(description: string): boolean {
   const text = normalizeText(description);
-  // Just require 50+ chars and 8+ words — much more lenient
-  return text.length >= 50 && text.split(/\s+/).length >= 8;
+  // Require 100+ chars and 15+ words to filter out thin aggregator snippets
+  return text.length >= 100 && text.split(/\s+/).length >= 15;
 }
 
 function cleanSearchFragment(input: string, maxWords = 10): string {
@@ -659,6 +707,7 @@ async function fetchDatabaseJobs(supabaseAdmin: ReturnType<typeof createClient>)
       };
     })
     .filter((job) => job.title && !isSuspiciousCompanyName(job.company))
+    .filter((job) => !isAggregatorListingTitle(job.title))
     .filter((job) => !isBlockedUrl(job.url))
     .filter((job) => !isGenericListingUrl(job.url))
     .filter((job) => !isLowSignalDescription(job.description, job.url));
@@ -751,6 +800,7 @@ async function searchFirecrawlJobs(
       })
       .filter((job) => Boolean(job.url))
       .filter((job) => isDirectJobPostingUrl(job.url))
+      .filter((job) => !isAggregatorListingTitle(job.title))
       .filter((job) => job.company && !GENERIC_COMPANY_NAMES.has(job.company.toLowerCase()))
       .filter((job) => !isSuspiciousCompanyName(job.company))
       .filter((job) => hasMinimalDescription(job.description))
