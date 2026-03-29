@@ -364,6 +364,16 @@ function isLowSignalDescription(description: string, rawUrl: string): boolean {
     /view all jobs/i,
     /join our talent network/i,
     /all locations/i,
+    /showing \d+ results/i,
+    /search results for/i,
+    /browse \d+ jobs/i,
+    /related searches/i,
+    /sign up for job alerts/i,
+    /create a free account/i,
+    /filter by location/i,
+    /sort by relevance/i,
+    /page \d+ of \d+/i,
+    /\d+ new jobs added/i,
   ];
   if (generalLowSignalPatterns.some((pattern) => pattern.test(text))) return true;
 
