@@ -789,6 +789,7 @@ async function searchFirecrawlJobs(
       })
       .filter((job) => Boolean(job.url))
       .filter((job) => isDirectJobPostingUrl(job.url))
+      .filter((job) => !isAggregatorListingTitle(job.title))
       .filter((job) => job.company && !GENERIC_COMPANY_NAMES.has(job.company.toLowerCase()))
       .filter((job) => !isSuspiciousCompanyName(job.company))
       .filter((job) => hasMinimalDescription(job.description))
