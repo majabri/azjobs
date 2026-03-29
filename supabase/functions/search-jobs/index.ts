@@ -386,15 +386,42 @@ function normalizeJobTitle(rawTitle: string): string {
   const title = normalizeText(rawTitle);
   if (!title) return "Job Opportunity";
 
-  // Example: "Deloitte hiring ServiceNow Consultant in Detroit, MI | LinkedIn"
+  // "Deloitte hiring ServiceNow Consultant in Detroit, MI | LinkedIn"
   const linkedInHiringMatch = title.match(/^.+?\s+hiring\s+(.+?)\s+in\s+.+\|\s*linkedin$/i);
   if (linkedInHiringMatch?.[1]) return normalizeText(linkedInHiringMatch[1]);
 
   return normalizeText(
     title
-      .replace(/\s+-\s+(lever|linkedin|workday|icims|jobvite)\.?$/i, "")
-      .replace(/\|\s*linkedin$/i, ""),
+      // Strip platform/aggregator suffixes: "Title | LinkedIn", "Title - Lever", "Title | JobLeads.com"
+      .replace(/\s*[|\-–—]\s*(lever|linkedin|workday|icims|jobvite|jobleads|jooble|indeed|glassdoor|ziprecruiter|monster|simplyhired|talent|adzuna|jobrapido|getwork|snagajob)\.?\w*$/i, "")
+      // Strip "| City" or "| Location" suffixes from aggregators
+      .replace(/\s*\|\s*[A-Z][a-z]+(?:\s*,\s*[A-Z]{2})?\s*\|\s*\w+\.com$/i, "")
+      // Strip trailing ".com" site references
+      .replace(/\s*\|\s*\S+\.com$/i, ""),
   );
+}
+
+// Detect titles that are actually aggregator listing page titles, not real job postings
+function isAggregatorListingTitle(title: string): boolean {
+  const t = normalizeText(title).toLowerCase();
+  if (!t) return true;
+
+  // "Masters cyber security jobs in Remote"
+  // "Vp Marketing Jobs"
+  // "Data Analyst Jobs in New York"
+  if (/\bjobs?\s+(in|near|around|for)\s+/i.test(t)) return true;
+  if (/\bjobs?\s*$/i.test(t) && t.split(/\s+/).length <= 5) return true;
+
+  // "Search Results for..." or "Browse Jobs..."
+  if (/^(search|browse|find|explore|view|all)\s+(results|jobs|positions|openings)/i.test(t)) return true;
+
+  // "50+ Jobs in..." or "100 Remote Jobs"
+  if (/^\d+\+?\s+(jobs|positions|openings)/i.test(t)) return true;
+
+  // "Job Opportunity" (our fallback — shouldn't be shown)
+  if (t === "job opportunity") return true;
+
+  return false;
 }
 
 function extractCompanyFromUrl(rawUrl: string): string {
