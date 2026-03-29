@@ -611,8 +611,8 @@ function scoreJobMatch(job: NormalizedJob, tokens: string[], locationPref: strin
 
 function hasMinimalDescription(description: string): boolean {
   const text = normalizeText(description);
-  // Just require 50+ chars and 8+ words — much more lenient
-  return text.length >= 50 && text.split(/\s+/).length >= 8;
+  // Require 100+ chars and 15+ words to filter out thin aggregator snippets
+  return text.length >= 100 && text.split(/\s+/).length >= 15;
 }
 
 function cleanSearchFragment(input: string, maxWords = 10): string {
