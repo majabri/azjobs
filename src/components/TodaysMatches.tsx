@@ -240,14 +240,23 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
     } = await supabase.auth.getSession();
     if (!session) return;
 
-    const [{ data: profile }, outcomes] = await Promise.all([
+    const [{ data: profile }, outcomes, ignored] = await Promise.all([
       supabase
         .from("job_seeker_profiles")
         .select("skills, preferred_job_types, location, career_level, target_job_titles")
         .eq("user_id", session.user.id)
         .maybeSingle(),
       loadHistoricalOutcomes(session.user.id),
+      getIgnoredJobs(),
     ]);
+    setIgnoredList(ignored);
+
+    // Load saved/applied applications
+    const { data: appData } = await supabase
+      .from("job_applications")
+      .select("job_title, company, job_url")
+      .eq("user_id", session.user.id);
+    if (appData) setSavedApps(appData as any);
 
     if (!profile?.skills?.length) {
       setHasProfile(false);
