@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, TrendingUp, DollarSign, Award, Target, Zap } from "lucide-react";
+import HelpTooltip from "@/components/HelpTooltip";
 import { supabase } from "@/integrations/supabase/client";
 import {
   RadialBarChart, RadialBar, ResponsiveContainer, PolarAngleAxis,
