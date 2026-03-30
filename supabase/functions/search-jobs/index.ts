@@ -963,7 +963,7 @@ serve(async (req) => {
 
     const liveRankedCandidates = await filterLiveDirectJobs(
       rankedCandidates,
-      Math.min(Math.max(limit * 4, 30), 45),
+      Math.max(limit * 4, 100),
     );
 
     const strictFiltered = liveRankedCandidates.filter((job) => {

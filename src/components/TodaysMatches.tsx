@@ -276,7 +276,9 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
             return (
               Boolean(normalizedUrl) &&
               !isGenericJobListingUrl(normalizedUrl) &&
-              hasSubstantiveJobDescription(job.description)
+              hasSubstantiveJobDescription(job.description) &&
+              !isJobIgnored(job, ignored) &&
+              !isJobAlreadySaved(job, appData || [])
             );
           });
 
@@ -361,7 +363,7 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
         body: JSON.stringify({
-          skills: profile.skills?.slice(0, 10) || [],
+          skills: profile.skills?.slice(0, 20) || [],
           jobTypes: profile.preferred_job_types || [],
           location: profile.location || "",
           careerLevel: profile.career_level || "",
