@@ -87,7 +87,7 @@ export default function ProgressMetrics() {
           </div>
         </div>
         <p className="font-display font-bold text-primary text-2xl">{metrics.appsThisMonth}</p>
-        <p className="text-xs text-muted-foreground">Apps This Month</p>
+        <p className="text-xs text-muted-foreground flex items-center gap-1">Apps This Month <HelpTooltip text="Number of job applications you submitted this calendar month, compared to last month." /></p>
       </Card>
 
       <Card className="p-4">
