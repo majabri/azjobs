@@ -313,6 +313,21 @@ export default function JobSearchPage() {
 
   useEffect(() => { loadProfile(); loadIgnoredAndSaved(); }, []);
 
+  const loadIgnoredAndSaved = async () => {
+    const [ignored, { data: { session } }] = await Promise.all([
+      getIgnoredJobs(),
+      supabase.auth.getSession(),
+    ]);
+    setIgnoredList(ignored);
+    if (session) {
+      const { data } = await supabase
+        .from("job_applications")
+        .select("job_title, company, job_url")
+        .eq("user_id", session.user.id);
+      if (data) setSavedApps(data as any);
+    }
+  };
+
   const loadProfile = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
