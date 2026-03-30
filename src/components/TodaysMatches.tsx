@@ -200,6 +200,8 @@ interface TodaysMatchesProps {
   compact?: boolean;
 }
 
+const PAGE_SIZE = 10;
+
 export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
   const navigate = useNavigate();
   const [jobs, setJobs] = useState<JobMatch[]>([]);
@@ -210,6 +212,7 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
   const [savingJobKeys, setSavingJobKeys] = useState<Record<string, boolean>>({});
   const [ignoredList, setIgnoredList] = useState<IgnoredJob[]>([]);
   const [savedApps, setSavedApps] = useState<{ job_title: string; company: string; job_url: string | null }[]>([]);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   useEffect(() => {
     checkAndFetch();
@@ -271,17 +274,21 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
       try {
         const { jobs: cachedJobs, timestamp } = JSON.parse(cached);
         if (Date.now() - timestamp < 4 * 60 * 60 * 1000) {
-          const vettedCachedJobs = (cachedJobs || []).filter((job: JobMatch) => {
-            const normalizedUrl = normalizeJobUrl(job.url);
-            return (
-              Boolean(normalizedUrl) &&
-              !isGenericJobListingUrl(normalizedUrl) &&
-              hasSubstantiveJobDescription(job.description)
-            );
-          });
+          const vettedCachedJobs = (cachedJobs || [])
+            .filter((job: JobMatch) => {
+              const normalizedUrl = normalizeJobUrl(job.url);
+              return (
+                Boolean(normalizedUrl) &&
+                !isGenericJobListingUrl(normalizedUrl) &&
+                hasSubstantiveJobDescription(job.description)
+              );
+            })
+            .filter((job: JobMatch) => !isJobIgnored(job, ignored))
+            .filter((job: JobMatch) => !isJobAlreadySaved(job, (appData || []) as { job_title: string; company: string; job_url: string | null }[]));
 
           if (vettedCachedJobs.length > 0) {
             setJobs(vettedCachedJobs);
+            setVisibleCount(PAGE_SIZE);
             setLastFetched(new Date(timestamp).toLocaleTimeString());
             return;
           }
@@ -366,6 +373,7 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
           location: profile.location || "",
           careerLevel: profile.career_level || "",
           targetTitles: profile.target_job_titles || [],
+          limit: 100,
         }),
       });
       if (!resp.ok) throw new Error("Search failed");
@@ -392,6 +400,7 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
         .filter(job => !isJobIgnored(job, ignoredList))
         .filter(job => !isJobAlreadySaved(job, savedApps));
       setJobs(enriched);
+      setVisibleCount(PAGE_SIZE);
       setLastFetched(new Date().toLocaleTimeString());
       localStorage.setItem(cacheKey, JSON.stringify({ jobs: enriched, timestamp: Date.now() }));
     } catch {
@@ -473,7 +482,7 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
     );
   }
 
-  const displayJobs = compact ? jobs.slice(0, 3) : jobs;
+  const displayJobs = compact ? jobs.slice(0, 3) : jobs.slice(0, visibleCount);
 
   return (
     <div className="space-y-4">
@@ -674,6 +683,15 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
           {compact && jobs.length > 5 && (
             <Button variant="outline" className="w-full" onClick={() => navigate("/job-search")}>
               View All {jobs.length} Matches
+            </Button>
+          )}
+          {!compact && visibleCount < jobs.length && (
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => setVisibleCount(prev => prev + PAGE_SIZE)}
+            >
+              Load More ({jobs.length - visibleCount} remaining)
             </Button>
           )}
         </div>
