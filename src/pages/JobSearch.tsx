@@ -487,7 +487,9 @@ export default function JobSearchPage() {
           uniqueByUrl.set(job.url, job);
         }
       }
-      allJobs = Array.from(uniqueByUrl.values());
+      allJobs = Array.from(uniqueByUrl.values())
+        .filter(job => !isJobIgnored(job, ignoredList))
+        .filter(job => !isJobAlreadySaved(job, savedApps));
 
       // Enrich with trust engine + probability + decision score
       const allTitles = allJobs.map(j => j.title || "");
