@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import HelpTooltip from "@/components/HelpTooltip";
 import {
   detectFakeJobFlags,
   getTrustScore,
@@ -463,7 +464,7 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <h2 className="font-display font-bold text-primary text-xl">Today's Matches For You</h2>
+          <h2 className="font-display font-bold text-primary text-xl flex items-center gap-1.5">Today's Matches For You <HelpTooltip text="Jobs matched to your profile skills, experience, and preferences. Each job shows a trust score, match %, and a recommended action strategy." /></h2>
           {jobs.length > 0 && (
             <Badge className="bg-accent/15 text-accent border-accent/30 text-xs">
               {jobs.filter((j) => j.strategy === "apply_now" || j.strategy === "apply_fast").length} ready to apply

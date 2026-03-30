@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, TrendingUp, DollarSign, GraduationCap, ArrowRight, Sparkles, Target, BookOpen, Award, Code2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import HelpTooltip from "@/components/HelpTooltip";
 import { toast } from "sonner";
 
 interface CareerInsight {
@@ -77,7 +78,7 @@ export default function CareerPathIntelligence() {
     return (
       <Card className="p-6 text-center">
         <TrendingUp className="w-10 h-10 text-accent mx-auto mb-3" />
-        <h3 className="font-display font-bold text-primary text-lg mb-2">Career Path Intelligence</h3>
+        <h3 className="font-display font-bold text-primary text-lg mb-2 flex items-center justify-center gap-1.5">Career Path Intelligence <HelpTooltip text="AI recommends your next career moves — higher-paying roles, skills to learn, and industry trends based on your profile." /></h3>
         <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
           Get AI-powered recommendations for higher-paying roles, skills to learn, and career transitions based on your profile and market data.
         </p>
@@ -92,7 +93,7 @@ export default function CareerPathIntelligence() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="font-display font-bold text-primary text-lg flex items-center gap-2">
-          <TrendingUp className="w-5 h-5 text-accent" /> Career Path Intelligence
+          <TrendingUp className="w-5 h-5 text-accent" /> Career Path Intelligence <HelpTooltip text="AI recommends your next career moves — higher-paying roles, skills to learn, and industry trends based on your profile." />
         </h3>
         <Button variant="ghost" size="sm" onClick={analyze} disabled={loading}>
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Refresh"}

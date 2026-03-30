@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Brain, TrendingUp, Sparkles } from "lucide-react";
+import HelpTooltip from "@/components/HelpTooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -37,7 +38,7 @@ export default function LearningInsights() {
     return (
       <Card className="p-6 text-center">
         <Brain className="w-10 h-10 text-accent mx-auto mb-3" />
-        <h3 className="font-display font-bold text-primary text-lg mb-2">Learning Insights</h3>
+        <h3 className="font-display font-bold text-primary text-lg mb-2 flex items-center justify-center gap-1.5">Learning Insights <HelpTooltip text="AI analyzes your application outcomes to find patterns — what's working, what isn't, and how to improve your hit rate." /></h3>
         <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
           Discover patterns from your application outcomes to improve your strategy.
         </p>
@@ -51,7 +52,7 @@ export default function LearningInsights() {
   return (
     <Card className="p-6">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-display font-bold text-primary text-lg flex items-center gap-2"><Brain className="w-5 h-5 text-accent" /> Learning Insights</h3>
+        <h3 className="font-display font-bold text-primary text-lg flex items-center gap-2"><Brain className="w-5 h-5 text-accent" /> Learning Insights <HelpTooltip text="AI analyzes your application outcomes to find patterns — what's working, what isn't, and how to improve your hit rate." /></h3>
         <Button variant="ghost" size="sm" onClick={analyze} disabled={loading}>
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Refresh"}
         </Button>

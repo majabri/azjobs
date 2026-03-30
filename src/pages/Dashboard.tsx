@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import OnboardingWizard from "@/components/OnboardingWizard";
 import { toast } from "sonner";
 import { ScoreRingInline } from "@/components/ScoreDisplay";
+import HelpTooltip from "@/components/HelpTooltip";
 import TodaysMatches from "@/components/TodaysMatches";
 import CareerPathIntelligence from "@/components/CareerPathIntelligence";
 import LearningInsights from "@/components/LearningInsights";
@@ -79,11 +80,11 @@ export default function Dashboard() {
         {/* Stats */}
         {analyses.length > 0 && (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <StatCard label="Analyses Run" value={analyses.length.toString()} icon={<BarChart3 className="w-4 h-4" />} />
-            <StatCard label="Avg Fit Score" value={`${avgScore}%`} icon={<Target className="w-4 h-4" />} color={scoreColor(avgScore)} />
-            <StatCard label="Best Fit Score" value={`${bestScore}%`} icon={<TrendingUp className="w-4 h-4" />} color={scoreColor(bestScore)} />
+            <StatCard label="Analyses Run" value={analyses.length.toString()} icon={<BarChart3 className="w-4 h-4" />} help="Total number of job-vs-resume fit analyses you've completed." />
+            <StatCard label="Avg Fit Score" value={`${avgScore}%`} icon={<Target className="w-4 h-4" />} color={scoreColor(avgScore)} help="Average match score across all your analyses. Higher means your resume aligns better with the jobs you're targeting." />
+            <StatCard label="Best Fit Score" value={`${bestScore}%`} icon={<TrendingUp className="w-4 h-4" />} color={scoreColor(bestScore)} help="Your highest match score so far — shows your best resume-to-job alignment." />
             <StatCard label="Analyze New" value="→" icon={<Sparkles className="w-4 h-4" />}
-              onClick={() => navigate("/job-seeker")} className="cursor-pointer hover:border-accent/50 transition-colors" color="text-accent" />
+              onClick={() => navigate("/job-seeker")} className="cursor-pointer hover:border-accent/50 transition-colors" color="text-accent" help="Start a new resume-vs-job analysis to see how well you match a specific role." />
           </div>
         )}
 
@@ -183,10 +184,13 @@ export default function Dashboard() {
   );
 }
 
-function StatCard({ label, value, icon, color, onClick, className }: { label: string; value: string; icon: React.ReactNode; color?: string; onClick?: () => void; className?: string }) {
+function StatCard({ label, value, icon, color, onClick, className, help }: { label: string; value: string; icon: React.ReactNode; color?: string; onClick?: () => void; className?: string; help?: string }) {
   return (
     <div className={`bg-card rounded-xl p-4 border border-border shadow-sm ${className || ""}`} onClick={onClick}>
-      <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">{icon} {label}</div>
+      <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
+        {icon} {label}
+        {help && <HelpTooltip text={help} />}
+      </div>
       <div className={`text-2xl font-display font-bold ${color || "text-foreground"}`}>{value}</div>
     </div>
   );

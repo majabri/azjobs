@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, TrendingUp, DollarSign, Award, Target, Zap } from "lucide-react";
+import HelpTooltip from "@/components/HelpTooltip";
 import { supabase } from "@/integrations/supabase/client";
 import {
   RadialBarChart, RadialBar, ResponsiveContainer, PolarAngleAxis,
@@ -125,7 +126,7 @@ export default function CareerROIScore() {
           <Zap className="w-4 h-4 text-white" />
         </div>
         <div>
-          <h2 className="font-display font-bold text-primary text-lg">Career ROI Score</h2>
+          <h2 className="font-display font-bold text-primary text-lg flex items-center gap-1.5">Career ROI Score <HelpTooltip text="Measures your overall career progress based on fit scores, interview rates, compensation gains, and application outcomes. Higher is better." /></h2>
           <p className="text-xs text-muted-foreground">Your measurable career progress</p>
         </div>
         <Badge variant="outline" className={`ml-auto ${

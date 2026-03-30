@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Loader2, TrendingUp, TrendingDown, Minus, BarChart3, Send, Target, Award } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import HelpTooltip from "@/components/HelpTooltip";
 
 interface Metrics {
   appsThisMonth: number;
@@ -86,7 +87,7 @@ export default function ProgressMetrics() {
           </div>
         </div>
         <p className="font-display font-bold text-primary text-2xl">{metrics.appsThisMonth}</p>
-        <p className="text-xs text-muted-foreground">Apps This Month</p>
+        <p className="text-xs text-muted-foreground flex items-center gap-1">Apps This Month <HelpTooltip text="Number of job applications you submitted this calendar month, compared to last month." /></p>
       </Card>
 
       <Card className="p-4">
@@ -109,7 +110,7 @@ export default function ProgressMetrics() {
           <Award className="w-4 h-4 text-accent" />
         </div>
         <p className="font-display font-bold text-primary text-2xl">{metrics.interviewRate}%</p>
-        <p className="text-xs text-muted-foreground">Interview Rate</p>
+        <p className="text-xs text-muted-foreground flex items-center gap-1">Interview Rate <HelpTooltip text="Percentage of your applications that progressed to an interview stage." /></p>
       </Card>
 
       <Card className="p-4">
