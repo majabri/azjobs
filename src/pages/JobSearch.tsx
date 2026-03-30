@@ -19,6 +19,7 @@ import {
   type FakeJobFlag, type HistoricalOutcomes,
 } from "@/lib/jobQualityEngine";
 import { saveJobToApplications } from "@/lib/saveJob";
+import { getIgnoredJobs, ignoreJob, isJobIgnored, isJobAlreadySaved, type IgnoredJob } from "@/lib/ignoredJobs";
 
 interface JobResult {
   title: string;
