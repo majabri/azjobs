@@ -38,7 +38,7 @@ export default function LearningInsights() {
     return (
       <Card className="p-6 text-center">
         <Brain className="w-10 h-10 text-accent mx-auto mb-3" />
-        <h3 className="font-display font-bold text-primary text-lg mb-2">Learning Insights</h3>
+        <h3 className="font-display font-bold text-primary text-lg mb-2 flex items-center justify-center gap-1.5">Learning Insights <HelpTooltip text="AI analyzes your application outcomes to find patterns — what's working, what isn't, and how to improve your hit rate." /></h3>
         <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
           Discover patterns from your application outcomes to improve your strategy.
         </p>
