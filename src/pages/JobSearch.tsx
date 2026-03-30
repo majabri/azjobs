@@ -914,7 +914,7 @@ export default function JobSearchPage() {
                     >
                       <EyeOff className="w-3.5 h-3.5 mr-1" /> Ignore
                     </Button>
-                </div>
+                  </div>
               </Card>
             );
           })}
