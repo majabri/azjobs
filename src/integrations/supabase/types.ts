@@ -134,6 +134,33 @@ export type Database = {
         }
         Relationships: []
       }
+      ignored_jobs: {
+        Row: {
+          company: string
+          created_at: string
+          id: string
+          job_title: string
+          job_url: string | null
+          user_id: string
+        }
+        Insert: {
+          company?: string
+          created_at?: string
+          id?: string
+          job_title?: string
+          job_url?: string | null
+          user_id: string
+        }
+        Update: {
+          company?: string
+          created_at?: string
+          id?: string
+          job_title?: string
+          job_url?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       interview_schedules: {
         Row: {
           candidate_email: string | null
