@@ -288,6 +288,8 @@ function getJobSaveKey(job: JobResult): string {
   return `${urlPart}|${job.title.trim().toLowerCase()}|${job.company.trim().toLowerCase()}`;
 }
 
+const PAGE_SIZE = 20;
+
 export default function JobSearchPage() {
   const navigate = useNavigate();
   const [skills, setSkills] = useState<string[]>([]);
@@ -310,6 +312,7 @@ export default function JobSearchPage() {
   const [savingJobKeys, setSavingJobKeys] = useState<Record<string, boolean>>({});
   const [ignoredList, setIgnoredList] = useState<IgnoredJob[]>([]);
   const [savedApps, setSavedApps] = useState<{ job_title: string; company: string; job_url: string | null }[]>([]);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   useEffect(() => { loadProfile(); loadIgnoredAndSaved(); }, []);
 
@@ -556,6 +559,7 @@ export default function JobSearchPage() {
 
       setJobs(allJobs);
       setCitations(allCitations);
+      setVisibleCount(PAGE_SIZE);
       if (!allJobs.length) toast.info("No jobs found. Try adjusting your criteria.");
     } catch {
       toast.error("Failed to search for jobs");
@@ -771,6 +775,7 @@ export default function JobSearchPage() {
                   value={sortBy}
                   onChange={e => {
                     setSortBy(e.target.value as any);
+                    setVisibleCount(PAGE_SIZE);
                     setJobs(prev => {
                       const sorted = [...prev];
                       if (e.target.value === "decision") sorted.sort((a, b) => (b.decisionScore || 0) - (a.decisionScore || 0));
@@ -803,7 +808,7 @@ export default function JobSearchPage() {
 
         {/* Job Cards */}
         <div className="space-y-4">
-          {jobs.filter(j => showFlagged || !j.is_flagged).map((job, i) => {
+          {jobs.filter(j => showFlagged || !j.is_flagged).slice(0, visibleCount).map((job, i) => {
             const prob = job.responseProbability || 0;
             const tag = getSmartTag(job, prob);
             const TagIcon = tag.icon;
@@ -920,6 +925,17 @@ export default function JobSearchPage() {
             );
           })}
         </div>
+
+        {visibleCount < jobs.filter(j => showFlagged || !j.is_flagged).length && (
+          <div className="mt-4 text-center">
+            <Button
+              variant="outline"
+              onClick={() => setVisibleCount(prev => prev + PAGE_SIZE)}
+            >
+              Load More ({jobs.filter(j => showFlagged || !j.is_flagged).length - visibleCount} remaining)
+            </Button>
+          </div>
+        )}
 
         {citations.length > 0 && (
           <div className="mt-6 pt-4 border-t border-border">
