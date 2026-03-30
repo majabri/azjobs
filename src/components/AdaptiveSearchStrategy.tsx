@@ -142,7 +142,7 @@ export default function AdaptiveSearchStrategy() {
             <TrendingUp className="w-4 h-4 text-accent" />
           </div>
           <div>
-            <h3 className="font-display font-bold text-foreground">Your Strategy Is {strategy.weeklyTrend === "improving" ? "Improving" : strategy.weeklyTrend === "declining" ? "Needs Work" : "Stable"}</h3>
+            <h3 className="font-display font-bold text-foreground flex items-center gap-1.5">Your Strategy Is {strategy.weeklyTrend === "improving" ? "Improving" : strategy.weeklyTrend === "declining" ? "Needs Work" : "Stable"} <HelpTooltip text="Tracks your job search performance week over week — conversion rates, interview success, and keyword effectiveness — and suggests adjustments." /></h3>
             <p className="text-xs text-muted-foreground">Weekly Search Strategy Update</p>
           </div>
         </div>

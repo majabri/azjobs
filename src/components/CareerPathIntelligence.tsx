@@ -93,7 +93,7 @@ export default function CareerPathIntelligence() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="font-display font-bold text-primary text-lg flex items-center gap-2">
-          <TrendingUp className="w-5 h-5 text-accent" /> Career Path Intelligence
+          <TrendingUp className="w-5 h-5 text-accent" /> Career Path Intelligence <HelpTooltip text="AI recommends your next career moves — higher-paying roles, skills to learn, and industry trends based on your profile." />
         </h3>
         <Button variant="ghost" size="sm" onClick={analyze} disabled={loading}>
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Refresh"}

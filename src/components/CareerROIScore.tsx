@@ -126,7 +126,7 @@ export default function CareerROIScore() {
           <Zap className="w-4 h-4 text-white" />
         </div>
         <div>
-          <h2 className="font-display font-bold text-primary text-lg">Career ROI Score</h2>
+          <h2 className="font-display font-bold text-primary text-lg flex items-center gap-1.5">Career ROI Score <HelpTooltip text="Measures your overall career progress based on fit scores, interview rates, compensation gains, and application outcomes. Higher is better." /></h2>
           <p className="text-xs text-muted-foreground">Your measurable career progress</p>
         </div>
         <Badge variant="outline" className={`ml-auto ${

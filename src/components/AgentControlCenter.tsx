@@ -124,7 +124,7 @@ export default function AgentControlCenter() {
       <Card className="border-border">
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
-            <Bot className="w-4 h-4 text-accent" /> Automation Mode
+            <Bot className="w-4 h-4 text-accent" /> Automation Mode <HelpTooltip text="Controls how the AI agents work for you. Manual = you do everything. Smart Assist = auto-applies to high matches. Autonomous = AI handles the full pipeline." />
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">

@@ -167,7 +167,7 @@ export default function CompensationDashboard() {
         <div className="w-8 h-8 rounded-lg gradient-teal flex items-center justify-center">
           <DollarSign className="w-4 h-4 text-white" />
         </div>
-        <h2 className="font-display font-bold text-primary text-lg">Compensation Intelligence</h2>
+        <h2 className="font-display font-bold text-primary text-lg flex items-center gap-1.5">Compensation Intelligence <HelpTooltip text="Compare your salary against market benchmarks, analyze job offers, get negotiation strategies, and generate ready-to-use scripts for salary discussions." /></h2>
       </div>
 
       {/* Input Form */}

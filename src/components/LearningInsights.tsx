@@ -52,7 +52,7 @@ export default function LearningInsights() {
   return (
     <Card className="p-6">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="font-display font-bold text-primary text-lg flex items-center gap-2"><Brain className="w-5 h-5 text-accent" /> Learning Insights</h3>
+        <h3 className="font-display font-bold text-primary text-lg flex items-center gap-2"><Brain className="w-5 h-5 text-accent" /> Learning Insights <HelpTooltip text="AI analyzes your application outcomes to find patterns — what's working, what isn't, and how to improve your hit rate." /></h3>
         <Button variant="ghost" size="sm" onClick={analyze} disabled={loading}>
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Refresh"}
         </Button>

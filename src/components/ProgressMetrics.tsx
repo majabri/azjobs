@@ -110,7 +110,7 @@ export default function ProgressMetrics() {
           <Award className="w-4 h-4 text-accent" />
         </div>
         <p className="font-display font-bold text-primary text-2xl">{metrics.interviewRate}%</p>
-        <p className="text-xs text-muted-foreground">Interview Rate</p>
+        <p className="text-xs text-muted-foreground flex items-center gap-1">Interview Rate <HelpTooltip text="Percentage of your applications that progressed to an interview stage." /></p>
       </Card>
 
       <Card className="p-4">
