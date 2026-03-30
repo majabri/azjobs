@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Loader2, TrendingUp, TrendingDown, Minus, BarChart3, Send, Target, Award } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import HelpTooltip from "@/components/HelpTooltip";
 
 interface Metrics {
   appsThisMonth: number;
