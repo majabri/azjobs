@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Brain, TrendingUp, Sparkles } from "lucide-react";
+import HelpTooltip from "@/components/HelpTooltip";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
