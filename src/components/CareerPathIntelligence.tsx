@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, TrendingUp, DollarSign, GraduationCap, ArrowRight, Sparkles, Target, BookOpen, Award, Code2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import HelpTooltip from "@/components/HelpTooltip";
 import { toast } from "sonner";
 
 interface CareerInsight {
