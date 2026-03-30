@@ -20,6 +20,7 @@ import {
   ShieldX,
   Zap,
   Plus,
+  EyeOff,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -35,6 +36,7 @@ import {
   type HistoricalOutcomes,
 } from "@/lib/jobQualityEngine";
 import { saveJobToApplications } from "@/lib/saveJob";
+import { getIgnoredJobs, ignoreJob, isJobIgnored, isJobAlreadySaved, type IgnoredJob } from "@/lib/ignoredJobs";
 
 interface JobMatch {
   title: string;
@@ -206,6 +208,8 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
   const [lastFetched, setLastFetched] = useState<string | null>(null);
   const [historicalOutcomes, setHistoricalOutcomes] = useState<HistoricalOutcomes | undefined>();
   const [savingJobKeys, setSavingJobKeys] = useState<Record<string, boolean>>({});
+  const [ignoredList, setIgnoredList] = useState<IgnoredJob[]>([]);
+  const [savedApps, setSavedApps] = useState<{ job_title: string; company: string; job_url: string | null }[]>([]);
 
   useEffect(() => {
     checkAndFetch();
@@ -236,14 +240,23 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
     } = await supabase.auth.getSession();
     if (!session) return;
 
-    const [{ data: profile }, outcomes] = await Promise.all([
+    const [{ data: profile }, outcomes, ignored] = await Promise.all([
       supabase
         .from("job_seeker_profiles")
         .select("skills, preferred_job_types, location, career_level, target_job_titles")
         .eq("user_id", session.user.id)
         .maybeSingle(),
       loadHistoricalOutcomes(session.user.id),
+      getIgnoredJobs(),
     ]);
+    setIgnoredList(ignored);
+
+    // Load saved/applied applications
+    const { data: appData } = await supabase
+      .from("job_applications")
+      .select("job_title, company, job_url")
+      .eq("user_id", session.user.id);
+    if (appData) setSavedApps(appData as any);
 
     if (!profile?.skills?.length) {
       setHasProfile(false);
@@ -375,7 +388,9 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
         if (!uniqueByUrl.has(job.url)) uniqueByUrl.set(job.url, job);
       }
 
-      const enriched = enrichJobs(Array.from(uniqueByUrl.values()), profile.skills || [], outcomes);
+      const enriched = enrichJobs(Array.from(uniqueByUrl.values()), profile.skills || [], outcomes)
+        .filter(job => !isJobIgnored(job, ignoredList))
+        .filter(job => !isJobAlreadySaved(job, savedApps));
       setJobs(enriched);
       setLastFetched(new Date().toLocaleTimeString());
       localStorage.setItem(cacheKey, JSON.stringify({ jobs: enriched, timestamp: Date.now() }));
@@ -635,6 +650,21 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
                         <ExternalLink className="w-3.5 h-3.5 mr-1" /> Find & Apply
                       </Button>
                     )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs text-muted-foreground hover:text-destructive"
+                      onClick={async () => {
+                        const ok = await ignoreJob({ title: job.title, company: job.company, url: job.url });
+                        if (ok) {
+                          setJobs(prev => prev.filter(j => getJobSaveKey(j) !== saveKey));
+                          setIgnoredList(prev => [...prev, { id: '', job_title: job.title, company: job.company, job_url: job.url }]);
+                          toast.success("Job hidden");
+                        }
+                      }}
+                    >
+                      <EyeOff className="w-3.5 h-3.5 mr-1" /> Ignore
+                    </Button>
                   </div>
                 </div>
               </Card>

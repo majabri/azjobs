@@ -8,6 +8,7 @@ import {
   ArrowLeft, Search, Loader2, MapPin, Building2, ExternalLink, Target,
   Briefcase, Globe, Plus, X, DollarSign, AlertTriangle, TrendingUp,
   Zap, Shield, Clock, Database, Filter, ShieldCheck, ShieldAlert, ShieldX,
+  EyeOff,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -18,6 +19,7 @@ import {
   type FakeJobFlag, type HistoricalOutcomes,
 } from "@/lib/jobQualityEngine";
 import { saveJobToApplications } from "@/lib/saveJob";
+import { getIgnoredJobs, ignoreJob, isJobIgnored, isJobAlreadySaved, type IgnoredJob } from "@/lib/ignoredJobs";
 
 interface JobResult {
   title: string;
@@ -306,8 +308,25 @@ export default function JobSearchPage() {
   const [showFlagged, setShowFlagged] = useState(true);
   const [historicalOutcomes, setHistoricalOutcomes] = useState<HistoricalOutcomes | undefined>();
   const [savingJobKeys, setSavingJobKeys] = useState<Record<string, boolean>>({});
+  const [ignoredList, setIgnoredList] = useState<IgnoredJob[]>([]);
+  const [savedApps, setSavedApps] = useState<{ job_title: string; company: string; job_url: string | null }[]>([]);
 
-  useEffect(() => { loadProfile(); }, []);
+  useEffect(() => { loadProfile(); loadIgnoredAndSaved(); }, []);
+
+  const loadIgnoredAndSaved = async () => {
+    const [ignored, { data: { session } }] = await Promise.all([
+      getIgnoredJobs(),
+      supabase.auth.getSession(),
+    ]);
+    setIgnoredList(ignored);
+    if (session) {
+      const { data } = await supabase
+        .from("job_applications")
+        .select("job_title, company, job_url")
+        .eq("user_id", session.user.id);
+      if (data) setSavedApps(data as any);
+    }
+  };
 
   const loadProfile = async () => {
     try {
@@ -468,7 +487,9 @@ export default function JobSearchPage() {
           uniqueByUrl.set(job.url, job);
         }
       }
-      allJobs = Array.from(uniqueByUrl.values());
+      allJobs = Array.from(uniqueByUrl.values())
+        .filter(job => !isJobIgnored(job, ignoredList))
+        .filter(job => !isJobAlreadySaved(job, savedApps));
 
       // Enrich with trust engine + probability + decision score
       const allTitles = allJobs.map(j => j.title || "");
@@ -878,6 +899,21 @@ export default function JobSearchPage() {
                         <ExternalLink className="w-3.5 h-3.5 mr-1" /> Find & Apply
                       </Button>
                     )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs text-muted-foreground hover:text-destructive"
+                      onClick={async () => {
+                        const ok = await ignoreJob({ title: job.title, company: job.company, url: job.url });
+                        if (ok) {
+                          setJobs(prev => prev.filter(j => getJobSaveKey(j) !== saveKey));
+                          setIgnoredList(prev => [...prev, { id: '', job_title: job.title, company: job.company, job_url: job.url }]);
+                          toast.success("Job hidden — won't appear again");
+                        }
+                      }}
+                    >
+                      <EyeOff className="w-3.5 h-3.5 mr-1" /> Ignore
+                    </Button>
                   </div>
                 </div>
               </Card>
