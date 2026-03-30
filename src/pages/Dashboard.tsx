@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import OnboardingWizard from "@/components/OnboardingWizard";
 import { toast } from "sonner";
 import { ScoreRingInline } from "@/components/ScoreDisplay";
+import HelpTooltip from "@/components/HelpTooltip";
 import TodaysMatches from "@/components/TodaysMatches";
 import CareerPathIntelligence from "@/components/CareerPathIntelligence";
 import LearningInsights from "@/components/LearningInsights";
