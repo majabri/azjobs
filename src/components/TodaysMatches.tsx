@@ -208,6 +208,8 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
   const [lastFetched, setLastFetched] = useState<string | null>(null);
   const [historicalOutcomes, setHistoricalOutcomes] = useState<HistoricalOutcomes | undefined>();
   const [savingJobKeys, setSavingJobKeys] = useState<Record<string, boolean>>({});
+  const [ignoredList, setIgnoredList] = useState<IgnoredJob[]>([]);
+  const [savedApps, setSavedApps] = useState<{ job_title: string; company: string; job_url: string | null }[]>([]);
 
   useEffect(() => {
     checkAndFetch();
