@@ -78,7 +78,7 @@ export default function CareerPathIntelligence() {
     return (
       <Card className="p-6 text-center">
         <TrendingUp className="w-10 h-10 text-accent mx-auto mb-3" />
-        <h3 className="font-display font-bold text-primary text-lg mb-2">Career Path Intelligence</h3>
+        <h3 className="font-display font-bold text-primary text-lg mb-2 flex items-center justify-center gap-1.5">Career Path Intelligence <HelpTooltip text="AI recommends your next career moves — higher-paying roles, skills to learn, and industry trends based on your profile." /></h3>
         <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
           Get AI-powered recommendations for higher-paying roles, skills to learn, and career transitions based on your profile and market data.
         </p>
