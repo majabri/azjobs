@@ -650,6 +650,21 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
                         <ExternalLink className="w-3.5 h-3.5 mr-1" /> Find & Apply
                       </Button>
                     )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs text-muted-foreground hover:text-destructive"
+                      onClick={async () => {
+                        const ok = await ignoreJob({ title: job.title, company: job.company, url: job.url });
+                        if (ok) {
+                          setJobs(prev => prev.filter(j => getJobSaveKey(j) !== saveKey));
+                          setIgnoredList(prev => [...prev, { id: '', job_title: job.title, company: job.company, job_url: job.url }]);
+                          toast.success("Job hidden");
+                        }
+                      }}
+                    >
+                      <EyeOff className="w-3.5 h-3.5 mr-1" /> Ignore
+                    </Button>
                   </div>
                 </div>
               </Card>
