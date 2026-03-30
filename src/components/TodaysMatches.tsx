@@ -388,7 +388,9 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
         if (!uniqueByUrl.has(job.url)) uniqueByUrl.set(job.url, job);
       }
 
-      const enriched = enrichJobs(Array.from(uniqueByUrl.values()), profile.skills || [], outcomes);
+      const enriched = enrichJobs(Array.from(uniqueByUrl.values()), profile.skills || [], outcomes)
+        .filter(job => !isJobIgnored(job, ignoredList))
+        .filter(job => !isJobAlreadySaved(job, savedApps));
       setJobs(enriched);
       setLastFetched(new Date().toLocaleTimeString());
       localStorage.setItem(cacheKey, JSON.stringify({ jobs: enriched, timestamp: Date.now() }));
