@@ -8,6 +8,7 @@ import {
   ArrowLeft, Search, Loader2, MapPin, Building2, ExternalLink, Target,
   Briefcase, Globe, Plus, X, DollarSign, AlertTriangle, TrendingUp,
   Zap, Shield, Clock, Database, Filter, ShieldCheck, ShieldAlert, ShieldX,
+  EyeOff,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
