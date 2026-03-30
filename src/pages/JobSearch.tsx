@@ -308,8 +308,10 @@ export default function JobSearchPage() {
   const [showFlagged, setShowFlagged] = useState(true);
   const [historicalOutcomes, setHistoricalOutcomes] = useState<HistoricalOutcomes | undefined>();
   const [savingJobKeys, setSavingJobKeys] = useState<Record<string, boolean>>({});
+  const [ignoredList, setIgnoredList] = useState<IgnoredJob[]>([]);
+  const [savedApps, setSavedApps] = useState<{ job_title: string; company: string; job_url: string | null }[]>([]);
 
-  useEffect(() => { loadProfile(); }, []);
+  useEffect(() => { loadProfile(); loadIgnoredAndSaved(); }, []);
 
   const loadProfile = async () => {
     try {
