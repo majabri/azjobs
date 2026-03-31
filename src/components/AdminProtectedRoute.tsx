@@ -1,39 +1,37 @@
-import { useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import { useAuthReady } from "@/hooks/useAuthReady";
-import { useAdminRole } from "@/hooks/useAdminRole";
+import React from 'react';
+import { useAuth } from 'your_auth_hook';
+import { Card, Button } from 'your_component_library';
 
-/**
- * Protects admin routes by redirecting:
- * - Unauthenticated users → /admin/login
- * - Authenticated non-admins → /dashboard
- * - Admins with must_set_password flag → /admin/set-password
- */
-export default function AdminProtectedRoute({ children }: { children: React.ReactNode }) {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { user, isReady } = useAuthReady();
-  const { isAdmin, isLoading: roleLoading } = useAdminRole();
+const AdminProtectedRoute = ({ children }) => {
+    const { isLoading, user, error } = useAuth();
 
-  const mustSetPassword = user?.user_metadata?.must_set_password === true;
-  const onSetPasswordPage = location.pathname === "/admin/set-password";
-
-  useEffect(() => {
-    if (!isReady) return;
-    if (!user) {
-      navigate("/admin/login", { replace: true });
-      return;
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center h-screen">
+                <Card className="p-4">
+                    <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-gray-900"></div>
+                    <p>Loading...</p>
+                </Card>
+            </div>
+        );
     }
-    if (!roleLoading && !isAdmin) {
-      navigate("/dashboard", { replace: true });
-      return;
-    }
-    if (!roleLoading && isAdmin && mustSetPassword && !onSetPasswordPage) {
-      navigate("/admin/set-password", { replace: true });
-    }
-  }, [isReady, user, isAdmin, roleLoading, mustSetPassword, onSetPasswordPage, navigate]);
 
-  if (!isReady || !user || roleLoading) return null;
-  if (!isAdmin) return null;
-  return <>{children}</>;
-}
+    if (error || !user || !user.isAdmin) {
+        return (
+            <div className="flex flex-col items-center justify-center h-screen">
+                <Card className="p-4">
+                    <h2 className="text-xl">Unauthorized Access</h2>
+                    <p>You do not have permission to access this page.</p>
+                    <div className="flex space-x-4 mt-4">
+                        <Button link="/admin/login" className="bg-blue-500 hover:bg-blue-700">Go to Login</Button>
+                        <Button link="/dashboard" className="bg-gray-500 hover:bg-gray-700">Go to Dashboard</Button>
+                    </div>
+                </Card>
+            </div>
+        );
+    }
+
+    return children;
+};
+
+export default AdminProtectedRoute;
