@@ -1,37 +1,29 @@
-import React from 'react';
-import { useAuth } from 'your_auth_hook';
-import { Card, Button } from 'your_component_library';
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { Clock } from "lucide-react";
+import { useAdminRole } from "@/hooks/useAdminRole";
 
-const AdminProtectedRoute = ({ children }) => {
-    const { isLoading, user, error } = useAuth();
+const AdminProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const navigate = useNavigate();
+  const { isAdmin, isLoading } = useAdminRole();
 
-    if (isLoading) {
-        return (
-            <div className="flex items-center justify-center h-screen">
-                <Card className="p-4">
-                    <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-gray-900"></div>
-                    <p>Loading...</p>
-                </Card>
-            </div>
-        );
+  useEffect(() => {
+    if (!isLoading && !isAdmin) {
+      navigate("/admin/login", { replace: true });
     }
+  }, [isAdmin, isLoading, navigate]);
 
-    if (error || !user || !user.isAdmin) {
-        return (
-            <div className="flex flex-col items-center justify-center h-screen">
-                <Card className="p-4">
-                    <h2 className="text-xl">Unauthorized Access</h2>
-                    <p>You do not have permission to access this page.</p>
-                    <div className="flex space-x-4 mt-4">
-                        <Button link="/admin/login" className="bg-blue-500 hover:bg-blue-700">Go to Login</Button>
-                        <Button link="/dashboard" className="bg-gray-500 hover:bg-gray-700">Go to Dashboard</Button>
-                    </div>
-                </Card>
-            </div>
-        );
-    }
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Clock className="w-8 h-8 animate-spin text-accent" />
+      </div>
+    );
+  }
 
-    return children;
+  if (!isAdmin) return null;
+
+  return <>{children}</>;
 };
 
 export default AdminProtectedRoute;
