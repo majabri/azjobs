@@ -482,7 +482,8 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
     );
   }
 
-  const displayJobs = jobs.slice(0, compact ? visibleCount : visibleCount);
+  const effectiveVisible = compact && visibleCount === PAGE_SIZE ? 3 : visibleCount;
+  const displayJobs = jobs.slice(0, effectiveVisible);
 
   return (
     <div className="space-y-4">
