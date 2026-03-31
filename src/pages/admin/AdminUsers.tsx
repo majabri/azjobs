@@ -493,7 +493,7 @@ export default function AdminUsers() {
     try {
       const { error } = await supabase
         .from("user_roles")
-        .upsert({ user_id: userId, role: newRole, updated_at: new Date().toISOString() });
+        .upsert({ user_id: userId, role: newRole as any } as any, { onConflict: "user_id,role" });
       if (error) throw error;
       toast.success("Role updated");
     } catch (e) {

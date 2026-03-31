@@ -39,10 +39,10 @@ export default function AdminSettings() {
   const load = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("admin_settings")
+      const { data, error } = await (supabase
+        .from("admin_settings" as any)
         .select("*")
-        .order("key");
+        .order("key") as any);
       if (error) throw error;
       setSettings((data || []) as SettingRow[]);
       setEdits({});
@@ -65,10 +65,10 @@ export default function AdminSettings() {
     setSaving(true);
     try {
       for (const [key, value] of Object.entries(edits)) {
-        const { error } = await supabase
-          .from("admin_settings")
-          .update({ value: value as import("@/integrations/supabase/types").Json, updated_by: user?.id ?? null, updated_at: new Date().toISOString() })
-          .eq("key", key);
+        const { error } = await (supabase
+          .from("admin_settings" as any)
+          .update({ value: value as any, updated_by: user?.id ?? null, updated_at: new Date().toISOString() })
+          .eq("key", key) as any);
         if (error) throw error;
       }
       toast.success("Settings saved");

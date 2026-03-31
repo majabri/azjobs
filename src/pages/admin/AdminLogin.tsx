@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Shield, Github, Eye, EyeOff } from "lucide-react";
+import { Shield, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,49 +18,42 @@ export default function AdminLogin() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [githubLoading, setGithubLoading] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(false);
 
-  // Redirect if already authenticated as admin
   useEffect(() => {
     if (isReady && !roleLoading && user && isAdmin) {
       navigate("/admin", { replace: true });
     }
   }, [isReady, roleLoading, user, isAdmin, navigate]);
 
-  const handleEmailLogin = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) return;
 
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) {
-        toast.error(error.message);
+      if (isSignUp) {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { emailRedirectTo: `${window.location.origin}/admin/login` },
+        });
+        if (error) {
+          toast.error(error.message);
+        } else {
+          toast.success("Account created! Check your email to confirm, then sign in.");
+          setIsSignUp(false);
+        }
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) {
+          toast.error(error.message);
+        }
       }
-      // Navigation is handled by the useEffect above once role is resolved
     } catch {
       toast.error("An unexpected error occurred. Please try again.");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleGithubLogin = async () => {
-    setGithubLoading(true);
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "github",
-        options: {
-          redirectTo: `${window.location.origin}/admin`,
-        },
-      });
-      if (error) {
-        toast.error(error.message);
-        setGithubLoading(false);
-      }
-    } catch {
-      toast.error("An unexpected error occurred. Please try again.");
-      setGithubLoading(false);
     }
   };
 
@@ -72,14 +65,14 @@ export default function AdminLogin() {
             <Shield className="w-7 h-7 text-white" />
           </div>
           <h1 className="font-display text-3xl font-bold text-foreground">Admin Login</h1>
-          <p className="text-muted-foreground text-sm">Sign in to access the admin control center</p>
+          <p className="text-muted-foreground text-sm">
+            {isSignUp ? "Create your admin account" : "Sign in to access the admin control center"}
+          </p>
         </div>
 
-        <form onSubmit={handleEmailLogin} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="email" className="text-sm font-medium">
-              Email
-            </Label>
+            <Label htmlFor="email" className="text-sm font-medium">Email</Label>
             <Input
               id="email"
               type="email"
@@ -93,9 +86,7 @@ export default function AdminLogin() {
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="password" className="text-sm font-medium">
-              Password
-            </Label>
+            <Label htmlFor="password" className="text-sm font-medium">Password</Label>
             <div className="relative">
               <Input
                 id="password"
@@ -104,7 +95,7 @@ export default function AdminLogin() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                autoComplete="current-password"
+                autoComplete={isSignUp ? "new-password" : "current-password"}
                 disabled={loading}
                 className="pr-10"
               />
@@ -125,29 +116,19 @@ export default function AdminLogin() {
             className="w-full bg-destructive/80 hover:bg-destructive text-white"
             disabled={loading || !email || !password}
           >
-            {loading ? "Signing in…" : "Sign in"}
+            {loading ? (isSignUp ? "Creating account…" : "Signing in…") : (isSignUp ? "Create Account" : "Sign in")}
           </Button>
         </form>
 
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t border-border" />
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-background px-2 text-muted-foreground">or</span>
-          </div>
+        <div className="text-center">
+          <button
+            type="button"
+            onClick={() => setIsSignUp((v) => !v)}
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors underline"
+          >
+            {isSignUp ? "Already have an account? Sign in" : "First time? Create account"}
+          </button>
         </div>
-
-        <Button
-          type="button"
-          variant="outline"
-          className="w-full"
-          disabled={githubLoading}
-          onClick={handleGithubLogin}
-        >
-          <Github className="w-4 h-4 mr-2" />
-          {githubLoading ? "Redirecting…" : "Continue with GitHub"}
-        </Button>
 
         <p className="text-xs text-muted-foreground text-center">
           Only authorized administrators may access this area.
