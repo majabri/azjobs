@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Loader2, Trash2 } from "lucide-react";
+import { Download, Loader2, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import ProfileForm, { type ProfileData, emptyProfile } from "@/components/profile/ProfileForm";
@@ -22,6 +22,7 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => { loadProfile(); }, []);
 
@@ -60,6 +61,42 @@ export default function ProfilePage() {
       console.error(e);
       toast.error("Failed to load profile");
     } finally { setLoading(false); }
+  };
+
+  const handleExportData = async () => {
+    setExporting(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { toast.error("Please sign in"); return; }
+      const resp = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/export-my-data`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+        },
+      );
+      if (!resp.ok) {
+        const json = await resp.json();
+        throw new Error(json.error ?? "Failed to export data");
+      }
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `my_data_export_${new Date().toISOString().split("T")[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success("Your data has been exported.");
+    } catch (e: any) {
+      toast.error(e.message ?? "Failed to export data");
+    } finally {
+      setExporting(false);
+    }
   };
 
   const handleDeleteAccount = async () => {
@@ -147,15 +184,27 @@ export default function ProfilePage() {
           <p className="text-sm text-muted-foreground">
             Permanently delete your account and all associated data. This action cannot be undone.
           </p>
-          <Button
-            variant="destructive"
-            size="sm"
-            className="flex items-center gap-2"
-            onClick={() => setShowDeleteDialog(true)}
-          >
-            <Trash2 className="w-4 h-4" />
-            Delete My Account
-          </Button>
+          <div className="flex flex-wrap gap-3">
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2"
+              onClick={handleExportData}
+              disabled={exporting}
+            >
+              {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+              Export My Data
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              className="flex items-center gap-2"
+              onClick={() => setShowDeleteDialog(true)}
+            >
+              <Trash2 className="w-4 h-4" />
+              Delete My Account
+            </Button>
+          </div>
         </div>
       </div>
 
