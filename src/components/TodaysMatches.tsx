@@ -681,12 +681,12 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
             );
           })}
 
-          {compact && jobs.length > 3 && visibleCount <= 3 && (
+          {compact && jobs.length > 3 && effectiveVisible <= 3 && (
             <Button variant="outline" className="w-full" onClick={() => setVisibleCount(jobs.length)}>
               View All {jobs.length} Matches
             </Button>
           )}
-          {compact && visibleCount > 3 && jobs.length > 3 && (
+          {compact && effectiveVisible > 3 && jobs.length > 3 && (
             <Button variant="ghost" className="w-full text-muted-foreground" onClick={() => setVisibleCount(3)}>
               Show Less
             </Button>
