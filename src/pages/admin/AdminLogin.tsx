@@ -13,18 +13,10 @@ import { toast } from "sonner";
 async function resolveEmailFromUsername(username: string): Promise<string | null> {
   const { data } = await supabase
     .from("profiles")
-    .select("user_id")
+    .select("email")
     .eq("username", username)
     .maybeSingle();
-  if (!data) return null;
-
-  // Fetch the email from job_seeker_profiles (where email is stored for most users)
-  const { data: profile } = await supabase
-    .from("job_seeker_profiles")
-    .select("email")
-    .eq("user_id", data.user_id)
-    .maybeSingle();
-  return profile?.email ?? null;
+  return (data as { email?: string } | null)?.email ?? null;
 }
 
 export default function AdminLogin() {
@@ -145,7 +137,7 @@ export default function AdminLogin() {
           <Button
             type="submit"
             className="w-full bg-destructive/80 hover:bg-destructive text-white"
-            disabled={loading || !email || !password}
+            disabled={loading || !identifier || !password}
           >
             {loading ? (isSignUp ? "Creating account…" : "Signing in…") : (isSignUp ? "Create Account" : "Sign in")}
           </Button>

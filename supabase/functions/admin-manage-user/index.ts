@@ -73,7 +73,7 @@ serve(async (req) => {
     // Create the auth user
     const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
       email,
-      password: password || undefined,
+      password: password ? password : undefined,
       email_confirm: true,
       user_metadata: { full_name: fullName ?? "" },
     });
@@ -99,6 +99,12 @@ serve(async (req) => {
         { onConflict: "user_id" },
       );
     }
+
+    // Sync email into profiles table so username login works
+    await adminClient
+      .from("profiles")
+      .update({ email, full_name: fullName ?? "" } as any)
+      .eq("user_id", userId);
 
     return new Response(
       JSON.stringify({ success: true, userId, email }),
@@ -130,6 +136,60 @@ serve(async (req) => {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    return new Response(
+      JSON.stringify({ success: true }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
+
+  if (action === "update") {
+    const { userId, email: newEmail, fullName } = body;
+
+    if (!userId) {
+      return new Response(JSON.stringify({ error: "userId is required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const updates: Record<string, unknown> = {};
+    if (newEmail) updates.email = newEmail;
+    if (fullName !== undefined) {
+      // Fetch existing metadata so we don't wipe other fields (e.g. must_set_password)
+      const { data: existingUser } = await adminClient.auth.admin.getUserById(userId);
+      const existingMeta = existingUser?.user?.user_metadata ?? {};
+      updates.user_metadata = { ...existingMeta, full_name: fullName };
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return new Response(JSON.stringify({ error: "Nothing to update" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { error: updateError } = await adminClient.auth.admin.updateUserById(userId, updates);
+    if (updateError) {
+      return new Response(JSON.stringify({ error: updateError.message }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Sync email in profiles table
+    if (newEmail) {
+      await adminClient
+        .from("profiles")
+        .update({ email: newEmail } as any)
+        .eq("user_id", userId);
+
+      // Also sync in job_seeker_profiles if present
+      await adminClient
+        .from("job_seeker_profiles" as any)
+        .update({ email: newEmail } as any)
+        .eq("user_id", userId);
     }
 
     return new Response(

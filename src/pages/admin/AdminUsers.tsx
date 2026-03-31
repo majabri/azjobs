@@ -3,12 +3,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Users, Search, Clock, Shield, UserCircle, Target, Briefcase,
-  FileText, Calendar, Bot, ChevronDown,
+  FileText, Calendar, Bot, ChevronDown, UserPlus, Trash2, Pencil,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -41,6 +49,221 @@ interface HiringManagerRecord {
   interview_count: number;
   candidates_matched: number;
   latest_posting_at: string | null;
+}
+
+// ─── Edge-function helper ────────────────────────────────────────────────────
+
+async function callAdminManageUser(payload: Record<string, unknown>) {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error("Not authenticated");
+
+  const resp = await fetch(
+    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-manage-user`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+        apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+      },
+      body: JSON.stringify(payload),
+    },
+  );
+  const json = await resp.json();
+  if (!resp.ok) throw new Error(json.error ?? "Request failed");
+  return json;
+}
+
+// ─── Add User Dialog ─────────────────────────────────────────────────────────
+
+function AddUserDialog({
+  open,
+  onClose,
+  onCreated,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onCreated: () => void;
+}) {
+  const [email, setEmail] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [role, setRole] = useState("job_seeker");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const reset = () => { setEmail(""); setFullName(""); setRole("job_seeker"); setPassword(""); };
+
+  const handleCreate = async () => {
+    if (!email.trim()) { toast.error("Email is required"); return; }
+    setLoading(true);
+    try {
+      await callAdminManageUser({ action: "create", email: email.trim(), fullName: fullName.trim(), role, password: password || undefined });
+      toast.success(`User ${email} created`);
+      reset();
+      onCreated();
+      onClose();
+    } catch (e: any) {
+      toast.error(e.message ?? "Failed to create user");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => { if (!v) { reset(); onClose(); } }}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <UserPlus className="w-5 h-5 text-accent" /> Add New User
+          </DialogTitle>
+          <DialogDescription>Create a new platform user and assign their role.</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="new-email">Email <span className="text-destructive">*</span></Label>
+            <Input id="new-email" type="email" placeholder="user@example.com" value={email} onChange={(e) => setEmail(e.target.value)} disabled={loading} />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="new-name">Full Name</Label>
+            <Input id="new-name" placeholder="Jane Doe" value={fullName} onChange={(e) => setFullName(e.target.value)} disabled={loading} />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="new-role">Role</Label>
+            <Select value={role} onValueChange={setRole} disabled={loading}>
+              <SelectTrigger id="new-role"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="job_seeker">Job Seeker</SelectItem>
+                <SelectItem value="recruiter">Hiring Manager</SelectItem>
+                <SelectItem value="admin">Admin</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="new-password">Temporary Password <span className="text-muted-foreground text-xs">(optional — leave blank to send a magic link)</span></Label>
+            <Input id="new-password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} disabled={loading} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => { reset(); onClose(); }} disabled={loading}>Cancel</Button>
+          <Button onClick={handleCreate} disabled={loading || !email.trim()}>
+            {loading ? "Creating…" : "Create User"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── Edit User Dialog ─────────────────────────────────────────────────────────
+
+function EditUserDialog({
+  user,
+  onClose,
+  onUpdated,
+}: {
+  user: { user_id: string; email: string | null; full_name: string | null } | null;
+  onClose: () => void;
+  onUpdated: () => void;
+}) {
+  const [email, setEmail] = useState(user?.email ?? "");
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => { setEmail(user?.email ?? ""); }, [user]);
+
+  const handleSave = async () => {
+    if (!user) return;
+    if (!email.trim()) { toast.error("Email cannot be empty"); return; }
+    setLoading(true);
+    try {
+      await callAdminManageUser({ action: "update", userId: user.user_id, email: email.trim() });
+      toast.success("Email updated. The user can now reset their password.");
+      onUpdated();
+      onClose();
+    } catch (e: any) {
+      toast.error(e.message ?? "Failed to update email");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Dialog open={!!user} onOpenChange={(v) => { if (!v) onClose(); }}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Pencil className="w-5 h-5 text-accent" /> Edit User
+          </DialogTitle>
+          <DialogDescription>
+            Update the email address for <strong>{user?.full_name || "this user"}</strong>. Changing the email enables password reset.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="edit-email">Email <span className="text-destructive">*</span></Label>
+            <Input id="edit-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} disabled={loading} />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={loading}>Cancel</Button>
+          <Button onClick={handleSave} disabled={loading || !email.trim()}>
+            {loading ? "Saving…" : "Save Email"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// ─── Delete Confirm Dialog ────────────────────────────────────────────────────
+
+function DeleteUserDialog({
+  user,
+  onClose,
+  onDeleted,
+}: {
+  user: { user_id: string; full_name: string | null; email: string | null } | null;
+  onClose: () => void;
+  onDeleted: () => void;
+}) {
+  const [loading, setLoading] = useState(false);
+
+  const handleDelete = async () => {
+    if (!user) return;
+    setLoading(true);
+    try {
+      await callAdminManageUser({ action: "delete", userId: user.user_id });
+      toast.success(`User ${user.email || user.user_id} removed`);
+      onDeleted();
+      onClose();
+    } catch (e: any) {
+      toast.error(e.message ?? "Failed to remove user");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <AlertDialog open={!!user} onOpenChange={(v) => { if (!v) onClose(); }}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Remove user?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This will permanently delete <strong>{user?.full_name || user?.email || user?.user_id}</strong> and all their data. This action cannot be undone.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={loading}>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={handleDelete}
+            disabled={loading}
+            className="bg-destructive hover:bg-destructive/90 text-white"
+          >
+            {loading ? "Removing…" : "Remove User"}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
 }
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -101,10 +324,16 @@ function JobSeekerPanel({
   search,
   updatingId,
   onChangeRole,
+  onEdit,
+  onDelete,
+  reloadKey,
 }: {
   search: string;
   updatingId: string | null;
   onChangeRole: (userId: string, role: string) => void;
+  onEdit: (user: { user_id: string; email: string | null; full_name: string | null }) => void;
+  onDelete: (user: { user_id: string; email: string | null; full_name: string | null }) => void;
+  reloadKey: number;
 }) {
   const [records, setRecords] = useState<JobSeekerRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -155,7 +384,7 @@ function JobSeekerPanel({
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(); }, [load, reloadKey]);
 
   const filtered = records.filter((u) => {
     if (!search.trim()) return true;
@@ -266,6 +495,26 @@ function JobSeekerPanel({
                 disabled={updatingId === user.user_id}
                 onChangeRole={onChangeRole}
               />
+
+              {/* Edit / Remove */}
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                title="Edit email"
+                onClick={() => onEdit(user)}
+              >
+                <Pencil className="w-3.5 h-3.5" />
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                title="Remove user"
+                onClick={() => onDelete(user)}
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </Button>
             </div>
           ))}
         </div>
@@ -280,10 +529,16 @@ function HiringManagerPanel({
   search,
   updatingId,
   onChangeRole,
+  onEdit,
+  onDelete,
+  reloadKey,
 }: {
   search: string;
   updatingId: string | null;
   onChangeRole: (userId: string, role: string) => void;
+  onEdit: (user: { user_id: string; email: string | null; full_name: string | null }) => void;
+  onDelete: (user: { user_id: string; email: string | null; full_name: string | null }) => void;
+  reloadKey: number;
 }) {
   const [records, setRecords] = useState<HiringManagerRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -358,7 +613,7 @@ function HiringManagerPanel({
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { load(); }, [load, reloadKey]);
 
   const filtered = records.filter((u) => {
     if (!search.trim()) return true;
@@ -454,6 +709,26 @@ function HiringManagerPanel({
                 disabled={updatingId === user.user_id}
                 onChangeRole={onChangeRole}
               />
+
+              {/* Edit / Remove */}
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                title="Edit email"
+                onClick={() => onEdit(user)}
+              >
+                <Pencil className="w-3.5 h-3.5" />
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                title="Remove user"
+                onClick={() => onDelete(user)}
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </Button>
             </div>
           ))}
         </div>
@@ -481,12 +756,22 @@ function MiniStat({
 
 // ─── Main page ────────────────────────────────────────────────────────────────
 
+type UserRef = { user_id: string; email: string | null; full_name: string | null };
+
 export default function AdminUsers() {
   const [activeView, setActiveView] = useState<AdminView>("job_seekers");
   const [search, setSearch] = useState("");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
+
+  // Dialog state
+  const [showAddUser, setShowAddUser] = useState(false);
+  const [editUser, setEditUser] = useState<UserRef | null>(null);
+  const [deleteUser, setDeleteUser] = useState<UserRef | null>(null);
 
   const meta = VIEW_META[activeView];
+
+  const reload = () => setReloadKey((k) => k + 1);
 
   const changeRole = async (userId: string, newRole: string) => {
     setUpdatingId(userId);
@@ -496,6 +781,7 @@ export default function AdminUsers() {
         .upsert({ user_id: userId, role: newRole as any } as any, { onConflict: "user_id,role" });
       if (error) throw error;
       toast.success("Role updated");
+      reload();
     } catch (e) {
       console.error(e);
       toast.error("Failed to update role");
@@ -513,30 +799,41 @@ export default function AdminUsers() {
           <p className="text-muted-foreground text-sm mt-1">{meta.description}</p>
         </div>
 
-        {/* View switcher dropdown */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="flex items-center gap-2 min-w-[200px] justify-between">
-              <span className="flex items-center gap-2">
-                <meta.icon className="w-4 h-4" />
-                {meta.label}
-              </span>
-              <ChevronDown className="w-4 h-4 text-muted-foreground" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-52">
-            {(Object.entries(VIEW_META) as [AdminView, typeof meta][]).map(([key, m]) => (
-              <DropdownMenuItem
-                key={key}
-                onClick={() => { setActiveView(key); setSearch(""); }}
-                className={activeView === key ? "bg-accent/10" : ""}
-              >
-                <m.icon className="w-4 h-4 mr-2" />
-                {m.label}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex items-center gap-2">
+          {/* Add User button */}
+          <Button
+            onClick={() => setShowAddUser(true)}
+            className="flex items-center gap-2"
+          >
+            <UserPlus className="w-4 h-4" />
+            Add User
+          </Button>
+
+          {/* View switcher dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="flex items-center gap-2 min-w-[200px] justify-between">
+                <span className="flex items-center gap-2">
+                  <meta.icon className="w-4 h-4" />
+                  {meta.label}
+                </span>
+                <ChevronDown className="w-4 h-4 text-muted-foreground" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52">
+              {(Object.entries(VIEW_META) as [AdminView, typeof meta][]).map(([key, m]) => (
+                <DropdownMenuItem
+                  key={key}
+                  onClick={() => { setActiveView(key); setSearch(""); }}
+                  className={activeView === key ? "bg-accent/10" : ""}
+                >
+                  <m.icon className="w-4 h-4 mr-2" />
+                  {m.label}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       {/* Divider with active view label */}
@@ -579,16 +876,39 @@ export default function AdminUsers() {
               search={search}
               updatingId={updatingId}
               onChangeRole={changeRole}
+              onEdit={setEditUser}
+              onDelete={setDeleteUser}
+              reloadKey={reloadKey}
             />
           ) : (
             <HiringManagerPanel
               search={search}
               updatingId={updatingId}
               onChangeRole={changeRole}
+              onEdit={setEditUser}
+              onDelete={setDeleteUser}
+              reloadKey={reloadKey}
             />
           )}
         </CardContent>
       </Card>
+
+      {/* Dialogs */}
+      <AddUserDialog
+        open={showAddUser}
+        onClose={() => setShowAddUser(false)}
+        onCreated={reload}
+      />
+      <EditUserDialog
+        user={editUser}
+        onClose={() => setEditUser(null)}
+        onUpdated={reload}
+      />
+      <DeleteUserDialog
+        user={deleteUser}
+        onClose={() => setDeleteUser(null)}
+        onDeleted={reload}
+      />
     </div>
   );
 }
