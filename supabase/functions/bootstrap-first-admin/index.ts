@@ -145,7 +145,7 @@ Deno.serve(async (req) => {
   // ── 6. Upsert admin role ────────────────────────────────
   const { error: roleErr } = await supabase
     .from("user_roles")
-    .upsert({ user_id: userId, role: "admin" }, { onConflict: "user_id" });
+    .upsert({ user_id: userId, role: "admin" }, { onConflict: "user_id,role" });
 
   if (roleErr) {
     return new Response(
