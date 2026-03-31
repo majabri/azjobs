@@ -22,11 +22,15 @@ BEGIN
     RETURN;
   END IF;
 
-  -- Remove username='admin' from any OTHER profile that might be holding it
-  UPDATE public.profiles
-  SET username = NULL
-  WHERE username = 'admin'
-    AND user_id != admin_id;
+  -- Remove username='admin' from any OTHER profile that might be holding it,
+  -- and log each affected row for audit purposes.
+  FOR conflict_id IN
+    SELECT user_id FROM public.profiles
+    WHERE username = 'admin' AND user_id != admin_id
+  LOOP
+    RAISE NOTICE 'Clearing username=''admin'' from conflicting profile user_id=%', conflict_id;
+    UPDATE public.profiles SET username = NULL WHERE user_id = conflict_id;
+  END LOOP;
 
   -- Set the correct profile fields
   UPDATE public.profiles
@@ -52,7 +56,8 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
-  user_email TEXT;
+  user_email  TEXT;
+  conflict_id uuid;
 BEGIN
   SELECT email INTO user_email FROM auth.users WHERE id = NEW.user_id;
 
@@ -63,11 +68,14 @@ BEGIN
     ON CONFLICT (user_id) DO UPDATE SET role = 'admin';
 
     -- Clear username='admin' from any other profile so the UNIQUE constraint
-    -- won't block the assignment below.
-    UPDATE public.profiles
-    SET username = NULL
-    WHERE username = 'admin'
-      AND user_id != NEW.user_id;
+    -- won't block the assignment below, and log each affected row.
+    FOR conflict_id IN
+      SELECT user_id FROM public.profiles
+      WHERE username = 'admin' AND user_id != NEW.user_id
+    LOOP
+      RAISE NOTICE 'handle_first_admin: clearing username=''admin'' from conflicting profile user_id=%', conflict_id;
+      UPDATE public.profiles SET username = NULL WHERE user_id = conflict_id;
+    END LOOP;
 
     -- Claim username='admin' for this account.
     UPDATE public.profiles
