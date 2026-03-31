@@ -429,17 +429,19 @@ function JobSeekerPanel({
         analysisCountMap.set(a.user_id, (analysisCountMap.get(a.user_id) ?? 0) + 1);
       }
 
-      const merged: JobSeekerRecord[] = ((profilesRes.data as any[]) || []).map((p: any) => ({
-        user_id: p.user_id,
-        full_name: p.full_name,
-        email: p.email,
-        last_active_at: p.last_active_at,
-        automation_mode: p.automation_mode ?? "manual",
-        skills: p.skills,
-        role: rolesMap.get(p.user_id) ?? "job_seeker",
-        application_count: appCountMap.get(p.user_id) ?? 0,
-        analysis_count: analysisCountMap.get(p.user_id) ?? 0,
-      }));
+      const merged: JobSeekerRecord[] = ((profilesRes.data as any[]) || [])
+        .map((p: any) => ({
+          user_id: p.user_id,
+          full_name: p.full_name,
+          email: p.email,
+          last_active_at: p.last_active_at,
+          automation_mode: p.automation_mode ?? "manual",
+          skills: p.skills,
+          role: rolesMap.get(p.user_id) ?? "job_seeker",
+          application_count: appCountMap.get(p.user_id) ?? 0,
+          analysis_count: analysisCountMap.get(p.user_id) ?? 0,
+        }))
+        .filter((r) => r.role === "job_seeker");
 
       setRecords(merged);
     } catch (e) {
@@ -616,7 +618,7 @@ function HiringManagerPanel({
         supabase.from("job_postings").select("user_id, candidates_matched, created_at"),
         supabase.from("interview_schedules").select("user_id"),
         supabase.from("user_roles").select("user_id, role"),
-        supabase.from("job_seeker_profiles").select("user_id, full_name, email"),
+        supabase.from("profiles").select("user_id, full_name, email"),
       ]);
 
       // Build maps
@@ -645,11 +647,11 @@ function HiringManagerPanel({
         interviewCount.set(i.user_id, (interviewCount.get(i.user_id) ?? 0) + 1);
       }
 
-      // All unique hiring users = anyone who has a job posting or is a recruiter/admin
+      // All unique hiring users = anyone who has a job posting or is a recruiter
       const allHiringUserIds = new Set<string>([
         ...postingAgg.keys(),
         ...[...rolesMap.entries()]
-          .filter(([, r]) => r === "recruiter" || r === "admin")
+          .filter(([, r]) => r === "recruiter")
           .map(([uid]) => uid),
       ]);
 
