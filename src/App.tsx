@@ -32,6 +32,7 @@ import AdminAgents from "./pages/admin/AdminAgents";
 import AdminSystem from "./pages/admin/AdminSystem";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminLogin from "./pages/admin/AdminLogin";
+import AdminSetPassword from "./pages/admin/AdminSetPassword";
 import { useAuthReady } from "@/hooks/useAuthReady";
 
 const queryClient = new QueryClient();
@@ -77,6 +78,7 @@ const App = () => (
           <Route path="/auto-apply" element={<ProtectedWithLayout><AutoApply /></ProtectedWithLayout>} />
           {/* Admin routes */}
           <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin/set-password" element={<AdminProtectedRoute><AdminSetPassword /></AdminProtectedRoute>} />
           <Route path="/admin" element={<AdminProtectedRoute><AdminLayout><AdminDashboard /></AdminLayout></AdminProtectedRoute>} />
           <Route path="/admin/users" element={<AdminProtectedRoute><AdminLayout><AdminUsers /></AdminLayout></AdminProtectedRoute>} />
           <Route path="/admin/agents" element={<AdminProtectedRoute><AdminLayout><AdminAgents /></AdminLayout></AdminProtectedRoute>} />

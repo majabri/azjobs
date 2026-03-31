@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "seed:admin": "npx tsx scripts/seed-admin.ts"
   },
   "dependencies": {
     "@hello-pangea/dnd": "^17.0.0",
