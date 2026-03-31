@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Users, Bot, BarChart3, Briefcase, TrendingUp, Activity,
   CheckCircle2, XCircle, AlertTriangle, Clock, RefreshCw, Zap,
+  UserPlus,
 } from "lucide-react";
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid,
@@ -43,11 +45,20 @@ interface DailyStats {
   users: number;
 }
 
+interface ActivityEvent {
+  id: string;
+  type: "agent_run" | "user_signup" | "error";
+  timestamp: string;
+  description: string;
+}
+
 export default function AdminDashboard() {
+  const navigate = useNavigate();
   const [stats, setStats] = useState<PlatformStats | null>(null);
   const [recentRuns, setRecentRuns] = useState<RecentAgentRun[]>([]);
   const [dailyStats, setDailyStats] = useState<DailyStats[]>([]);
   const [avgProcessingMs, setAvgProcessingMs] = useState<number | null>(null);
+  const [activityFeed, setActivityFeed] = useState<ActivityEvent[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => { load(); }, []);
@@ -121,6 +132,23 @@ export default function AdminDashboard() {
         totalApplied: runs.reduce((s, r) => s + (r.applications_sent || 0), 0),
       });
       setRecentRuns(runs.slice(0, 10));
+
+      // Build activity feed (last 20 events: runs + errors)
+      const events: ActivityEvent[] = [];
+      for (const r of runs.slice(0, 20)) {
+        const isError = r.status === "failed" || r.status === "completed_with_errors";
+        events.push({
+          id: r.id,
+          type: isError ? "error" : "agent_run",
+          timestamp: r.started_at,
+          description: isError
+            ? `Agent run failed for user ${r.user_id.slice(0, 8)}… — ${(r.errors && r.errors.length > 0 ? r.errors[0] : null) ?? "unknown error"}`
+            : `Agent run completed: ${r.jobs_found} found, ${r.jobs_matched} matched, ${r.applications_sent} applied`,
+        });
+      }
+      // Sort by timestamp desc and take top 20
+      events.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+      setActivityFeed(events.slice(0, 20));
     } catch (e) {
       console.error(e);
     } finally {
@@ -150,6 +178,33 @@ export default function AdminDashboard() {
   ];
   const PIE_COLORS = ["hsl(var(--success, 142 71% 45%))", "hsl(var(--destructive, 0 84% 60%))"];
 
+  // System alerts
+  const failedLast24h = recentRuns.filter((r) => {
+    const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    return (r.status === "failed" || r.status === "completed_with_errors") && r.started_at > dayAgo;
+  }).length;
+
+  const alerts = [
+    {
+      key: "failed24h",
+      status: failedLast24h === 0 ? "green" : failedLast24h < 3 ? "yellow" : "red",
+      label: "Failed Runs (24h)",
+      detail: failedLast24h === 0 ? "No failures in last 24h" : `${failedLast24h} failed run(s) in last 24h`,
+    },
+    {
+      key: "errorRate",
+      status: errorRate === 0 ? "green" : errorRate < 5 ? "yellow" : "red",
+      label: "Error Rate",
+      detail: `${errorRate}% of runs failed`,
+    },
+    {
+      key: "overall",
+      status: errorRate === 0 && failedLast24h === 0 ? "green" : "yellow",
+      label: "System Status",
+      detail: errorRate === 0 && failedLast24h === 0 ? "All systems operational" : "Degraded — check logs",
+    },
+  ] as const;
+
   return (
     <div className="max-w-6xl mx-auto px-6 py-8 space-y-6">
       <div className="flex items-center justify-between">
@@ -162,19 +217,47 @@ export default function AdminDashboard() {
         </Button>
       </div>
 
+      {/* System Alerts */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {alerts.map((alert) => (
+          <div
+            key={alert.key}
+            className={`flex items-center gap-3 p-3 rounded-xl border text-sm ${
+              alert.status === "green"
+                ? "bg-green-500/5 border-green-500/20"
+                : alert.status === "yellow"
+                ? "bg-yellow-500/5 border-yellow-500/20"
+                : "bg-red-500/5 border-red-500/20"
+            }`}
+          >
+            {alert.status === "green" ? (
+              <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
+            ) : alert.status === "yellow" ? (
+              <AlertTriangle className="w-4 h-4 text-yellow-500 shrink-0" />
+            ) : (
+              <XCircle className="w-4 h-4 text-red-500 shrink-0" />
+            )}
+            <div>
+              <p className="font-medium text-foreground text-xs">{alert.label}</p>
+              <p className="text-[10px] text-muted-foreground">{alert.detail}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
       {/* KPI Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <StatCard label="Total Users" value={stats?.totalUsers ?? 0} icon={<Users className="w-4 h-4" />} />
-        <StatCard label="Active Today" value={stats?.activeUsersToday ?? 0} icon={<Activity className="w-4 h-4" />} color="text-success" />
+        <StatCard label="Total Users" value={stats?.totalUsers ?? 0} icon={<Users className="w-4 h-4" />} onClick={() => navigate("/admin/users")} />
+        <StatCard label="Active Today" value={stats?.activeUsersToday ?? 0} icon={<Activity className="w-4 h-4" />} color="text-success" onClick={() => navigate("/admin/users")} />
         <StatCard label="Analyses Run" value={stats?.totalAnalyses ?? 0} icon={<BarChart3 className="w-4 h-4" />} />
         <StatCard label="Applications" value={stats?.totalApplications ?? 0} icon={<Briefcase className="w-4 h-4" />} />
       </div>
 
       {/* Agent Stats + Rates */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <StatCard label="Agent Runs" value={stats?.totalAgentRuns ?? 0} icon={<Bot className="w-4 h-4" />} />
-        <StatCard label="Success Rate" value={successRate} icon={<CheckCircle2 className="w-4 h-4" />} color="text-success" suffix="%" />
-        <StatCard label="Error Rate" value={errorRate} icon={<AlertTriangle className="w-4 h-4" />} color={errorRate > 20 ? "text-destructive" : "text-warning"} suffix="%" />
+        <StatCard label="Agent Runs" value={stats?.totalAgentRuns ?? 0} icon={<Bot className="w-4 h-4" />} onClick={() => navigate("/admin/agent-runs")} />
+        <StatCard label="Success Rate" value={successRate} icon={<CheckCircle2 className="w-4 h-4" />} color="text-success" suffix="%" onClick={() => navigate("/admin/agent-runs")} />
+        <StatCard label="Error Rate" value={errorRate} icon={<AlertTriangle className="w-4 h-4" />} color={errorRate > 20 ? "text-destructive" : "text-warning"} suffix="%" onClick={() => navigate("/admin/logs?filter=error")} />
         <StatCard
           label="Avg Processing"
           value={avgProcessingMs ? Math.round(avgProcessingMs / 1000) : 0}
@@ -250,60 +333,124 @@ export default function AdminDashboard() {
         </CardContent>
       </Card>
 
-      {/* Recent Agent Activity */}
-      <Card className="border-border">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Bot className="w-4 h-4 text-accent" /> Recent Agent Runs (Platform-wide)
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {recentRuns.length === 0 ? (
-            <p className="text-muted-foreground text-sm">No agent runs yet.</p>
-          ) : (
-            <div className="space-y-2">
-              {recentRuns.map((run) => (
-                <div
-                  key={run.id}
-                  className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border border-border"
-                >
-                  <div className="flex items-center gap-2">
-                    {run.status === "completed" ? (
-                      <CheckCircle2 className="w-4 h-4 text-success" />
-                    ) : run.status === "completed_with_errors" ? (
-                      <AlertTriangle className="w-4 h-4 text-warning" />
-                    ) : run.status === "running" ? (
-                      <Clock className="w-4 h-4 animate-spin text-accent" />
-                    ) : (
-                      <XCircle className="w-4 h-4 text-destructive" />
-                    )}
-                    <div>
-                      <p className="text-xs font-medium text-foreground">
-                        {run.jobs_found} found · {run.jobs_matched} matched · {run.applications_sent} applied
-                      </p>
-                      <p className="text-[10px] text-muted-foreground">
-                        {new Date(run.started_at).toLocaleString()} · user: {run.user_id.slice(0, 8)}…
+      {/* Recent Activity Feed + Recent Agent Runs side by side */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Recent Activity Feed */}
+        <Card className="border-border">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Activity className="w-4 h-4 text-accent" /> Recent Activity Feed
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {activityFeed.length === 0 ? (
+              <p className="text-muted-foreground text-sm">No recent activity.</p>
+            ) : (
+              <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                {activityFeed.map((event) => (
+                  <div
+                    key={event.id}
+                    className="flex items-start gap-2.5 p-2.5 bg-muted/20 rounded-lg border border-border"
+                  >
+                    <span className="mt-0.5 shrink-0">
+                      {event.type === "agent_run" ? (
+                        <Bot className="w-3.5 h-3.5 text-accent" />
+                      ) : event.type === "user_signup" ? (
+                        <UserPlus className="w-3.5 h-3.5 text-success" />
+                      ) : (
+                        <XCircle className="w-3.5 h-3.5 text-destructive" />
+                      )}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs text-foreground leading-snug truncate" title={event.description}>{event.description}</p>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">
+                        {new Date(event.timestamp).toLocaleString()}
                       </p>
                     </div>
+                    <Badge
+                      variant="outline"
+                      className={`text-[10px] shrink-0 ${
+                        event.type === "agent_run"
+                          ? "text-accent border-accent/30"
+                          : event.type === "user_signup"
+                          ? "text-success border-success/30"
+                          : "text-destructive border-destructive/30"
+                      }`}
+                    >
+                      {event.type === "agent_run" ? "run" : event.type === "user_signup" ? "signup" : "error"}
+                    </Badge>
                   </div>
-                  <Badge
-                    variant="outline"
-                    className={
-                      run.status === "completed"
-                        ? "text-success border-success/30"
-                        : run.status === "failed"
-                        ? "text-destructive border-destructive/30"
-                        : "text-warning border-warning/30"
-                    }
-                  >
-                    {run.status}
-                  </Badge>
-                </div>
-              ))}
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Recent Agent Runs */}
+        <Card className="border-border">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Bot className="w-4 h-4 text-accent" /> Recent Agent Runs
+              </CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 text-xs text-accent"
+                onClick={() => navigate("/admin/agent-runs")}
+              >
+                View all →
+              </Button>
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardHeader>
+          <CardContent>
+            {recentRuns.length === 0 ? (
+              <p className="text-muted-foreground text-sm">No agent runs yet.</p>
+            ) : (
+              <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                {recentRuns.map((run) => (
+                  <div
+                    key={run.id}
+                    className="flex items-center justify-between p-2.5 bg-muted/30 rounded-lg border border-border"
+                  >
+                    <div className="flex items-center gap-2">
+                      {run.status === "completed" ? (
+                        <CheckCircle2 className="w-3.5 h-3.5 text-success" />
+                      ) : run.status === "completed_with_errors" ? (
+                        <AlertTriangle className="w-3.5 h-3.5 text-warning" />
+                      ) : run.status === "running" ? (
+                        <Clock className="w-3.5 h-3.5 animate-spin text-accent" />
+                      ) : (
+                        <XCircle className="w-3.5 h-3.5 text-destructive" />
+                      )}
+                      <div>
+                        <p className="text-xs font-medium text-foreground">
+                          {run.jobs_found} found · {run.jobs_matched} matched · {run.applications_sent} applied
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {new Date(run.started_at).toLocaleString()} · user: {run.user_id.slice(0, 8)}…
+                        </p>
+                      </div>
+                    </div>
+                    <Badge
+                      variant="outline"
+                      className={
+                        run.status === "completed"
+                          ? "text-success border-success/30"
+                          : run.status === "failed"
+                          ? "text-destructive border-destructive/30"
+                          : "text-warning border-warning/30"
+                      }
+                    >
+                      {run.status}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
@@ -314,17 +461,26 @@ function StatCard({
   icon,
   color,
   suffix,
+  onClick,
 }: {
   label: string;
   value: number;
   icon: React.ReactNode;
   color?: string;
   suffix?: string;
+  onClick?: () => void;
 }) {
   return (
-    <div className="bg-card rounded-xl p-4 border border-border shadow-sm">
+    <div
+      className={`bg-card rounded-xl p-4 border border-border shadow-sm ${onClick ? "cursor-pointer hover:bg-muted/30 transition-colors" : ""}`}
+      onClick={onClick}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={onClick ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClick(); } } : undefined}
+    >
       <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
         {icon} {label}
+        {onClick && <span className="ml-auto text-accent text-[10px]">→</span>}
       </div>
       <div className={`text-2xl font-display font-bold ${color || "text-foreground"}`}>
         {value.toLocaleString()}{suffix ?? ""}
