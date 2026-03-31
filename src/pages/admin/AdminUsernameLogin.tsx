@@ -10,7 +10,6 @@ import { toast } from "sonner";
 export default function AdminUsernameLogin() {
   const navigate = useNavigate();
   const [username, setUsername] = useState("");
-  const [showUsername, setShowUsername] = useState(false);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -91,34 +90,19 @@ export default function AdminUsernameLogin() {
             <Label htmlFor="username" className="text-sm font-medium">
               Username
             </Label>
-            <div className="relative">
-              <Input
-                id="username"
-                type={showUsername ? "text" : "password"}
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                required
-                autoComplete="username"
-                spellCheck={false}
-                autoCorrect="off"
-                autoCapitalize="none"
-                disabled={loading}
-                className="pr-10"
-              />
-              <button
-                type="button"
-                onClick={() => setShowUsername((v) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                tabIndex={-1}
-                aria-label={showUsername ? "Hide username" : "Show username"}
-              >
-                {showUsername ? (
-                  <EyeOff className="w-4 h-4" />
-                ) : (
-                  <Eye className="w-4 h-4" />
-                )}
-              </button>
-            </div>
+            <Input
+              id="username"
+              name="username"
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+              autoComplete="username"
+              spellCheck={false}
+              autoCorrect="off"
+              autoCapitalize="none"
+              disabled={loading}
+            />
           </div>
 
           <div className="space-y-1.5">
@@ -128,6 +112,7 @@ export default function AdminUsernameLogin() {
             <div className="relative">
               <Input
                 id="password"
+                name="password"
                 type={showPassword ? "text" : "password"}
                 placeholder="••••••••"
                 value={password}
