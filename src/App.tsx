@@ -23,8 +23,7 @@ import InterviewPrep from "./pages/InterviewPrep";
 import AutoApply from "./pages/AutoApply";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AuthenticatedLayout from "./layouts/AuthenticatedLayout";
-import { useEffect, useState } from "react";
-import { supabase } from "./integrations/supabase/client";
+import { useAuthReady } from "@/hooks/useAuthReady";
 
 const queryClient = new QueryClient();
 
@@ -38,16 +37,10 @@ function ProtectedWithLayout({ children }: { children: React.ReactNode }) {
 
 /** Wraps content in AuthenticatedLayout when user is logged in, otherwise renders standalone */
 function OptionalLayout({ children }: { children: React.ReactNode }) {
-  const [isAuth, setIsAuth] = useState<boolean | null>(null);
+  const { user, isReady } = useAuthReady();
 
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setIsAuth(!!data.session));
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => setIsAuth(!!session));
-    return () => subscription.unsubscribe();
-  }, []);
-
-  if (isAuth === null) return null; // loading
-  if (isAuth) return <AuthenticatedLayout>{children}</AuthenticatedLayout>;
+  if (!isReady) return null;
+  if (user) return <AuthenticatedLayout>{children}</AuthenticatedLayout>;
   return <>{children}</>;
 }
 

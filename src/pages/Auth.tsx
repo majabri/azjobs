@@ -1,32 +1,25 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Target } from "lucide-react";
 import { lovable } from "@/integrations/lovable/index";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuthReady } from "@/hooks/useAuthReady";
 
 export default function AuthPage() {
   const navigate = useNavigate();
+  const { user, isReady } = useAuthReady();
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session) {
-        navigate("/");
-      }
-    });
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) navigate("/");
-    });
-
-    return () => subscription.unsubscribe();
-  }, [navigate]);
+    if (isReady && user) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [isReady, navigate, user]);
 
   const handleGoogleLogin = async () => {
     setLoading(true);
     const { error } = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
+      redirect_uri: `${window.location.origin}/dashboard`,
     });
     if (error) {
       console.error("Login error:", error);

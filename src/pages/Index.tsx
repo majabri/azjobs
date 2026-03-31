@@ -11,8 +11,8 @@ import {
 } from "lucide-react";
 import heroBg from "@/assets/hero-bg.jpg";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuthReady } from "@/hooks/useAuthReady";
 import { analyzeJobFit } from "@/lib/analysisEngine";
-import type { User } from "@supabase/supabase-js";
 
 const stats = [
   { value: "AI-Powered", label: "resume optimization for every application" },
@@ -56,7 +56,7 @@ const comparisonRows = [
 
 export default function Index() {
   const navigate = useNavigate();
-  const [user, setUser] = useState<User | null>(null);
+  const { user } = useAuthReady();
   const [matchedJobCount, setMatchedJobCount] = useState(0);
   const [totalJobCount, setTotalJobCount] = useState(0);
 
@@ -64,12 +64,6 @@ export default function Index() {
   const [demoJobDesc, setDemoJobDesc] = useState("");
   const [demoResult, setDemoResult] = useState<{ score: number; improvements: string[]; probability: number } | null>(null);
   const [demoLoading, setDemoLoading] = useState(false);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => setUser(session?.user ?? null));
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => setUser(session?.user ?? null));
-    return () => subscription.unsubscribe();
-  }, []);
 
   // Load live job counts
   useEffect(() => {
@@ -140,7 +134,7 @@ export default function Index() {
                 size="sm"
                 variant="ghost"
                 className="text-primary-foreground/60 hover:text-primary-foreground hover:bg-white/10 text-xs"
-                onClick={async () => { await supabase.auth.signOut(); setUser(null); }}
+                onClick={async () => { await supabase.auth.signOut(); }}
               >
                 <LogOut className="w-3.5 h-3.5" />
               </Button>
