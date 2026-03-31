@@ -22,7 +22,6 @@ import Career from "./pages/Career";
 import InterviewPrep from "./pages/InterviewPrep";
 import AutoApply from "./pages/AutoApply";
 import ProtectedRoute from "./components/ProtectedRoute";
-import AdminRoute from "./components/AdminRoute";
 import AdminProtectedRoute from "./components/AdminProtectedRoute";
 import AuthenticatedLayout from "./layouts/AuthenticatedLayout";
 import AdminLayout from "./layouts/AdminLayout";
@@ -31,7 +30,7 @@ import AdminUsers from "./pages/admin/AdminUsers";
 import AdminAgents from "./pages/admin/AdminAgents";
 import AdminSystem from "./pages/admin/AdminSystem";
 import AdminSettings from "./pages/admin/AdminSettings";
-import AdminLogin from "./pages/admin/AdminLogin";
+import AdminUsernameLogin from "./pages/admin/AdminUsernameLogin";
 import AdminSetPassword from "./pages/admin/AdminSetPassword";
 import AdminProfile from "./pages/admin/AdminProfile";
 import { useAuthReady } from "@/hooks/useAuthReady";
@@ -78,7 +77,7 @@ const App = () => (
           <Route path="/interview-prep" element={<ProtectedWithLayout><InterviewPrep /></ProtectedWithLayout>} />
           <Route path="/auto-apply" element={<ProtectedWithLayout><AutoApply /></ProtectedWithLayout>} />
           {/* Admin routes */}
-          <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin/login" element={<AdminUsernameLogin />} />
           <Route path="/admin/set-password" element={<AdminProtectedRoute><AdminSetPassword /></AdminProtectedRoute>} />
           <Route path="/admin" element={<AdminProtectedRoute><AdminLayout><AdminDashboard /></AdminLayout></AdminProtectedRoute>} />
           <Route path="/admin/users" element={<AdminProtectedRoute><AdminLayout><AdminUsers /></AdminLayout></AdminProtectedRoute>} />
