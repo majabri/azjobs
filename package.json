@@ -54,7 +54,7 @@
     "embla-carousel-react": "^8.6.0",
     "file-saver": "^2.0.5",
     "input-otp": "^1.4.2",
-    "jspdf": "^4.2.0",
+    "jspdf": "^4.2.1",
     "lucide-react": "^0.462.0",
     "mammoth": "^1.8.0",
     "next-themes": "^0.3.0",
