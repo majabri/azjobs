@@ -1,17 +1,10 @@
-import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { LogOut, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import type { User as SupaUser } from "@supabase/supabase-js";
+import { useAuthReady } from "@/hooks/useAuthReady";
 
 export default function UserMenu() {
-  const [user, setUser] = useState<SupaUser | null>(null);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => setUser(session?.user ?? null));
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => setUser(session?.user ?? null));
-    return () => subscription.unsubscribe();
-  }, []);
+  const { user } = useAuthReady();
 
   if (!user) return null;
 
@@ -34,7 +27,9 @@ export default function UserMenu() {
         variant="ghost"
         size="sm"
         className="text-muted-foreground hover:text-destructive"
-        onClick={async () => { await supabase.auth.signOut(); }}
+        onClick={async () => {
+          await supabase.auth.signOut();
+        }}
       >
         <LogOut className="w-4 h-4" />
       </Button>

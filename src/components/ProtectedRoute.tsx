@@ -1,43 +1,17 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuthReady } from "@/hooks/useAuthReady";
 
 export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
-  const [ready, setReady] = useState(false);
+  const { user, isReady } = useAuthReady();
 
   useEffect(() => {
-    let mounted = true;
+    if (isReady && !user) {
+      navigate("/auth", { replace: true });
+    }
+  }, [isReady, navigate, user]);
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!mounted) return;
-
-      if (!session) {
-        navigate("/auth", { replace: true });
-        setReady(true);
-        return;
-      }
-
-      setReady(true);
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session) {
-        navigate("/auth", { replace: true });
-        return;
-      }
-
-      setReady(true);
-    });
-
-    return () => {
-      mounted = false;
-      subscription.unsubscribe();
-    };
-  }, [navigate]);
-
-  if (!ready) return null;
+  if (!isReady || !user) return null;
   return <>{children}</>;
 }
