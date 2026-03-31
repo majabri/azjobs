@@ -23,7 +23,7 @@ export function useAdminRole() {
       .eq("user_id", user.id)
       .single()
       .then(({ data }) => {
-        setRole((data?.role as UserRole) ?? "job_seeker");
+        setRole((data?.role as UserRole) ?? "user");
         setIsLoading(false);
       });
   }, [user, isReady]);
