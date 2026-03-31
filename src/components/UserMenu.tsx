@@ -2,14 +2,18 @@ import { Button } from "@/components/ui/button";
 import { LogOut, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
+import { useAdminRole } from "@/hooks/useAdminRole";
 
 export default function UserMenu() {
   const { user } = useAuthReady();
+  const { isAdmin } = useAdminRole();
 
   if (!user) return null;
 
   const avatar = user.user_metadata?.avatar_url;
-  const name = user.user_metadata?.full_name || user.email?.split("@")[0] || "User";
+  const name = isAdmin
+    ? "Admin"
+    : user.user_metadata?.full_name || user.email?.split("@")[0] || "User";
 
   return (
     <div className="flex items-center gap-2">

@@ -9,7 +9,7 @@ import { NavLink } from "@/components/NavLink";
 import UserMenu from "@/components/UserMenu";
 import NotificationCenter from "@/components/NotificationCenter";
 import {
-  LayoutDashboard, Users, Bot, Shield, Settings, Target, ArrowLeft,
+  LayoutDashboard, Users, Bot, Shield, Settings, Target, ArrowLeft, UserCircle,
 } from "lucide-react";
 
 const adminNav = [
@@ -18,6 +18,7 @@ const adminNav = [
   { title: "Agents", url: "/admin/agents", icon: Bot },
   { title: "System Health", url: "/admin/system", icon: Shield },
   { title: "Settings", url: "/admin/settings", icon: Settings },
+  { title: "My Profile", url: "/admin/profile", icon: UserCircle },
 ];
 
 function AdminSidebar() {
