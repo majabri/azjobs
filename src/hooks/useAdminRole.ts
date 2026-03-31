@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
 
-export type UserRole = "admin" | "job_seeker" | "recruiter";
+export type UserRole = "admin" | "moderator" | "user";
 
 export function useAdminRole() {
   const { user, isReady } = useAuthReady();
