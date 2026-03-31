@@ -39,10 +39,10 @@ export default function AdminSettings() {
   const load = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("admin_settings")
+      const { data, error } = await (supabase
+        .from("admin_settings" as any)
         .select("*")
-        .order("key");
+        .order("key") as any);
       if (error) throw error;
       setSettings((data || []) as SettingRow[]);
       setEdits({});
