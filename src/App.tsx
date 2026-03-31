@@ -33,6 +33,7 @@ import AdminSystem from "./pages/admin/AdminSystem";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminLogin from "./pages/admin/AdminLogin";
 import AdminSetPassword from "./pages/admin/AdminSetPassword";
+import AdminProfile from "./pages/admin/AdminProfile";
 import { useAuthReady } from "@/hooks/useAuthReady";
 
 const queryClient = new QueryClient();
@@ -84,6 +85,7 @@ const App = () => (
           <Route path="/admin/agents" element={<AdminProtectedRoute><AdminLayout><AdminAgents /></AdminLayout></AdminProtectedRoute>} />
           <Route path="/admin/system" element={<AdminProtectedRoute><AdminLayout><AdminSystem /></AdminLayout></AdminProtectedRoute>} />
           <Route path="/admin/settings" element={<AdminProtectedRoute><AdminLayout><AdminSettings /></AdminLayout></AdminProtectedRoute>} />
+          <Route path="/admin/profile" element={<AdminProtectedRoute><AdminLayout><AdminProfile /></AdminLayout></AdminProtectedRoute>} />
           {/* Public routes */}
           <Route path="/p/:userId" element={<PublicProfile />} />
           <Route path="/report/:analysisId" element={<ScoreReport />} />
