@@ -68,3 +68,9 @@ verify_jwt = false
 
 [functions.negotiation-strategy]
 verify_jwt = false
+
+[functions.delete-own-account]
+verify_jwt = false
+
+[functions.admin-manage-user]
+verify_jwt = false
