@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Secrets – never commit real environment files
+.env
+.env.*

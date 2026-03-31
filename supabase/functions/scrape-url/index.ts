@@ -1,4 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { checkRateLimit } from "../_shared/rate-limit.ts";
+import { validatePublicUrl } from "../_shared/validate-url.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -35,6 +37,16 @@ Deno.serve(async (req) => {
       );
     }
 
+    const userId: string = data.claims.sub as string;
+
+    // Rate limit: 20 scrape requests per user per minute
+    if (!checkRateLimit(`scrape-url:${userId}`, 20, 60_000)) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Too many requests – please slow down' }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const { url } = await req.json();
 
     if (!url) {
@@ -44,6 +56,16 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Validate URL – block private/localhost/metadata ranges (SSRF prevention)
+    const urlValidation = validatePublicUrl(url);
+    if (!urlValidation.ok) {
+      return new Response(
+        JSON.stringify({ success: false, error: urlValidation.error }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    const validatedUrl = urlValidation.url;
+
     const apiKey = Deno.env.get('FIRECRAWL_API_KEY');
     if (!apiKey) {
       return new Response(
@@ -52,12 +74,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    let formattedUrl = url.trim();
-    if (!formattedUrl.startsWith('http://') && !formattedUrl.startsWith('https://')) {
-      formattedUrl = `https://${formattedUrl}`;
-    }
-
-    console.log('Scraping URL:', formattedUrl);
+    console.log('Scraping URL:', validatedUrl);
 
     const response = await fetch('https://api.firecrawl.dev/v1/scrape', {
       method: 'POST',
@@ -66,7 +83,7 @@ Deno.serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        url: formattedUrl,
+        url: validatedUrl,
         formats: ['markdown'],
         onlyMainContent: true,
       }),
