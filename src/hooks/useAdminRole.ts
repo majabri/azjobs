@@ -29,17 +29,17 @@ export function useAdminRole() {
     let cancelled = false;
     setState((s) => ({ ...s, isLoading: true, error: null }));
 
-    void supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id)
-      .maybeSingle()
-      .then(({ data, error }) => {
+    void (async () => {
+      try {
+        const { data, error } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
         if (cancelled) return;
 
         if (error) {
-          // Never hang the UI if roles query fails (RLS, missing table, network issue, etc.)
-          // Default to "user" and expose error for observability.
           setState({ role: "user", isLoading: false, error: error.message });
           return;
         }
@@ -49,12 +49,12 @@ export function useAdminRole() {
           isLoading: false,
           error: null,
         });
-      })
-      .catch((e: unknown) => {
+      } catch (e: unknown) {
         if (cancelled) return;
         const message = e instanceof Error ? e.message : String(e);
         setState({ role: "user", isLoading: false, error: message });
-      });
+      }
+    })();
 
     return () => { 
       cancelled = true;
