@@ -22,7 +22,14 @@ import Career from "./pages/Career";
 import InterviewPrep from "./pages/InterviewPrep";
 import AutoApply from "./pages/AutoApply";
 import ProtectedRoute from "./components/ProtectedRoute";
+import AdminRoute from "./components/AdminRoute";
 import AuthenticatedLayout from "./layouts/AuthenticatedLayout";
+import AdminLayout from "./layouts/AdminLayout";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminUsers from "./pages/admin/AdminUsers";
+import AdminAgents from "./pages/admin/AdminAgents";
+import AdminSystem from "./pages/admin/AdminSystem";
+import AdminSettings from "./pages/admin/AdminSettings";
 import { useAuthReady } from "@/hooks/useAuthReady";
 
 const queryClient = new QueryClient();
@@ -66,6 +73,12 @@ const App = () => (
           <Route path="/career" element={<ProtectedWithLayout><Career /></ProtectedWithLayout>} />
           <Route path="/interview-prep" element={<ProtectedWithLayout><InterviewPrep /></ProtectedWithLayout>} />
           <Route path="/auto-apply" element={<ProtectedWithLayout><AutoApply /></ProtectedWithLayout>} />
+          {/* Admin routes */}
+          <Route path="/admin" element={<ProtectedRoute><AdminRoute><AdminLayout><AdminDashboard /></AdminLayout></AdminRoute></ProtectedRoute>} />
+          <Route path="/admin/users" element={<ProtectedRoute><AdminRoute><AdminLayout><AdminUsers /></AdminLayout></AdminRoute></ProtectedRoute>} />
+          <Route path="/admin/agents" element={<ProtectedRoute><AdminRoute><AdminLayout><AdminAgents /></AdminLayout></AdminRoute></ProtectedRoute>} />
+          <Route path="/admin/system" element={<ProtectedRoute><AdminRoute><AdminLayout><AdminSystem /></AdminLayout></AdminRoute></ProtectedRoute>} />
+          <Route path="/admin/settings" element={<ProtectedRoute><AdminRoute><AdminLayout><AdminSettings /></AdminLayout></AdminRoute></ProtectedRoute>} />
           {/* Public routes */}
           <Route path="/p/:userId" element={<PublicProfile />} />
           <Route path="/report/:analysisId" element={<ScoreReport />} />
