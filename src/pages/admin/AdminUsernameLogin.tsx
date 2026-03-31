@@ -9,7 +9,7 @@ const AdminUsernameLogin = () => {
 
     const handleSubmit = async (event) => {
         event.preventDefault();
-        const { data, error } = await supabase.auth.signIn({
+        const { data, error } = await supabase.auth.signInWithPassword({
             email: username,
             password,
         });
