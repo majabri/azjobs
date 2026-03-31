@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   Users, Search, Clock, Shield, UserCircle, Target, Briefcase,
-  FileText, Calendar, Bot, ChevronDown, UserPlus, Trash2, Pencil,
+  FileText, Calendar, Bot, ChevronDown, UserPlus, Trash2, Pencil, Phone,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -26,7 +26,7 @@ import {
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
-type AdminView = "job_seekers" | "hiring_managers";
+type AdminView = "job_seekers" | "hiring_managers" | "admins";
 
 interface JobSeekerRecord {
   user_id: string;
@@ -49,6 +49,14 @@ interface HiringManagerRecord {
   interview_count: number;
   candidates_matched: number;
   latest_posting_at: string | null;
+}
+
+interface AdminRecord {
+  user_id: string;
+  full_name: string | null;
+  email: string | null;
+  username: string | null;
+  created_at: string | null;
 }
 
 // ─── Edge-function helper ────────────────────────────────────────────────────
@@ -89,15 +97,28 @@ function AddUserDialog({
   const [fullName, setFullName] = useState("");
   const [role, setRole] = useState("job_seeker");
   const [password, setPassword] = useState("");
+  const [phone, setPhone] = useState("");
+  const [username, setUsername] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const reset = () => { setEmail(""); setFullName(""); setRole("job_seeker"); setPassword(""); };
+  const reset = () => {
+    setEmail(""); setFullName(""); setRole("job_seeker");
+    setPassword(""); setPhone(""); setUsername("");
+  };
 
   const handleCreate = async () => {
     if (!email.trim()) { toast.error("Email is required"); return; }
     setLoading(true);
     try {
-      await callAdminManageUser({ action: "create", email: email.trim(), fullName: fullName.trim(), role, password: password || undefined });
+      await callAdminManageUser({
+        action: "create",
+        email: email.trim(),
+        fullName: fullName.trim(),
+        role,
+        password: password || undefined,
+        phone: phone.trim() || undefined,
+        username: username.trim() || undefined,
+      });
       toast.success(`User ${email} created`);
       reset();
       onCreated();
@@ -126,6 +147,14 @@ function AddUserDialog({
           <div className="space-y-1.5">
             <Label htmlFor="new-name">Full Name</Label>
             <Input id="new-name" placeholder="Jane Doe" value={fullName} onChange={(e) => setFullName(e.target.value)} disabled={loading} />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="new-phone">Phone</Label>
+            <Input id="new-phone" type="tel" placeholder="+1 (555) 000-0000" value={phone} onChange={(e) => setPhone(e.target.value)} disabled={loading} />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="new-username">Username <span className="text-muted-foreground text-xs">(optional — for login)</span></Label>
+            <Input id="new-username" placeholder="janedoe" value={username} onChange={(e) => setUsername(e.target.value)} disabled={loading} />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="new-role">Role</Label>
@@ -166,21 +195,43 @@ function EditUserDialog({
   onUpdated: () => void;
 }) {
   const [email, setEmail] = useState(user?.email ?? "");
+  const [fullName, setFullName] = useState(user?.full_name ?? "");
+  const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => { setEmail(user?.email ?? ""); }, [user]);
+  useEffect(() => {
+    setEmail(user?.email ?? "");
+    setFullName(user?.full_name ?? "");
+    setPhone("");
+    if (user?.user_id) {
+      supabase
+        .from("profiles")
+        .select("phone")
+        .eq("user_id", user.user_id)
+        .maybeSingle()
+        .then(({ data }) => {
+          setPhone((data as any)?.phone ?? "");
+        });
+    }
+  }, [user]);
 
   const handleSave = async () => {
     if (!user) return;
     if (!email.trim()) { toast.error("Email cannot be empty"); return; }
     setLoading(true);
     try {
-      await callAdminManageUser({ action: "update", userId: user.user_id, email: email.trim() });
-      toast.success("Email updated. The user can now reset their password.");
+      await callAdminManageUser({
+        action: "update",
+        userId: user.user_id,
+        email: email.trim(),
+        fullName: fullName.trim() || undefined,
+        phone: phone.trim() || undefined,
+      });
+      toast.success("User updated successfully.");
       onUpdated();
       onClose();
     } catch (e: any) {
-      toast.error(e.message ?? "Failed to update email");
+      toast.error(e.message ?? "Failed to update user");
     } finally {
       setLoading(false);
     }
@@ -194,19 +245,29 @@ function EditUserDialog({
             <Pencil className="w-5 h-5 text-accent" /> Edit User
           </DialogTitle>
           <DialogDescription>
-            Update the email address for <strong>{user?.full_name || "this user"}</strong>. Changing the email enables password reset.
+            Update profile for <strong>{user?.full_name || "this user"}</strong>.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="space-y-1.5">
+            <Label htmlFor="edit-name">Full Name</Label>
+            <Input id="edit-name" placeholder="Jane Doe" value={fullName} onChange={(e) => setFullName(e.target.value)} disabled={loading} />
+          </div>
+          <div className="space-y-1.5">
             <Label htmlFor="edit-email">Email <span className="text-destructive">*</span></Label>
             <Input id="edit-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} disabled={loading} />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="edit-phone" className="flex items-center gap-1.5">
+              <Phone className="w-3.5 h-3.5" /> Phone
+            </Label>
+            <Input id="edit-phone" type="tel" placeholder="+1 (555) 000-0000" value={phone} onChange={(e) => setPhone(e.target.value)} disabled={loading} />
           </div>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={loading}>Cancel</Button>
           <Button onClick={handleSave} disabled={loading || !email.trim()}>
-            {loading ? "Saving…" : "Save Email"}
+            {loading ? "Saving…" : "Save Changes"}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -284,6 +345,11 @@ const VIEW_META: Record<AdminView, { label: string; icon: typeof Target; descrip
     label: "Hiring Managers",
     icon: Briefcase,
     description: "Manage recruiter accounts, job postings, and interview pipelines",
+  },
+  admins: {
+    label: "Admins",
+    icon: Shield,
+    description: "Manage administrator accounts and platform access",
   },
 };
 
@@ -737,6 +803,179 @@ function HiringManagerPanel({
   );
 }
 
+// ─── Admin Panel ──────────────────────────────────────────────────────────────
+
+function AdminPanel({
+  search,
+  updatingId,
+  onChangeRole,
+  onEdit,
+  onDelete,
+  reloadKey,
+}: {
+  search: string;
+  updatingId: string | null;
+  onChangeRole: (userId: string, role: string) => void;
+  onEdit: (user: { user_id: string; email: string | null; full_name: string | null }) => void;
+  onDelete: (user: { user_id: string; email: string | null; full_name: string | null }) => void;
+  reloadKey: number;
+}) {
+  const [records, setRecords] = useState<AdminRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const { data: rolesData } = await supabase
+        .from("user_roles")
+        .select("user_id, created_at")
+        .eq("role", "admin" as any);
+
+      const adminIds = ((rolesData as any[]) || []).map((r) => r.user_id);
+
+      if (adminIds.length === 0) {
+        setRecords([]);
+        setLoading(false);
+        return;
+      }
+
+      const { data: profilesData } = await supabase
+        .from("profiles")
+        .select("user_id, full_name, email, username")
+        .in("user_id", adminIds);
+
+      const profileMap = new Map<string, { full_name: string | null; email: string | null; username: string | null }>();
+      for (const p of ((profilesData as any[]) || [])) {
+        profileMap.set(p.user_id, { full_name: p.full_name, email: p.email, username: p.username });
+      }
+
+      const merged: AdminRecord[] = ((rolesData as any[]) || []).map((r) => {
+        const profile = profileMap.get(r.user_id);
+        return {
+          user_id: r.user_id,
+          full_name: profile?.full_name ?? null,
+          email: profile?.email ?? null,
+          username: profile?.username ?? null,
+          created_at: r.created_at,
+        };
+      });
+
+      setRecords(merged);
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to load admins");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load, reloadKey]);
+
+  const filtered = records.filter((u) => {
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    return (
+      u.full_name?.toLowerCase().includes(q) ||
+      u.email?.toLowerCase().includes(q) ||
+      u.username?.toLowerCase().includes(q) ||
+      u.user_id.includes(q)
+    );
+  });
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <Clock className="w-6 h-6 animate-spin text-accent" />
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {/* Summary row */}
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        <MiniStat label="Total Admins" value={records.length} icon={<Shield className="w-3.5 h-3.5" />} color="text-destructive" />
+        <MiniStat label="With Username Login" value={records.filter((r) => !!r.username).length} icon={<UserCircle className="w-3.5 h-3.5" />} />
+      </div>
+
+      {filtered.length === 0 ? (
+        <div className="text-center py-12 text-muted-foreground">
+          <Shield className="w-10 h-10 mx-auto mb-2 opacity-40" />
+          <p>No admin users found.</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {filtered.map((user) => (
+            <div
+              key={user.user_id}
+              className="flex items-center gap-3 p-3 bg-muted/20 rounded-lg border border-border"
+            >
+              <div className="w-9 h-9 rounded-full bg-destructive/10 flex items-center justify-center flex-shrink-0">
+                <Shield className="w-5 h-5 text-destructive" />
+              </div>
+
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-foreground truncate">
+                  {user.full_name || "Unnamed Admin"}
+                </p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {user.email || user.user_id.slice(0, 16) + "…"}
+                </p>
+              </div>
+
+              {/* Username badge */}
+              {user.username && (
+                <Badge variant="outline" className="text-[10px] font-mono hidden sm:inline-flex">
+                  @{user.username}
+                </Badge>
+              )}
+
+              {/* Admin since */}
+              <div className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground">
+                <Clock className="w-3 h-3" />
+                {user.created_at ? new Date(user.created_at).toLocaleDateString() : "—"}
+              </div>
+
+              {/* Role badge — always admin */}
+              <Badge className={ROLE_COLORS.admin}>
+                <Shield className="w-3 h-3 mr-1" />
+                admin
+              </Badge>
+
+              <RoleSelect
+                userId={user.user_id}
+                currentRole="admin"
+                disabled={updatingId === user.user_id}
+                onChangeRole={onChangeRole}
+              />
+
+              {/* Edit / Remove */}
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                title="Edit user"
+                onClick={() => onEdit(user)}
+              >
+                <Pencil className="w-3.5 h-3.5" />
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                title="Remove user"
+                onClick={() => onDelete(user)}
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
 // ─── Mini stat card ───────────────────────────────────────────────────────────
 
 function MiniStat({
@@ -778,7 +1017,7 @@ export default function AdminUsers() {
     try {
       const { error } = await supabase
         .from("user_roles")
-        .upsert({ user_id: userId, role: newRole as any } as any, { onConflict: "user_id,role" });
+        .upsert({ user_id: userId, role: newRole as any } as any, { onConflict: "user_id" });
       if (error) throw error;
       toast.success("Role updated");
       reload();
@@ -840,7 +1079,9 @@ export default function AdminUsers() {
       <div className="flex items-center gap-3">
         <div
           className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border ${
-            activeView === "job_seekers"
+            activeView === "admins"
+              ? "bg-destructive/10 text-destructive border-destructive/30"
+              : activeView === "job_seekers"
               ? "bg-accent/10 text-accent border-accent/30"
               : "bg-muted text-muted-foreground border-border"
           }`}
@@ -880,8 +1121,17 @@ export default function AdminUsers() {
               onDelete={setDeleteUser}
               reloadKey={reloadKey}
             />
-          ) : (
+          ) : activeView === "hiring_managers" ? (
             <HiringManagerPanel
+              search={search}
+              updatingId={updatingId}
+              onChangeRole={changeRole}
+              onEdit={setEditUser}
+              onDelete={setDeleteUser}
+              reloadKey={reloadKey}
+            />
+          ) : (
+            <AdminPanel
               search={search}
               updatingId={updatingId}
               onChangeRole={changeRole}
