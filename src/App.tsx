@@ -23,6 +23,7 @@ import InterviewPrep from "./pages/InterviewPrep";
 import AutoApply from "./pages/AutoApply";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminRoute from "./components/AdminRoute";
+import AdminProtectedRoute from "./components/AdminProtectedRoute";
 import AuthenticatedLayout from "./layouts/AuthenticatedLayout";
 import AdminLayout from "./layouts/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -30,6 +31,7 @@ import AdminUsers from "./pages/admin/AdminUsers";
 import AdminAgents from "./pages/admin/AdminAgents";
 import AdminSystem from "./pages/admin/AdminSystem";
 import AdminSettings from "./pages/admin/AdminSettings";
+import AdminLogin from "./pages/admin/AdminLogin";
 import { useAuthReady } from "@/hooks/useAuthReady";
 
 const queryClient = new QueryClient();
@@ -74,11 +76,12 @@ const App = () => (
           <Route path="/interview-prep" element={<ProtectedWithLayout><InterviewPrep /></ProtectedWithLayout>} />
           <Route path="/auto-apply" element={<ProtectedWithLayout><AutoApply /></ProtectedWithLayout>} />
           {/* Admin routes */}
-          <Route path="/admin" element={<ProtectedRoute><AdminRoute><AdminLayout><AdminDashboard /></AdminLayout></AdminRoute></ProtectedRoute>} />
-          <Route path="/admin/users" element={<ProtectedRoute><AdminRoute><AdminLayout><AdminUsers /></AdminLayout></AdminRoute></ProtectedRoute>} />
-          <Route path="/admin/agents" element={<ProtectedRoute><AdminRoute><AdminLayout><AdminAgents /></AdminLayout></AdminRoute></ProtectedRoute>} />
-          <Route path="/admin/system" element={<ProtectedRoute><AdminRoute><AdminLayout><AdminSystem /></AdminLayout></AdminRoute></ProtectedRoute>} />
-          <Route path="/admin/settings" element={<ProtectedRoute><AdminRoute><AdminLayout><AdminSettings /></AdminLayout></AdminRoute></ProtectedRoute>} />
+          <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin" element={<AdminProtectedRoute><AdminLayout><AdminDashboard /></AdminLayout></AdminProtectedRoute>} />
+          <Route path="/admin/users" element={<AdminProtectedRoute><AdminLayout><AdminUsers /></AdminLayout></AdminProtectedRoute>} />
+          <Route path="/admin/agents" element={<AdminProtectedRoute><AdminLayout><AdminAgents /></AdminLayout></AdminProtectedRoute>} />
+          <Route path="/admin/system" element={<AdminProtectedRoute><AdminLayout><AdminSystem /></AdminLayout></AdminProtectedRoute>} />
+          <Route path="/admin/settings" element={<AdminProtectedRoute><AdminLayout><AdminSettings /></AdminLayout></AdminProtectedRoute>} />
           {/* Public routes */}
           <Route path="/p/:userId" element={<PublicProfile />} />
           <Route path="/report/:analysisId" element={<ScoreReport />} />
