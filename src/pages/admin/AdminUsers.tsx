@@ -17,6 +17,7 @@ import {
 import {
   Users, Search, Clock, Shield, UserCircle, Target, Briefcase,
   FileText, Calendar, Bot, ChevronDown, UserPlus, Trash2, Pencil, Phone,
+  ShieldCheck, UserX, Activity,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -353,6 +354,92 @@ const VIEW_META: Record<AdminView, { label: string; icon: typeof Target; descrip
   },
 };
 
+// ─── User Activity Dialog ─────────────────────────────────────────────────────
+
+function UserActivityDialog({
+  userId,
+  userName,
+  open,
+  onClose,
+}: {
+  userId: string;
+  userName: string;
+  open: boolean;
+  onClose: () => void;
+}) {
+  const [agentRuns, setAgentRuns] = useState<any[]>([]);
+  const [analyses, setAnalyses] = useState<any[]>([]);
+  const [applications, setApplications] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!open || !userId) return;
+    setLoading(true);
+    Promise.all([
+      (supabase as any).from("agent_runs").select("id, status, started_at, jobs_found, jobs_matched").eq("user_id", userId).order("started_at", { ascending: false }).limit(10),
+      (supabase as any).from("analysis_history").select("id, created_at, score").eq("user_id", userId).order("created_at", { ascending: false }).limit(10),
+      supabase.from("job_applications").select("id, title, company, status, created_at").eq("user_id", userId).order("created_at", { ascending: false }).limit(10),
+    ]).then(([runs, analyses, apps]) => {
+      setAgentRuns(runs.data || []);
+      setAnalyses(analyses.data || []);
+      setApplications(apps.data || []);
+      setLoading(false);
+    });
+  }, [userId, open]);
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-sm">
+            <Activity className="w-4 h-4 text-accent" /> Activity History — {userName}
+          </DialogTitle>
+        </DialogHeader>
+        {loading ? (
+          <div className="flex justify-center py-8"><Clock className="w-5 h-5 animate-spin text-accent" /></div>
+        ) : (
+          <div className="space-y-4 text-xs">
+            {/* Agent Runs */}
+            <div>
+              <p className="font-semibold text-muted-foreground uppercase text-[10px] mb-2">Agent Runs ({agentRuns.length})</p>
+              {agentRuns.length === 0 ? <p className="text-muted-foreground">No runs</p> : agentRuns.map((r) => (
+                <div key={r.id} className="flex items-center justify-between py-1.5 border-b border-border last:border-0">
+                  <span className="font-mono text-muted-foreground">{r.id.slice(0, 10)}…</span>
+                  <span className={r.status === "completed" ? "text-success" : r.status === "failed" ? "text-destructive" : "text-muted-foreground"}>{r.status}</span>
+                  <span>{r.jobs_found}f/{r.jobs_matched}m</span>
+                  <span className="text-muted-foreground">{new Date(r.started_at).toLocaleDateString()}</span>
+                </div>
+              ))}
+            </div>
+            {/* Analyses */}
+            <div>
+              <p className="font-semibold text-muted-foreground uppercase text-[10px] mb-2">Analyses ({analyses.length})</p>
+              {analyses.length === 0 ? <p className="text-muted-foreground">No analyses</p> : analyses.map((a) => (
+                <div key={a.id} className="flex items-center justify-between py-1.5 border-b border-border last:border-0">
+                  <span className="font-mono text-muted-foreground">{a.id.slice(0, 10)}…</span>
+                  <span className="text-accent">{a.score != null ? `Score: ${a.score}` : "—"}</span>
+                  <span className="text-muted-foreground">{new Date(a.created_at).toLocaleDateString()}</span>
+                </div>
+              ))}
+            </div>
+            {/* Applications */}
+            <div>
+              <p className="font-semibold text-muted-foreground uppercase text-[10px] mb-2">Applications ({applications.length})</p>
+              {applications.length === 0 ? <p className="text-muted-foreground">No applications</p> : applications.map((a) => (
+                <div key={a.id} className="flex items-center justify-between py-1.5 border-b border-border last:border-0">
+                  <span className="truncate max-w-[160px]">{a.title || "Untitled"} @ {a.company || "Unknown"}</span>
+                  <span className="text-muted-foreground">{a.status}</span>
+                  <span className="text-muted-foreground">{new Date(a.created_at).toLocaleDateString()}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ─── Shared helpers ──────────────────────────────────────────────────────────
 
 function RoleSelect({
@@ -405,6 +492,8 @@ function JobSeekerPanel({
 }) {
   const [records, setRecords] = useState<JobSeekerRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activityUser, setActivityUser] = useState<{ user_id: string; name: string } | null>(null);
+  const [disablingId, setDisablingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -454,6 +543,19 @@ function JobSeekerPanel({
   }, []);
 
   useEffect(() => { load(); }, [load, reloadKey]);
+
+  const disableUser = async (userId: string) => {
+    setDisablingId(userId);
+    try {
+      await callAdminManageUser({ action: "ban", userId });
+      toast.success("User has been disabled");
+      load();
+    } catch (e: any) {
+      toast.error(e.message || "Failed to disable user");
+    } finally {
+      setDisablingId(null);
+    }
+  };
 
   const filtered = records.filter((u) => {
     if (!search.trim()) return true;
@@ -565,7 +667,26 @@ function JobSeekerPanel({
                 onChangeRole={onChangeRole}
               />
 
-              {/* Edit / Remove */}
+              {/* Activity / Disable / Edit / Remove */}
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8 text-muted-foreground hover:text-accent"
+                title="View activity history"
+                onClick={() => setActivityUser({ user_id: user.user_id, name: user.full_name || user.email || user.user_id })}
+              >
+                <Activity className="w-3.5 h-3.5" />
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8 text-muted-foreground hover:text-warning"
+                title="Disable user"
+                disabled={disablingId === user.user_id}
+                onClick={() => disableUser(user.user_id)}
+              >
+                <UserX className="w-3.5 h-3.5" />
+              </Button>
               <Button
                 size="icon"
                 variant="ghost"
@@ -587,6 +708,14 @@ function JobSeekerPanel({
             </div>
           ))}
         </div>
+      )}
+      {activityUser && (
+        <UserActivityDialog
+          userId={activityUser.user_id}
+          userName={activityUser.name}
+          open={!!activityUser}
+          onClose={() => setActivityUser(null)}
+        />
       )}
     </>
   );

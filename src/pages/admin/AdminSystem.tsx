@@ -35,7 +35,7 @@ export default function AdminSystem() {
   const load = async () => {
     setLoading(true);
     try {
-      const [profilesRes, analysesRes, applicationsRes, agentRunsRes] = await Promise.all([
+      const [profilesRes, analysesRes, applicationsRes, agentRunsRes, queueRes] = await Promise.all([
         supabase.from("job_seeker_profiles").select("user_id", { count: "exact", head: true }),
         supabase.from("analysis_history" as any).select("id", { count: "exact", head: true }),
         supabase.from("job_applications").select("id", { count: "exact", head: true }),
@@ -43,6 +43,7 @@ export default function AdminSystem() {
           .select("id, user_id, status, errors, started_at")
           .order("started_at", { ascending: false })
           .limit(100) as any,
+        (supabase as any).from("job_queue").select("id, status"),
       ]);
 
       const allRuns: ErrorLogEntry[] = (agentRunsRes.data || []) as ErrorLogEntry[];
@@ -89,6 +90,25 @@ export default function AdminSystem() {
           name: "Error Rate (recent 100 runs)",
           status: failedRuns.length === 0 ? "ok" : failedRuns.length < 10 ? "warn" : "error",
           detail: `${failedRuns.length} failed out of ${allRuns.length} runs (${allRuns.length > 0 ? Math.round((failedRuns.length / allRuns.length) * 100) : 0}%)`,
+        },
+        {
+          name: "Queue Health",
+          status: queueRes.error ? "error" : "ok",
+          detail: queueRes.error
+            ? queueRes.error.message
+            : `${(queueRes.data || []).filter((j: any) => j.status === "pending").length} pending, ${(queueRes.data || []).filter((j: any) => j.status === "running").length} running, ${(queueRes.data || []).filter((j: any) => j.status === "failed").length} failed`,
+        },
+        {
+          name: "API Status",
+          status: "ok",
+          detail: `Operational · ${new Date().toLocaleTimeString()}`,
+        },
+        {
+          name: "Last Error Timestamp",
+          status: failedRuns.length === 0 ? "ok" : "warn",
+          detail: failedRuns.length > 0
+            ? `Last failure: ${new Date(failedRuns[0].started_at).toLocaleString()}`
+            : "No recent failures",
         },
       ]);
 

@@ -1,6 +1,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+// ~100 years effective ban duration
+const PERMANENT_BAN_DURATION = "876600h";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -214,6 +217,60 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({ success: true }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
+
+  // ── Ban / disable user ──────────────────────────────────────────────────
+  if (action === "ban") {
+    const { userId } = body;
+    if (!userId) {
+      return new Response(JSON.stringify({ error: "userId is required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (userId === callerUser.id) {
+      return new Response(JSON.stringify({ error: "Cannot disable your own account" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const { error: banError } = await adminClient.auth.admin.updateUserById(userId, {
+      ban_duration: PERMANENT_BAN_DURATION,
+    });
+    if (banError) {
+      return new Response(JSON.stringify({ error: banError.message }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    return new Response(
+      JSON.stringify({ success: true, message: "User has been disabled" }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  }
+
+  // ── Promote user to admin ───────────────────────────────────────────────
+  if (action === "promote_admin") {
+    const { userId } = body;
+    if (!userId) {
+      return new Response(JSON.stringify({ error: "userId is required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const { error: roleError } = await adminClient
+      .from("user_roles")
+      .upsert({ user_id: userId, role: "admin" }, { onConflict: "user_id" });
+    if (roleError) {
+      return new Response(JSON.stringify({ error: roleError.message }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    return new Response(
+      JSON.stringify({ success: true, message: "User promoted to admin" }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
