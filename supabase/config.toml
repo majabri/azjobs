@@ -7,7 +7,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.scrape-url]
-verify_jwt = false
+verify_jwt = true
 
 [functions.parse-document]
 verify_jwt = false
@@ -16,7 +16,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.search-jobs]
-verify_jwt = false
+verify_jwt = true
 
 [functions.generate-followup-email]
 verify_jwt = false
@@ -31,7 +31,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.scrape-jobs-ats]
-verify_jwt = false
+verify_jwt = true
 
 [functions.mock-interview]
 verify_jwt = false
@@ -61,7 +61,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.agent-orchestrator]
-verify_jwt = false
+verify_jwt = true
 
 [functions.simulate-rejection]
 verify_jwt = false

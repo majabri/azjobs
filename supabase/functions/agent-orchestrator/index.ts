@@ -15,6 +15,8 @@ interface AgentContext {
   adminClient: SupabaseClient;
   supabaseUrl: string;
   anonKey: string;
+  /** Full Authorization header value from the original inbound request. */
+  userAuthHeader: string;
   apiKey: string | undefined;
   config: AgentConfig;
 }
@@ -72,7 +74,7 @@ async function runDiscovery(ctx: AgentContext): Promise<AgentResult> {
 
   const resp = await fetch(`${ctx.supabaseUrl}/functions/v1/search-jobs`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${ctx.anonKey}` },
+    headers: { "Content-Type": "application/json", Authorization: ctx.userAuthHeader },
     body: JSON.stringify({ query, location: ctx.profile.location || "", limit: 20 }),
   });
 
@@ -297,6 +299,7 @@ serve(async (req) => {
       adminClient,
       supabaseUrl,
       anonKey,
+      userAuthHeader: authHeader,
       apiKey,
       config: {
         threshold: profile.match_threshold || 70,
