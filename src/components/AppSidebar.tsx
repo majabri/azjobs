@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Search, ClipboardList, UserCircle, Target, Users, ChevronDown,
-  FileText, Calendar, Database, DollarSign, Compass, Mic, Zap,
+  FileText, Calendar, Database, DollarSign, Compass, Mic, Zap, Shield,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -12,6 +12,7 @@ import {
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useAdminRole } from "@/hooks/useAdminRole";
 
 const jobSeekerNav = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
@@ -42,6 +43,7 @@ export function AppSidebar() {
   const collapsed = state === "collapsed";
   const location = useLocation();
   const navigate = useNavigate();
+  const { isAdmin } = useAdminRole();
   const isActive = (path: string) => location.pathname === path;
 
   const hiringPaths = ["/hiring-manager", "/candidates", "/job-postings", "/interview-scheduling"];
@@ -110,6 +112,28 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter>
+        {!collapsed && isAdmin && (
+          <div className="px-3 pb-2">
+            <button
+              onClick={() => navigate("/admin")}
+              className="w-full flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors"
+            >
+              <Shield className="h-4 w-4" />
+              <span>Admin Panel</span>
+            </button>
+          </div>
+        )}
+        {collapsed && isAdmin && (
+          <div className="px-2 pb-2">
+            <button
+              onClick={() => navigate("/admin")}
+              className="w-full flex items-center justify-center rounded-lg border border-destructive/30 bg-destructive/5 p-2 text-destructive hover:bg-destructive/10 transition-colors"
+              title="Admin Panel"
+            >
+              <Shield className="h-4 w-4" />
+            </button>
+          </div>
+        )}
         {!collapsed && (
           <div className="px-4 py-3 text-[10px] text-sidebar-foreground/40">
             FitCheck AI Career OS
