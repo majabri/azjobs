@@ -9,8 +9,7 @@ import { toast } from "sonner";
 
 export default function AdminUsernameLogin() {
   const navigate = useNavigate();
-  const [username, setUsername] = useState("");
-  const [showUsername, setShowUsername] = useState(false);
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -34,16 +33,16 @@ export default function AdminUsernameLogin() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!username || !password) return;
+    if (!identifier || !password) return;
 
     setLoading(true);
     try {
       // Resolve username to email via the secure RPC
-      let email = username;
-      if (!username.includes("@")) {
+      let email = identifier;
+      if (!identifier.includes("@")) {
         const { data: resolved, error: rpcError } = await supabase.rpc(
           "resolve_admin_email",
-          { _username: username }
+          { _username: identifier }
         );
         if (rpcError || !resolved) {
           toast.error("Invalid username or password.");
@@ -88,36 +87,23 @@ export default function AdminUsernameLogin() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="username" className="text-sm font-medium">
-              Username
+            <Label htmlFor="identifier" className="text-sm font-medium">
+              Username or Email
             </Label>
             <div className="relative">
               <Input
-                id="username"
-                type={showUsername ? "text" : "password"}
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                id="identifier"
+                type="text"
+                placeholder="Enter username or email"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
                 required
                 autoComplete="username"
                 spellCheck={false}
                 autoCorrect="off"
                 autoCapitalize="none"
                 disabled={loading}
-                className="pr-10"
               />
-              <button
-                type="button"
-                onClick={() => setShowUsername((v) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                tabIndex={-1}
-                aria-label={showUsername ? "Hide username" : "Show username"}
-              >
-                {showUsername ? (
-                  <EyeOff className="w-4 h-4" />
-                ) : (
-                  <Eye className="w-4 h-4" />
-                )}
-              </button>
             </div>
           </div>
 
@@ -156,7 +142,7 @@ export default function AdminUsernameLogin() {
           <Button
             type="submit"
             className="w-full bg-destructive/80 hover:bg-destructive text-white"
-            disabled={loading || !username || !password}
+            disabled={loading || !identifier || !password}
           >
             {loading ? "Signing in…" : "Sign In"}
           </Button>
