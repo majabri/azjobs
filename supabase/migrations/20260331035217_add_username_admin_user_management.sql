@@ -1,5 +1,6 @@
--- Add username column to profiles for username-based login
+-- Add username and email columns to profiles for username-based login
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS username text UNIQUE;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS email text;
 CREATE INDEX IF NOT EXISTS idx_profiles_username ON public.profiles (username);
 
 -- Allow admins to read all profiles (for username lookup during login and user listing)

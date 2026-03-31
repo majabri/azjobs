@@ -4,8 +4,8 @@
  * Usage:
  *   SUPABASE_URL=https://xxx.supabase.co \
  *   SUPABASE_SERVICE_ROLE_KEY=eyJ... \
- *   ADMIN_EMAIL=admin@amirjabri.com \
- *   npx tsx scripts/seed-admin.ts
+ *   ADMIN_EMAIL=admin@example.com \
+ *   npm run seed:admin
  *
  * What it does:
  *   1. Creates (or looks up) the user in Supabase Auth with the given email,
@@ -13,7 +13,9 @@
  *   2. Marks the user metadata with `must_set_password: true` so the app will
  *      redirect them to the set-password screen on first login.
  *   3. Upserts the user's role to "admin" in the `user_roles` table.
- *   4. Generates a one-time magic-link and prints it to the console so the
+ *   4. Sets the profile username to "admin" so the admin can log in with
+ *      username "admin" instead of their email address.
+ *   5. Generates a one-time magic-link and prints it to the console so the
  *      admin can log in for the first time without a password.
  */
 
@@ -85,7 +87,21 @@ async function main() {
   if (roleError) throw roleError;
   console.log("Role set to admin.");
 
-  // 3. Generate a magic link for first login
+  // 3. Set username to "admin" in profiles so the admin can log in with username "admin"
+  const { error: profileError } = await supabase
+    .from("profiles")
+    .upsert(
+      { user_id: userId, username: "admin", email: ADMIN_EMAIL, full_name: "Admin" },
+      { onConflict: "user_id" },
+    );
+
+  if (profileError) {
+    console.warn("Could not set admin username (profiles table may not exist yet):", profileError.message);
+  } else {
+    console.log('Profile username set to "admin". Login with username: admin');
+  }
+
+  // 4. Generate a magic link for first login
   const { data: linkData, error: linkError } =
     await supabase.auth.admin.generateLink({
       type: "magiclink",
@@ -99,6 +115,7 @@ async function main() {
       ?.action_link ?? "(link not available)";
 
   console.log("\n✅  Admin user ready.");
+  console.log('   Login username: admin  (or use email directly)');
   console.log("\n🔗  One-time login link (expires in ~24 hours):");
   console.log(`\n    ${loginUrl}\n`);
   console.log(
