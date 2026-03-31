@@ -14,7 +14,7 @@ async function resolveEmailFromUsername(username: string): Promise<string | null
   const { data } = await supabase
     .from("profiles")
     .select("email")
-    .eq("username", username)
+    .ilike("username", username)
     .maybeSingle();
   return (data as { email?: string } | null)?.email ?? null;
 }
