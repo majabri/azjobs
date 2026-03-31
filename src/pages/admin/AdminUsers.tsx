@@ -393,6 +393,7 @@ function JobSeekerPanel({
   onEdit,
   onDelete,
   reloadKey,
+  onRecordsLoaded,
 }: {
   search: string;
   updatingId: string | null;
@@ -400,6 +401,7 @@ function JobSeekerPanel({
   onEdit: (user: { user_id: string; email: string | null; full_name: string | null }) => void;
   onDelete: (user: { user_id: string; email: string | null; full_name: string | null }) => void;
   reloadKey: number;
+  onRecordsLoaded?: (users: { user_id: string; email: string | null; full_name: string | null }[]) => void;
 }) {
   const [records, setRecords] = useState<JobSeekerRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -444,9 +446,8 @@ function JobSeekerPanel({
         .filter((r) => r.role === "job_seeker");
 
       setRecords(merged);
+      onRecordsLoaded?.(merged);
     } catch (e) {
-      console.error(e);
-      toast.error("Failed to load job seekers");
     } finally {
       setLoading(false);
     }
@@ -600,6 +601,7 @@ function HiringManagerPanel({
   onEdit,
   onDelete,
   reloadKey,
+  onRecordsLoaded,
 }: {
   search: string;
   updatingId: string | null;
@@ -607,6 +609,7 @@ function HiringManagerPanel({
   onEdit: (user: { user_id: string; email: string | null; full_name: string | null }) => void;
   onDelete: (user: { user_id: string; email: string | null; full_name: string | null }) => void;
   reloadKey: number;
+  onRecordsLoaded?: (users: { user_id: string; email: string | null; full_name: string | null }[]) => void;
 }) {
   const [records, setRecords] = useState<HiringManagerRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -673,6 +676,7 @@ function HiringManagerPanel({
       // Sort by most postings first
       merged.sort((a, b) => b.job_posting_count - a.job_posting_count);
       setRecords(merged);
+      onRecordsLoaded?.(merged);
     } catch (e) {
       console.error(e);
       toast.error("Failed to load hiring managers");
@@ -1009,6 +1013,11 @@ export default function AdminUsers() {
   const [showAddUser, setShowAddUser] = useState(false);
   const [editUser, setEditUser] = useState<UserRef | null>(null);
   const [deleteUser, setDeleteUser] = useState<UserRef | null>(null);
+  const [showBulkDelete, setShowBulkDelete] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+
+  // Track the current panel's loaded records for bulk delete
+  const [panelRecords, setPanelRecords] = useState<UserRef[]>([]);
 
   const meta = VIEW_META[activeView];
 
@@ -1031,6 +1040,20 @@ export default function AdminUsers() {
     }
   };
 
+  const handleBulkDelete = async () => {
+    setBulkDeleting(true);
+    const results = await Promise.allSettled(
+      panelRecords.map((user) => callAdminManageUser({ action: "delete", userId: user.user_id })),
+    );
+    const successCount = results.filter((r) => r.status === "fulfilled").length;
+    const failCount = results.filter((r) => r.status === "rejected").length;
+    setBulkDeleting(false);
+    setShowBulkDelete(false);
+    if (successCount > 0) toast.success(`Deleted ${successCount} user${successCount !== 1 ? "s" : ""}.`);
+    if (failCount > 0) toast.error(`Failed to delete ${failCount} user${failCount !== 1 ? "s" : ""}.`);
+    reload();
+  };
+
   return (
     <div className="max-w-6xl mx-auto px-6 py-8 space-y-6">
       {/* Header */}
@@ -1050,6 +1073,19 @@ export default function AdminUsers() {
             Add User
           </Button>
 
+          {/* Delete All button – only for job seekers and hiring managers */}
+          {activeView !== "admins" && (
+            <Button
+              variant="destructive"
+              className="flex items-center gap-2"
+              onClick={() => setShowBulkDelete(true)}
+              disabled={panelRecords.length === 0}
+            >
+              <Trash2 className="w-4 h-4" />
+              Delete All
+            </Button>
+          )}
+
           {/* View switcher dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -1065,7 +1101,7 @@ export default function AdminUsers() {
               {(Object.entries(VIEW_META) as [AdminView, typeof meta][]).map(([key, m]) => (
                 <DropdownMenuItem
                   key={key}
-                  onClick={() => { setActiveView(key); setSearch(""); }}
+                  onClick={() => { setActiveView(key); setSearch(""); setPanelRecords([]); }}
                   className={activeView === key ? "bg-accent/10" : ""}
                 >
                   <m.icon className="w-4 h-4 mr-2" />
@@ -1122,6 +1158,7 @@ export default function AdminUsers() {
               onEdit={setEditUser}
               onDelete={setDeleteUser}
               reloadKey={reloadKey}
+              onRecordsLoaded={setPanelRecords}
             />
           ) : activeView === "hiring_managers" ? (
             <HiringManagerPanel
@@ -1131,6 +1168,7 @@ export default function AdminUsers() {
               onEdit={setEditUser}
               onDelete={setDeleteUser}
               reloadKey={reloadKey}
+              onRecordsLoaded={setPanelRecords}
             />
           ) : (
             <AdminPanel
@@ -1161,6 +1199,28 @@ export default function AdminUsers() {
         onClose={() => setDeleteUser(null)}
         onDeleted={reload}
       />
+
+      {/* Bulk Delete confirmation */}
+      <AlertDialog open={showBulkDelete} onOpenChange={(v) => { if (!v && !bulkDeleting) setShowBulkDelete(false); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete all {meta.label.toLowerCase()}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete all <strong>{panelRecords.length}</strong> {meta.label.toLowerCase()} and all their data. This action <strong>cannot</strong> be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={bulkDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkDelete}
+              disabled={bulkDeleting}
+              className="bg-destructive hover:bg-destructive/90 text-white"
+            >
+              {bulkDeleting ? "Deleting…" : `Delete All ${panelRecords.length} Users`}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
