@@ -9,7 +9,7 @@ import { toast } from "sonner";
 
 export default function AdminUsernameLogin() {
   const navigate = useNavigate();
-  const [identifier, setIdentifier] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -90,21 +90,19 @@ export default function AdminUsernameLogin() {
             <Label htmlFor="identifier" className="text-sm font-medium">
               Username or Email
             </Label>
-            <div className="relative">
-              <Input
-                id="identifier"
-                type="text"
-                placeholder="Enter username or email"
-                value={identifier}
-                onChange={(e) => setIdentifier(e.target.value)}
-                required
-                autoComplete="username"
-                spellCheck={false}
-                autoCorrect="off"
-                autoCapitalize="none"
-                disabled={loading}
-              />
-            </div>
+            <Input
+              id="username"
+              name="username"
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              required
+              autoComplete="username"
+              spellCheck={false}
+              autoCorrect="off"
+              autoCapitalize="none"
+              disabled={loading}
+            />
           </div>
 
           <div className="space-y-1.5">
@@ -114,6 +112,7 @@ export default function AdminUsernameLogin() {
             <div className="relative">
               <Input
                 id="password"
+                name="password"
                 type={showPassword ? "text" : "password"}
                 placeholder="••••••••"
                 value={password}
