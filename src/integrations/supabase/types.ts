@@ -847,57 +847,6 @@ export type Database = {
         }
         Relationships: []
       }
-      user_roles: {
-        Row: {
-          id: string
-          user_id: string
-          role: string
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          role?: string
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          role?: string
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      admin_settings: {
-        Row: {
-          id: string
-          key: string
-          value: Json
-          description: string | null
-          updated_by: string | null
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          key: string
-          value?: Json
-          description?: string | null
-          updated_by?: string | null
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          key?: string
-          value?: Json
-          description?: string | null
-          updated_by?: string | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
     }
     Views: {
       [_ in never]: never
