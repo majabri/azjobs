@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Shield, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,23 @@ export default function AdminUsernameLogin() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Redirect already-authenticated admins to the admin dashboard
+  useEffect(() => {
+    void supabase.auth.getSession().then(async ({ data: { session }, error }) => {
+      if (error || !session?.user) return;
+      const { data } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", session.user.id)
+        .maybeSingle();
+      if (data?.role === "admin") {
+        navigate("/admin", { replace: true });
+      }
+    }).catch((err) => {
+      console.error("Failed to check admin session:", err);
+    });
+  }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
