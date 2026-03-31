@@ -83,10 +83,12 @@ Deno.serve(async (req) => {
     );
   }
 
-  // ── 4. Create the admin user ─────────────────────────────
+  // ── 4. Create (or reclaim) the admin user ─────────────────
   const email = "amir.jabri@icloud.com";
   const username = "azadmin";
   const tempPassword = generateTempPassword();
+
+  let userId: string;
 
   const { data: userData, error: createErr } = await supabase.auth.admin.createUser({
     email,
@@ -96,13 +98,37 @@ Deno.serve(async (req) => {
   });
 
   if (createErr) {
-    return new Response(
-      JSON.stringify({ error: `Failed to create user: ${createErr.message}` }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+    if (createErr.message.includes("already been registered")) {
+      // User exists in auth — look them up and update password + metadata
+      const { data: listData } = await supabase.auth.admin.listUsers();
+      const existing = listData?.users?.find((u: { email?: string }) => u.email === email);
+      if (!existing) {
+        return new Response(
+          JSON.stringify({ error: "User reported as existing but not found." }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      userId = existing.id;
+      const { error: updateErr } = await supabase.auth.admin.updateUserById(userId, {
+        password: tempPassword,
+        email_confirm: true,
+        user_metadata: { must_set_password: true },
+      });
+      if (updateErr) {
+        return new Response(
+          JSON.stringify({ error: `Failed to update existing user: ${updateErr.message}` }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+    } else {
+      return new Response(
+        JSON.stringify({ error: `Failed to create user: ${createErr.message}` }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+  } else {
+    userId = userData.user.id;
   }
-
-  const userId = userData.user.id;
 
   // ── 5. Upsert profile ───────────────────────────────────
   const { error: profileErr } = await supabase
