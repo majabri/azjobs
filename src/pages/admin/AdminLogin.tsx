@@ -9,12 +9,30 @@ import { useAuthReady } from "@/hooks/useAuthReady";
 import { useAdminRole } from "@/hooks/useAdminRole";
 import { toast } from "sonner";
 
+/** Resolve a username (no @) to the corresponding email address via profiles lookup. */
+async function resolveEmailFromUsername(username: string): Promise<string | null> {
+  const { data } = await supabase
+    .from("profiles")
+    .select("user_id")
+    .eq("username", username)
+    .maybeSingle();
+  if (!data) return null;
+
+  // Fetch the email from job_seeker_profiles (where email is stored for most users)
+  const { data: profile } = await supabase
+    .from("job_seeker_profiles")
+    .select("email")
+    .eq("user_id", data.user_id)
+    .maybeSingle();
+  return profile?.email ?? null;
+}
+
 export default function AdminLogin() {
   const navigate = useNavigate();
   const { user, isReady } = useAuthReady();
   const { isAdmin, isLoading: roleLoading } = useAdminRole();
 
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState(""); // email or username
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -28,10 +46,23 @@ export default function AdminLogin() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) return;
+    if (!identifier || !password) return;
 
     setLoading(true);
     try {
+      // Determine whether the identifier is an email or username
+      let email = identifier.trim();
+      if (!email.includes("@")) {
+        // Treat as username – look up the real email
+        const resolved = await resolveEmailFromUsername(email);
+        if (!resolved) {
+          toast.error("No account found for that username.");
+          setLoading(false);
+          return;
+        }
+        email = resolved;
+      }
+
       if (isSignUp) {
         const { error } = await supabase.auth.signUp({
           email,
@@ -72,15 +103,15 @@ export default function AdminLogin() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="email" className="text-sm font-medium">Email</Label>
+            <Label htmlFor="identifier" className="text-sm font-medium">Email or Username</Label>
             <Input
-              id="email"
-              type="email"
-              placeholder="admin@amirjabri.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              id="identifier"
+              type="text"
+              placeholder="admin@example.com or username"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
               required
-              autoComplete="email"
+              autoComplete="username"
               disabled={loading}
             />
           </div>
