@@ -26,7 +26,22 @@ class ErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.hasError) {
-      return <h1>Something went wrong.</h1>;
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-background px-6">
+          <div className="text-center space-y-4 max-w-sm">
+            <h1 className="text-2xl font-bold text-foreground">Something went wrong</h1>
+            <p className="text-muted-foreground text-sm">
+              An unexpected error occurred. Please refresh the page or try again later.
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm hover:opacity-90 transition-opacity"
+            >
+              Refresh Page
+            </button>
+          </div>
+        </div>
+      );
     }
 
     return this.props.children;
