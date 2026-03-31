@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { Loader2 } from "lucide-react";
 import ErrorBoundary from "./components/ErrorBoundary";
 import Index from "./pages/Index";
 import JobSeeker from "./pages/JobSeeker";
@@ -54,7 +55,13 @@ function ProtectedWithLayout({ children }: { children: React.ReactNode }) {
 function OptionalLayout({ children }: { children: React.ReactNode }) {
   const { user, isReady } = useAuthReady();
 
-  if (!isReady) return null;
+  if (!isReady) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center" role="status" aria-label="Loading">
+        <Loader2 className="w-6 h-6 text-muted-foreground animate-spin" aria-hidden="true" />
+      </div>
+    );
+  }
   if (user) return <AuthenticatedLayout>{children}</AuthenticatedLayout>;
   return <>{children}</>;
 }
