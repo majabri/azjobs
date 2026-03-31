@@ -913,6 +913,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      resolve_admin_email: { Args: { _username: string }; Returns: string }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"

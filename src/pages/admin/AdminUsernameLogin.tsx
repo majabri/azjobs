@@ -9,14 +9,11 @@ import { useAuthReady } from "@/hooks/useAuthReady";
 import { useAdminRole } from "@/hooks/useAdminRole";
 import { toast } from "sonner";
 
-/** Resolve a username (no @) to the corresponding email address via profiles lookup. */
+/** Resolve a username to the corresponding email address via a secure RPC that only returns admin emails. */
 async function resolveEmailFromUsername(username: string): Promise<string | null> {
-  const { data } = await supabase
-    .from("profiles")
-    .select("email")
-    .ilike("username", username)
-    .maybeSingle();
-  return (data as { email?: string } | null)?.email ?? null;
+  const { data, error } = await supabase.rpc("resolve_admin_email", { _username: username });
+  if (error || !data) return null;
+  return data as string;
 }
 
 export default function AdminUsernameLogin() {
