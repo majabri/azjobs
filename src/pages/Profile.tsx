@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
-import { Loader2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Loader2, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import ProfileForm, { type ProfileData, emptyProfile } from "@/components/profile/ProfileForm";
@@ -8,11 +9,19 @@ import PortfolioEditor from "@/components/PortfolioEditor";
 import ProfilePdfExport from "@/components/ProfilePdfExport";
 import ReferralDashboard from "@/components/ReferralDashboard";
 import EmailPreferences from "@/components/EmailPreferences";
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function ProfilePage() {
+  const navigate = useNavigate();
   const [profile, setProfile] = useState<ProfileData>(emptyProfile);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => { loadProfile(); }, []);
 
@@ -51,6 +60,35 @@ export default function ProfilePage() {
       console.error(e);
       toast.error("Failed to load profile");
     } finally { setLoading(false); }
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeleting(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { toast.error("Please sign in"); return; }
+      const resp = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-own-account`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+        },
+      );
+      const json = await resp.json();
+      if (!resp.ok) throw new Error(json.error ?? "Failed to delete account");
+      await supabase.auth.signOut();
+      toast.success("Your account has been deleted.");
+      navigate("/", { replace: true });
+    } catch (e: any) {
+      toast.error(e.message ?? "Failed to delete account");
+    } finally {
+      setDeleting(false);
+      setShowDeleteDialog(false);
+    }
   };
 
   const handleSave = async () => {
@@ -102,7 +140,46 @@ export default function ProfilePage() {
           <ReferralDashboard />
           <EmailPreferences />
         </div>
+
+        {/* Danger Zone */}
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-6 space-y-3">
+          <h2 className="text-sm font-semibold text-destructive">Danger Zone</h2>
+          <p className="text-sm text-muted-foreground">
+            Permanently delete your account and all associated data. This action cannot be undone.
+          </p>
+          <Button
+            variant="destructive"
+            size="sm"
+            className="flex items-center gap-2"
+            onClick={() => setShowDeleteDialog(true)}
+          >
+            <Trash2 className="w-4 h-4" />
+            Delete My Account
+          </Button>
+        </div>
       </div>
+
+      {/* Delete Account confirmation dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={(v) => { if (!v && !deleting) setShowDeleteDialog(false); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete your account?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete your account, profile, and all associated data. This action <strong>cannot</strong> be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteAccount}
+              disabled={deleting}
+              className="bg-destructive hover:bg-destructive/90 text-white"
+            >
+              {deleting ? "Deleting…" : "Yes, delete my account"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
