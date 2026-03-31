@@ -1,5 +1,5 @@
 import React from 'react';
-import { Input } from 'your-component-library';
+import { Input } from '@/components/ui/input';
 
 const AdminUsernameLogin = () => {
     return (
