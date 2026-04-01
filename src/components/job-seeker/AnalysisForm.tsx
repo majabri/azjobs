@@ -208,11 +208,17 @@ export default function AnalysisForm({ onAnalyze, isAnalyzing, isDemo, prefillJo
       if (result.success && result.markdown) {
         setJobDesc(result.markdown);
         toast.success("Job description fetched!");
+      } else if (result.extractionFailed) {
+        toast.warning(
+          result.error || "Could not extract the job description. Please paste it below instead.",
+          { duration: 6000 }
+        );
+        if (result.partialText) setJobDesc(result.partialText);
       } else {
         toast.error(result.error || "Could not fetch");
       }
     } catch {
-      toast.error("Failed to fetch job posting");
+      toast.error("Failed to fetch job posting. Try pasting the description manually.");
     } finally {
       setIsFetchingJob(false);
     }
