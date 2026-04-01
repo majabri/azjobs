@@ -858,14 +858,7 @@ async function isReachableDirectJobUrl(rawUrl: string): Promise<boolean> {
   };
 
   try {
-    const headValid = await attempt("HEAD");
-    if (headValid) return true;
-  } catch {
-    // fall through to GET
-  }
-
-  try {
-    return await attempt("GET");
+    return await attempt("HEAD");
   } catch {
     return false;
   }
