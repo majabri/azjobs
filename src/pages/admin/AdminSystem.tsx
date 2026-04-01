@@ -51,9 +51,9 @@ export default function AdminSystem() {
         (r) => r.status === "failed" || r.status === "completed_with_errors"
       );
       const recentFailed = allRuns.filter((r) => {
-        const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+        const hourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
         return (r.status === "failed" || r.status === "completed_with_errors") &&
-          r.started_at > dayAgo;
+          r.started_at > hourAgo;
       });
 
       setCounts({
