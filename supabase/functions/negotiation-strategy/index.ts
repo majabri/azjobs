@@ -52,10 +52,10 @@ serve(async (req) => {
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (e) {
+  } catch (e: any) {
     console.error("negotiation-strategy error:", e);
-    const status = e.message?.includes("429") ? 429 : e.message?.includes("402") ? 402 : 500;
-    return new Response(JSON.stringify({ error: e.message }), {
+    const status = e?.message?.includes("429") ? 429 : e?.message?.includes("402") ? 402 : 500;
+    return new Response(JSON.stringify({ error: e?.message ?? "Unknown error" }), {
       status, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

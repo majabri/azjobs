@@ -27,7 +27,7 @@ const COMMAND_REGISTRY = new Set([
 
 async function handleAgentRetry(
   args: Record<string, string>,
-  adminClient: ReturnType<typeof createClient>,
+  adminClient: any,
 ): Promise<Record<string, unknown>> {
   const { run_id } = args;
   if (!run_id) return { error: "run_id is required" };
@@ -45,7 +45,7 @@ async function handleAgentRetry(
 
 async function handleAgentRun(
   args: Record<string, string>,
-  adminClient: ReturnType<typeof createClient>,
+  adminClient: any,
   adminUserId: string,
 ): Promise<Record<string, unknown>> {
   const { job_description } = args;
@@ -76,7 +76,7 @@ async function handleAgentRun(
 }
 
 async function handleQueueClear(
-  adminClient: ReturnType<typeof createClient>,
+  adminClient: any,
 ): Promise<Record<string, unknown>> {
   const { error, count } = await adminClient
     .from("job_queue")
@@ -88,7 +88,7 @@ async function handleQueueClear(
 }
 
 async function handleQueueStats(
-  adminClient: ReturnType<typeof createClient>,
+  adminClient: any,
 ): Promise<Record<string, unknown>> {
   const { data, error } = await adminClient
     .from("job_queue")
@@ -109,7 +109,7 @@ async function handleQueueStats(
 
 async function handleUserDisable(
   args: Record<string, string>,
-  adminClient: ReturnType<typeof createClient>,
+  adminClient: any,
 ): Promise<Record<string, unknown>> {
   const { email } = args;
   if (!email) return { error: "email is required" };
@@ -130,7 +130,7 @@ async function handleUserDisable(
 
 async function handleUserPromote(
   args: Record<string, string>,
-  adminClient: ReturnType<typeof createClient>,
+  adminClient: any,
 ): Promise<Record<string, unknown>> {
   const { email } = args;
   if (!email) return { error: "email is required" };
@@ -150,7 +150,7 @@ async function handleUserPromote(
 }
 
 async function handleSystemHealth(
-  adminClient: ReturnType<typeof createClient>,
+  adminClient: any,
 ): Promise<Record<string, unknown>> {
   const checks: Record<string, unknown> = {};
 

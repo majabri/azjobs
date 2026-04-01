@@ -66,7 +66,7 @@ export default function AdminAudit() {
         auditEntries.push({
           id: `cmd-${cmd.id}`,
           category: "commands",
-          who: cmd.admin_id?.slice(0, 8) + "…" ?? "unknown",
+          who: (cmd.admin_id?.slice(0, 8) ?? "unknown") + "…",
           what: cmd.command,
           detail: Object.keys(cmd.args || {}).length > 0
             ? `Args: ${JSON.stringify(cmd.args)}`
@@ -268,7 +268,7 @@ export default function AdminAudit() {
                       {/* Category badge */}
                       <span className={`flex items-center gap-1 w-24 shrink-0 ${CATEGORY_COLOR[entry.category] ?? "text-muted-foreground"}`}>
                         {CATEGORY_ICON[entry.category]}
-                        <span className="uppercase text-[9px] font-bold">{entry.category.replaceAll("_", " ")}</span>
+                        <span className="uppercase text-[9px] font-bold">{entry.category.replace(/_/g, " ")}</span>
                       </span>
                       {/* Who */}
                       <span className="text-muted-foreground w-24 shrink-0 truncate" title={entry.who}>

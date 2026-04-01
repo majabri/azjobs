@@ -799,13 +799,13 @@ async function searchFirecrawlJobs(
           urlVerified: isDirectJobPostingUrl(url),
         };
       })
-      .filter((job) => Boolean(job.url))
-      .filter((job) => isDirectJobPostingUrl(job.url))
-      .filter((job) => !isAggregatorListingTitle(job.title))
-      .filter((job) => job.company && !GENERIC_COMPANY_NAMES.has(job.company.toLowerCase()))
-      .filter((job) => !isSuspiciousCompanyName(job.company))
-      .filter((job) => hasMinimalDescription(job.description))
-      .filter((job) => !isLowSignalDescription(job.description, job.url));
+      .filter((job: NormalizedJob) => Boolean(job.url))
+      .filter((job: NormalizedJob) => isDirectJobPostingUrl(job.url))
+      .filter((job: NormalizedJob) => !isAggregatorListingTitle(job.title))
+      .filter((job: NormalizedJob) => job.company && !GENERIC_COMPANY_NAMES.has(job.company.toLowerCase()))
+      .filter((job: NormalizedJob) => !isSuspiciousCompanyName(job.company))
+      .filter((job: NormalizedJob) => hasMinimalDescription(job.description))
+      .filter((job: NormalizedJob) => !isLowSignalDescription(job.description, job.url));
 
     console.log(`After filtering query #${index + 1}: ${jobs.length} jobs`);
 
