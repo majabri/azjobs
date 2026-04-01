@@ -61,7 +61,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.agent-orchestrator]
-verify_jwt = true
+verify_jwt = false
 
 [functions.simulate-rejection]
 verify_jwt = false
