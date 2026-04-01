@@ -84,7 +84,7 @@ export default function AdminSystem() {
           status: agentRunsRes.error ? "error" : recentFailed.length > 5 ? "warn" : "ok",
           detail: agentRunsRes.error
             ? agentRunsRes.error.message
-            : `${recentFailed.length} failures in last 24h`,
+            : `${recentFailed.length} failures in last 1h`,
         },
         {
           name: "Error Rate (recent 100 runs)",
