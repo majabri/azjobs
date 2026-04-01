@@ -856,7 +856,8 @@ export function analyzeJobFit(jobDescription: string, resumeText: string): FitAn
   const jobKeywords = extractKeywords(parsed.requirementsText);
   const resumeKeywords = extractKeywords(resumeText);
   const benefits = extractBenefits(jobDescription, parsed.benefitsText);
-  const companySummary = parsed.companyText.trim();
+  // Use dedicated extractor with strict boundaries instead of raw section text
+  const companySummary = extractCompanySection(jobDescription);
 
   const overallScore = scoreOverlap(jobKeywords, resumeKeywords);
 

@@ -293,12 +293,19 @@ export default function AnalysisResults({
       })()}
 
       {/* Company Summary */}
-      {analysis.companySummary && (
+      {analysis.companySummary ? (
         <div className="bg-card rounded-2xl p-6 border border-border shadow-sm">
           <h3 className="font-display font-bold text-foreground text-lg mb-4 flex items-center gap-2">
             <BookOpen className="w-5 h-5 text-accent" /> About the Company
           </h3>
           <p className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed">{analysis.companySummary}</p>
+        </div>
+      ) : (
+        <div className="bg-card rounded-2xl p-6 border border-border shadow-sm">
+          <h3 className="font-display font-bold text-foreground text-lg mb-4 flex items-center gap-2">
+            <BookOpen className="w-5 h-5 text-accent" /> About the Company
+          </h3>
+          <p className="text-sm text-muted-foreground italic">No company information found in this posting.</p>
         </div>
       )}
 
