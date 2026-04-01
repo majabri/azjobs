@@ -313,6 +313,7 @@ export default function JobSearchPage() {
   const [ignoredList, setIgnoredList] = useState<IgnoredJob[]>([]);
   const [savedApps, setSavedApps] = useState<{ job_title: string; company: string; job_url: string | null }[]>([]);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [minFitScore, setMinFitScore] = useState(60);
 
   useEffect(() => { loadProfile(); loadIgnoredAndSaved(); }, []);
 
