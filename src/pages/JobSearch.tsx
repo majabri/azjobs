@@ -288,7 +288,7 @@ function getJobSaveKey(job: JobResult): string {
   return `${urlPart}|${job.title.trim().toLowerCase()}|${job.company.trim().toLowerCase()}`;
 }
 
-const PAGE_SIZE = 25;
+const PAGE_SIZE = 50;
 
 export default function JobSearchPage() {
   const navigate = useNavigate();
@@ -407,7 +407,7 @@ export default function JobSearchPage() {
       }
     }
 
-    query = query.order("created_at", { ascending: false }).limit(100);
+    query = query.order("created_at", { ascending: false }).limit(500);
 
     const { data, error } = await query;
     if (error) { console.error("DB search error:", error); return []; }
@@ -444,7 +444,7 @@ export default function JobSearchPage() {
       {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ skills, jobTypes, location, query: customQuery, careerLevel, targetTitles, limit: 100 }),
+        body: JSON.stringify({ skills, jobTypes, location, query: customQuery, careerLevel, targetTitles, limit: 200 }),
       }
     );
     if (!resp.ok) return { jobs: [], citations: [] };

@@ -671,7 +671,7 @@ function buildSearchQueries(params: {
     cleanSearchFragment(`${titles[0] || primaryRole} ${skills.slice(0, 2).join(" ")} ${remoteHint}`, 10),
   ];
 
-  const deduped = [...new Set(candidates.filter((candidate) => candidate.length >= 4))].slice(0, 6);
+  const deduped = [...new Set(candidates.filter((candidate) => candidate.length >= 4))].slice(0, 3);
   return deduped.length ? deduped : ["software engineer remote"];
 }
 
@@ -684,7 +684,7 @@ async function fetchDatabaseJobs(supabaseAdmin: ReturnType<typeof createClient>)
     .not("job_url", "is", null)
     .order("quality_score", { ascending: false })
     .order("last_seen_at", { ascending: false })
-    .limit(250);
+    .limit(500);
 
   if (error) {
     console.error("Failed to load scraped jobs:", error.message);
@@ -736,7 +736,7 @@ async function searchFirecrawlJobs(
       },
       body: JSON.stringify({
         query: q,
-        limit: Math.max(25, Math.min(limit * 5, 50)),
+        limit: Math.max(20, Math.min(limit, 30)),
         tbs: "qdr:m",
         scrapeOptions: {
           formats: ["markdown"],
@@ -778,7 +778,7 @@ async function searchFirecrawlJobs(
         ].filter((item): item is string => typeof item === "string" && item.trim().length > 0);
 
         const url = pickBestJobUrl(urlCandidates);
-        const description = cleanMarkdownText(row.markdown || row.description || "").slice(0, 5000);
+        const description = cleanMarkdownText(row.markdown || row.description || "").slice(0, 2000);
         const title = normalizeJobTitle(row.title || "Job Opportunity");
         const company = extractCompany(row.company || "", title, url) || extractCompanyFromHost(url);
         const detectedType = inferJobType(`${title} ${description}`);
@@ -816,7 +816,7 @@ async function searchFirecrawlJobs(
       }
     }
 
-    if (mergedJobs.size >= Math.max(limit * 3, 40)) break;
+    if (mergedJobs.size >= Math.max(limit * 2, 30)) break;
   }
 
   return [...mergedJobs.values()];
@@ -874,16 +874,24 @@ async function filterLiveDirectJobs<T extends { url: string }>(jobs: T[], maxToC
   if (!jobs.length) return [];
 
   const candidates = jobs.slice(0, maxToCheck);
-  const checks = await Promise.all(
-    candidates.map(async (job) => ({
-      job,
-      isReachable: await isReachableDirectJobUrl(job.url),
-    })),
-  );
+  const liveJobs: T[] = [];
 
-  const liveJobs = checks.filter((entry) => entry.isReachable).map((entry) => entry.job);
+  // Process in small batches to avoid memory spikes
+  const BATCH = 8;
+  for (let i = 0; i < candidates.length; i += BATCH) {
+    const batch = candidates.slice(i, i + BATCH);
+    const checks = await Promise.all(
+      batch.map(async (job) => ({
+        job,
+        isReachable: await isReachableDirectJobUrl(job.url),
+      })),
+    );
+    for (const entry of checks) {
+      if (entry.isReachable) liveJobs.push(entry.job);
+    }
+  }
+
   if (liveJobs.length > 0) return liveJobs;
-
   return candidates.filter((job) => isDirectJobPostingUrl(job.url));
 }
 
@@ -946,7 +954,7 @@ serve(async (req) => {
     const location = normalizeText(requestBody.location);
     const query = normalizeText(requestBody.query);
     const careerLevel = normalizeText(requestBody.careerLevel);
-    const limit = Math.max(5, Math.min(Number(requestBody.limit || 50), 100));
+    const limit = Math.max(5, Math.min(Number(requestBody.limit || 100), 200));
 
     const searchQueries = buildSearchQueries({
       query,
@@ -1004,7 +1012,7 @@ serve(async (req) => {
 
     const liveRankedCandidates = await filterLiveDirectJobs(
       rankedCandidates,
-      Math.min(Math.max(limit * 4, 30), 45),
+      Math.min(Math.max(limit * 2, 25), 30),
     );
 
     const strictFiltered = liveRankedCandidates.filter((job) => {
