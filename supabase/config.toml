@@ -7,7 +7,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.scrape-url]
-verify_jwt = true
+verify_jwt = false
 
 [functions.parse-document]
 verify_jwt = false
