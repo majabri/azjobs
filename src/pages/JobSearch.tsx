@@ -444,7 +444,7 @@ export default function JobSearchPage() {
       {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ skills, jobTypes, location, query: customQuery, careerLevel, targetTitles, limit: 100 }),
+        body: JSON.stringify({ skills, jobTypes, location, query: customQuery, careerLevel, targetTitles, limit: 200 }),
       }
     );
     if (!resp.ok) return { jobs: [], citations: [] };
