@@ -874,16 +874,24 @@ async function filterLiveDirectJobs<T extends { url: string }>(jobs: T[], maxToC
   if (!jobs.length) return [];
 
   const candidates = jobs.slice(0, maxToCheck);
-  const checks = await Promise.all(
-    candidates.map(async (job) => ({
-      job,
-      isReachable: await isReachableDirectJobUrl(job.url),
-    })),
-  );
+  const liveJobs: T[] = [];
 
-  const liveJobs = checks.filter((entry) => entry.isReachable).map((entry) => entry.job);
+  // Process in small batches to avoid memory spikes
+  const BATCH = 8;
+  for (let i = 0; i < candidates.length; i += BATCH) {
+    const batch = candidates.slice(i, i + BATCH);
+    const checks = await Promise.all(
+      batch.map(async (job) => ({
+        job,
+        isReachable: await isReachableDirectJobUrl(job.url),
+      })),
+    );
+    for (const entry of checks) {
+      if (entry.isReachable) liveJobs.push(entry.job);
+    }
+  }
+
   if (liveJobs.length > 0) return liveJobs;
-
   return candidates.filter((job) => isDirectJobPostingUrl(job.url));
 }
 
