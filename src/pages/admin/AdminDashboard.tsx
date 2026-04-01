@@ -178,30 +178,33 @@ export default function AdminDashboard() {
   ];
   const PIE_COLORS = ["hsl(var(--success, 142 71% 45%))", "hsl(var(--destructive, 0 84% 60%))"];
 
-  // System alerts
-  const failedLast24h = recentRuns.filter((r) => {
-    const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    return (r.status === "failed" || r.status === "completed_with_errors") && r.started_at > dayAgo;
+  // System alerts — 1-hour window for urgency
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  const failedLast1h = recentRuns.filter((r) => {
+    return (r.status === "failed" || r.status === "completed_with_errors") && r.started_at > oneHourAgo;
   }).length;
 
   const alerts = [
     {
-      key: "failed24h",
-      status: failedLast24h === 0 ? "green" : failedLast24h < 3 ? "yellow" : "red",
-      label: "Failed Runs (24h)",
-      detail: failedLast24h === 0 ? "No failures in last 24h" : `${failedLast24h} failed run(s) in last 24h`,
+      key: "failed1h",
+      status: failedLast1h === 0 ? "green" : failedLast1h < 3 ? "yellow" : "red",
+      label: "Failed Runs (1h)",
+      detail: failedLast1h === 0 ? "No failures in last hour" : `${failedLast1h} failed run(s) in last hour`,
+      link: "/admin/agent-runs",
     },
     {
       key: "errorRate",
       status: errorRate === 0 ? "green" : errorRate < 5 ? "yellow" : "red",
       label: "Error Rate",
       detail: `${errorRate}% of runs failed`,
+      link: "/admin/logs?filter=error",
     },
     {
       key: "overall",
-      status: errorRate === 0 && failedLast24h === 0 ? "green" : "yellow",
+      status: errorRate === 0 && failedLast1h === 0 ? "green" : "yellow",
       label: "System Status",
-      detail: errorRate === 0 && failedLast24h === 0 ? "All systems operational" : "Degraded — check logs",
+      detail: errorRate === 0 && failedLast1h === 0 ? "All systems operational" : "Degraded — check logs",
+      link: "/admin/system",
     },
   ] as const;
 
