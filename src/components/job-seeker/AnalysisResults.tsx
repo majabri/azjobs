@@ -223,6 +223,33 @@ export default function AnalysisResults({
         </div>
       )}
 
+      {/* Benefits Section */}
+      {analysis.benefits && analysis.benefits.length > 0 && (
+        <div className="bg-card rounded-2xl p-6 border border-border shadow-sm">
+          <h3 className="font-display font-bold text-foreground text-lg mb-4 flex items-center gap-2">
+            <Award className="w-5 h-5 text-accent" /> Benefits & Perks
+          </h3>
+          <div className="grid sm:grid-cols-2 gap-2">
+            {analysis.benefits.map((benefit, i) => (
+              <div key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
+                <CheckCircle2 className="w-4 h-4 text-success flex-shrink-0 mt-0.5" />
+                <span>{benefit}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Company Summary */}
+      {analysis.companySummary && (
+        <div className="bg-card rounded-2xl p-6 border border-border shadow-sm">
+          <h3 className="font-display font-bold text-foreground text-lg mb-4 flex items-center gap-2">
+            <BookOpen className="w-5 h-5 text-accent" /> About the Company
+          </h3>
+          <p className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed">{analysis.companySummary}</p>
+        </div>
+      )}
+
       <GapIntelligence analysis={analysis} onReEvaluate={onReEvaluate} />
 
       {/* Ready to Apply */}
