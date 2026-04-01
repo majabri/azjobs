@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -6,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   ScrollText, RefreshCw, ChevronDown, ChevronRight, AlertCircle,
-  Info, AlertTriangle, Clock, Filter, XCircle, CheckCircle2,
+  Info, AlertTriangle, Clock, Filter, XCircle, CheckCircle2, ExternalLink,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -29,13 +30,16 @@ const LEVEL_CONFIG = {
 };
 
 export default function AdminLogs() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const searchParams = new URLSearchParams(location.search);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [filters, setFilters] = useState({
     user_id: "",
     agent_id: "",
-    run_id: "",
+    run_id: searchParams.get("run_id") ?? "",
     status: "all",
     level: "all",
   });
@@ -235,6 +239,17 @@ export default function AdminLogs() {
                             onClick={() => retryRun(log.run_id!)}
                           >
                             Retry
+                          </Button>
+                        )}
+                        {log.run_id && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-5 text-[10px] px-1.5 text-muted-foreground hover:text-foreground"
+                            onClick={() => navigate(`/admin/agent-runs/${log.run_id}`)}
+                            title="Go to Run"
+                          >
+                            <ExternalLink className="w-3 h-3 mr-0.5" /> Run
                           </Button>
                         )}
                         {hasMetadata && (

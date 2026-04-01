@@ -39,6 +39,8 @@ import AdminLogs from "./pages/admin/AdminLogs";
 import AdminAgentRuns from "./pages/admin/AdminAgentRuns";
 import AdminQueue from "./pages/admin/AdminQueue";
 import AdminConsole from "./pages/admin/AdminConsole";
+import AdminAudit from "./pages/admin/AdminAudit";
+import AdminAgentRunDetail from "./pages/admin/AdminAgentRunDetail";
 import { useAuthReady } from "@/hooks/useAuthReady";
 
 const queryClient = new QueryClient();
@@ -102,6 +104,8 @@ const App = () => (
           <Route path="/admin/agent-runs" element={<AdminProtectedRoute><AdminLayout><AdminAgentRuns /></AdminLayout></AdminProtectedRoute>} />
           <Route path="/admin/queue" element={<AdminProtectedRoute><AdminLayout><AdminQueue /></AdminLayout></AdminProtectedRoute>} />
           <Route path="/admin/console" element={<AdminProtectedRoute><AdminLayout><AdminConsole /></AdminLayout></AdminProtectedRoute>} />
+          <Route path="/admin/audit" element={<AdminProtectedRoute><AdminLayout><AdminAudit /></AdminLayout></AdminProtectedRoute>} />
+          <Route path="/admin/agent-runs/:runId" element={<AdminProtectedRoute><AdminLayout><AdminAgentRunDetail /></AdminLayout></AdminProtectedRoute>} />
           {/* Public routes */}
           <Route path="/p/:userId" element={<PublicProfile />} />
           <Route path="/report/:analysisId" element={<ScoreReport />} />

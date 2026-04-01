@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   Bot, RefreshCw, Clock, CheckCircle2, XCircle, AlertTriangle,
-  Play, Eye, StopCircle, ChevronDown, ChevronRight,
+  Play, Eye, StopCircle, ChevronDown, ChevronRight, ExternalLink,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -44,6 +45,7 @@ function duration(start: string, end: string | null) {
 }
 
 export default function AdminAgentRuns() {
+  const navigate = useNavigate();
   const [runs, setRuns] = useState<AgentRun[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedRun, setSelectedRun] = useState<AgentRun | null>(null);
@@ -219,6 +221,14 @@ export default function AdminAgentRuns() {
                             onClick={() => setSelectedRun(run)}
                           >
                             <Eye className="w-3 h-3 mr-1" /> View
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-6 text-[10px] px-1.5 text-muted-foreground"
+                            onClick={() => navigate(`/admin/agent-runs/${run.id}`)}
+                          >
+                            <ExternalLink className="w-3 h-3 mr-1" /> Details
                           </Button>
                           {(run.status === "failed" || run.status === "completed_with_errors") && (
                             <Button
