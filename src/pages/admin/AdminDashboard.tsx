@@ -178,30 +178,33 @@ export default function AdminDashboard() {
   ];
   const PIE_COLORS = ["hsl(var(--success, 142 71% 45%))", "hsl(var(--destructive, 0 84% 60%))"];
 
-  // System alerts
-  const failedLast24h = recentRuns.filter((r) => {
-    const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    return (r.status === "failed" || r.status === "completed_with_errors") && r.started_at > dayAgo;
+  // System alerts — 1-hour window for urgency
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  const failedLast1h = recentRuns.filter((r) => {
+    return (r.status === "failed" || r.status === "completed_with_errors") && r.started_at > oneHourAgo;
   }).length;
 
   const alerts = [
     {
-      key: "failed24h",
-      status: failedLast24h === 0 ? "green" : failedLast24h < 3 ? "yellow" : "red",
-      label: "Failed Runs (24h)",
-      detail: failedLast24h === 0 ? "No failures in last 24h" : `${failedLast24h} failed run(s) in last 24h`,
+      key: "failed1h",
+      status: failedLast1h === 0 ? "green" : failedLast1h < 3 ? "yellow" : "red",
+      label: "Failed Runs (1h)",
+      detail: failedLast1h === 0 ? "No failures in last hour" : `${failedLast1h} failed run(s) in last hour`,
+      link: "/admin/agent-runs",
     },
     {
       key: "errorRate",
       status: errorRate === 0 ? "green" : errorRate < 5 ? "yellow" : "red",
       label: "Error Rate",
       detail: `${errorRate}% of runs failed`,
+      link: "/admin/logs?filter=error",
     },
     {
       key: "overall",
-      status: errorRate === 0 && failedLast24h === 0 ? "green" : "yellow",
+      status: errorRate === 0 && failedLast1h === 0 ? "green" : "yellow",
       label: "System Status",
-      detail: errorRate === 0 && failedLast24h === 0 ? "All systems operational" : "Degraded — check logs",
+      detail: errorRate === 0 && failedLast1h === 0 ? "All systems operational" : "Degraded — check logs",
+      link: "/admin/system",
     },
   ] as const;
 
@@ -222,27 +225,33 @@ export default function AdminDashboard() {
         {alerts.map((alert) => (
           <div
             key={alert.key}
-            className={`flex items-center gap-3 p-3 rounded-xl border text-sm ${
+            className={`flex items-center gap-3 p-3 rounded-xl border text-sm cursor-pointer hover:opacity-80 transition-opacity ${
               alert.status === "green"
-                ? "bg-green-500/5 border-green-500/20"
+                ? "bg-success/5 border-success/20"
                 : alert.status === "yellow"
-                ? "bg-yellow-500/5 border-yellow-500/20"
-                : "bg-red-500/5 border-red-500/20"
+                ? "bg-warning/5 border-warning/20"
+                : "bg-destructive/5 border-destructive/20"
             }`}
+            onClick={() => navigate(alert.link)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => { if (e.key === "Enter") navigate(alert.link); }}
           >
             {alert.status === "green" ? (
-              <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
+              <CheckCircle2 className="w-4 h-4 text-success shrink-0" />
             ) : alert.status === "yellow" ? (
-              <AlertTriangle className="w-4 h-4 text-yellow-500 shrink-0" />
+              <AlertTriangle className="w-4 h-4 text-warning shrink-0" />
             ) : (
-              <XCircle className="w-4 h-4 text-red-500 shrink-0" />
+              <XCircle className="w-4 h-4 text-destructive shrink-0" />
             )}
-            <div>
+            <div className="flex-1">
               <p className="font-medium text-foreground text-xs">{alert.label}</p>
               <p className="text-[10px] text-muted-foreground">{alert.detail}</p>
             </div>
+            <span className="text-[10px] text-muted-foreground">→</span>
           </div>
         ))}
+
       </div>
 
       {/* KPI Grid */}
