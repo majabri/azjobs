@@ -407,7 +407,7 @@ export default function JobSearchPage() {
       }
     }
 
-    query = query.order("created_at", { ascending: false }).limit(50);
+    query = query.order("created_at", { ascending: false }).limit(100);
 
     const { data, error } = await query;
     if (error) { console.error("DB search error:", error); return []; }
