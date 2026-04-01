@@ -105,7 +105,7 @@ Deno.serve(async (req) => {
             },
           },
         ],
-        tool_choice: { type: "function", function: { name: "extract_profile" } },
+        tool_choice: "required",
       }),
     });
 
