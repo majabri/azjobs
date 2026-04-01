@@ -330,7 +330,8 @@ serve(async (req) => {
     };
 
     // Execute
-    const { completed, errors, metrics, timings } = await executeAgents(validAgents, ctx);
+    await ingestLog(adminClient, "info", "Agent orchestrator run started", { user_id: user.id, run_id: run.id, status: "running" });
+    const { completed, errors, metrics, timings } = await executeAgents(validAgents, ctx, run.id);
 
     // Finalize
     await adminClient.from("agent_runs").update({
