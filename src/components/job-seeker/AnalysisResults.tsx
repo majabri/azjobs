@@ -251,32 +251,46 @@ export default function AnalysisResults({
       )}
 
       {/* Benefits Section */}
-      {analysis.benefits && analysis.benefits.length > 0 && (
-        <div className="bg-card rounded-2xl p-6 border border-border shadow-sm">
-          <h3 className="font-display font-bold text-foreground text-lg mb-4 flex items-center gap-2">
-            <Award className="w-5 h-5 text-accent" /> Benefits & Perks
-            <Badge variant="secondary" className="ml-2 text-xs">{analysis.benefits.length} identified</Badge>
-          </h3>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {analysis.benefits.map((benefit, i) => {
-              const Icon = BENEFIT_ICONS[benefit.category] || CheckCircle2;
-              return (
-                <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-muted/40 border border-border/50">
-                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    <Icon className="w-4 h-4 text-primary" />
+      {(() => {
+        const benefits = analysis.benefits || [];
+        // UI safety guard: if total raw text > 1000 chars, it's likely contaminated
+        const totalRawLen = benefits.reduce((sum, b) => sum + (b.rawText?.length || 0), 0);
+        const isSafe = benefits.length > 0 && totalRawLen < 1000;
+
+        return isSafe ? (
+          <div className="bg-card rounded-2xl p-6 border border-border shadow-sm">
+            <h3 className="font-display font-bold text-foreground text-lg mb-4 flex items-center gap-2">
+              <Award className="w-5 h-5 text-accent" /> Benefits & Perks
+              <Badge variant="secondary" className="ml-2 text-xs">{benefits.length} identified</Badge>
+            </h3>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {benefits.map((benefit, i) => {
+                const Icon = BENEFIT_ICONS[benefit.category] || CheckCircle2;
+                return (
+                  <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-muted/40 border border-border/50">
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                      <Icon className="w-4 h-4 text-primary" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-foreground">{benefit.label}</p>
+                      {benefit.metadata?.range && (
+                        <p className="text-xs text-primary font-medium mt-0.5">{benefit.metadata.range}</p>
+                      )}
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-foreground">{benefit.label}</p>
-                    {benefit.metadata?.range && (
-                      <p className="text-xs text-primary font-medium mt-0.5">{benefit.metadata.range}</p>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="bg-card rounded-2xl p-6 border border-border shadow-sm">
+            <h3 className="font-display font-bold text-foreground text-lg mb-4 flex items-center gap-2">
+              <Award className="w-5 h-5 text-muted-foreground" /> Benefits & Perks
+            </h3>
+            <p className="text-sm text-muted-foreground">Benefits not clearly defined in this posting.</p>
+          </div>
+        );
+      })()}
 
       {/* Company Summary */}
       {analysis.companySummary && (

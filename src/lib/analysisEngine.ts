@@ -535,13 +535,20 @@ const REQUIREMENTS_HEADERS = [
   /\b(requirements?|qualifications?|desired\s+qualifications?|required\s+skills?|must[\s-]have|what\s+you.?ll?\s+need|what\s+we.?re?\s+looking\s+for|minimum\s+qualifications?|preferred\s+qualifications?|key\s+skills?|technical\s+skills?|core\s+competencies|essential\s+skills?|experience\s+required|you\s+should\s+have|you\s+bring|about\s+you|your\s+background|skills?\s+&?\s*experience|responsibilities|what\s+you.?ll?\s+do|duties|role\s+description|the\s+role|job\s+duties|key\s+responsibilities|accountabilities)\b/i,
 ];
 
+// Benefits headers — intentionally narrow to avoid false positives
 const BENEFITS_HEADERS = [
-  /\b(benefits?|perks?|what\s+we\s+offer|compensation|why\s+join|why\s+work\s+here|our\s+benefits|total\s+rewards|we\s+offer|employee\s+benefits|package\s+includes)\b/i,
+  /\b(benefits?\s*(&|and)?\s*perks?|employee\s+benefits|what\s+we\s+offer|why\s+join\s+us|why\s+work\s+here|our\s+benefits|total\s+rewards|we\s+offer|package\s+includes|perks?\s*(&|and)?\s*benefits?)\b/i,
 ];
 
+// "compensation" alone is NOT a benefits header — it appears in requirements context too often
+const COMPENSATION_ONLY_HEADER = /^\s*\**\s*compensation\s*:?\s*\**\s*$/i;
+
 const NON_REQUIREMENTS_HEADERS = [
-  /\b(benefits?|perks?|what\s+we\s+offer|compensation|why\s+join|why\s+work\s+here|about\s+us|about\s+the\s+company|company\s+overview|our\s+mission|our\s+culture|equal\s+opportunity|eeo|disclaimer|how\s+to\s+apply|application\s+process|legal|privacy|accommodation)\b/i,
+  /\b(benefits?|perks?|what\s+we\s+offer|why\s+join|why\s+work\s+here|about\s+us|about\s+the\s+company|company\s+overview|our\s+mission|our\s+culture|equal\s+opportunity|eeo|disclaimer|how\s+to\s+apply|application\s+process|legal|privacy|accommodation)\b/i,
 ];
+
+/** Max characters to extract from a benefits section to prevent runaway extraction */
+const MAX_BENEFITS_TEXT_LENGTH = 1500;
 
 interface ParsedJobSections {
   requirementsText: string;
@@ -559,12 +566,13 @@ export function parseJobSections(jobDescription: string): ParsedJobSections {
     const trimmed = line.trim();
     if (!trimmed) { currentSection.lines.push(line); continue; }
 
-    // Detect section headers (lines that are short, often bold/caps, or end with colon)
+    // Detect section headers — must look like a heading, not regular content
     const isHeaderLike = (trimmed.length < 80 && (
-      /^#{1,4}\s/.test(trimmed) ||
-      /^[A-Z\s&/]{4,}:?\s*$/.test(trimmed) ||
-      /:\s*$/.test(trimmed) ||
-      /^\*\*.*\*\*$/.test(trimmed)
+      /^#{1,4}\s/.test(trimmed) ||                          // Markdown headings
+      /^[A-Z][A-Z\s&/]{3,}:?\s*$/.test(trimmed) ||         // ALL CAPS headers
+      /^\*\*[^*]{3,60}\*\*:?\s*$/.test(trimmed) ||          // Bold-only lines
+      // Colon-ending lines — but only if they're short and look like labels, not sentences
+      (/:\s*$/.test(trimmed) && trimmed.length < 50 && !/\b(is|are|was|were|will|would|should|can|could|has|have|had)\b/i.test(trimmed))
     ));
 
     if (isHeaderLike) {
@@ -573,7 +581,7 @@ export function parseJobSections(jobDescription: string): ParsedJobSections {
       }
       let sectionType: "req" | "benefit" | "company" | "other" = "other";
       if (REQUIREMENTS_HEADERS.some(r => r.test(trimmed))) sectionType = "req";
-      else if (BENEFITS_HEADERS.some(r => r.test(trimmed))) sectionType = "benefit";
+      else if (BENEFITS_HEADERS.some(r => r.test(trimmed)) || COMPENSATION_ONLY_HEADER.test(trimmed)) sectionType = "benefit";
       else if (/\b(about\s+(us|the\s+company)|company\s+overview|our\s+mission|who\s+we\s+are)\b/i.test(trimmed)) sectionType = "company";
       else if (NON_REQUIREMENTS_HEADERS.some(r => r.test(trimmed))) sectionType = "other";
       currentSection = { header: trimmed, lines: [], type: sectionType };
@@ -589,12 +597,16 @@ export function parseJobSections(jobDescription: string): ParsedJobSections {
   const benefitSections = sections.filter(s => s.type === "benefit");
   const companySections = sections.filter(s => s.type === "company");
 
-  // If no explicit requirements sections found, use full text minus benefits/company
   const requirementsText = reqSections.length > 0
     ? reqSections.map(s => s.lines.join("\n")).join("\n")
     : sections.filter(s => s.type !== "benefit" && s.type !== "company").map(s => s.lines.join("\n")).join("\n");
 
-  const benefitsText = benefitSections.map(s => s.lines.join("\n")).join("\n").trim();
+  // Enforce hard cap on benefits text to prevent full-description bleed
+  let benefitsText = benefitSections.map(s => s.lines.join("\n")).join("\n").trim();
+  if (benefitsText.length > MAX_BENEFITS_TEXT_LENGTH) {
+    benefitsText = benefitsText.slice(0, MAX_BENEFITS_TEXT_LENGTH);
+  }
+
   const companyText = companySections.map(s => s.lines.join("\n")).join("\n").trim();
 
   return { requirementsText, benefitsText, companyText, fullText: jobDescription };
@@ -652,30 +664,35 @@ const BENEFIT_EXCLUSION_PATTERNS = [
 ];
 
 /**
- * Extract structured benefits from text. Strictly matches against the taxonomy
- * and excludes anything that looks like a requirement, responsibility, or skill.
+ * Extract structured benefits. Uses strict section-bounded text first,
+ * falls back to keyword scanning of full text (capped at 8 items).
+ * Applies confidence scoring — discards results if confidence < 0.3.
  */
 export function extractBenefits(fullJobText: string, benefitsSectionText: string): StructuredBenefit[] {
   const seen = new Set<BenefitCategory>();
   const results: StructuredBenefit[] = [];
 
-  // Helper to scan lines and match against taxonomy
-  const scanLines = (text: string) => {
+  const scanLines = (text: string, maxItems: number) => {
     if (!text.trim()) return;
     const lines = text
       .split("\n")
       .map(l => l.trim().replace(/^[-•●▪*→➤►▸>]\s*/, ""))
       .filter(l => l.length > 3 && l.length < 200);
 
+    let matchedLines = 0;
+    let totalCandidateLines = 0;
+
     for (const line of lines) {
+      if (results.length >= maxItems) break;
       // Skip lines that look like requirements/responsibilities/skills
       if (BENEFIT_EXCLUSION_PATTERNS.some(p => p.test(line))) continue;
+
+      totalCandidateLines++;
 
       for (const entry of BENEFIT_TAXONOMY) {
         if (seen.has(entry.category)) continue;
         if (entry.keywords.test(line)) {
           const metadata: Record<string, string> = {};
-          // Extract salary range if present
           const salaryMatch = line.match(/\$[\d,]+(?:k)?(?:\s*[-–—to]\s*\$[\d,]+(?:k)?)?(?:\s*\/\s*(?:year|yr|annually|month|hr|hour))?/i);
           if (salaryMatch) metadata.range = salaryMatch[0];
 
@@ -686,17 +703,34 @@ export function extractBenefits(fullJobText: string, benefitsSectionText: string
             rawText: line,
             metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
           });
+          matchedLines++;
           break;
         }
       }
     }
+
+    return { matchedLines, totalCandidateLines };
   };
 
-  // 1. Primary: scan the dedicated benefits section (highest signal)
-  scanLines(benefitsSectionText);
+  // 1. Primary: scan the dedicated benefits section (up to 24 items — taxonomy size)
+  if (benefitsSectionText.trim()) {
+    const stats = scanLines(benefitsSectionText, 24);
 
-  // 2. Secondary: scan full text for salary/compensation info not in benefits section
-  //    Only pick up categories not already found
+    // Confidence check: if less than 30% of candidate lines matched benefit keywords,
+    // the section is likely misclassified — discard results
+    if (stats && stats.totalCandidateLines > 3 && stats.matchedLines / stats.totalCandidateLines < 0.15) {
+      // Very low confidence — clear results, this wasn't really a benefits section
+      results.length = 0;
+      seen.clear();
+    }
+  }
+
+  // 2. Fallback: if no benefits found from section, scan full text but cap at 8 items
+  if (results.length === 0) {
+    scanLines(fullJobText, 8);
+  }
+
+  // 3. Secondary: scan full text for salary info if not already found
   if (!seen.has("salary")) {
     const salaryLine = fullJobText.split("\n").find(l =>
       /\$[\d,]+(?:k)?(?:\s*[-–—to]\s*\$[\d,]+(?:k)?)/i.test(l) &&
