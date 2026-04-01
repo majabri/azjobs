@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Shield, Eye, EyeOff } from "lucide-react";
+import { Shield, Eye, EyeOff, ArrowLeft, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +13,11 @@ export default function AdminUsernameLogin() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Forgot-password state
+  const [forgotMode, setForgotMode] = useState(false);
+  const [resetIdentifier, setResetIdentifier] = useState("");
+  const [resetSent, setResetSent] = useState(false);
 
   // Redirect already-authenticated admins to the admin dashboard
   useEffect(() => {
@@ -70,6 +75,137 @@ export default function AdminUsernameLogin() {
     }
   };
 
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetIdentifier) return;
+
+    setLoading(true);
+    try {
+      // Resolve username to email if needed
+      let email = resetIdentifier;
+      if (!resetIdentifier.includes("@")) {
+        const { data: resolved, error: rpcError } = await supabase.rpc(
+          "resolve_admin_email",
+          { _username: resetIdentifier }
+        );
+        if (rpcError || !resolved) {
+          // Don't reveal whether username exists; show generic success message
+          setResetSent(true);
+          return;
+        }
+        email = resolved;
+      }
+
+      const redirectTo = `${window.location.origin}/admin/set-password`;
+      await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+
+      setResetSent(true);
+    } catch {
+      toast.error("An unexpected error occurred. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ── Forgot-password: confirmation screen ──────────────────────────────────
+  if (forgotMode && resetSent) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center px-6">
+        <div className="w-full max-w-sm space-y-8">
+          <div className="flex flex-col items-center gap-3 text-center">
+            <div className="w-14 h-14 bg-destructive/80 rounded-2xl flex items-center justify-center shadow-lg">
+              <Mail className="w-7 h-7 text-white" />
+            </div>
+            <h1 className="font-display text-3xl font-bold text-foreground">
+              Check your email
+            </h1>
+            <p className="text-muted-foreground text-sm">
+              If that account exists, a password-reset link has been sent to the
+              associated email address. Follow the link to set a new password.
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => {
+              setForgotMode(false);
+              setResetSent(false);
+              setResetIdentifier("");
+            }}
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to login
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Forgot-password: input screen ─────────────────────────────────────────
+  if (forgotMode) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center px-6">
+        <div className="w-full max-w-sm space-y-8">
+          <div className="flex flex-col items-center gap-3 text-center">
+            <div className="w-14 h-14 bg-destructive/80 rounded-2xl flex items-center justify-center shadow-lg">
+              <Shield className="w-7 h-7 text-white" />
+            </div>
+            <h1 className="font-display text-3xl font-bold text-foreground">
+              Reset Password
+            </h1>
+            <p className="text-muted-foreground text-sm">
+              Enter your username or email address and we'll send you a
+              password-reset link.
+            </p>
+          </div>
+
+          <form onSubmit={handleResetPassword} className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="reset-identifier" className="text-sm font-medium">
+                Username or Email
+              </Label>
+              <Input
+                id="reset-identifier"
+                name="reset-identifier"
+                type="text"
+                value={resetIdentifier}
+                onChange={(e) => setResetIdentifier(e.target.value)}
+                required
+                autoComplete="username"
+                spellCheck={false}
+                autoCorrect="off"
+                autoCapitalize="none"
+                disabled={loading}
+                autoFocus
+              />
+            </div>
+
+            <Button
+              type="submit"
+              className="w-full bg-destructive/80 hover:bg-destructive text-white"
+              disabled={loading || !resetIdentifier}
+            >
+              {loading ? "Sending…" : "Send Reset Link"}
+            </Button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setForgotMode(false);
+                setResetIdentifier("");
+              }}
+              className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center justify-center gap-1"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              Back to login
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Normal login ──────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-6">
       <div className="w-full max-w-sm space-y-8">
@@ -81,14 +217,14 @@ export default function AdminUsernameLogin() {
             Admin Login
           </h1>
           <p className="text-muted-foreground text-sm">
-            Sign in with your admin credentials.
+            Sign in with your username or email and password.
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
             <Label htmlFor="username" className="text-sm font-medium">
-              Username
+              Username or Email
             </Label>
             <Input
               id="username"
@@ -106,9 +242,18 @@ export default function AdminUsernameLogin() {
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="password" className="text-sm font-medium">
-              Password
-            </Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="password" className="text-sm font-medium">
+                Password
+              </Label>
+              <button
+                type="button"
+                onClick={() => setForgotMode(true)}
+                className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Forgot password?
+              </button>
+            </div>
             <div className="relative">
               <Input
                 id="password"
