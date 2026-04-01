@@ -66,7 +66,7 @@ export default function AdminAudit() {
         auditEntries.push({
           id: `cmd-${cmd.id}`,
           category: "commands",
-          who: cmd.admin_id?.slice(0, 8) + "…" ?? "unknown",
+          who: (cmd.admin_id?.slice(0, 8) ?? "unknown") + "…",
           what: cmd.command,
           detail: Object.keys(cmd.args || {}).length > 0
             ? `Args: ${JSON.stringify(cmd.args)}`
