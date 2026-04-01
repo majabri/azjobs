@@ -88,7 +88,7 @@ async function handleQueueClear(
 }
 
 async function handleQueueStats(
-  adminClient: ReturnType<typeof createClient>,
+  adminClient: any,
 ): Promise<Record<string, unknown>> {
   const { data, error } = await adminClient
     .from("job_queue")
