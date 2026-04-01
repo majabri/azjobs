@@ -6,7 +6,8 @@ import {
   Target, Sparkles, AlertTriangle, CheckCircle2, XCircle, ChevronRight,
   Lightbulb, ExternalLink, Loader2, FileText, Copy, Mail, Download,
   Plus, MessageSquare, BookOpen, GraduationCap, Award, Package,
-  TrendingUp, Shield, Zap, Link2,
+  TrendingUp, Shield, Zap, Link2, Heart, Clock, Home, DollarSign,
+  Baby, Dumbbell, Gift, Car, MapPin, Brain, Briefcase, Star,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { type FitAnalysis } from "@/lib/analysisEngine";
