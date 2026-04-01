@@ -1,12 +1,23 @@
 import { supabase } from "@/integrations/supabase/client";
 
-export async function scrapeUrl(url: string): Promise<{ success: boolean; markdown?: string; title?: string; error?: string }> {
+export interface ScrapeResult {
+  success: boolean;
+  markdown?: string;
+  title?: string;
+  error?: string;
+  /** True when extraction failed — UI should prompt manual paste */
+  extractionFailed?: boolean;
+  /** Partial text extracted before validation failed */
+  partialText?: string;
+}
+
+export async function scrapeUrl(url: string): Promise<ScrapeResult> {
   const { data, error } = await supabase.functions.invoke('scrape-url', {
     body: { url },
   });
 
   if (error) {
-    return { success: false, error: error.message };
+    return { success: false, error: error.message, extractionFailed: true };
   }
   return data;
 }
