@@ -140,8 +140,26 @@ serve(async (req) => {
       });
     }
 
+    // Clean up all related database records first (non-fatal if already gone)
+    await adminClient.from("job_seeker_profiles" as any).delete().eq("user_id", userId);
+    await adminClient.from("resume_versions" as any).delete().eq("user_id", userId);
+    await adminClient.from("agent_runs" as any).delete().eq("user_id", userId);
+    await adminClient.from("learning_events" as any).delete().eq("user_id", userId);
+    await adminClient.from("user_roles").delete().eq("user_id", userId);
+    await adminClient.from("profiles").delete().eq("user_id", userId);
+    await adminClient.from("notifications").delete().eq("user_id", userId);
+    await adminClient.from("job_applications").delete().eq("user_id", userId);
+    await adminClient.from("analysis_history").delete().eq("user_id", userId);
+    await adminClient.from("email_preferences").delete().eq("user_id", userId);
+    await adminClient.from("outreach_contacts").delete().eq("user_id", userId);
+    await adminClient.from("interview_sessions").delete().eq("user_id", userId);
+    await adminClient.from("ignored_jobs").delete().eq("user_id", userId);
+    await adminClient.from("offers").delete().eq("user_id", userId);
+    await adminClient.from("scraped_jobs" as any).delete().eq("user_id", userId);
+
+    // Try to delete the auth user; ignore "not found" (already gone)
     const { error: deleteError } = await adminClient.auth.admin.deleteUser(userId);
-    if (deleteError) {
+    if (deleteError && !deleteError.message?.toLowerCase().includes("not found")) {
       return new Response(JSON.stringify({ error: deleteError.message }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
