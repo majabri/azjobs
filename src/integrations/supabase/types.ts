@@ -14,6 +14,75 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_command_log: {
+        Row: {
+          admin_id: string
+          args: Json | null
+          command: string
+          executed_at: string
+          id: string
+          result: Json | null
+          success: boolean
+        }
+        Insert: {
+          admin_id: string
+          args?: Json | null
+          command: string
+          executed_at?: string
+          id?: string
+          result?: Json | null
+          success?: boolean
+        }
+        Update: {
+          admin_id?: string
+          args?: Json | null
+          command?: string
+          executed_at?: string
+          id?: string
+          result?: Json | null
+          success?: boolean
+        }
+        Relationships: []
+      }
+      admin_logs: {
+        Row: {
+          agent_id: string | null
+          created_at: string
+          id: string
+          level: string
+          message: string
+          metadata: Json | null
+          run_id: string | null
+          status: string | null
+          timestamp: string
+          user_id: string | null
+        }
+        Insert: {
+          agent_id?: string | null
+          created_at?: string
+          id?: string
+          level?: string
+          message?: string
+          metadata?: Json | null
+          run_id?: string | null
+          status?: string | null
+          timestamp?: string
+          user_id?: string | null
+        }
+        Update: {
+          agent_id?: string | null
+          created_at?: string
+          id?: string
+          level?: string
+          message?: string
+          metadata?: Json | null
+          run_id?: string | null
+          status?: string | null
+          timestamp?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       agent_runs: {
         Row: {
           agent_timings: Json | null
@@ -367,6 +436,45 @@ export type Database = {
           title?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      job_queue: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          error: string | null
+          id: string
+          job_id: string
+          payload: Json | null
+          started_at: string | null
+          status: string
+          type: string
+          user_id: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          job_id?: string
+          payload?: Json | null
+          started_at?: string | null
+          status?: string
+          type?: string
+          user_id?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          error?: string | null
+          id?: string
+          job_id?: string
+          payload?: Json | null
+          started_at?: string | null
+          status?: string
+          type?: string
+          user_id?: string | null
         }
         Relationships: []
       }
