@@ -313,6 +313,7 @@ export default function JobSearchPage() {
   const [ignoredList, setIgnoredList] = useState<IgnoredJob[]>([]);
   const [savedApps, setSavedApps] = useState<{ job_title: string; company: string; job_url: string | null }[]>([]);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [minFitScore, setMinFitScore] = useState(60);
 
   useEffect(() => { loadProfile(); loadIgnoredAndSaved(); }, []);
 
@@ -337,7 +338,7 @@ export default function JobSearchPage() {
       if (!session) return;
       const [{ data }, { data: appData }] = await Promise.all([
         supabase.from("job_seeker_profiles")
-          .select("skills, preferred_job_types, location, career_level, target_job_titles, salary_min, salary_max")
+          .select("skills, preferred_job_types, location, career_level, target_job_titles, salary_min, salary_max, min_match_score")
           .eq("user_id", session.user.id).maybeSingle(),
         supabase.from("job_applications").select("status, response_days").eq("user_id", session.user.id),
       ]);
@@ -349,6 +350,7 @@ export default function JobSearchPage() {
         if (data.target_job_titles) setTargetTitles(data.target_job_titles as string[]);
         if (data.salary_min) setSalaryMin(data.salary_min);
         if (data.salary_max) setSalaryMax(data.salary_max);
+        if (data.min_match_score != null) setMinFitScore(data.min_match_score);
         setProfileLoaded(true);
       }
       // Build historical outcomes for response probability model
@@ -557,6 +559,9 @@ export default function JobSearchPage() {
         allJobs = allJobs.filter(j => !j.is_flagged);
       }
 
+      // Filter by minimum fit score
+      allJobs = allJobs.filter(j => (j.decisionScore || 0) >= minFitScore);
+
       setJobs(allJobs);
       setCitations(allCitations);
       setVisibleCount(PAGE_SIZE);
@@ -737,6 +742,31 @@ export default function JobSearchPage() {
               <div>
                 <label className="text-sm font-semibold text-foreground mb-1 block">Additional Criteria</label>
                 <Input value={customQuery} onChange={e => setCustomQuery(e.target.value)} placeholder="e.g. startup, Fortune 500..." />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-sm font-semibold text-foreground mb-2 block">
+                Minimum Fit Score: <span className="text-accent font-bold">{minFitScore}%</span>
+              </label>
+              <p className="text-xs text-muted-foreground mb-2">Only show jobs with a decision score at or above this threshold</p>
+              <div className="flex items-center gap-3">
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={minFitScore}
+                  onChange={e => setMinFitScore(Number(e.target.value))}
+                  className="flex-1 accent-[hsl(var(--accent))]"
+                />
+                <Input
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={minFitScore}
+                  onChange={e => setMinFitScore(Math.max(0, Math.min(100, Number(e.target.value))))}
+                  className="w-20 h-8 text-xs"
+                />
               </div>
             </div>
 
