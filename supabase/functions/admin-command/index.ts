@@ -76,7 +76,7 @@ async function handleAgentRun(
 }
 
 async function handleQueueClear(
-  adminClient: ReturnType<typeof createClient>,
+  adminClient: any,
 ): Promise<Record<string, unknown>> {
   const { error, count } = await adminClient
     .from("job_queue")
