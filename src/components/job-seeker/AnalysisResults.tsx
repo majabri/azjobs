@@ -29,8 +29,34 @@ interface AnalysisResultsProps {
   onReset: () => void;
   onReEvaluate?: () => void;
 }
+const BENEFIT_ICONS: Record<BenefitCategory, React.FC<{ className?: string }>> = {
+  salary: DollarSign,
+  health_insurance: Heart,
+  dental_insurance: Heart,
+  vision_insurance: Heart,
+  life_insurance: Shield,
+  disability_insurance: Shield,
+  flexible_hours: Clock,
+  remote_work: Home,
+  learning_budget: GraduationCap,
+  tuition_reimbursement: GraduationCap,
+  paid_holidays: Star,
+  referral_bonus: Gift,
+  retirement_401k: TrendingUp,
+  stock_options: TrendingUp,
+  parental_leave: Baby,
+  wellness_program: Heart,
+  commuter_benefits: Car,
+  relocation_assistance: MapPin,
+  employee_discount: Gift,
+  pto: Star,
+  mental_health: Brain,
+  childcare: Baby,
+  gym_membership: Dumbbell,
+  bonus: DollarSign,
+};
 
-export default function AnalysisResults({
+
   analysis, jobDesc, resume, jobLink, isDemo, onReset, onReEvaluate,
 }: AnalysisResultsProps) {
   const navigate = useNavigate();
