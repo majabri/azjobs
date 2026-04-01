@@ -684,7 +684,7 @@ async function fetchDatabaseJobs(supabaseAdmin: ReturnType<typeof createClient>)
     .not("job_url", "is", null)
     .order("quality_score", { ascending: false })
     .order("last_seen_at", { ascending: false })
-    .limit(100);
+    .limit(500);
 
   if (error) {
     console.error("Failed to load scraped jobs:", error.message);
@@ -736,7 +736,7 @@ async function searchFirecrawlJobs(
       },
       body: JSON.stringify({
         query: q,
-        limit: 15,
+        limit: Math.max(20, Math.min(limit, 30)),
         tbs: "qdr:m",
         scrapeOptions: {
           formats: ["markdown"],
@@ -817,7 +817,7 @@ async function searchFirecrawlJobs(
       }
     }
 
-    if (mergedJobs.size >= 20) break;
+    if (mergedJobs.size >= Math.max(limit * 2, 30)) break;
   }
 
   return [...mergedJobs.values()];
@@ -858,7 +858,14 @@ async function isReachableDirectJobUrl(rawUrl: string): Promise<boolean> {
   };
 
   try {
-    return await attempt("HEAD");
+    const headValid = await attempt("HEAD");
+    if (headValid) return true;
+  } catch {
+    // fall through to GET
+  }
+
+  try {
+    return await attempt("GET");
   } catch {
     return false;
   }
@@ -871,7 +878,7 @@ async function filterLiveDirectJobs<T extends { url: string }>(jobs: T[], maxToC
   const liveJobs: T[] = [];
 
   // Process in small batches to avoid memory spikes
-  const BATCH = 5;
+  const BATCH = 8;
   for (let i = 0; i < candidates.length; i += BATCH) {
     const batch = candidates.slice(i, i + BATCH);
     const checks = await Promise.all(
@@ -1006,7 +1013,7 @@ serve(async (req) => {
 
     const liveRankedCandidates = await filterLiveDirectJobs(
       rankedCandidates,
-      15,
+      Math.min(Math.max(limit * 2, 25), 30),
     );
 
     const strictFiltered = liveRankedCandidates.filter((job) => {
