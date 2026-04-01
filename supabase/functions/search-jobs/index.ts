@@ -871,7 +871,7 @@ async function filterLiveDirectJobs<T extends { url: string }>(jobs: T[], maxToC
   const liveJobs: T[] = [];
 
   // Process in small batches to avoid memory spikes
-  const BATCH = 8;
+  const BATCH = 5;
   for (let i = 0; i < candidates.length; i += BATCH) {
     const batch = candidates.slice(i, i + BATCH);
     const checks = await Promise.all(
