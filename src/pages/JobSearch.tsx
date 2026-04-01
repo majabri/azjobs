@@ -350,6 +350,7 @@ export default function JobSearchPage() {
         if (data.target_job_titles) setTargetTitles(data.target_job_titles as string[]);
         if (data.salary_min) setSalaryMin(data.salary_min);
         if (data.salary_max) setSalaryMax(data.salary_max);
+        if (data.min_match_score != null) setMinFitScore(data.min_match_score);
         setProfileLoaded(true);
       }
       // Build historical outcomes for response probability model
