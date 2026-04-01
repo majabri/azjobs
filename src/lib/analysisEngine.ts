@@ -36,6 +36,9 @@ export interface FitAnalysis {
   experienceMatch: number;
   keywordAlignment: number;
   topActions: string[];
+  // New sections
+  benefits: string[];
+  companySummary: string;
 }
 
 // ─── Categorized Skill Keywords ───────────────────────────────────────────────
