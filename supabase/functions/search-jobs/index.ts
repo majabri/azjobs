@@ -736,7 +736,7 @@ async function searchFirecrawlJobs(
       },
       body: JSON.stringify({
         query: q,
-        limit: Math.max(20, Math.min(limit, 30)),
+        limit: 15,
         tbs: "qdr:m",
         scrapeOptions: {
           formats: ["markdown"],
