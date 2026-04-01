@@ -130,7 +130,7 @@ async function handleUserDisable(
 
 async function handleUserPromote(
   args: Record<string, string>,
-  adminClient: ReturnType<typeof createClient>,
+  adminClient: any,
 ): Promise<Record<string, unknown>> {
   const { email } = args;
   if (!email) return { error: "email is required" };
