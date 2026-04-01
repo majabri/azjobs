@@ -31,7 +31,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.scrape-jobs-ats]
-verify_jwt = true
+verify_jwt = false
 
 [functions.mock-interview]
 verify_jwt = false
