@@ -196,16 +196,15 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       { global: { headers: { Authorization: authHeader } } }
     );
-    const token = authHeader.replace('Bearer ', '');
-    const { data, error: authError } = await supabaseAuth.auth.getClaims(token);
-    if (authError || !data?.claims) {
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
+    if (authError || !user) {
       return new Response(
         JSON.stringify({ success: false, error: 'Invalid or expired token' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const userId: string = data.claims.sub as string;
+    const userId: string = user.id;
 
     // Rate limit: 10 scrape requests per user per minute
     if (!checkRateLimit(`scrape-jobs-ats:${userId}`, 10, 60_000)) {

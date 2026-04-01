@@ -27,7 +27,7 @@ const COMMAND_REGISTRY = new Set([
 
 async function handleAgentRetry(
   args: Record<string, string>,
-  adminClient: ReturnType<typeof createClient>,
+  adminClient: any,
 ): Promise<Record<string, unknown>> {
   const { run_id } = args;
   if (!run_id) return { error: "run_id is required" };
