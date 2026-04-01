@@ -575,7 +575,7 @@ export default function JobSearchPage() {
 
   const handleAnalyzeFit = (job: JobResult) => {
     const jobDesc = `${job.title} at ${job.company}\nLocation: ${job.location}\nType: ${job.type}${job.salary ? `\nSalary: ${job.salary}` : ""}\n\n${job.description}`;
-    navigate("/job-seeker", { state: { prefillJob: jobDesc, prefillJobLink: job.url || "" } });
+    navigate("/job-seeker", { state: { prefillJob: jobDesc, prefillJobLink: job.url || "", fromSearch: true } });
   };
 
   const handleSaveJob = async (job: JobResult) => {
