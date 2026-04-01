@@ -45,7 +45,7 @@ async function handleAgentRetry(
 
 async function handleAgentRun(
   args: Record<string, string>,
-  adminClient: ReturnType<typeof createClient>,
+  adminClient: any,
   adminUserId: string,
 ): Promise<Record<string, unknown>> {
   const { job_description } = args;
