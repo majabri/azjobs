@@ -745,6 +745,31 @@ export default function JobSearchPage() {
               </div>
             </div>
 
+            <div>
+              <label className="text-sm font-semibold text-foreground mb-2 block">
+                Minimum Fit Score: <span className="text-accent font-bold">{minFitScore}%</span>
+              </label>
+              <p className="text-xs text-muted-foreground mb-2">Only show jobs with a decision score at or above this threshold</p>
+              <div className="flex items-center gap-3">
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={minFitScore}
+                  onChange={e => setMinFitScore(Number(e.target.value))}
+                  className="flex-1 accent-[hsl(var(--accent))]"
+                />
+                <Input
+                  type="number"
+                  min={0}
+                  max={100}
+                  value={minFitScore}
+                  onChange={e => setMinFitScore(Math.max(0, Math.min(100, Number(e.target.value))))}
+                  className="w-20 h-8 text-xs"
+                />
+              </div>
+            </div>
+
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-semibold text-foreground mb-1 block">Min Salary</label>
