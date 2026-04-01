@@ -684,7 +684,7 @@ async function fetchDatabaseJobs(supabaseAdmin: ReturnType<typeof createClient>)
     .not("job_url", "is", null)
     .order("quality_score", { ascending: false })
     .order("last_seen_at", { ascending: false })
-    .limit(250);
+    .limit(500);
 
   if (error) {
     console.error("Failed to load scraped jobs:", error.message);
