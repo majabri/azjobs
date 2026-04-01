@@ -911,16 +911,15 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_ANON_KEY") ?? "",
       { global: { headers: { Authorization: authHeader } } }
     );
-    const token = authHeader.replace("Bearer ", "");
-    const { data, error: authError } = await supabaseAuth.auth.getClaims(token);
-    if (authError || !data?.claims) {
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
+    if (authError || !user) {
       return new Response(
         JSON.stringify({ error: "Invalid or expired token" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const userId: string = data.claims.sub as string;
+    const userId: string = user.id;
 
     // Rate limit: 30 search requests per user per minute
     if (!checkRateLimit(`search-jobs:${userId}`, 30, 60_000)) {
@@ -931,7 +930,6 @@ serve(async (req) => {
     }
 
     const firecrawlApiKey = Deno.env.get("FIRECRAWL_API_KEY");
-    if (!firecrawlApiKey) throw new Error("FIRECRAWL_API_KEY is not configured");
 
     const requestBody: SearchRequest = await req.json();
     const skills = Array.isArray(requestBody.skills) ? requestBody.skills : [];
@@ -967,7 +965,9 @@ serve(async (req) => {
 
     const [databaseJobs, crawledJobs] = await Promise.all([
       fetchDatabaseJobs(supabaseAdmin),
-      searchFirecrawlJobs(firecrawlApiKey, searchQueries, location, limit),
+      firecrawlApiKey
+        ? searchFirecrawlJobs(firecrawlApiKey, searchQueries, location, limit)
+        : Promise.resolve([] as NormalizedJob[]),
     ]);
 
     console.log(`DB jobs: ${databaseJobs.length}, Crawled jobs: ${crawledJobs.length}`);
