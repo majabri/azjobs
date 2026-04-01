@@ -140,6 +140,16 @@ serve(async (req) => {
       });
     }
 
+    // Explicitly delete related data that doesn't have an ON DELETE CASCADE
+    // foreign key to auth.users. This ensures the user is fully removed from
+    // all tables even if the database schema lacks the cascade constraint.
+    // Errors here are non-fatal: the rows may already be gone (or the table
+    // may not yet have been created in this environment).
+    await adminClient.from("job_seeker_profiles" as any).delete().eq("user_id", userId);
+    await adminClient.from("resume_versions" as any).delete().eq("user_id", userId);
+    await adminClient.from("agent_runs" as any).delete().eq("user_id", userId);
+    await adminClient.from("learning_events" as any).delete().eq("user_id", userId);
+
     const { error: deleteError } = await adminClient.auth.admin.deleteUser(userId);
     if (deleteError) {
       return new Response(JSON.stringify({ error: deleteError.message }), {
