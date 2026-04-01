@@ -126,6 +126,21 @@ export default function AdminQueue() {
   const running = jobs.filter((j) => j.status === "running");
   const failed = jobs.filter((j) => j.status === "failed");
 
+  // Compute avg wait time for completed jobs (time from created_at to started_at)
+  const completedJobs = jobs.filter((j) => j.status === "completed" && j.started_at && j.created_at);
+  const avgWaitMs = completedJobs.length > 0
+    ? completedJobs.reduce((sum, j) => {
+        return sum + (new Date(j.started_at!).getTime() - new Date(j.created_at).getTime());
+      }, 0) / completedJobs.length
+    : null;
+
+  function formatWaitTime(ms: number | null): string {
+    if (ms === null) return "—";
+    if (ms < 1000) return `${Math.round(ms)}ms`;
+    if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
+    return `${Math.floor(ms / 60000)}m ${Math.floor((ms % 60000) / 1000)}s`;
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-64">
@@ -159,7 +174,7 @@ export default function AdminQueue() {
       </div>
 
       {/* Summary */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="bg-card rounded-xl p-4 border border-border">
           <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
             <Clock className="w-4 h-4" /> Pending
@@ -177,6 +192,15 @@ export default function AdminQueue() {
             <XCircle className="w-4 h-4" /> Failed
           </div>
           <div className="text-2xl font-display font-bold text-foreground">{failed.length}</div>
+        </div>
+        <div className="bg-card rounded-xl p-4 border border-border">
+          <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
+            <Clock className="w-4 h-4" /> Avg Wait Time
+          </div>
+          <div className="text-xl font-display font-bold text-foreground">{formatWaitTime(avgWaitMs)}</div>
+          {completedJobs.length > 0 && (
+            <div className="text-[10px] text-muted-foreground mt-0.5">from {completedJobs.length} completed jobs</div>
+          )}
         </div>
       </div>
 
