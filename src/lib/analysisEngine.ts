@@ -689,6 +689,7 @@ export function analyzeJobFit(jobDescription: string, resumeText: string): FitAn
     overallScore, matchedSkills, gaps, strengths, improvementPlan, summary,
     interviewProbability, experienceMatch, keywordAlignment,
     topActions: topActions.slice(0, 3),
+    benefits, companySummary,
   };
 }
 

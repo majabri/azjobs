@@ -138,7 +138,7 @@ async function handleUserPromote(
   const { data: users, error: listErr } = await adminClient.auth.admin.listUsers();
   if (listErr) return { error: listErr.message };
 
-  const target = users.users.find((u) => u.email === email);
+  const target = users.users.find((u: any) => u.email === email);
   if (!target) return { error: `User with email ${email} not found` };
 
   const { error } = await adminClient

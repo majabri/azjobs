@@ -675,7 +675,7 @@ function buildSearchQueries(params: {
   return deduped.length ? deduped : ["software engineer remote"];
 }
 
-async function fetchDatabaseJobs(supabaseAdmin: ReturnType<typeof createClient>): Promise<NormalizedJob[]> {
+async function fetchDatabaseJobs(supabaseAdmin: any): Promise<NormalizedJob[]> {
   const { data, error } = await supabaseAdmin
     .from("scraped_jobs")
     .select("title, company, location, job_type, description, job_url, quality_score, last_seen_at, is_flagged")
