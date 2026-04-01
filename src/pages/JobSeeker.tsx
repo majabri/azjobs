@@ -99,6 +99,16 @@ export default function JobSeekerPage() {
   return (
     <div className="bg-background">
       <main className="max-w-5xl mx-auto px-6 py-8">
+        {navState?.fromSearch && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="mb-4 text-muted-foreground hover:text-foreground"
+            onClick={() => navigate(-1)}
+          >
+            <ArrowLeft className="w-4 h-4 mr-1" /> Back to Search Results
+          </Button>
+        )}
         {step === "input" && (
           <AnalysisForm
             onAnalyze={handleAnalyze}
