@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { useAgentSystem, type AgentMode, type AgentRun } from "@/hooks/useAgentSystem";
 import { type LucideIcon } from "lucide-react";
-import AgentHealthDashboard from "@/components/AgentHealthDashboard";
+import AgentHealthDashboard from "@/components/auto-apply/AgentHealthDashboard";
 
 const AGENTS: { key: string; label: string; icon: LucideIcon; desc: string }[] = [
   { key: "discovery", label: "Job Discovery", icon: Search, desc: "Finds new opportunities" },

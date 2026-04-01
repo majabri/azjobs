@@ -13,10 +13,10 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import UserMenu from "@/components/UserMenu";
-import OutreachGenerator from "@/components/OutreachGenerator";
-import OutreachTracker from "@/components/OutreachTracker";
-import SalaryProjection from "@/components/SalaryProjection";
-import ProgressMetrics from "@/components/ProgressMetrics";
+import OutreachGenerator from "@/components/career/OutreachGenerator";
+import OutreachTracker from "@/components/career/OutreachTracker";
+import SalaryProjection from "@/components/career/SalaryProjection";
+import ProgressMetrics from "@/components/career/ProgressMetrics";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 
 interface CareerInsight {

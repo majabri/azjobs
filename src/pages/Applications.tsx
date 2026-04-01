@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import UserMenu from "@/components/UserMenu";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
-import ApplicationTimeline from "@/components/ApplicationTimeline";
+import ApplicationTimeline from "@/components/applications/ApplicationTimeline";
 
 interface JobApplication {
   id: string;
