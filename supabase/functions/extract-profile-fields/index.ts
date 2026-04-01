@@ -127,8 +127,6 @@ Deno.serve(async (req) => {
     }
 
     const aiResult = await response.json();
-    console.log("AI response keys:", JSON.stringify(Object.keys(aiResult)));
-    console.log("AI message:", JSON.stringify(aiResult.choices?.[0]?.message).substring(0, 500));
     const toolCall = aiResult.choices?.[0]?.message?.tool_calls?.[0];
 
     if (!toolCall?.function?.arguments) {
