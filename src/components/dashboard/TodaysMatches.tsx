@@ -34,9 +34,9 @@ import {
   TRUST_LEVEL_CONFIG,
   type FakeJobFlag,
   type HistoricalOutcomes,
-} from "@/lib/jobQualityEngine";
-import { saveJobToApplications } from "@/lib/saveJob";
-import { getIgnoredJobs, ignoreJob, isJobIgnored, isJobAlreadySaved, type IgnoredJob } from "@/lib/ignoredJobs";
+} from "@/lib/job-search";
+import { saveJobToApplications } from "@/lib/job-search";
+import { getIgnoredJobs, ignoreJob, isJobIgnored, isJobAlreadySaved, type IgnoredJob } from "@/lib/job-search";
 
 interface JobMatch {
   title: string;
