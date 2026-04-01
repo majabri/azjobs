@@ -17,9 +17,9 @@ import {
   detectFakeJobFlags, getTrustScore, calculateResponseProbability as calcResponseProb,
   getJobStrategy, STRATEGY_CONFIG, TRUST_LEVEL_CONFIG,
   type FakeJobFlag, type HistoricalOutcomes,
-} from "@/lib/jobQualityEngine";
-import { saveJobToApplications } from "@/lib/saveJob";
-import { getIgnoredJobs, ignoreJob, isJobIgnored, isJobAlreadySaved, type IgnoredJob } from "@/lib/ignoredJobs";
+  saveJobToApplications,
+  getIgnoredJobs, ignoreJob, isJobIgnored, isJobAlreadySaved, type IgnoredJob,
+} from "@/lib/job-search";
 
 interface JobResult {
   title: string;
