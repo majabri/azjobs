@@ -225,27 +225,33 @@ export default function AdminDashboard() {
         {alerts.map((alert) => (
           <div
             key={alert.key}
-            className={`flex items-center gap-3 p-3 rounded-xl border text-sm ${
+            className={`flex items-center gap-3 p-3 rounded-xl border text-sm cursor-pointer hover:opacity-80 transition-opacity ${
               alert.status === "green"
-                ? "bg-green-500/5 border-green-500/20"
+                ? "bg-success/5 border-success/20"
                 : alert.status === "yellow"
-                ? "bg-yellow-500/5 border-yellow-500/20"
-                : "bg-red-500/5 border-red-500/20"
+                ? "bg-warning/5 border-warning/20"
+                : "bg-destructive/5 border-destructive/20"
             }`}
+            onClick={() => navigate(alert.link)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => { if (e.key === "Enter") navigate(alert.link); }}
           >
             {alert.status === "green" ? (
-              <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
+              <CheckCircle2 className="w-4 h-4 text-success shrink-0" />
             ) : alert.status === "yellow" ? (
-              <AlertTriangle className="w-4 h-4 text-yellow-500 shrink-0" />
+              <AlertTriangle className="w-4 h-4 text-warning shrink-0" />
             ) : (
-              <XCircle className="w-4 h-4 text-red-500 shrink-0" />
+              <XCircle className="w-4 h-4 text-destructive shrink-0" />
             )}
-            <div>
+            <div className="flex-1">
               <p className="font-medium text-foreground text-xs">{alert.label}</p>
               <p className="text-[10px] text-muted-foreground">{alert.detail}</p>
             </div>
+            <span className="text-[10px] text-muted-foreground">→</span>
           </div>
         ))}
+
       </div>
 
       {/* KPI Grid */}
