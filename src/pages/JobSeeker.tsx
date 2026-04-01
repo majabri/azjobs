@@ -1,9 +1,11 @@
 import { useState, useCallback } from "react";
-import { useSearchParams, useLocation } from "react-router-dom";
+import { useSearchParams, useLocation, useNavigate } from "react-router-dom";
 import { analyzeJobFit, type FitAnalysis } from "@/lib/analysisEngine";
 import AnalysisForm from "@/components/job-seeker/AnalysisForm";
 import AnalysisResults from "@/components/job-seeker/AnalysisResults";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
 
 type Step = "input" | "result";
 
@@ -15,7 +17,8 @@ function useDemoMode() {
 export default function JobSeekerPage() {
   const isDemo = useDemoMode();
   const location = useLocation();
-  const navState = location.state as { prefillJob?: string; prefillJobLink?: string } | null;
+  const navigate = useNavigate();
+  const navState = location.state as { prefillJob?: string; prefillJobLink?: string; fromSearch?: boolean } | null;
   const [step, setStep] = useState<Step>("input");
   const [analysis, setAnalysis] = useState<FitAnalysis | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
