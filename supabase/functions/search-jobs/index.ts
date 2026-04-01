@@ -779,7 +779,7 @@ async function searchFirecrawlJobs(
         ].filter((item): item is string => typeof item === "string" && item.trim().length > 0);
 
         const url = pickBestJobUrl(urlCandidates);
-        const description = cleanMarkdownText(row.markdown || row.description || "").slice(0, 2000);
+        const description = cleanMarkdownText(row.markdown || row.description || "").slice(0, 800);
         const title = normalizeJobTitle(row.title || "Job Opportunity");
         const company = extractCompany(row.company || "", title, url) || extractCompanyFromHost(url);
         const detectedType = inferJobType(`${title} ${description}`);
