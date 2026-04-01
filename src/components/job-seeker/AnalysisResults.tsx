@@ -10,7 +10,7 @@ import {
   Baby, Dumbbell, Gift, Car, MapPin, Brain, Briefcase, Star,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { type FitAnalysis } from "@/lib/analysisEngine";
+import { type FitAnalysis, type BenefitCategory } from "@/lib/analysisEngine";
 import { ScoreRingInline, AnimatedBar } from "@/components/ScoreDisplay";
 import { supabase } from "@/integrations/supabase/client";
 import ApplicationToolkit from "@/components/ApplicationToolkit";
