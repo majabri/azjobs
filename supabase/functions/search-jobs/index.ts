@@ -679,8 +679,7 @@ async function fetchDatabaseJobs(supabaseAdmin: ReturnType<typeof createClient>)
   const { data, error } = await supabaseAdmin
     .from("scraped_jobs")
     .select("title, company, location, job_type, description, job_url, quality_score, last_seen_at, is_flagged")
-    .gte("quality_score", 50)
-    .eq("is_flagged", false)
+    .gte("quality_score", 30)
     .not("job_url", "is", null)
     .order("quality_score", { ascending: false })
     .order("last_seen_at", { ascending: false })
@@ -689,6 +688,10 @@ async function fetchDatabaseJobs(supabaseAdmin: ReturnType<typeof createClient>)
   if (error) {
     console.error("Failed to load scraped jobs:", error.message);
     return [];
+  }
+
+  if (!data || data.length === 0) {
+    console.warn("fetchDatabaseJobs: scraped_jobs returned 0 rows — the table may be empty or refresh-jobs has not run");
   }
 
   return (data || [])
@@ -946,6 +949,9 @@ serve(async (req) => {
     }
 
     const firecrawlApiKey = Deno.env.get("FIRECRAWL_API_KEY");
+    if (!firecrawlApiKey) {
+      console.warn("FIRECRAWL_API_KEY is not set — web search results will be unavailable; only DB jobs will be returned");
+    }
 
     const requestBody: SearchRequest = await req.json();
     const skills = Array.isArray(requestBody.skills) ? requestBody.skills : [];

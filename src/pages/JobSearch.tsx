@@ -455,7 +455,7 @@ export default function JobSearchPage() {
         ...job,
         url: normalizeJobUrl(job.url),
       }))
-      .filter((job) => Boolean(job.url) && !isGenericJobListingUrl(job.url) && isLikelyDirectJobPostingUrl(job.url) && hasSubstantiveJobDescription(job.description));
+      .filter((job) => Boolean(job.url));
 
     return { jobs: normalizedJobs, citations: data.citations || [] };
   };
@@ -484,7 +484,7 @@ export default function JobSearchPage() {
         allCitations = aiResult.citations;
       }
 
-      allJobs = allJobs.filter((job) => Boolean(job.url) && !isGenericJobListingUrl(job.url) && isLikelyDirectJobPostingUrl(job.url) && hasSubstantiveJobDescription(job.description));
+      allJobs = allJobs.filter((job) => Boolean(job.url));
 
       const uniqueByUrl = new Map<string, JobResult>();
       for (const job of allJobs) {
