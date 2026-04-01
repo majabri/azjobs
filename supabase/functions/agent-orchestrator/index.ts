@@ -190,17 +190,32 @@ async function runLearning(ctx: AgentContext): Promise<AgentResult> {
   return { name: "learning", success: true, metrics: {} };
 }
 
+// ─── Log Helper ─────────────────────────────────────────────────────────────
+async function ingestLog(
+  adminClient: SupabaseClient,
+  level: string,
+  message: string,
+  extra: { user_id?: string; run_id?: string; agent_id?: string; status?: string; metadata?: Record<string, unknown> } = {},
+) {
+  await adminClient.from("admin_logs").insert({
+    level,
+    message,
+    user_id: extra.user_id || null,
+    run_id: extra.run_id || null,
+    agent_id: extra.agent_id || null,
+    status: extra.status || null,
+    metadata: extra.metadata || {},
+  }).then(({ error }) => { if (error) console.error("Log ingest failed:", error.message); });
+}
+
 // ─── Orchestrator Engine ────────────────────────────────────────────────────
 
-async function executeAgents(agentNames: string[], ctx: AgentContext): Promise<{
+async function executeAgents(agentNames: string[], ctx: AgentContext, runId: string): Promise<{
   completed: string[];
   errors: string[];
   metrics: Record<string, number>;
   timings: Record<string, number>;
 }> {
-  // Phase 1: Discovery + Learning (independent, run in parallel)
-  // Phase 2: Matching (depends on discovery)
-  // Phase 3: Optimization + Application (depend on matching)
   const phases: string[][] = [
     agentNames.filter(a => ["discovery", "learning"].includes(a)),
     agentNames.filter(a => a === "matching"),
@@ -217,9 +232,15 @@ async function executeAgents(agentNames: string[], ctx: AgentContext): Promise<{
       phase.map(async name => {
         const fn = AGENT_REGISTRY[name];
         if (!fn) throw new Error(`Unknown agent: ${name}`);
+        await ingestLog(ctx.adminClient, "info", `Agent ${name} started`, { user_id: ctx.userId, run_id: runId, agent_id: name, status: "running" });
         const start = performance.now();
         const result = await withRetry(name, () => fn(ctx));
         timings[name] = Math.round(performance.now() - start);
+        await ingestLog(ctx.adminClient, result.success ? "info" : "error", `Agent ${name} ${result.success ? "completed" : "failed"}${result.error ? ": " + result.error : ""}`, {
+          user_id: ctx.userId, run_id: runId, agent_id: name,
+          status: result.success ? "completed" : "failed",
+          metadata: { duration_ms: timings[name], ...result.metrics },
+        });
         return result;
       })
     );
