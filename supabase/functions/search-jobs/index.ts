@@ -816,7 +816,7 @@ async function searchFirecrawlJobs(
       }
     }
 
-    if (mergedJobs.size >= Math.max(limit * 3, 40)) break;
+    if (mergedJobs.size >= Math.max(limit * 2, 30)) break;
   }
 
   return [...mergedJobs.values()];
