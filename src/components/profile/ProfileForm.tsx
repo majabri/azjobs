@@ -79,6 +79,7 @@ export default function ProfileForm({ profile, setProfile, onSave, saving }: Pro
           phone: extracted.phone || prev.phone,
           location: extracted.location || prev.location,
           summary: extracted.summary || prev.summary,
+          linkedin_url: extracted.linkedin_url || prev.linkedin_url,
           skills: extracted.skills?.length ? extracted.skills : prev.skills,
           work_experience: extracted.work_experience?.length ? extracted.work_experience : prev.work_experience,
           education: extracted.education?.length ? extracted.education : prev.education,
