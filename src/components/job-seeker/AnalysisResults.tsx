@@ -13,11 +13,11 @@ import { Input } from "@/components/ui/input";
 import { type FitAnalysis, type BenefitCategory } from "@/lib/analysisEngine";
 import { ScoreRingInline, AnimatedBar } from "@/components/ScoreDisplay";
 import { supabase } from "@/integrations/supabase/client";
-import ApplicationToolkit from "@/components/ApplicationToolkit";
-import ApplicationPackageGenerator from "@/components/ApplicationPackageGenerator";
-import ResumeComparison from "@/components/ResumeComparison";
-import GapIntelligence from "@/components/GapIntelligence";
-import InterviewPredictor from "@/components/InterviewPredictor";
+import ApplicationToolkit from "@/components/applications/ApplicationToolkit";
+import ApplicationPackageGenerator from "@/components/applications/ApplicationPackageGenerator";
+import ResumeComparison from "@/components/job-seeker/ResumeComparison";
+import GapIntelligence from "@/components/job-seeker/GapIntelligence";
+import InterviewPredictor from "@/components/job-seeker/InterviewPredictor";
 import { toast } from "sonner";
 
 interface AnalysisResultsProps {

@@ -30,9 +30,9 @@ import { scrapeUrl } from "@/lib/api/scrapeUrl";
 import { toast } from "sonner";
 import UserMenu from "@/components/UserMenu";
 import { parseDocument } from "@/lib/api/parseDocument";
-import BulkResumeUpload, { type ParsedResume } from "@/components/BulkResumeUpload";
-import CandidateComparison from "@/components/CandidateComparison";
-import { exportToPDF, exportToWord, exportToExcel, exportToText } from "@/lib/exportResults";
+import BulkResumeUpload, { type ParsedResume } from "@/components/hiring-manager/BulkResumeUpload";
+import CandidateComparison from "@/components/hiring-manager/CandidateComparison";
+import { exportToPDF, exportToWord, exportToExcel, exportToText } from "@/lib/hiring-manager";
 import { FileText, FileSpreadsheet, FileDown } from "lucide-react";
 import {
   DropdownMenu,

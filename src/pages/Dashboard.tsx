@@ -7,18 +7,18 @@ import {
   Briefcase, Clock, DollarSign,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import OnboardingWizard from "@/components/OnboardingWizard";
+import OnboardingWizard from "@/components/dashboard/OnboardingWizard";
 import { toast } from "sonner";
 import { ScoreRingInline } from "@/components/ScoreDisplay";
 import HelpTooltip from "@/components/HelpTooltip";
-import TodaysMatches from "@/components/TodaysMatches";
-import CareerPathIntelligence from "@/components/CareerPathIntelligence";
-import LearningInsights from "@/components/LearningInsights";
-import AdaptiveSearchStrategy from "@/components/AdaptiveSearchStrategy";
-import AgentControlCenter from "@/components/AgentControlCenter";
-import CompensationDashboard from "@/components/CompensationDashboard";
-import CareerROIScore from "@/components/CareerROIScore";
-import SmartNotificationEngine from "@/components/SmartNotificationEngine";
+import TodaysMatches from "@/components/dashboard/TodaysMatches";
+import CareerPathIntelligence from "@/components/dashboard/CareerPathIntelligence";
+import LearningInsights from "@/components/dashboard/LearningInsights";
+import AdaptiveSearchStrategy from "@/components/dashboard/AdaptiveSearchStrategy";
+import AgentControlCenter from "@/components/auto-apply/AgentControlCenter";
+import CompensationDashboard from "@/components/dashboard/CompensationDashboard";
+import CareerROIScore from "@/components/dashboard/CareerROIScore";
+import SmartNotificationEngine from "@/components/dashboard/SmartNotificationEngine";
 
 interface AnalysisRecord {
   id: string;
