@@ -559,6 +559,9 @@ export default function JobSearchPage() {
         allJobs = allJobs.filter(j => !j.is_flagged);
       }
 
+      // Filter by minimum fit score
+      allJobs = allJobs.filter(j => (j.decisionScore || 0) >= minFitScore);
+
       setJobs(allJobs);
       setCitations(allCitations);
       setVisibleCount(PAGE_SIZE);
