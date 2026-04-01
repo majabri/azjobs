@@ -740,6 +740,7 @@ async function searchFirecrawlJobs(
         tbs: "qdr:m",
         scrapeOptions: {
           formats: ["markdown"],
+          onlyMainContent: true,
         },
       }),
     });
