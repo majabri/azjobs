@@ -268,7 +268,7 @@ export default function AdminAudit() {
                       {/* Category badge */}
                       <span className={`flex items-center gap-1 w-24 shrink-0 ${CATEGORY_COLOR[entry.category] ?? "text-muted-foreground"}`}>
                         {CATEGORY_ICON[entry.category]}
-                        <span className="uppercase text-[9px] font-bold">{entry.category.replaceAll("_", " ")}</span>
+                        <span className="uppercase text-[9px] font-bold">{entry.category.replace(/_/g, " ")}</span>
                       </span>
                       {/* Who */}
                       <span className="text-muted-foreground w-24 shrink-0 truncate" title={entry.who}>

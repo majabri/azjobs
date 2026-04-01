@@ -150,7 +150,7 @@ async function handleUserPromote(
 }
 
 async function handleSystemHealth(
-  adminClient: ReturnType<typeof createClient>,
+  adminClient: any,
 ): Promise<Record<string, unknown>> {
   const checks: Record<string, unknown> = {};
 
