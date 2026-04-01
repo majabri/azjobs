@@ -345,6 +345,11 @@ serve(async (req) => {
       completed_at: new Date().toISOString(),
     }).eq("id", run.id);
 
+    await ingestLog(adminClient, errors.length ? "warn" : "info", `Orchestrator run ${errors.length ? "completed with errors" : "completed"}`, {
+      user_id: user.id, run_id: run.id, status: errors.length ? "completed_with_errors" : "completed",
+      metadata: { ...metrics, errors_count: errors.length },
+    });
+
     await adminClient.from("notifications").insert({
       user_id: user.id,
       type: "agent_run",
