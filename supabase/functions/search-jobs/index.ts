@@ -671,7 +671,7 @@ function buildSearchQueries(params: {
     cleanSearchFragment(`${titles[0] || primaryRole} ${skills.slice(0, 2).join(" ")} ${remoteHint}`, 10),
   ];
 
-  const deduped = [...new Set(candidates.filter((candidate) => candidate.length >= 4))].slice(0, 6);
+  const deduped = [...new Set(candidates.filter((candidate) => candidate.length >= 4))].slice(0, 3);
   return deduped.length ? deduped : ["software engineer remote"];
 }
 
