@@ -288,7 +288,7 @@ function getJobSaveKey(job: JobResult): string {
   return `${urlPart}|${job.title.trim().toLowerCase()}|${job.company.trim().toLowerCase()}`;
 }
 
-const PAGE_SIZE = 25;
+const PAGE_SIZE = 50;
 
 export default function JobSearchPage() {
   const navigate = useNavigate();
