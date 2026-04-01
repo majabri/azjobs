@@ -629,46 +629,89 @@ const BENEFIT_TAXONOMY: { category: BenefitCategory; label: string; keywords: Re
   { category: "bonus", label: "Performance Bonus", keywords: /\b(annual\s*bonus|performance\s*bonus|sign[\s-]*on\s*bonus|signing\s*bonus|bonus\s*program|incentive\s*(bonus|pay|compensation))\b/i },
 ];
 
-// Lines that look like requirements/responsibilities, NOT benefits
+// Lines that are clearly NOT benefits — aggressive exclusion
 const BENEFIT_EXCLUSION_PATTERNS = [
+  // Requirements / qualifications language
   /\b(must\s+have|required|minimum|at\s+least|experience\s+(with|in)|proficien|responsible\s+for|you\s+will|duties\s+include|qualifications?|requirements?)\b/i,
-  /\b(manage|develop|design|implement|maintain|analyze|build|create|lead|drive|execute|oversee|coordinate)\s+(a\s+)?(team|project|system|strategy|program|solution|architecture)/i,
+  // Responsibility verbs with objects
+  /\b(manage|develop|design|implement|maintain|analyze|build|create|lead|drive|execute|oversee|coordinate|collaborate|evaluate|optimize|define|deliver|support|ensure|troubleshoot|monitor|configure|deploy|test|review|document|integrate|automate)\s+(a\s+|the\s+|with\s+|and\s+)?(team|project|system|strategy|program|solution|architecture|stakeholder|process|tool|platform|infrastructure|code|software|product|service|client|customer|data|report|security|compliance|risk|audit|policy|vendor|partner|budget)/i,
+  // Years of experience
   /\b\d+\+?\s*years?\s+(of\s+)?experience\b/i,
-  /\b(bachelor|master|phd|degree|certification)\b/i,
+  // Education requirements
+  /\b(bachelor|master|phd|degree|diploma|certification\s+required)\b/i,
+  // Skill requirements
+  /\b(strong\s+knowledge|deep\s+understanding|hands[\s-]on\s+experience|proven\s+(ability|track\s+record)|demonstrated\s+experience|expertise\s+in|knowledge\s+of|familiarity\s+with|ability\s+to)\b/i,
+  // Technology / tool names that are skills not benefits
+  /\b(python|java|javascript|typescript|react|angular|aws|azure|gcp|docker|kubernetes|sql|linux|terraform|jenkins|git|jira)\b/i,
+  // Company description language
+  /\b(we\s+are\s+(a|an|the)|our\s+company|founded\s+in|headquartered|we\s+believe|our\s+team|join\s+our|our\s+mission|industry[\s-]leading|innovative\s+solutions)\b/i,
+  // Application instructions
+  /\b(apply\s+(now|here|today|online)|submit\s+(your|a)\s+(resume|application)|how\s+to\s+apply)\b/i,
+  // EEO / legal
+  /\b(equal\s+opportunity|eeo|affirmative\s+action|without\s+regard\s+to|reasonable\s+accommodation)\b/i,
 ];
 
-export function extractBenefits(benefitsText: string): StructuredBenefit[] {
-  if (!benefitsText.trim()) return [];
-
-  const lines = benefitsText
-    .split("\n")
-    .map(l => l.trim().replace(/^[-•●▪*]\s*/, ""))
-    .filter(l => l.length > 3 && l.length < 200);
-
+/**
+ * Extract structured benefits from text. Strictly matches against the taxonomy
+ * and excludes anything that looks like a requirement, responsibility, or skill.
+ */
+export function extractBenefits(fullJobText: string, benefitsSectionText: string): StructuredBenefit[] {
   const seen = new Set<BenefitCategory>();
   const results: StructuredBenefit[] = [];
 
-  for (const line of lines) {
-    // Skip lines that look like requirements/responsibilities
-    if (BENEFIT_EXCLUSION_PATTERNS.some(p => p.test(line))) continue;
+  // Helper to scan lines and match against taxonomy
+  const scanLines = (text: string) => {
+    if (!text.trim()) return;
+    const lines = text
+      .split("\n")
+      .map(l => l.trim().replace(/^[-•●▪*→➤►▸>]\s*/, ""))
+      .filter(l => l.length > 3 && l.length < 200);
 
-    for (const entry of BENEFIT_TAXONOMY) {
-      if (seen.has(entry.category)) continue;
-      if (entry.keywords.test(line)) {
-        const metadata: Record<string, string> = {};
-        // Extract salary range if present
-        const salaryMatch = line.match(/\$[\d,]+(?:\s*[-–]\s*\$[\d,]+)?/);
-        if (salaryMatch) metadata.range = salaryMatch[0];
-        
-        seen.add(entry.category);
-        results.push({
-          category: entry.category,
-          label: entry.label,
-          rawText: line,
-          metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
-        });
-        break;
+    for (const line of lines) {
+      // Skip lines that look like requirements/responsibilities/skills
+      if (BENEFIT_EXCLUSION_PATTERNS.some(p => p.test(line))) continue;
+
+      for (const entry of BENEFIT_TAXONOMY) {
+        if (seen.has(entry.category)) continue;
+        if (entry.keywords.test(line)) {
+          const metadata: Record<string, string> = {};
+          // Extract salary range if present
+          const salaryMatch = line.match(/\$[\d,]+(?:k)?(?:\s*[-–—to]\s*\$[\d,]+(?:k)?)?(?:\s*\/\s*(?:year|yr|annually|month|hr|hour))?/i);
+          if (salaryMatch) metadata.range = salaryMatch[0];
+
+          seen.add(entry.category);
+          results.push({
+            category: entry.category,
+            label: entry.label,
+            rawText: line,
+            metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
+          });
+          break;
+        }
       }
+    }
+  };
+
+  // 1. Primary: scan the dedicated benefits section (highest signal)
+  scanLines(benefitsSectionText);
+
+  // 2. Secondary: scan full text for salary/compensation info not in benefits section
+  //    Only pick up categories not already found
+  if (!seen.has("salary")) {
+    const salaryLine = fullJobText.split("\n").find(l =>
+      /\$[\d,]+(?:k)?(?:\s*[-–—to]\s*\$[\d,]+(?:k)?)/i.test(l) &&
+      /\b(salary|compensation|pay|range|base|annual|total\s*comp)\b/i.test(l) &&
+      !BENEFIT_EXCLUSION_PATTERNS.some(p => p.test(l))
+    );
+    if (salaryLine) {
+      const salaryMatch = salaryLine.match(/\$[\d,]+(?:k)?(?:\s*[-–—to]\s*\$[\d,]+(?:k)?)?(?:\s*\/\s*(?:year|yr|annually))?/i);
+      seen.add("salary");
+      results.unshift({
+        category: "salary",
+        label: "Competitive Salary",
+        rawText: salaryLine.trim(),
+        metadata: salaryMatch ? { range: salaryMatch[0] } : undefined,
+      });
     }
   }
 
@@ -687,7 +730,7 @@ export function analyzeJobFit(jobDescription: string, resumeText: string): FitAn
   // Only extract skills from requirements/qualifications sections
   const jobKeywords = extractKeywords(parsed.requirementsText);
   const resumeKeywords = extractKeywords(resumeText);
-  const benefits = extractBenefits(parsed.benefitsText);
+  const benefits = extractBenefits(jobDescription, parsed.benefitsText);
   const companySummary = parsed.companyText.trim();
 
   const overallScore = scoreOverlap(jobKeywords, resumeKeywords);
