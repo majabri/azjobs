@@ -56,7 +56,7 @@ const BENEFIT_ICONS: Record<BenefitCategory, React.FC<{ className?: string }>> =
   bonus: DollarSign,
 };
 
-
+export default function AnalysisResults({
   analysis, jobDesc, resume, jobLink, isDemo, onReset, onReEvaluate,
 }: AnalysisResultsProps) {
   const navigate = useNavigate();
