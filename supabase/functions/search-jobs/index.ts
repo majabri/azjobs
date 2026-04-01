@@ -946,7 +946,7 @@ serve(async (req) => {
     const location = normalizeText(requestBody.location);
     const query = normalizeText(requestBody.query);
     const careerLevel = normalizeText(requestBody.careerLevel);
-    const limit = Math.max(5, Math.min(Number(requestBody.limit || 50), 100));
+    const limit = Math.max(5, Math.min(Number(requestBody.limit || 100), 200));
 
     const searchQueries = buildSearchQueries({
       query,
