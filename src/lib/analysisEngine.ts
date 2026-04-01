@@ -513,6 +513,85 @@ function getResourcesForSkill(skill: string, category: string): LearningResource
   return DEFAULT_RESOURCES;
 }
 
+// ─── Job Description Section Parser ──────────────────────────────────────────
+
+const REQUIREMENTS_HEADERS = [
+  /\b(requirements?|qualifications?|desired\s+qualifications?|required\s+skills?|must[\s-]have|what\s+you.?ll?\s+need|what\s+we.?re?\s+looking\s+for|minimum\s+qualifications?|preferred\s+qualifications?|key\s+skills?|technical\s+skills?|core\s+competencies|essential\s+skills?|experience\s+required|you\s+should\s+have|you\s+bring|about\s+you|your\s+background|skills?\s+&?\s*experience|responsibilities|what\s+you.?ll?\s+do|duties|role\s+description|the\s+role|job\s+duties|key\s+responsibilities|accountabilities)\b/i,
+];
+
+const BENEFITS_HEADERS = [
+  /\b(benefits?|perks?|what\s+we\s+offer|compensation|why\s+join|why\s+work\s+here|our\s+benefits|total\s+rewards|we\s+offer|employee\s+benefits|package\s+includes)\b/i,
+];
+
+const NON_REQUIREMENTS_HEADERS = [
+  /\b(benefits?|perks?|what\s+we\s+offer|compensation|why\s+join|why\s+work\s+here|about\s+us|about\s+the\s+company|company\s+overview|our\s+mission|our\s+culture|equal\s+opportunity|eeo|disclaimer|how\s+to\s+apply|application\s+process|legal|privacy|accommodation)\b/i,
+];
+
+interface ParsedJobSections {
+  requirementsText: string;
+  benefitsText: string;
+  companyText: string;
+  fullText: string;
+}
+
+export function parseJobSections(jobDescription: string): ParsedJobSections {
+  const lines = jobDescription.split("\n");
+  const sections: { header: string; lines: string[]; type: "req" | "benefit" | "company" | "other" }[] = [];
+  let currentSection: typeof sections[0] = { header: "", lines: [], type: "other" };
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) { currentSection.lines.push(line); continue; }
+
+    // Detect section headers (lines that are short, often bold/caps, or end with colon)
+    const isHeaderLike = (trimmed.length < 80 && (
+      /^#{1,4}\s/.test(trimmed) ||
+      /^[A-Z\s&/]{4,}:?\s*$/.test(trimmed) ||
+      /:\s*$/.test(trimmed) ||
+      /^\*\*.*\*\*$/.test(trimmed)
+    ));
+
+    if (isHeaderLike) {
+      if (currentSection.lines.length > 0 || currentSection.header) {
+        sections.push(currentSection);
+      }
+      let sectionType: "req" | "benefit" | "company" | "other" = "other";
+      if (REQUIREMENTS_HEADERS.some(r => r.test(trimmed))) sectionType = "req";
+      else if (BENEFITS_HEADERS.some(r => r.test(trimmed))) sectionType = "benefit";
+      else if (/\b(about\s+(us|the\s+company)|company\s+overview|our\s+mission|who\s+we\s+are)\b/i.test(trimmed)) sectionType = "company";
+      else if (NON_REQUIREMENTS_HEADERS.some(r => r.test(trimmed))) sectionType = "other";
+      currentSection = { header: trimmed, lines: [], type: sectionType };
+    } else {
+      currentSection.lines.push(line);
+    }
+  }
+  if (currentSection.lines.length > 0 || currentSection.header) {
+    sections.push(currentSection);
+  }
+
+  const reqSections = sections.filter(s => s.type === "req");
+  const benefitSections = sections.filter(s => s.type === "benefit");
+  const companySections = sections.filter(s => s.type === "company");
+
+  // If no explicit requirements sections found, use full text minus benefits/company
+  const requirementsText = reqSections.length > 0
+    ? reqSections.map(s => s.lines.join("\n")).join("\n")
+    : sections.filter(s => s.type !== "benefit" && s.type !== "company").map(s => s.lines.join("\n")).join("\n");
+
+  const benefitsText = benefitSections.map(s => s.lines.join("\n")).join("\n").trim();
+  const companyText = companySections.map(s => s.lines.join("\n")).join("\n").trim();
+
+  return { requirementsText, benefitsText, companyText, fullText: jobDescription };
+}
+
+export function extractBenefits(benefitsText: string): string[] {
+  if (!benefitsText.trim()) return [];
+  return benefitsText
+    .split("\n")
+    .map(l => l.trim().replace(/^[-•●▪*]\s*/, ""))
+    .filter(l => l.length > 3 && l.length < 200);
+}
+
 // ─── Scoring & Analysis (unchanged logic, enhanced categories) ───────────────
 function scoreOverlap(jobKeywords: string[], resumeKeywords: string[]): number {
   if (jobKeywords.length === 0) return 65;
@@ -521,8 +600,12 @@ function scoreOverlap(jobKeywords: string[], resumeKeywords: string[]): number {
 }
 
 export function analyzeJobFit(jobDescription: string, resumeText: string): FitAnalysis {
-  const jobKeywords = extractKeywords(jobDescription);
+  const parsed = parseJobSections(jobDescription);
+  // Only extract skills from requirements/qualifications sections
+  const jobKeywords = extractKeywords(parsed.requirementsText);
   const resumeKeywords = extractKeywords(resumeText);
+  const benefits = extractBenefits(parsed.benefitsText);
+  const companySummary = parsed.companyText.trim();
 
   const overallScore = scoreOverlap(jobKeywords, resumeKeywords);
 
