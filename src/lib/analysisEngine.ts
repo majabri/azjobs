@@ -730,7 +730,7 @@ export function analyzeJobFit(jobDescription: string, resumeText: string): FitAn
   // Only extract skills from requirements/qualifications sections
   const jobKeywords = extractKeywords(parsed.requirementsText);
   const resumeKeywords = extractKeywords(resumeText);
-  const benefits = extractBenefits(parsed.benefitsText);
+  const benefits = extractBenefits(jobDescription, parsed.benefitsText);
   const companySummary = parsed.companyText.trim();
 
   const overallScore = scoreOverlap(jobKeywords, resumeKeywords);
