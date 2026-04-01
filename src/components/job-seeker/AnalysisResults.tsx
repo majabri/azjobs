@@ -229,14 +229,25 @@ export default function AnalysisResults({
         <div className="bg-card rounded-2xl p-6 border border-border shadow-sm">
           <h3 className="font-display font-bold text-foreground text-lg mb-4 flex items-center gap-2">
             <Award className="w-5 h-5 text-accent" /> Benefits & Perks
+            <Badge variant="secondary" className="ml-2 text-xs">{analysis.benefits.length} identified</Badge>
           </h3>
-          <div className="grid sm:grid-cols-2 gap-2">
-            {analysis.benefits.map((benefit, i) => (
-              <div key={i} className="flex items-start gap-2 text-sm text-muted-foreground">
-                <CheckCircle2 className="w-4 h-4 text-success flex-shrink-0 mt-0.5" />
-                <span>{benefit}</span>
-              </div>
-            ))}
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {analysis.benefits.map((benefit, i) => {
+              const Icon = BENEFIT_ICONS[benefit.category] || CheckCircle2;
+              return (
+                <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-muted/40 border border-border/50">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <Icon className="w-4 h-4 text-primary" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-foreground">{benefit.label}</p>
+                    {benefit.metadata?.range && (
+                      <p className="text-xs text-primary font-medium mt-0.5">{benefit.metadata.range}</p>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}

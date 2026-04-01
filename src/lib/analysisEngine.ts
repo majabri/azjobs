@@ -600,12 +600,79 @@ export function parseJobSections(jobDescription: string): ParsedJobSections {
   return { requirementsText, benefitsText, companyText, fullText: jobDescription };
 }
 
-export function extractBenefits(benefitsText: string): string[] {
+// ─── Structured Benefit Taxonomy ──────────────────────────────────────────────
+
+const BENEFIT_TAXONOMY: { category: BenefitCategory; label: string; keywords: RegExp }[] = [
+  { category: "salary", label: "Competitive Salary", keywords: /\b(salary|compensation|pay\s*range|base\s*pay|annual\s*pay|competitive\s*pay)\b/i },
+  { category: "health_insurance", label: "Health Insurance", keywords: /\b(health\s*insurance|medical\s*(coverage|insurance|plan)|healthcare|health\s*plan|medical\s*benefits)\b/i },
+  { category: "dental_insurance", label: "Dental Insurance", keywords: /\b(dental\s*(insurance|coverage|plan|benefits))\b/i },
+  { category: "vision_insurance", label: "Vision Insurance", keywords: /\b(vision\s*(insurance|coverage|plan|benefits))\b/i },
+  { category: "life_insurance", label: "Life Insurance", keywords: /\b(life\s*(insurance|coverage))\b/i },
+  { category: "disability_insurance", label: "Disability Insurance", keywords: /\b(disability\s*(insurance|coverage)|short[\s-]*term\s*disability|long[\s-]*term\s*disability|std\/ltd|std\b|ltd\b)/i },
+  { category: "flexible_hours", label: "Flexible Hours", keywords: /\b(flex(ible)?\s*(hours|schedule|work)|flextime|work[\s-]*life\s*balance)\b/i },
+  { category: "remote_work", label: "Remote Work", keywords: /\b(remote\s*(work|option|friendly|first)|work\s*from\s*home|hybrid\s*work|telecommut)/i },
+  { category: "learning_budget", label: "Learning & Development", keywords: /\b(learning\s*(budget|stipend|allowance)|professional\s*development|training\s*(budget|program|allowance)|conference\s*(budget|attendance)|education\s*budget)\b/i },
+  { category: "tuition_reimbursement", label: "Tuition Reimbursement", keywords: /\b(tuition\s*(reimbursement|assistance|repayment)|education\s*(reimbursement|assistance)|student\s*loan\s*(repayment|assistance))\b/i },
+  { category: "paid_holidays", label: "Paid Holidays", keywords: /\b(paid\s*holidays?|company\s*holidays?|holiday\s*pay)\b/i },
+  { category: "referral_bonus", label: "Referral Bonus", keywords: /\b(referral\s*(bonus|program)|employee\s*referral)\b/i },
+  { category: "retirement_401k", label: "401(k) / Retirement", keywords: /\b(401\s*\(?k\)?|retirement\s*(plan|benefits|savings)|pension|rsp|rrsp|employer\s*match)\b/i },
+  { category: "stock_options", label: "Stock Options / Equity", keywords: /\b(stock\s*(options|grants)|equity|espp|rsu|restricted\s*stock)\b/i },
+  { category: "parental_leave", label: "Parental Leave", keywords: /\b(parental\s*leave|maternity\s*leave|paternity\s*leave|family\s*leave|paid\s*family)\b/i },
+  { category: "wellness_program", label: "Wellness Program", keywords: /\b(wellness\s*(program|benefit|stipend|allowance)|employee\s*wellness|health\s*wellness)\b/i },
+  { category: "commuter_benefits", label: "Commuter Benefits", keywords: /\b(commuter\s*(benefits|stipend|allowance)|transit\s*(benefit|pass|subsidy)|parking\s*(benefit|stipend))\b/i },
+  { category: "relocation_assistance", label: "Relocation Assistance", keywords: /\b(relocation\s*(assistance|package|bonus|support)|moving\s*(assistance|expenses))\b/i },
+  { category: "employee_discount", label: "Employee Discounts", keywords: /\b(employee\s*discount|staff\s*discount|product\s*discount)\b/i },
+  { category: "pto", label: "Paid Time Off", keywords: /\b(paid\s*time\s*off|pto|vacation\s*(days?|time|policy)|unlimited\s*(pto|vacation)|generous\s*(pto|vacation)|sick\s*(leave|days?|time))\b/i },
+  { category: "mental_health", label: "Mental Health Support", keywords: /\b(mental\s*health|eap|employee\s*assistance\s*program|counseling\s*(benefit|service)|therapy\s*(benefit|coverage))\b/i },
+  { category: "childcare", label: "Childcare Support", keywords: /\b(childcare|child\s*care|daycare|dependent\s*care|backup\s*care)\b/i },
+  { category: "gym_membership", label: "Gym / Fitness", keywords: /\b(gym\s*(membership|benefit|stipend|reimbursement)|fitness\s*(benefit|stipend|membership|reimbursement)|on[\s-]*site\s*gym)\b/i },
+  { category: "bonus", label: "Performance Bonus", keywords: /\b(annual\s*bonus|performance\s*bonus|sign[\s-]*on\s*bonus|signing\s*bonus|bonus\s*program|incentive\s*(bonus|pay|compensation))\b/i },
+];
+
+// Lines that look like requirements/responsibilities, NOT benefits
+const BENEFIT_EXCLUSION_PATTERNS = [
+  /\b(must\s+have|required|minimum|at\s+least|experience\s+(with|in)|proficien|responsible\s+for|you\s+will|duties\s+include|qualifications?|requirements?)\b/i,
+  /\b(manage|develop|design|implement|maintain|analyze|build|create|lead|drive|execute|oversee|coordinate)\s+(a\s+)?(team|project|system|strategy|program|solution|architecture)/i,
+  /\b\d+\+?\s*years?\s+(of\s+)?experience\b/i,
+  /\b(bachelor|master|phd|degree|certification)\b/i,
+];
+
+export function extractBenefits(benefitsText: string): StructuredBenefit[] {
   if (!benefitsText.trim()) return [];
-  return benefitsText
+
+  const lines = benefitsText
     .split("\n")
     .map(l => l.trim().replace(/^[-•●▪*]\s*/, ""))
     .filter(l => l.length > 3 && l.length < 200);
+
+  const seen = new Set<BenefitCategory>();
+  const results: StructuredBenefit[] = [];
+
+  for (const line of lines) {
+    // Skip lines that look like requirements/responsibilities
+    if (BENEFIT_EXCLUSION_PATTERNS.some(p => p.test(line))) continue;
+
+    for (const entry of BENEFIT_TAXONOMY) {
+      if (seen.has(entry.category)) continue;
+      if (entry.keywords.test(line)) {
+        const metadata: Record<string, string> = {};
+        // Extract salary range if present
+        const salaryMatch = line.match(/\$[\d,]+(?:\s*[-–]\s*\$[\d,]+)?/);
+        if (salaryMatch) metadata.range = salaryMatch[0];
+        
+        seen.add(entry.category);
+        results.push({
+          category: entry.category,
+          label: entry.label,
+          rawText: line,
+          metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
+        });
+        break;
+      }
+    }
+  }
+
+  return results;
 }
 
 // ─── Scoring & Analysis (unchanged logic, enhanced categories) ───────────────
