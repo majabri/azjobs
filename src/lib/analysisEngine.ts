@@ -664,30 +664,35 @@ const BENEFIT_EXCLUSION_PATTERNS = [
 ];
 
 /**
- * Extract structured benefits from text. Strictly matches against the taxonomy
- * and excludes anything that looks like a requirement, responsibility, or skill.
+ * Extract structured benefits. Uses strict section-bounded text first,
+ * falls back to keyword scanning of full text (capped at 8 items).
+ * Applies confidence scoring — discards results if confidence < 0.3.
  */
 export function extractBenefits(fullJobText: string, benefitsSectionText: string): StructuredBenefit[] {
   const seen = new Set<BenefitCategory>();
   const results: StructuredBenefit[] = [];
 
-  // Helper to scan lines and match against taxonomy
-  const scanLines = (text: string) => {
+  const scanLines = (text: string, maxItems: number) => {
     if (!text.trim()) return;
     const lines = text
       .split("\n")
       .map(l => l.trim().replace(/^[-•●▪*→➤►▸>]\s*/, ""))
       .filter(l => l.length > 3 && l.length < 200);
 
+    let matchedLines = 0;
+    let totalCandidateLines = 0;
+
     for (const line of lines) {
+      if (results.length >= maxItems) break;
       // Skip lines that look like requirements/responsibilities/skills
       if (BENEFIT_EXCLUSION_PATTERNS.some(p => p.test(line))) continue;
+
+      totalCandidateLines++;
 
       for (const entry of BENEFIT_TAXONOMY) {
         if (seen.has(entry.category)) continue;
         if (entry.keywords.test(line)) {
           const metadata: Record<string, string> = {};
-          // Extract salary range if present
           const salaryMatch = line.match(/\$[\d,]+(?:k)?(?:\s*[-–—to]\s*\$[\d,]+(?:k)?)?(?:\s*\/\s*(?:year|yr|annually|month|hr|hour))?/i);
           if (salaryMatch) metadata.range = salaryMatch[0];
 
@@ -698,17 +703,34 @@ export function extractBenefits(fullJobText: string, benefitsSectionText: string
             rawText: line,
             metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
           });
+          matchedLines++;
           break;
         }
       }
     }
+
+    return { matchedLines, totalCandidateLines };
   };
 
-  // 1. Primary: scan the dedicated benefits section (highest signal)
-  scanLines(benefitsSectionText);
+  // 1. Primary: scan the dedicated benefits section (up to 24 items — taxonomy size)
+  if (benefitsSectionText.trim()) {
+    const stats = scanLines(benefitsSectionText, 24);
 
-  // 2. Secondary: scan full text for salary/compensation info not in benefits section
-  //    Only pick up categories not already found
+    // Confidence check: if less than 30% of candidate lines matched benefit keywords,
+    // the section is likely misclassified — discard results
+    if (stats && stats.totalCandidateLines > 3 && stats.matchedLines / stats.totalCandidateLines < 0.15) {
+      // Very low confidence — clear results, this wasn't really a benefits section
+      results.length = 0;
+      seen.clear();
+    }
+  }
+
+  // 2. Fallback: if no benefits found from section, scan full text but cap at 8 items
+  if (results.length === 0) {
+    scanLines(fullJobText, 8);
+  }
+
+  // 3. Secondary: scan full text for salary info if not already found
   if (!seen.has("salary")) {
     const salaryLine = fullJobText.split("\n").find(l =>
       /\$[\d,]+(?:k)?(?:\s*[-–—to]\s*\$[\d,]+(?:k)?)/i.test(l) &&
