@@ -16,7 +16,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.search-jobs]
-verify_jwt = true
+verify_jwt = false
 
 [functions.generate-followup-email]
 verify_jwt = false
@@ -31,7 +31,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.scrape-jobs-ats]
-verify_jwt = true
+verify_jwt = false
 
 [functions.mock-interview]
 verify_jwt = false
@@ -61,7 +61,7 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.agent-orchestrator]
-verify_jwt = true
+verify_jwt = false
 
 [functions.simulate-rejection]
 verify_jwt = false
