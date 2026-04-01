@@ -100,6 +100,7 @@ export default function OnboardingWizard() {
             phone: extracted.phone || null,
             location: extracted.location || null,
             summary: extracted.summary || null,
+            linkedin_url: extracted.linkedin_url || null,
             skills: extracted.skills?.length ? extracted.skills : null,
             work_experience: extracted.work_experience?.length ? extracted.work_experience : null,
             education: extracted.education?.length ? extracted.education : null,

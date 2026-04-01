@@ -20,7 +20,7 @@ Deno.serve(async (req) => {
     // Extract fields using regex patterns
     const emailMatch = resumeText.match(/[\w.+-]+@[\w-]+\.[\w.]+/);
     const phoneMatch = resumeText.match(/(\+?\d[\d\s\-().]{7,}\d)/);
-    const linkedinMatch = resumeText.match(/https?:\/\/(www\.)?linkedin\.com\/in\/[^\s)]+/i);
+    const linkedinMatch = resumeText.match(/https?:\/\/(?:www\.)?linkedin\.com\/in\/[a-zA-Z0-9_-]+\/?/i);
 
     // Extract name from first non-empty line
     const lines = resumeText.split("\n").map((l: string) => l.trim()).filter(Boolean);
