@@ -44,6 +44,7 @@ const InterviewScheduling = lazy(() => import("@/services/hiring/routes").then(m
 // ─── Non-service pages (landing, 404) ────────────────────────────────────────
 const Index = lazy(() => import("@/pages/Index"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
+const LoginPage = lazy(() => import("@/pages/auth/Login"));
 
 // ─── Layout wrappers ─────────────────────────────────────────────────────────
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -82,7 +83,10 @@ export default function ShellRoutes() {
         {/* Landing */}
         <Route path="/" element={<Index />} />
 
-        {/* Auth (user service — standalone, no layout) */}
+        {/* Auth — canonical login page */}
+        <Route path="/auth/login" element={<LoginPage />} />
+
+        {/* Auth (user service — legacy /auth redirects to /auth/login) */}
         <Route path="/auth" element={<UserAuth />} />
 
         {/* Analytics Service → /dashboard/* */}

@@ -10,6 +10,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter } from "react-router-dom";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import { AuthProvider } from "@/contexts/AuthContext";
 import ShellRoutes from "./routes";
 
 const queryClient = new QueryClient();
@@ -21,7 +22,9 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <ShellRoutes />
+          <AuthProvider>
+            <ShellRoutes />
+          </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
     </QueryClientProvider>
