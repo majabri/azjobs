@@ -20,7 +20,7 @@ interface MatchingInput {
   historicalOutcomes?: HistoricalOutcomes;
 }
 
-interface EnrichedJob extends JobResult {
+export interface EnrichedJob extends JobResult {
   flags: FakeJobFlag[];
   trustScore: number;
   trustLevel: "trusted" | "caution" | "risky";
