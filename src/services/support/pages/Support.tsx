@@ -334,7 +334,23 @@ export default function SupportPage() {
             ) : (
               <div className="space-y-3">
                 {tickets.map((ticket) => (
-                  <Card key={ticket.id}>
+                  <Card
+                    key={ticket.id}
+                    className="cursor-pointer hover:shadow-md transition-shadow"
+                    onClick={async () => {
+                      setSelectedTicket(ticket);
+                      setLoadingResponses(true);
+                      try {
+                        const { data } = await supabase
+                          .from("ticket_responses")
+                          .select("*")
+                          .eq("ticket_id", ticket.id)
+                          .order("created_at", { ascending: true });
+                        setTicketResponses((data as any[]) || []);
+                      } catch { setTicketResponses([]); }
+                      setLoadingResponses(false);
+                    }}
+                  >
                     <CardContent className="p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex-1 min-w-0">
@@ -345,16 +361,11 @@ export default function SupportPage() {
                             </span>
                           </div>
                           <div className="flex flex-wrap gap-2 mt-2">
-                            <Badge variant="outline" className="text-xs">
-                              {ticket.ticket_number}
-                            </Badge>
+                            <Badge variant="outline" className="text-xs">{ticket.ticket_number}</Badge>
                             <Badge variant="secondary" className="text-xs">
                               {REQUEST_TYPE_LABELS[ticket.request_type as keyof typeof REQUEST_TYPE_LABELS] || ticket.request_type}
                             </Badge>
-                            <Badge
-                              variant={ticket.priority === "high" ? "destructive" : "outline"}
-                              className="text-xs"
-                            >
+                            <Badge variant={ticket.priority === "high" ? "destructive" : "outline"} className="text-xs">
                               {PRIORITY_LABELS[ticket.priority as keyof typeof PRIORITY_LABELS] || ticket.priority}
                             </Badge>
                             <Badge variant="secondary" className="text-xs">
@@ -373,6 +384,72 @@ export default function SupportPage() {
             )}
           </TabsContent>
         </Tabs>
+
+        {/* Ticket Detail Dialog */}
+        <Dialog open={!!selectedTicket} onOpenChange={(open) => !open && setSelectedTicket(null)}>
+          <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+            {selectedTicket && (
+              <>
+                <DialogHeader>
+                  <DialogTitle>{selectedTicket.title}</DialogTitle>
+                  <DialogDescription className="flex flex-wrap gap-2 pt-1">
+                    <Badge variant="outline" className="font-mono text-xs">{selectedTicket.ticket_number}</Badge>
+                    <Badge variant="secondary" className="text-xs">
+                      {STATUS_LABELS[selectedTicket.status as keyof typeof STATUS_LABELS] || selectedTicket.status}
+                    </Badge>
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className="space-y-4">
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Your Description</Label>
+                    <p className="text-sm text-foreground mt-1 whitespace-pre-wrap bg-muted/30 rounded-md p-3">
+                      {selectedTicket.description}
+                    </p>
+                  </div>
+
+                  <Separator />
+
+                  <div>
+                    <Label className="text-xs text-muted-foreground mb-2 block">Responses</Label>
+                    {loadingResponses ? (
+                      <div className="flex justify-center py-4">
+                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                      </div>
+                    ) : ticketResponses.length === 0 ? (
+                      <p className="text-xs text-muted-foreground italic py-2">
+                        No responses yet. Our team will get back to you soon.
+                      </p>
+                    ) : (
+                      <div className="space-y-3">
+                        {ticketResponses.map((r: any) => (
+                          <div
+                            key={r.id}
+                            className={`rounded-lg p-3 text-sm ${
+                              r.is_admin_response
+                                ? "bg-primary/5 border border-primary/20"
+                                : "bg-muted/50 border border-border"
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 mb-1">
+                              <Badge variant={r.is_admin_response ? "default" : "secondary"} className="text-xs">
+                                {r.is_admin_response ? "Support Team" : "You"}
+                              </Badge>
+                              <span className="text-xs text-muted-foreground">
+                                {new Date(r.created_at).toLocaleString()}
+                              </span>
+                            </div>
+                            <p className="text-foreground whitespace-pre-wrap">{r.message}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
