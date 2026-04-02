@@ -46,9 +46,9 @@ const FAQ_CATEGORY_LABELS: Record<string, string> = {
 
 function statusIcon(status: string) {
   switch (status) {
-    case "open": return <AlertCircle className="h-4 w-4 text-yellow-500" />;
-    case "in_progress": return <Clock className="h-4 w-4 text-blue-500" />;
-    case "resolved": return <CheckCircle2 className="h-4 w-4 text-green-500" />;
+    case "open": return <AlertCircle className="h-4 w-4 text-warning" />;
+    case "in_progress": return <Clock className="h-4 w-4 text-primary" />;
+    case "resolved": return <CheckCircle2 className="h-4 w-4 text-accent-foreground" />;
     default: return <CheckCircle2 className="h-4 w-4 text-muted-foreground" />;
   }
 }
