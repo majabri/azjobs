@@ -148,6 +148,7 @@ export default function ShellRoutes() {
         <Route path="/admin/console" element={<AdminProtectedRoute><AdminLayout><AdminConsole /></AdminLayout></AdminProtectedRoute>} />
         <Route path="/admin/audit" element={<AdminProtectedRoute><AdminLayout><AdminAudit /></AdminLayout></AdminProtectedRoute>} />
         <Route path="/admin/agent-runs/:runId" element={<AdminProtectedRoute><AdminLayout><AdminAgentRunDetail /></AdminLayout></AdminProtectedRoute>} />
+        <Route path="/admin/tickets" element={<AdminProtectedRoute><AdminLayout><AdminTickets /></AdminLayout></AdminProtectedRoute>} />
 
         {/* Catch-all */}
         <Route path="*" element={<NotFound />} />

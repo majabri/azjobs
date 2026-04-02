@@ -23,6 +23,7 @@ const adminNav = [
   { title: "Console", url: "/admin/console", icon: Terminal },
   { title: "Audit Log", url: "/admin/audit", icon: ClipboardList },
   { title: "System Health", url: "/admin/system", icon: Shield },
+  { title: "Support Tickets", url: "/admin/tickets", icon: LifeBuoy },
   { title: "Settings", url: "/admin/settings", icon: Settings },
   { title: "My Profile", url: "/admin/profile", icon: UserCircle },
 ];
