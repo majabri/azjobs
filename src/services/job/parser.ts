@@ -53,7 +53,7 @@ const COMPANY_STOP_HEADERS = [
 ];
 
 const COMPANY_EXCLUSION_PATTERNS = [
-  /\b(must\s+have|years?\s+of\s+experience|required|proficien)/i,
+  /\b(must\s+have|years?\s+of\s+experience|required|proficien\w*)/i,
   /\b(responsible\s+for|you\s+will|duties\s+include)/i,
   /\b(apply\s+now|click\s+here|submit\s+your)/i,
   /\b(equal\s+opportunity|eeo|accommodation|disability)/i,

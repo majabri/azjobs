@@ -33,6 +33,11 @@ export interface OrchestratorResult {
  * Each step is non-blocking: if one fails, the pipeline continues with the
  * data available from previous steps.
  */
+// ─── Error message helper ─────────────────────────────────────────────────────
+function errMsg(e: unknown): string {
+  return e instanceof Error ? e.message : String(e);
+}
+
 export async function runAllAgents(filters: JobSearchFilters): Promise<OrchestratorResult> {
   const result: OrchestratorResult = {
     jobsFound: 0,
@@ -46,7 +51,7 @@ export async function runAllAgents(filters: JobSearchFilters): Promise<Orchestra
   console.log("[Orchestrator] Step 1: searching jobs...");
   let jobs = await searchJobs(filters).then(r => r.jobs).catch(e => {
     console.error("[Orchestrator] searchJobs failed:", e);
-    result.errors.push(`searchJobs: ${String(e)}`);
+    result.errors.push(`searchJobs: ${errMsg(e)}`);
     return [];
   });
   result.jobsFound = jobs.length;
@@ -66,9 +71,19 @@ export async function runAllAgents(filters: JobSearchFilters): Promise<Orchestra
     console.log(`[Orchestrator] Step 2 complete: ${scoredJobs.length} jobs scored`);
   } catch (e) {
     console.error("[Orchestrator] scoreJobs failed (non-blocking):", e);
-    result.errors.push(`scoreJobs: ${String(e)}`);
-    // Fallback: use unscored jobs — UI must still render
-    scoredJobs = jobs as EnrichedJob[];
+    result.errors.push(`scoreJobs: ${errMsg(e)}`);
+    // Fallback: wrap unscored jobs with default EnrichedJob fields so pipeline continues
+    scoredJobs = jobs.map(job => ({
+      ...job,
+      flags: [],
+      trustScore: 50,
+      trustLevel: "caution" as const,
+      strategy: "apply_now" as const,
+      responseProbability: 50,
+      decisionScore: 50,
+      effortEstimate: 50,
+      smartTag: "Worth Applying",
+    }));
     result.jobsScored = 0;
   }
 
@@ -78,7 +93,7 @@ export async function runAllAgents(filters: JobSearchFilters): Promise<Orchestra
   const jobDescriptions = topJobs.map(j => j.description).filter(Boolean);
   const optimizedResume = await optimize(jobDescriptions).catch(e => {
     console.error("[Orchestrator] optimize failed (non-blocking):", e);
-    result.errors.push(`optimize: ${String(e)}`);
+    result.errors.push(`optimize: ${errMsg(e)}`);
     return null;
   });
   result.resumeOptimized = Boolean(optimizedResume);
@@ -94,7 +109,7 @@ export async function runAllAgents(filters: JobSearchFilters): Promise<Orchestra
   }));
   const submitted = await apply(applyPayloads).catch(e => {
     console.error("[Orchestrator] apply failed (non-blocking):", e);
-    result.errors.push(`apply: ${String(e)}`);
+    result.errors.push(`apply: ${errMsg(e)}`);
     return 0;
   });
   result.applicationsSubmitted = submitted;
