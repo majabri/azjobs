@@ -6,7 +6,7 @@
 
 import {
   LayoutDashboard, Search, ClipboardList, UserCircle, Target,
-  DollarSign, Compass, Mic, Zap,
+  DollarSign, Compass, Mic, Zap, HelpCircle,
   Users, Database, FileText, Calendar,
 } from "lucide-react";
 
