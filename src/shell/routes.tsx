@@ -123,6 +123,9 @@ export default function ShellRoutes() {
         {/* Matching Service */}
         <Route path="/report/:analysisId" element={<ScoreReport />} />
 
+        {/* Support Service */}
+        <Route path="/support" element={<ProtectedWithLayout><Support /></ProtectedWithLayout>} />
+
         {/* Hiring Manager Service */}
         <Route path="/hiring-manager" element={<ProtectedWithLayout><HiringManager /></ProtectedWithLayout>} />
         <Route path="/candidates" element={<ProtectedWithLayout><CandidatesDatabase /></ProtectedWithLayout>} />
