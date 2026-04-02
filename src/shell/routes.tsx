@@ -57,6 +57,7 @@ const AdminQueue = lazy(() => import("@/services/admin/pages/AdminQueue"));
 const AdminConsole = lazy(() => import("@/services/admin/pages/AdminConsole"));
 const AdminAudit = lazy(() => import("@/services/admin/pages/AdminAudit"));
 const AdminAgentRunDetail = lazy(() => import("@/services/admin/pages/AdminAgentRunDetail"));
+const AdminTickets = lazy(() => import("@/services/admin/pages/AdminTickets"));
 
 // Landing + 404
 const Index = lazy(() => import("@/pages/Index"));
@@ -147,6 +148,7 @@ export default function ShellRoutes() {
         <Route path="/admin/console" element={<AdminProtectedRoute><AdminLayout><AdminConsole /></AdminLayout></AdminProtectedRoute>} />
         <Route path="/admin/audit" element={<AdminProtectedRoute><AdminLayout><AdminAudit /></AdminLayout></AdminProtectedRoute>} />
         <Route path="/admin/agent-runs/:runId" element={<AdminProtectedRoute><AdminLayout><AdminAgentRunDetail /></AdminLayout></AdminProtectedRoute>} />
+        <Route path="/admin/tickets" element={<AdminProtectedRoute><AdminLayout><AdminTickets /></AdminLayout></AdminProtectedRoute>} />
 
         {/* Catch-all */}
         <Route path="*" element={<NotFound />} />

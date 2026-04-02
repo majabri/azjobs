@@ -10,7 +10,7 @@ import UserMenu from "@/components/UserMenu";
 import NotificationCenter from "@/components/NotificationCenter";
 import {
   LayoutDashboard, Users, Bot, Shield, Settings, Target, ArrowLeft, UserCircle,
-  ScrollText, Layers, Terminal, ClipboardList,
+  ScrollText, Layers, Terminal, ClipboardList, LifeBuoy,
 } from "lucide-react";
 
 const adminNav = [
@@ -23,6 +23,7 @@ const adminNav = [
   { title: "Console", url: "/admin/console", icon: Terminal },
   { title: "Audit Log", url: "/admin/audit", icon: ClipboardList },
   { title: "System Health", url: "/admin/system", icon: Shield },
+  { title: "Support Tickets", url: "/admin/tickets", icon: LifeBuoy },
   { title: "Settings", url: "/admin/settings", icon: Settings },
   { title: "My Profile", url: "/admin/profile", icon: UserCircle },
 ];
