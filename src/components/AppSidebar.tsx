@@ -1,7 +1,4 @@
-import {
-  LayoutDashboard, Search, ClipboardList, UserCircle, Target, Users, ChevronDown,
-  FileText, Calendar, Database, DollarSign, Compass, Mic, Zap, Shield,
-} from "lucide-react";
+import { ChevronDown, Shield, Target } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
@@ -13,30 +10,9 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAdminRole } from "@/hooks/useAdminRole";
-
-const jobSeekerNav = [
-  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
-  { title: "Analyze Job", url: "/job-seeker", icon: Target },
-  { title: "Find Jobs", url: "/job-search", icon: Search },
-  { title: "Applications", url: "/applications", icon: ClipboardList },
-  { title: "Offers", url: "/offers", icon: DollarSign },
-  { title: "Career", url: "/career", icon: Compass },
-  { title: "Interview Prep", url: "/interview-prep", icon: Mic },
-  { title: "Auto Apply", url: "/auto-apply", icon: Zap },
-  { title: "Profile", url: "/profile", icon: UserCircle },
-];
-
-const hiringManagerNav = [
-  { title: "Candidate Screener", url: "/hiring-manager", icon: Users },
-  { title: "Candidates Database", url: "/candidates", icon: Database },
-  { title: "Job Postings", url: "/job-postings", icon: FileText },
-  { title: "Interview Scheduling", url: "/interview-scheduling", icon: Calendar },
-];
-
-const modes = [
-  { label: "Job Seeker", icon: Target, value: "seeker" as const },
-  { label: "Hiring Manager", icon: Users, value: "hiring" as const },
-];
+import {
+  jobSeekerNav, hiringManagerNav, modes, detectMode, getNavItems,
+} from "@/shell/navigation";
 
 export function AppSidebar() {
   const { state } = useSidebar();
