@@ -31,25 +31,6 @@ export interface EnrichedJob extends JobResult {
   smartTag: string;
 }
 
-function calculateResponseProbability(job: JobResult, userSkills: string[]): number {
-  let prob = 50;
-  if (job.quality_score !== undefined) prob += (job.quality_score - 50) * 0.3;
-  if (job.first_seen_at) {
-    const days = (Date.now() - new Date(job.first_seen_at).getTime()) / (1000 * 60 * 60 * 24);
-    if (days < 3) prob += 15;
-    else if (days < 7) prob += 8;
-    else if (days > 30) prob -= 20;
-    else if (days > 14) prob -= 10;
-  }
-  if (userSkills.length > 0 && job.description) {
-    const desc = job.description.toLowerCase();
-    const matched = userSkills.filter(s => desc.includes(s.toLowerCase())).length;
-    prob += (matched / userSkills.length) * 20;
-  }
-  if (job.is_remote) prob -= 5;
-  return Math.max(5, Math.min(95, Math.round(prob)));
-}
-
 function calculateDecisionScore(job: JobResult, prob: number, userSkills: string[]): { score: number; effort: number } {
   let effort = 50;
   if (userSkills.length > 0 && job.description) {

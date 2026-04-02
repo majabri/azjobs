@@ -99,7 +99,7 @@ export default function AnalysisForm({ onAnalyze, isAnalyzing, isDemo, prefillJo
             toast.warning(result.error || "Could not extract job description. Please paste it manually.", { duration: 6000 });
             if (result.partialText) setJobDesc(result.partialText);
           }
-        } catch {}
+        } catch (e) { console.error("[AnalysisForm] URL fetch failed:", e); }
         finally { setIsFetchingJob(false); }
       })();
     }
@@ -188,11 +188,12 @@ export default function AnalysisForm({ onAnalyze, isAnalyzing, isDemo, prefillJo
               }
             }
           }
-        } catch {}
+        } catch (e) { console.error("[AnalysisForm] Skill sync failed:", e); }
       } else {
         toast.error(result.error || "Could not extract text");
       }
-    } catch {
+    } catch (e) {
+      console.error("[AnalysisForm] Resume upload failed:", e);
       toast.error("Failed to parse document");
     } finally {
       setIsUploadingResume(false);

@@ -537,7 +537,7 @@ function JobSeekerPanel({
       setRecords(merged);
       onRecordsLoaded?.(merged);
     } catch (e) {
-    } finally {
+      console.error("[AdminUsers] Failed to load users:", e);
       setLoading(false);
     }
   }, []);

@@ -185,7 +185,7 @@ export default function JobSearchPage() {
       const { jobs: rawJobs, citations: cits } = await searchJobsService(filters);
 
       // Step 2: Filter out ignored/saved jobs
-      let filtered = rawJobs
+      const filtered = rawJobs
         .filter(job => !isJobIgnored(job, ignoredList))
         .filter(job => !isJobAlreadySaved(job, savedApps));
 
@@ -214,7 +214,8 @@ export default function JobSearchPage() {
       setCitations(cits);
       setVisibleCount(PAGE_SIZE);
       if (!enriched.length) toast.info("No jobs found. Try adjusting your criteria.");
-    } catch {
+    } catch (e) {
+      console.error("[JobSearch] Search failed:", e);
       toast.error("Failed to search for jobs");
     } finally {
       setSearching(false);

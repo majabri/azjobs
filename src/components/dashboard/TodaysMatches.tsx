@@ -293,7 +293,7 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
             return;
           }
         }
-      } catch {}
+      } catch (e) { console.error("[TodaysMatches] Cache read failed:", e); }
     }
 
     fetchJobs(profile, session, cacheKey, outcomes);

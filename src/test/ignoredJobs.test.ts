@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { isJobIgnored, isJobAlreadySaved, type IgnoredJob } from "@/lib/ignoredJobs";
+import { isJobIgnored, isJobAlreadySaved, type IgnoredJob } from "@/lib/job-search";
 
 const makeIgnored = (overrides: Partial<IgnoredJob> = {}): IgnoredJob => ({
   id: "1",
