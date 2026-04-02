@@ -6,7 +6,7 @@
 
 import {
   LayoutDashboard, Search, ClipboardList, UserCircle, Target,
-  DollarSign, Compass, Mic, Zap,
+  DollarSign, Compass, Mic, Zap, HelpCircle,
   Users, Database, FileText, Calendar,
 } from "lucide-react";
 
@@ -26,6 +26,7 @@ export const jobSeekerNav: NavItem[] = [
   { title: "Interview Prep", url: "/interview-prep", icon: Mic },
   { title: "Auto Apply", url: "/auto-apply", icon: Zap },
   { title: "Profile", url: "/profile", icon: UserCircle },
+  { title: "Support", url: "/support", icon: HelpCircle },
 ];
 
 export const hiringManagerNav: NavItem[] = [

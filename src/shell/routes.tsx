@@ -33,6 +33,9 @@ const AutoApply = lazy(() => import("@/services/career/pages/AutoApply"));
 // Matching/Report service
 const ScoreReport = lazy(() => import("@/services/matching/pages/ScoreReport"));
 
+// Support service
+const Support = lazy(() => import("@/services/support/pages/Support"));
+
 // Hiring manager service
 const HiringManager = lazy(() => import("@/services/hiring/pages/HiringManager"));
 const CandidatesDatabase = lazy(() => import("@/services/hiring/pages/CandidatesDatabase"));
@@ -119,6 +122,9 @@ export default function ShellRoutes() {
 
         {/* Matching Service */}
         <Route path="/report/:analysisId" element={<ScoreReport />} />
+
+        {/* Support Service */}
+        <Route path="/support" element={<ProtectedWithLayout><Support /></ProtectedWithLayout>} />
 
         {/* Hiring Manager Service */}
         <Route path="/hiring-manager" element={<ProtectedWithLayout><HiringManager /></ProtectedWithLayout>} />
