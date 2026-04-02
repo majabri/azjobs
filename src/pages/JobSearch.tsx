@@ -5,249 +5,23 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import {
-  ArrowLeft, Search, Loader2, MapPin, Building2, ExternalLink, Target,
-  Briefcase, Globe, Plus, X, DollarSign, AlertTriangle, TrendingUp,
+  Search, Loader2, MapPin, Building2, ExternalLink, Target,
+  Briefcase, Plus, X, DollarSign, AlertTriangle, TrendingUp,
   Zap, Shield, Clock, Database, Filter, ShieldCheck, ShieldAlert, ShieldX,
   EyeOff,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import UserMenu from "@/components/UserMenu";
 import {
-  detectFakeJobFlags, getTrustScore, calculateResponseProbability as calcResponseProb,
-  getJobStrategy, STRATEGY_CONFIG, TRUST_LEVEL_CONFIG,
-  type FakeJobFlag, type HistoricalOutcomes,
   saveJobToApplications,
   getIgnoredJobs, ignoreJob, isJobIgnored, isJobAlreadySaved, type IgnoredJob,
 } from "@/lib/job-search";
+import { STRATEGY_CONFIG, TRUST_LEVEL_CONFIG, type FakeJobFlag, type HistoricalOutcomes } from "@/lib/job-search/jobQualityEngine";
+import { searchJobs as searchJobsService } from "@/services/job/api";
+import { scoreJobs, type EnrichedJob } from "@/services/matching/api";
+import type { JobResult, JobSearchFilters } from "@/services/job/types";
 
-interface JobResult {
-  title: string;
-  company: string;
-  location: string;
-  type: string;
-  description: string;
-  url: string;
-  matchReason: string;
-  id?: string;
-  quality_score?: number;
-  is_flagged?: boolean;
-  flag_reasons?: string[];
-  salary?: string;
-  seniority?: string;
-  is_remote?: boolean;
-  source?: string;
-  first_seen_at?: string;
-  responseProbability?: number;
-  smartTag?: string;
-  decisionScore?: number;
-  effortEstimate?: number;
-  // New trust engine fields
-  flags?: FakeJobFlag[];
-  trustScore?: number;
-  trustLevel?: "trusted" | "caution" | "risky";
-  strategy?: "apply_now" | "apply_fast" | "improve_first" | "skip";
-}
-
-const GENERIC_JOB_PATH_SEGMENTS = new Set([
-  "careers",
-  "career",
-  "jobs",
-  "job",
-  "job-search",
-  "open-positions",
-  "positions",
-  "vacancies",
-  "opportunities",
-  "join-us",
-  "work-with-us",
-  "employment",
-]);
-
-const LISTING_TAIL_SEGMENTS = new Set([
-  "search",
-  "results",
-  "all",
-  "openings",
-  "index",
-  "list",
-]);
-
-const NON_JOB_PAGE_SEGMENTS = new Set([
-  "about",
-  "company",
-  "team",
-  "culture",
-  "people",
-  "mission",
-  "values",
-  "home",
-  "contact",
-]);
-
-function normalizeJobUrl(rawUrl?: string | null): string {
-  if (!rawUrl) return "";
-
-  let value = rawUrl.trim();
-  if (!value) return "";
-
-  const markdownUrl = value.match(/\((https?:\/\/[^)\s]+)\)/i);
-  if (markdownUrl?.[1]) value = markdownUrl[1];
-
-  const plainHttpUrl = value.match(/https?:\/\/[^\s<>'"\])]+/i);
-  if (plainHttpUrl?.[0]) value = plainHttpUrl[0];
-
-  value = value.replace(/[),.;]+$/g, "").trim();
-  if (!value) return "";
-
-  const withProtocol = /^https?:\/\//i.test(value) ? value : `https://${value}`;
-
-  try {
-    const parsed = new URL(withProtocol);
-    const host = parsed.hostname.toLowerCase();
-    if (!host || host.includes("example.com") || host.includes("placeholder")) return "";
-    return parsed.toString();
-  } catch {
-    return "";
-  }
-}
-
-function isGenericJobListingUrl(rawUrl: string): boolean {
-  try {
-    const url = new URL(rawUrl);
-    const parts = url.pathname
-      .split("/")
-      .map((p) => p.trim().toLowerCase())
-      .filter(Boolean);
-
-    if (parts.length === 0) return true;
-
-    const allGeneric = parts.every((p) => GENERIC_JOB_PATH_SEGMENTS.has(p) || LISTING_TAIL_SEGMENTS.has(p));
-    if (allGeneric) return true;
-
-    if (parts.length === 1 && GENERIC_JOB_PATH_SEGMENTS.has(parts[0])) return true;
-
-    if (parts.length === 2 && GENERIC_JOB_PATH_SEGMENTS.has(parts[0]) && LISTING_TAIL_SEGMENTS.has(parts[1])) {
-      return true;
-    }
-
-    const last = parts[parts.length - 1];
-    if (GENERIC_JOB_PATH_SEGMENTS.has(last) || LISTING_TAIL_SEGMENTS.has(last)) return true;
-
-    const qp = url.searchParams;
-    if (
-      ["q", "query", "keywords", "search", "location", "department", "team"].some((key) => qp.has(key)) &&
-      parts.length <= 2
-    ) {
-      return true;
-    }
-
-    return false;
-  } catch {
-    return true;
-  }
-}
-
-function hasSubstantiveJobDescription(description?: string | null): boolean {
-  if (!description) return false;
-  const text = description.trim();
-  if (text.length < 140) return false;
-  if (text.split(/\s+/).length < 24) return false;
-  return true;
-}
-
-function isLikelyDirectJobPostingUrl(rawUrl: string): boolean {
-  try {
-    const url = new URL(rawUrl);
-    const parts = url.pathname
-      .split("/")
-      .map((p) => p.trim().toLowerCase())
-      .filter(Boolean);
-
-    if (parts.length === 0) return false;
-
-    const last = parts[parts.length - 1];
-    if (NON_JOB_PAGE_SEGMENTS.has(last)) return false;
-
-    const hasJobWordInPath = parts.some((p) => /job|jobs|position|opening|opportunit|career/.test(p));
-    const hasNumericId = parts.some((p) => /\d{4,}/.test(p));
-    const hasLongSlug = parts.some((p) => p.includes("-") && p.length >= 16);
-    const hasKnownJobQuery = ["gh_jid", "job", "jobid", "jk", "lever-source", "oid"].some((k) =>
-      url.searchParams.has(k)
-    );
-
-    if (parts.length === 1 && !hasNumericId && !hasLongSlug && !hasKnownJobQuery) return false;
-
-    return hasJobWordInPath || hasNumericId || hasLongSlug || hasKnownJobQuery;
-  } catch {
-    return false;
-  }
-}
-
-function sanitizeTitleForFilter(title: string): string {
-  return title
-    .replace(/[,%()]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-const JOB_TYPE_OPTIONS = [
-  "remote", "hybrid", "in-office", "full-time", "part-time", "contract", "short-term",
-];
-
-function calculateResponseProbability(job: JobResult, userSkills: string[]): number {
-  let prob = 50;
-  // Quality score factor
-  if (job.quality_score !== undefined) {
-    prob += (job.quality_score - 50) * 0.3;
-  }
-  // Job age factor
-  if (job.first_seen_at) {
-    const days = (Date.now() - new Date(job.first_seen_at).getTime()) / (1000 * 60 * 60 * 24);
-    if (days < 3) prob += 15;
-    else if (days < 7) prob += 8;
-    else if (days > 30) prob -= 20;
-    else if (days > 14) prob -= 10;
-  }
-  // Skills match factor
-  if (userSkills.length > 0 && job.description) {
-    const desc = job.description.toLowerCase();
-    const matched = userSkills.filter(s => desc.includes(s.toLowerCase())).length;
-    const ratio = matched / userSkills.length;
-    prob += ratio * 20;
-  }
-  // Remote jobs tend to have more competition
-  if (job.is_remote) prob -= 5;
-  return Math.max(5, Math.min(95, Math.round(prob)));
-}
-
-function getSmartTag(job: JobResult, prob: number): { label: string; color: string; icon: any } {
-  if (job.is_flagged) return { label: "Low Confidence", color: "text-destructive border-destructive/30", icon: AlertTriangle };
-  // Low ROI: high effort + low probability
-  if ((job.effortEstimate || 0) > 70 && prob < 40) return { label: "Low ROI", color: "text-destructive/70 border-destructive/20", icon: AlertTriangle };
-  if (prob >= 70) return { label: "High Chance", color: "text-green-600 border-green-300 dark:text-green-400", icon: TrendingUp };
-  if (prob >= 50 && job.first_seen_at) {
-    const days = (Date.now() - new Date(job.first_seen_at).getTime()) / (1000 * 60 * 60 * 24);
-    if (days < 3) return { label: "Apply Fast", color: "text-orange-600 border-orange-300 dark:text-orange-400", icon: Zap };
-  }
-  if (prob < 35) return { label: "Improve Resume First", color: "text-amber-600 border-amber-300 dark:text-amber-400", icon: Shield };
-  return { label: "Worth Applying", color: "text-primary border-primary/30", icon: Target };
-}
-
-function calculateDecisionScore(job: JobResult, prob: number, userSkills: string[]): { score: number; effort: number } {
-  // Effort = % of skills NOT matched (higher = more effort needed)
-  let effort = 50;
-  if (userSkills.length > 0 && job.description) {
-    const desc = job.description.toLowerCase();
-    const matched = userSkills.filter(s => desc.includes(s.toLowerCase())).length;
-    effort = Math.round((1 - matched / Math.max(userSkills.length, 1)) * 100);
-  }
-  // Decision Score = fit(40%) + probability(30%) + ease(30%)
-  const fitScore = job.quality_score || 50;
-  const ease = 100 - effort;
-  const score = Math.round(fitScore * 0.4 + prob * 0.3 + ease * 0.3);
-  return { score: Math.max(5, Math.min(99, score)), effort };
-}
+// ── UI Helpers (presentation only, no business logic) ──────────────────
 
 function parseSalaryNumber(salary: string): number | null {
   const match = salary.replace(/,/g, "").match(/(\d+)/g);
@@ -258,7 +32,8 @@ function parseSalaryNumber(salary: string): number | null {
 }
 
 const MARKET_BENCHMARKS: Record<string, number> = {
-  "entry": 65000, "junior": 75000, "mid": 105000, "senior": 140000, "lead": 165000, "staff": 185000, "principal": 210000, "director": 195000, "vp": 230000,
+  "entry": 65000, "junior": 75000, "mid": 105000, "senior": 140000, "lead": 165000,
+  "staff": 185000, "principal": 210000, "director": 195000, "vp": 230000,
 };
 
 function estimateMarketRate(title: string): number {
@@ -283,10 +58,32 @@ function SalaryBadge({ salary, title }: { salary: string; title?: string }) {
   return <Badge variant="outline" className="text-[10px] bg-accent/10 text-accent border-accent/30">≈ Market Rate</Badge>;
 }
 
-function getJobSaveKey(job: JobResult): string {
+function getSmartTagUI(job: EnrichedJob, prob: number): { label: string; color: string; icon: any } {
+  if (job.is_flagged) return { label: "Low Confidence", color: "text-destructive border-destructive/30", icon: AlertTriangle };
+  if ((job.effortEstimate || 0) > 70 && prob < 40) return { label: "Low ROI", color: "text-destructive/70 border-destructive/20", icon: AlertTriangle };
+  if (prob >= 70) return { label: "High Chance", color: "text-green-600 border-green-300 dark:text-green-400", icon: TrendingUp };
+  if (prob >= 50 && job.first_seen_at) {
+    const days = (Date.now() - new Date(job.first_seen_at).getTime()) / (1000 * 60 * 60 * 24);
+    if (days < 3) return { label: "Apply Fast", color: "text-orange-600 border-orange-300 dark:text-orange-400", icon: Zap };
+  }
+  if (prob < 35) return { label: "Improve Resume First", color: "text-amber-600 border-amber-300 dark:text-amber-400", icon: Shield };
+  return { label: "Worth Applying", color: "text-primary border-primary/30", icon: Target };
+}
+
+function getJobSaveKey(job: { url?: string; title: string; company: string }): string {
   const urlPart = (job.url || "").trim().toLowerCase();
   return `${urlPart}|${job.title.trim().toLowerCase()}|${job.company.trim().toLowerCase()}`;
 }
+
+function getProbColor(prob: number) {
+  if (prob >= 70) return "text-green-600 dark:text-green-400";
+  if (prob >= 50) return "text-amber-600 dark:text-amber-400";
+  return "text-destructive";
+}
+
+const JOB_TYPE_OPTIONS = [
+  "remote", "hybrid", "in-office", "full-time", "part-time", "contract", "short-term",
+];
 
 const PAGE_SIZE = 50;
 
@@ -301,7 +98,7 @@ export default function JobSearchPage() {
   const [titleInput, setTitleInput] = useState("");
   const [salaryMin, setSalaryMin] = useState("");
   const [salaryMax, setSalaryMax] = useState("");
-  const [jobs, setJobs] = useState<JobResult[]>([]);
+  const [jobs, setJobs] = useState<EnrichedJob[]>([]);
   const [citations, setCitations] = useState<string[]>([]);
   const [searching, setSearching] = useState(false);
   const [profileLoaded, setProfileLoaded] = useState(false);
@@ -353,7 +150,6 @@ export default function JobSearchPage() {
         if (data.min_match_score != null) setMinFitScore(data.min_match_score);
         setProfileLoaded(true);
       }
-      // Build historical outcomes for response probability model
       if (appData && appData.length >= 3) {
         const total = appData.length;
         const responded = appData.filter(a => a.status !== "applied" && a.status !== "no_response").length;
@@ -368,97 +164,7 @@ export default function JobSearchPage() {
     setJobTypes(prev => prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]);
   };
 
-  const searchDatabaseJobs = async (): Promise<JobResult[]> => {
-    let query = supabase.from("scraped_jobs").select("*");
-
-    // Filter by title keywords
-    if (targetTitles.length > 0) {
-      const safeTitles = targetTitles
-        .map(sanitizeTitleForFilter)
-        .filter(Boolean)
-        .slice(0, 10);
-
-      if (safeTitles.length === 1) {
-        query = query.ilike("title", `%${safeTitles[0]}%`);
-      } else if (safeTitles.length > 1) {
-        const titleFilter = safeTitles.map(t => `title.ilike.%${t}%`).join(",");
-        query = query.or(titleFilter);
-      }
-    }
-
-    // Filter by location
-    if (location) {
-      const isRemoteSearch = /remote/i.test(location);
-      if (isRemoteSearch) {
-        query = query.eq("is_remote", true);
-      } else {
-        query = query.ilike("location", `%${location}%`);
-      }
-    }
-
-    // Filter by job type
-    if (jobTypes.length > 0) {
-      if (jobTypes.includes("remote")) {
-        query = query.eq("is_remote", true);
-      }
-      const nonRemoteTypes = jobTypes.filter(t => t !== "remote" && t !== "hybrid" && t !== "in-office");
-      if (nonRemoteTypes.length > 0) {
-        query = query.in("job_type", nonRemoteTypes);
-      }
-    }
-
-    query = query.order("created_at", { ascending: false }).limit(500);
-
-    const { data, error } = await query;
-    if (error) { console.error("DB search error:", error); return []; }
-
-    return (data || [])
-      .map((job: any) => ({
-        id: job.id,
-        title: job.title,
-        company: job.company,
-        location: job.location || (job.is_remote ? "Remote" : "Not specified"),
-        type: job.job_type || "full-time",
-        description: job.description || "",
-        url: normalizeJobUrl(job.job_url),
-        matchReason: `Source: ${job.source}${job.seniority ? ` • ${job.seniority} level` : ""}`,
-        quality_score: job.quality_score,
-        is_flagged: job.is_flagged,
-        flag_reasons: job.flag_reasons || [],
-        salary: job.salary,
-        seniority: job.seniority,
-        is_remote: job.is_remote,
-        source: job.source,
-        first_seen_at: job.first_seen_at,
-      }))
-      .filter((job) => Boolean(job.url) && !isGenericJobListingUrl(job.url) && isLikelyDirectJobPostingUrl(job.url) && hasSubstantiveJobDescription(job.description));
-  };
-
-  const searchAIJobs = async (): Promise<{ jobs: JobResult[]; citations: string[] }> => {
-    const { data: { session } } = await supabase.auth.getSession();
-    const token = session?.access_token;
-    if (!token) return { jobs: [], citations: [] };
-
-    const resp = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/search-jobs`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ skills, jobTypes, location, query: customQuery, careerLevel, targetTitles, limit: 200 }),
-      }
-    );
-    if (!resp.ok) return { jobs: [], citations: [] };
-    const data = await resp.json();
-
-    const normalizedJobs = ((data.jobs || []) as JobResult[])
-      .map((job) => ({
-        ...job,
-        url: normalizeJobUrl(job.url),
-      }))
-      .filter((job) => Boolean(job.url));
-
-    return { jobs: normalizedJobs, citations: data.citations || [] };
-  };
+  // ── Search orchestration: delegates to job-service + matching-service ──
 
   const handleSearch = async () => {
     if (!skills.length && !customQuery.trim() && !targetTitles.length) {
@@ -470,83 +176,29 @@ export default function JobSearchPage() {
     setCitations([]);
 
     try {
-      let allJobs: JobResult[] = [];
-      let allCitations: string[] = [];
+      const filters: JobSearchFilters = {
+        skills, jobTypes, location, query: customQuery, careerLevel,
+        targetTitles, salaryMin, salaryMax, searchSource, minFitScore, showFlagged,
+      };
 
-      if (searchSource === "all" || searchSource === "database") {
-        const dbJobs = await searchDatabaseJobs();
-        allJobs = allJobs.concat(dbJobs);
-      }
+      // Step 1: Job service fetches raw results (DB + AI with async queue)
+      const { jobs: rawJobs, citations: cits } = await searchJobsService(filters);
 
-      if (searchSource === "all" || searchSource === "ai") {
-        const aiResult = await searchAIJobs();
-        allJobs = allJobs.concat(aiResult.jobs);
-        allCitations = aiResult.citations;
-      }
-
-      allJobs = allJobs.filter((job) => Boolean(job.url));
-
-      const uniqueByUrl = new Map<string, JobResult>();
-      for (const job of allJobs) {
-        if (!uniqueByUrl.has(job.url)) {
-          uniqueByUrl.set(job.url, job);
-        }
-      }
-      allJobs = Array.from(uniqueByUrl.values())
+      // Step 2: Filter out ignored/saved jobs
+      let filtered = rawJobs
         .filter(job => !isJobIgnored(job, ignoredList))
         .filter(job => !isJobAlreadySaved(job, savedApps));
 
-      // Enrich with trust engine + probability + decision score
-      const allTitles = allJobs.map(j => j.title || "");
-      allJobs = allJobs.map(job => {
-        const jobAge = job.first_seen_at
-          ? Math.round((Date.now() - new Date(job.first_seen_at).getTime()) / (1000 * 60 * 60 * 24))
-          : undefined;
+      // Step 3: Matching service enriches with trust, probability, strategy
+      let enriched = scoreJobs({ jobs: filtered, skills, historicalOutcomes });
 
-        // Fake job detection
-        const flags = detectFakeJobFlags({
-          title: job.title, company: job.company, description: job.description,
-          url: job.url, location: job.location, jobAge, allJobTitles: allTitles,
-        });
-        const { score: trustScore, level: trustLevel } = getTrustScore(flags);
-
-        // Merge with existing flag_reasons from DB
-        const combinedFlagged = job.is_flagged || flags.length > 0;
-        const combinedFlagReasons = [
-          ...(job.flag_reasons || []),
-          ...flags.map(f => f.label),
-        ];
-
-        // Response probability from engine
-        const matchScore = job.quality_score || 50;
-        const descLower = (job.description || "").toLowerCase();
-        const matched = skills.filter(s => descLower.includes(s.toLowerCase())).length;
-        const skillMatchRatio = skills.length > 0 ? matched / skills.length : 0.5;
-        const competitionLevel = job.is_remote ? "high" : "medium";
-
-        const prob = calcResponseProb({
-          matchScore, jobAge: jobAge || 7, competitionLevel,
-          trustScore, historicalOutcomes, skillMatchRatio, isRemote: job.is_remote,
-        });
-
-        const { score: decScore, effort } = calculateDecisionScore(job, prob, skills);
-        const strategy = getJobStrategy(matchScore, prob, trustLevel, jobAge || 7);
-        const tag = getSmartTag({ ...job, responseProbability: prob, effortEstimate: effort, is_flagged: combinedFlagged }, prob);
-
-        return {
-          ...job, responseProbability: prob, decisionScore: decScore, effortEstimate: effort,
-          smartTag: tag.label, flags, trustScore, trustLevel, strategy,
-          is_flagged: combinedFlagged, flag_reasons: combinedFlagReasons,
-        };
-      });
-
-      // Sort
+      // Step 4: Sort
       if (sortBy === "decision") {
-        allJobs.sort((a, b) => (b.decisionScore || 0) - (a.decisionScore || 0));
+        enriched.sort((a, b) => (b.decisionScore || 0) - (a.decisionScore || 0));
       } else if (sortBy === "probability") {
-        allJobs.sort((a, b) => (b.responseProbability || 0) - (a.responseProbability || 0));
+        enriched.sort((a, b) => (b.responseProbability || 0) - (a.responseProbability || 0));
       } else if (sortBy === "newest") {
-        allJobs.sort((a, b) => {
+        enriched.sort((a, b) => {
           if (!a.first_seen_at && !b.first_seen_at) return 0;
           if (!a.first_seen_at) return 1;
           if (!b.first_seen_at) return -1;
@@ -554,18 +206,14 @@ export default function JobSearchPage() {
         });
       }
 
-      // Filter flagged
-      if (!showFlagged) {
-        allJobs = allJobs.filter(j => !j.is_flagged);
-      }
+      // Step 5: Client-side filters
+      if (!showFlagged) enriched = enriched.filter(j => !j.is_flagged);
+      enriched = enriched.filter(j => (j.decisionScore || 0) >= minFitScore);
 
-      // Filter by minimum fit score
-      allJobs = allJobs.filter(j => (j.decisionScore || 0) >= minFitScore);
-
-      setJobs(allJobs);
-      setCitations(allCitations);
+      setJobs(enriched);
+      setCitations(cits);
       setVisibleCount(PAGE_SIZE);
-      if (!allJobs.length) toast.info("No jobs found. Try adjusting your criteria.");
+      if (!enriched.length) toast.info("No jobs found. Try adjusting your criteria.");
     } catch {
       toast.error("Failed to search for jobs");
     } finally {
@@ -573,46 +221,27 @@ export default function JobSearchPage() {
     }
   };
 
-  const handleAnalyzeFit = (job: JobResult) => {
+  const handleAnalyzeFit = (job: EnrichedJob) => {
     const jobDesc = `${job.title} at ${job.company}\nLocation: ${job.location}\nType: ${job.type}${job.salary ? `\nSalary: ${job.salary}` : ""}\n\n${job.description}`;
     navigate("/job-seeker", { state: { prefillJob: jobDesc, prefillJobLink: job.url || "", fromSearch: true } });
   };
 
-  const handleSaveJob = async (job: JobResult) => {
+  const handleSaveJob = async (job: EnrichedJob) => {
     const saveKey = getJobSaveKey(job);
     if (savingJobKeys[saveKey]) return;
 
     setSavingJobKeys((prev) => ({ ...prev, [saveKey]: true }));
     try {
       const result = await saveJobToApplications({
-        title: job.title,
-        company: job.company,
-        url: job.url,
-        description: job.description,
-        location: job.location,
-        type: job.type,
+        title: job.title, company: job.company, url: job.url,
+        description: job.description, location: job.location, type: job.type,
       });
-
-      if (!result.ok) {
-        toast.error(result.error || "Failed to save job");
-        return;
-      }
-
-      if (result.alreadySaved) {
-        toast.info("Job already saved");
-        return;
-      }
-
+      if (!result.ok) { toast.error(result.error || "Failed to save job"); return; }
+      if (result.alreadySaved) { toast.info("Job already saved"); return; }
       toast.success("Job saved to Applications");
     } finally {
       setSavingJobKeys((prev) => ({ ...prev, [saveKey]: false }));
     }
-  };
-
-  const getProbColor = (prob: number) => {
-    if (prob >= 70) return "text-green-600 dark:text-green-400";
-    if (prob >= 50) return "text-amber-600 dark:text-amber-400";
-    return "text-destructive";
   };
 
   return (
@@ -827,9 +456,7 @@ export default function JobSearchPage() {
                 </select>
               </div>
               <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
-                <input type="checkbox" checked={showFlagged} onChange={e => {
-                  setShowFlagged(e.target.checked);
-                }} className="rounded" />
+                <input type="checkbox" checked={showFlagged} onChange={e => setShowFlagged(e.target.checked)} className="rounded" />
                 Show flagged
               </label>
             </div>
@@ -840,7 +467,7 @@ export default function JobSearchPage() {
         <div className="space-y-4">
           {jobs.filter(j => showFlagged || !j.is_flagged).slice(0, visibleCount).map((job, i) => {
             const prob = job.responseProbability || 0;
-            const tag = getSmartTag(job, prob);
+            const tag = getSmartTagUI(job, prob);
             const TagIcon = tag.icon;
             const trustCfg = job.trustLevel ? TRUST_LEVEL_CONFIG[job.trustLevel] : TRUST_LEVEL_CONFIG.trusted;
             const TrustIcon = trustCfg.icon === "shield-check" ? ShieldCheck : trustCfg.icon === "shield-alert" ? ShieldAlert : ShieldX;
@@ -867,11 +494,6 @@ export default function JobSearchPage() {
                         </span>
                       )}
                       {job.source && <Badge variant="outline" className="text-xs capitalize">{job.source}</Badge>}
-                      {job.url && isLikelyDirectJobPostingUrl(job.url) && (
-                        <Badge variant="outline" className="text-xs border-emerald-500/40 text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-400">
-                          <ShieldCheck className="w-3 h-3 mr-1" /> Direct Link Verified
-                        </Badge>
-                      )}
                     </div>
                     <p className="text-sm text-muted-foreground mt-2 leading-relaxed line-clamp-3">{job.description}</p>
 
