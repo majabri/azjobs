@@ -12,7 +12,9 @@ import {
   type FakeJobFlag,
   type HistoricalOutcomes,
 } from "@/lib/job-search/jobQualityEngine";
-import type { JobResult } from "@/services/job/types";
+// Type-only import from job service public API — allowed cross-service boundary use.
+// JobResult is the canonical job data contract shared across the job→matching pipeline.
+import type { JobResult } from "@/services/job/api";
 
 interface MatchingInput {
   jobs: JobResult[];

@@ -7,7 +7,6 @@
 export { searchJobs, searchDatabaseJobs, searchAIJobs, normalizeJobUrl } from "./service";
 export type { JobResult, JobSearchFilters, ParsedJobDescription } from "./types";
 
-// Re-export parsing from lib/services (job-owned domain logic)
-export { parseJobSections } from "@/lib/services/sectionParser";
-export { extractCompanySection } from "@/lib/services/companyService";
-export { extractBenefits } from "@/lib/services/benefitsService";
+// Parsing is owned by the job service — all parsing imports live here
+export { parseJobSections, extractCompanySection, extractBenefits } from "./parser";
+export type { ParsedJobSections, StructuredBenefit, BenefitCategory } from "./parser";

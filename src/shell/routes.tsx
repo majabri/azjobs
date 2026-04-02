@@ -1,69 +1,51 @@
 /**
  * Shell Routes — Lazy-loaded service route mounting.
- * Each service owns its own routes. Shell only mounts them.
+ * Each service owns its own routes.tsx. Shell only mounts them.
  * No cross-service route imports. No business logic.
+ *
+ * Top-level service route prefixes:
+ *   /dashboard/*       → analytics service
+ *   /job-search/*      → job service
+ *   /applications/*    → application service
+ *   /profile/*         → user service
+ *   /admin/*           → admin service
+ *   /career/*          → career service
+ *   /report/*          → matching service
+ *   /support/*         → support service
+ *   /hiring-manager/*  → hiring service
  */
 
 import { lazy, Suspense } from "react";
 import { Routes, Route } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 
-// ─── Lazy-loaded service pages ──────────────────────────────────────────────
-// Analytics service (Dashboard)
-const Dashboard = lazy(() => import("@/services/analytics/pages/Dashboard"));
+// ─── Lazy-loaded service route components ────────────────────────────────────
+const AnalyticsRoutes = lazy(() => import("@/services/analytics/routes"));
+const JobRoutes = lazy(() => import("@/services/job/routes"));
+const JobSeeker = lazy(() => import("@/services/job/routes").then(m => ({ default: m.JobSeeker })));
+const ApplicationRoutes = lazy(() => import("@/services/application/routes"));
+const Offers = lazy(() => import("@/services/application/routes").then(m => ({ default: m.Offers })));
+const UserRoutes = lazy(() => import("@/services/user/routes"));
+const UserAuth = lazy(() => import("@/services/user/routes").then(m => ({ default: m.Auth })));
+const UserPublicProfile = lazy(() => import("@/services/user/routes").then(m => ({ default: m.PublicProfile })));
+const AdminRoutes = lazy(() => import("@/services/admin/routes"));
+const AdminUsernameLogin = lazy(() => import("@/services/admin/routes").then(m => ({ default: m.AdminUsernameLogin })));
+const AdminSetPassword = lazy(() => import("@/services/admin/routes").then(m => ({ default: m.AdminSetPassword })));
+const CareerRoutes = lazy(() => import("@/services/career/routes"));
+const InterviewPrep = lazy(() => import("@/services/career/routes").then(m => ({ default: m.InterviewPrep })));
+const AutoApply = lazy(() => import("@/services/career/routes").then(m => ({ default: m.AutoApply })));
+const ScoreReport = lazy(() => import("@/services/matching/routes").then(m => ({ default: m.ScoreReport })));
+const SupportRoutes = lazy(() => import("@/services/support/routes"));
+const HiringRoutes = lazy(() => import("@/services/hiring/routes"));
+const CandidatesDatabase = lazy(() => import("@/services/hiring/routes").then(m => ({ default: m.CandidatesDatabase })));
+const JobPostings = lazy(() => import("@/services/hiring/routes").then(m => ({ default: m.JobPostings })));
+const InterviewScheduling = lazy(() => import("@/services/hiring/routes").then(m => ({ default: m.InterviewScheduling })));
 
-// Job service (Search + Analysis)
-const JobSearch = lazy(() => import("@/services/job/pages/JobSearch"));
-const JobSeeker = lazy(() => import("@/services/job/pages/JobSeeker"));
-
-// Application service
-const Applications = lazy(() => import("@/services/application/pages/Applications"));
-const Offers = lazy(() => import("@/services/application/pages/Offers"));
-
-// User service (Profile, Auth)
-const Profile = lazy(() => import("@/services/user/pages/Profile"));
-const Auth = lazy(() => import("@/services/user/pages/Auth"));
-const PublicProfile = lazy(() => import("@/services/user/pages/PublicProfile"));
-
-// Career service
-const Career = lazy(() => import("@/services/career/pages/Career"));
-const InterviewPrep = lazy(() => import("@/services/career/pages/InterviewPrep"));
-const AutoApply = lazy(() => import("@/services/career/pages/AutoApply"));
-
-// Matching/Report service
-const ScoreReport = lazy(() => import("@/services/matching/pages/ScoreReport"));
-
-// Support service
-const Support = lazy(() => import("@/services/support/pages/Support"));
-
-// Hiring manager service
-const HiringManager = lazy(() => import("@/services/hiring/pages/HiringManager"));
-const CandidatesDatabase = lazy(() => import("@/services/hiring/pages/CandidatesDatabase"));
-const JobPostings = lazy(() => import("@/services/hiring/pages/JobPostings"));
-const InterviewScheduling = lazy(() => import("@/services/hiring/pages/InterviewScheduling"));
-
-// Admin service
-const AdminDashboard = lazy(() => import("@/services/admin/pages/AdminDashboard"));
-const AdminUsers = lazy(() => import("@/services/admin/pages/AdminUsers"));
-const AdminAgents = lazy(() => import("@/services/admin/pages/AdminAgents"));
-const AdminSystem = lazy(() => import("@/services/admin/pages/AdminSystem"));
-const AdminSettings = lazy(() => import("@/services/admin/pages/AdminSettings"));
-const AdminUsernameLogin = lazy(() => import("@/services/admin/pages/AdminUsernameLogin"));
-const AdminSetPassword = lazy(() => import("@/services/admin/pages/AdminSetPassword"));
-const AdminProfile = lazy(() => import("@/services/admin/pages/AdminProfile"));
-const AdminLogs = lazy(() => import("@/services/admin/pages/AdminLogs"));
-const AdminAgentRuns = lazy(() => import("@/services/admin/pages/AdminAgentRuns"));
-const AdminQueue = lazy(() => import("@/services/admin/pages/AdminQueue"));
-const AdminConsole = lazy(() => import("@/services/admin/pages/AdminConsole"));
-const AdminAudit = lazy(() => import("@/services/admin/pages/AdminAudit"));
-const AdminAgentRunDetail = lazy(() => import("@/services/admin/pages/AdminAgentRunDetail"));
-const AdminTickets = lazy(() => import("@/services/admin/pages/AdminTickets"));
-
-// Landing + 404
+// ─── Non-service pages (landing, 404) ────────────────────────────────────────
 const Index = lazy(() => import("@/pages/Index"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
-// ─── Layout wrappers ────────────────────────────────────────────────────────
+// ─── Layout wrappers ─────────────────────────────────────────────────────────
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AdminProtectedRoute from "@/components/AdminProtectedRoute";
 import AuthenticatedLayout from "@/layouts/AuthenticatedLayout";
@@ -99,56 +81,70 @@ export default function ShellRoutes() {
       <Routes>
         {/* Landing */}
         <Route path="/" element={<Index />} />
-        <Route path="/auth" element={<Auth />} />
 
-        {/* Job Service */}
+        {/* Auth (user service — standalone, no layout) */}
+        <Route path="/auth" element={<UserAuth />} />
+
+        {/* Analytics Service → /dashboard/* */}
+        <Route path="/dashboard/*" element={<ProtectedWithLayout><AnalyticsRoutes /></ProtectedWithLayout>} />
+
+        {/* Job Service → /job-search/* */}
+        <Route path="/job-search/*" element={<ProtectedWithLayout><JobRoutes /></ProtectedWithLayout>} />
+
+        {/* Job Seeker (public job analysis tool — kept for backward compatibility) */}
         <Route path="/job-seeker" element={<OptionalLayout><JobSeeker /></OptionalLayout>} />
-        <Route path="/job-search" element={<ProtectedWithLayout><JobSearch /></ProtectedWithLayout>} />
 
-        {/* Analytics Service (Dashboard) */}
-        <Route path="/dashboard" element={<ProtectedWithLayout><Dashboard /></ProtectedWithLayout>} />
+        {/* Application Service → /applications/* */}
+        <Route path="/applications/*" element={<ProtectedWithLayout><ApplicationRoutes /></ProtectedWithLayout>} />
 
-        {/* Application Service */}
-        <Route path="/applications" element={<ProtectedWithLayout><Applications /></ProtectedWithLayout>} />
+        {/* /offers backward-compat alias → application service */}
         <Route path="/offers" element={<ProtectedWithLayout><Offers /></ProtectedWithLayout>} />
 
-        {/* User Service */}
-        <Route path="/profile" element={<ProtectedWithLayout><Profile /></ProtectedWithLayout>} />
-        <Route path="/p/:userId" element={<PublicProfile />} />
+        {/* User Service → /profile/* */}
+        <Route path="/profile/*" element={<ProtectedWithLayout><UserRoutes /></ProtectedWithLayout>} />
 
-        {/* Career Service */}
-        <Route path="/career" element={<ProtectedWithLayout><Career /></ProtectedWithLayout>} />
+        {/* Public profile (no auth required) */}
+        <Route path="/p/:userId" element={<UserPublicProfile />} />
+
+        {/* Career Service → /career/* */}
+        <Route path="/career/*" element={<ProtectedWithLayout><CareerRoutes /></ProtectedWithLayout>} />
+
+        {/* Career flat-URL backward-compat aliases */}
         <Route path="/interview-prep" element={<ProtectedWithLayout><InterviewPrep /></ProtectedWithLayout>} />
         <Route path="/auto-apply" element={<ProtectedWithLayout><AutoApply /></ProtectedWithLayout>} />
 
-        {/* Matching Service */}
+        {/* Matching Service → /report/* */}
         <Route path="/report/:analysisId" element={<ScoreReport />} />
 
-        {/* Support Service */}
-        <Route path="/support" element={<ProtectedWithLayout><Support /></ProtectedWithLayout>} />
+        {/* Support Service → /support/* */}
+        <Route path="/support/*" element={<ProtectedWithLayout><SupportRoutes /></ProtectedWithLayout>} />
 
-        {/* Hiring Manager Service */}
-        <Route path="/hiring-manager" element={<ProtectedWithLayout><HiringManager /></ProtectedWithLayout>} />
+        {/* Hiring Manager Service → /hiring-manager/* */}
+        <Route path="/hiring-manager/*" element={<ProtectedWithLayout><HiringRoutes /></ProtectedWithLayout>} />
+
+        {/* Hiring flat-URL backward-compat aliases */}
         <Route path="/candidates" element={<ProtectedWithLayout><CandidatesDatabase /></ProtectedWithLayout>} />
         <Route path="/job-postings" element={<ProtectedWithLayout><JobPostings /></ProtectedWithLayout>} />
         <Route path="/interview-scheduling" element={<ProtectedWithLayout><InterviewScheduling /></ProtectedWithLayout>} />
 
-        {/* Admin Service */}
+        {/* Admin Service — public routes (no auth guard) */}
         <Route path="/admin/login" element={<AdminUsernameLogin />} />
-        <Route path="/admin/set-password" element={<AdminProtectedRoute><AdminSetPassword /></AdminProtectedRoute>} />
-        <Route path="/admin" element={<AdminProtectedRoute><AdminLayout><AdminDashboard /></AdminLayout></AdminProtectedRoute>} />
-        <Route path="/admin/users" element={<AdminProtectedRoute><AdminLayout><AdminUsers /></AdminLayout></AdminProtectedRoute>} />
-        <Route path="/admin/agents" element={<AdminProtectedRoute><AdminLayout><AdminAgents /></AdminLayout></AdminProtectedRoute>} />
-        <Route path="/admin/system" element={<AdminProtectedRoute><AdminLayout><AdminSystem /></AdminLayout></AdminProtectedRoute>} />
-        <Route path="/admin/settings" element={<AdminProtectedRoute><AdminLayout><AdminSettings /></AdminLayout></AdminProtectedRoute>} />
-        <Route path="/admin/profile" element={<AdminProtectedRoute><AdminLayout><AdminProfile /></AdminLayout></AdminProtectedRoute>} />
-        <Route path="/admin/logs" element={<AdminProtectedRoute><AdminLayout><AdminLogs /></AdminLayout></AdminProtectedRoute>} />
-        <Route path="/admin/agent-runs" element={<AdminProtectedRoute><AdminLayout><AdminAgentRuns /></AdminLayout></AdminProtectedRoute>} />
-        <Route path="/admin/queue" element={<AdminProtectedRoute><AdminLayout><AdminQueue /></AdminLayout></AdminProtectedRoute>} />
-        <Route path="/admin/console" element={<AdminProtectedRoute><AdminLayout><AdminConsole /></AdminLayout></AdminProtectedRoute>} />
-        <Route path="/admin/audit" element={<AdminProtectedRoute><AdminLayout><AdminAudit /></AdminLayout></AdminProtectedRoute>} />
-        <Route path="/admin/agent-runs/:runId" element={<AdminProtectedRoute><AdminLayout><AdminAgentRunDetail /></AdminLayout></AdminProtectedRoute>} />
-        <Route path="/admin/tickets" element={<AdminProtectedRoute><AdminLayout><AdminTickets /></AdminLayout></AdminProtectedRoute>} />
+        <Route
+          path="/admin/set-password"
+          element={<AdminProtectedRoute><AdminSetPassword /></AdminProtectedRoute>}
+        />
+
+        {/* Admin Service — protected routes → /admin/* */}
+        <Route
+          path="/admin/*"
+          element={
+            <AdminProtectedRoute>
+              <AdminLayout>
+                <AdminRoutes />
+              </AdminLayout>
+            </AdminProtectedRoute>
+          }
+        />
 
         {/* Catch-all */}
         <Route path="*" element={<NotFound />} />
