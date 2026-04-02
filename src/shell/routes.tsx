@@ -33,6 +33,9 @@ const AutoApply = lazy(() => import("@/services/career/pages/AutoApply"));
 // Matching/Report service
 const ScoreReport = lazy(() => import("@/services/matching/pages/ScoreReport"));
 
+// Support service
+const Support = lazy(() => import("@/services/support/pages/Support"));
+
 // Hiring manager service
 const HiringManager = lazy(() => import("@/services/hiring/pages/HiringManager"));
 const CandidatesDatabase = lazy(() => import("@/services/hiring/pages/CandidatesDatabase"));
