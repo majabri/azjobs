@@ -10,7 +10,7 @@ import UserMenu from "@/components/UserMenu";
 import NotificationCenter from "@/components/NotificationCenter";
 import {
   LayoutDashboard, Users, Bot, Shield, Settings, Target, ArrowLeft, UserCircle,
-  ScrollText, Layers, Terminal, ClipboardList,
+  ScrollText, Layers, Terminal, ClipboardList, LifeBuoy,
 } from "lucide-react";
 
 const adminNav = [
