@@ -1023,6 +1023,7 @@ export type Database = {
       }
       support_tickets: {
         Row: {
+          assigned_to: string | null
           created_at: string
           description: string
           email: string | null
@@ -1037,6 +1038,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          assigned_to?: string | null
           created_at?: string
           description?: string
           email?: string | null
@@ -1051,6 +1053,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          assigned_to?: string | null
           created_at?: string
           description?: string
           email?: string | null
@@ -1065,6 +1068,41 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      ticket_responses: {
+        Row: {
+          author_id: string
+          created_at: string
+          id: string
+          is_admin_response: boolean
+          message: string
+          ticket_id: string
+        }
+        Insert: {
+          author_id: string
+          created_at?: string
+          id?: string
+          is_admin_response?: boolean
+          message?: string
+          ticket_id: string
+        }
+        Update: {
+          author_id?: string
+          created_at?: string
+          id?: string
+          is_admin_response?: boolean
+          message?: string
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_responses_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_portfolio_items: {
         Row: {
