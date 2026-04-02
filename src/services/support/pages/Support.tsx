@@ -76,6 +76,11 @@ export default function SupportPage() {
   const [faqSearch, setFaqSearch] = useState("");
   const [loadingTickets, setLoadingTickets] = useState(false);
 
+  // Ticket detail dialog
+  const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
+  const [ticketResponses, setTicketResponses] = useState<any[]>([]);
+  const [loadingResponses, setLoadingResponses] = useState(false);
+
   useEffect(() => {
     if (user?.email && !email) setEmail(user.email);
   }, [user?.email]);
