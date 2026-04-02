@@ -1,17 +1,14 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Target } from "lucide-react";
 import { lovable } from "@/integrations/lovable/index";
 import { useAuthReady } from "@/hooks/useAuthReady";
-import { normalizeError } from "@/lib/normalizeError";
 
 export default function AuthPage() {
   const navigate = useNavigate();
   const { user, isReady } = useAuthReady();
   const [loading, setLoading] = useState(false);
-  const redirectedRef = useRef(false);
 
   useEffect(() => {
     if (isReady && user) {
@@ -21,30 +18,12 @@ export default function AuthPage() {
 
   const handleGoogleLogin = async () => {
     setLoading(true);
-    try {
-      const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: `${window.location.origin}/dashboard`,
-      });
-
-      if (result?.redirected) {
-        // Browser is navigating away; skip any further state updates.
-        redirectedRef.current = true;
-        return;
-      }
-
-      if (result?.error) {
-        const msg = normalizeError(result.error);
-        console.error("Login error:", msg);
-        toast.error(msg || "Sign-in failed. Please try again.");
-      }
-    } catch (e: unknown) {
-      const msg = normalizeError(e);
-      console.error("Login threw:", msg);
-      toast.error(msg || "Sign-in failed. Please try again.");
-    } finally {
-      if (!redirectedRef.current) {
-        setLoading(false);
-      }
+    const { error } = await lovable.auth.signInWithOAuth("google", {
+      redirect_uri: `${window.location.origin}/dashboard`,
+    });
+    if (error) {
+      console.error("Login error:", error);
+      setLoading(false);
     }
   };
 
