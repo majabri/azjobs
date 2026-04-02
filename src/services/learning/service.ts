@@ -1,0 +1,42 @@
+/**
+ * Learning Service — Core logic.
+ * Owns: learning events, outcome tracking.
+ * No imports from other services.
+ */
+
+import { supabase } from "@/integrations/supabase/client";
+
+export interface LearningEvent {
+  id: string;
+  outcome: string;
+  features: Record<string, any>;
+  insights: Record<string, any> | null;
+  created_at: string;
+}
+
+export async function loadLearningEvents(userId: string): Promise<LearningEvent[]> {
+  const { data, error } = await supabase
+    .from("learning_events")
+    .select("id, outcome, features, insights, created_at")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(100);
+  if (error) { console.error("[LearningService]", error); return []; }
+  return (data || []) as unknown as LearningEvent[];
+}
+
+export async function recordLearningEvent(
+  userId: string,
+  outcome: string,
+  features: Record<string, any>,
+  applicationId?: string,
+  jobId?: string,
+): Promise<void> {
+  await supabase.from("learning_events").insert({
+    user_id: userId,
+    outcome,
+    features,
+    application_id: applicationId || null,
+    job_id: jobId || null,
+  } as any);
+}
