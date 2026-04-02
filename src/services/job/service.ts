@@ -141,13 +141,41 @@ export async function searchDatabaseJobs(filters: JobSearchFilters): Promise<Job
     .filter(job => Boolean(job.url) && !isGenericJobListingUrl(job.url) && isLikelyDirectJobPostingUrl(job.url) && hasSubstantiveJobDescription(job.description));
 }
 
-// ─── AI Search (owned by job service) ───────────────────────────────────────
+// ─── AI Search (async queue with polling) ──────────────────────────────────
+
+async function pollForResults(jobId: string, token: string, maxAttempts = 30): Promise<{ jobs: JobResult[]; citations: string[] }> {
+  const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/search-jobs`;
+  for (let i = 0; i < maxAttempts; i++) {
+    const resp = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ job_id: jobId }),
+    });
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({}));
+      if (resp.status === 500 && err.error) throw new Error(err.error);
+      throw new Error("Search failed");
+    }
+    const data = await resp.json();
+    if (data.status === "processing") {
+      await new Promise(r => setTimeout(r, 2000));
+      continue;
+    }
+    // Completed — data contains { jobs, citations }
+    const normalizedJobs = ((data.jobs || []) as JobResult[])
+      .map(job => ({ ...job, url: normalizeJobUrl(job.url) }))
+      .filter(job => Boolean(job.url));
+    return { jobs: normalizedJobs, citations: data.citations || [] };
+  }
+  return { jobs: [], citations: [] };
+}
 
 export async function searchAIJobs(filters: JobSearchFilters): Promise<{ jobs: JobResult[]; citations: string[] }> {
   const { data: { session } } = await supabase.auth.getSession();
   const token = session?.access_token;
   if (!token) return { jobs: [], citations: [] };
 
+  // Step 1: Enqueue the search
   const resp = await fetch(
     `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/search-jobs`,
     {
@@ -155,18 +183,27 @@ export async function searchAIJobs(filters: JobSearchFilters): Promise<{ jobs: J
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify({
         skills: filters.skills, jobTypes: filters.jobTypes, location: filters.location,
-        query: filters.query, careerLevel: filters.careerLevel, targetTitles: filters.targetTitles, limit: 200,
+        query: filters.query, careerLevel: filters.careerLevel, targetTitles: filters.targetTitles, limit: 50,
       }),
     }
   );
   if (!resp.ok) return { jobs: [], citations: [] };
   const data = await resp.json();
 
-  const normalizedJobs = ((data.jobs || []) as JobResult[])
-    .map(job => ({ ...job, url: normalizeJobUrl(job.url) }))
-    .filter(job => Boolean(job.url));
+  // If response already has jobs (sync fallback), return them
+  if (data.jobs) {
+    const normalizedJobs = ((data.jobs || []) as JobResult[])
+      .map(job => ({ ...job, url: normalizeJobUrl(job.url) }))
+      .filter(job => Boolean(job.url));
+    return { jobs: normalizedJobs, citations: data.citations || [] };
+  }
 
-  return { jobs: normalizedJobs, citations: data.citations || [] };
+  // Step 2: Poll for results
+  if (data.job_id) {
+    return pollForResults(data.job_id, token);
+  }
+
+  return { jobs: [], citations: [] };
 }
 
 // ─── Combined Search (orchestrates DB + AI, no matching dependency) ─────────
