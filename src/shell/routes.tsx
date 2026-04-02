@@ -57,6 +57,7 @@ const AdminQueue = lazy(() => import("@/services/admin/pages/AdminQueue"));
 const AdminConsole = lazy(() => import("@/services/admin/pages/AdminConsole"));
 const AdminAudit = lazy(() => import("@/services/admin/pages/AdminAudit"));
 const AdminAgentRunDetail = lazy(() => import("@/services/admin/pages/AdminAgentRunDetail"));
+const AdminTickets = lazy(() => import("@/services/admin/pages/AdminTickets"));
 
 // Landing + 404
 const Index = lazy(() => import("@/pages/Index"));
