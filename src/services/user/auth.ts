@@ -1,7 +1,7 @@
 /**
  * User Service — Auth module.
  * Centralises all authentication operations (email/password, Google OAuth,
- * session management). Callers always receive a normalised string `error`
+ * session management, MFA). Callers always receive a normalised string `error`
  * field — never a raw object — so it is safe to render directly in JSX.
  */
 
@@ -15,6 +15,21 @@ export interface AuthResult {
   session?: Session | null;
   /** Human-readable error string — safe to render in JSX. */
   error?: string;
+}
+
+/** Sign up with email + password. Email verification required. */
+export async function signup(email: string, password: string): Promise<AuthResult> {
+  try {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: `${window.location.origin}/dashboard` },
+    });
+    if (error) return { error: normalizeError(error) };
+    return { user: data.user, session: data.session };
+  } catch (e) {
+    return { error: normalizeError(e) };
+  }
 }
 
 /** Sign in with email + password via Supabase. */
@@ -78,4 +93,71 @@ export function onAuthStateChange(
 ) {
   const { data: { subscription } } = supabase.auth.onAuthStateChange(callback);
   return subscription;
+}
+
+// ─── MFA (TOTP) ──────────────────────────────────────────────────────────────
+
+export interface MfaEnrollResult {
+  factorId?: string;
+  qrUri?: string;
+  secret?: string;
+  error?: string;
+}
+
+/** Enroll a new TOTP factor. Returns QR URI for scanning. */
+export async function enrollTOTP(): Promise<MfaEnrollResult> {
+  try {
+    const { data, error } = await supabase.auth.mfa.enroll({
+      factorType: "totp",
+      friendlyName: "Authenticator App",
+    });
+    if (error) return { error: normalizeError(error) };
+    return {
+      factorId: data.id,
+      qrUri: data.totp?.qr_code,
+      secret: data.totp?.secret,
+    };
+  } catch (e) {
+    return { error: normalizeError(e) };
+  }
+}
+
+/** Verify a TOTP code to activate an enrolled factor. */
+export async function verifyTOTP(factorId: string, code: string): Promise<{ error?: string }> {
+  try {
+    const { data: challenge, error: challengeErr } = await supabase.auth.mfa.challenge({ factorId });
+    if (challengeErr) return { error: normalizeError(challengeErr) };
+
+    const { error: verifyErr } = await supabase.auth.mfa.verify({
+      factorId,
+      challengeId: challenge.id,
+      code,
+    });
+    if (verifyErr) return { error: normalizeError(verifyErr) };
+    return {};
+  } catch (e) {
+    return { error: normalizeError(e) };
+  }
+}
+
+/** Remove an enrolled MFA factor. */
+export async function unenrollFactor(factorId: string): Promise<{ error?: string }> {
+  try {
+    const { error } = await supabase.auth.mfa.unenroll({ factorId });
+    if (error) return { error: normalizeError(error) };
+    return {};
+  } catch (e) {
+    return { error: normalizeError(e) };
+  }
+}
+
+/** List all enrolled MFA factors for the current user. */
+export async function listFactors(): Promise<{ factors?: any[]; error?: string }> {
+  try {
+    const { data, error } = await supabase.auth.mfa.listFactors();
+    if (error) return { error: normalizeError(error) };
+    return { factors: [...(data.totp || []), ...(data.phone || [])] };
+  } catch (e) {
+    return { error: normalizeError(e) };
+  }
 }

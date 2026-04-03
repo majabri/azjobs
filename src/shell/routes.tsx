@@ -85,11 +85,13 @@ export default function ShellRoutes() {
         {/* Landing */}
         <Route path="/" element={<Index />} />
 
-        {/* Auth — canonical login page */}
+        {/* Auth pages */}
         <Route path="/auth/login" element={<LoginPage />} />
-
-        {/* Auth (user service — legacy /auth redirects to /auth/login) */}
+        <Route path="/auth/signup" element={<SignupPage />} />
         <Route path="/auth" element={<UserAuth />} />
+
+        {/* Account Settings (protected) */}
+        <Route path="/settings" element={<ProtectedWithLayout><AccountSettings /></ProtectedWithLayout>} />
 
         {/* Analytics Service → /dashboard/* */}
         <Route path="/dashboard/*" element={<ProtectedWithLayout><AnalyticsRoutes /></ProtectedWithLayout>} />
