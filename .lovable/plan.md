@@ -1,201 +1,135 @@
 
 
-## Comprehensive Platform Enhancement Plan (8 Phases)
+## Profile Search Criteria & Job Search/Matching Enhancement Plan
 
-This plan extends the existing SOA architecture with data normalization, benefits standardization, support expansion, observability, and security hardening. Items already implemented (support service, rate limiting on search-jobs, RLS hardening) are noted and skipped.
+### What This Plan Covers
 
----
+Comparing the user's improvement requirements against the current codebase, here is what **already exists** vs **what needs to be built**:
 
-### Current State — Additional Gaps Identified
-
-- No centralized data normalization layer (jobs, benefits, salary not standardized)
-- No observability/logging pipeline (difficult to debug ingestion + scoring)
-- No user feedback loop from support into product improvements
-- Edge functions beyond `search-jobs` lack rate limiting
-- No Settings sidebar link
-
----
-
-### Phase 1: Fix Critical Security Findings
-
-**1A. Drop anon SELECT on `analysis_history`** — migration to remove `Anyone can view score reports` policy (exposes resume text + PII)
-
-**1B. Realtime channel scoping** — scope client-side subscriptions to `notifications:${user.id}` (cannot modify reserved `realtime` schema)
-
-**1C. API & Edge Function Protection** (NEW)
-- Add `checkRateLimit` to these edge functions (already present in `search-jobs`):
-  - `rewrite-resume` — 10 req/min per user
-  - `generate-cover-letter` — 10 req/min per user
-  - `generate-outreach` — 10 req/min per user
-  - `parse-document` — 15 req/min per user
-  - `scrape-url` — 10 req/min per user
-- Zod validation already added to `rewrite-resume`, `generate-cover-letter`, `generate-outreach` — extend to `parse-document`, `scrape-url`, `mock-interview`
-- All edge functions already use `getUser()` auth — verified
-
-**Files modified:** 5-6 edge functions, 1 migration
+| Requirement | Status | Action |
+|---|---|---|
+| Target job titles with tags | Already exists | No change |
+| Career level multi-select | Already exists | No change |
+| Location & work mode | Partial (remote toggle, text input) | Enhance: split into city/state/country fields |
+| Salary range inputs | Already exists (text fields) | Enhance: add market guidance |
+| Min fit score slider | Already exists | Enhance: add tooltip explanation |
+| Job type badges | Already exists | No change |
+| Quality vs Volume toggle | Missing | Add |
+| Saved Search Presets | Missing | Add |
+| AI title suggestions | Missing | Add |
+| Separate location fields | Missing (single text field) | Add |
+| "Search & Match Criteria" as distinct profile section | Missing (mixed into "Job Preferences") | Reorganize |
+| Job title normalization in edge function | Missing | Add |
+| Salary guidance/market rate display | Missing | Add |
+| Smart Alerts integration | Partial (email prefs exist) | Wire to search criteria |
+| Top Skills Missing insight | Missing from profile | Add |
+| Parallel Firecrawl queries | Missing (sequential) | Add |
+| DB fetch limit 100 | Too low | Increase to 300 |
+| Filter threshold 50 | Too strict | Lower to 35 |
+| Global search support | Missing (US-centric location) | Add |
 
 ---
 
-### Phase 2: Authentication — Signup + Account Settings + Identity Hardening
+### Phase 1: Reorganize Profile Page — Clear "Search & Match Criteria" Section
 
-**2A. Signup page** — `src/pages/auth/Signup.tsx`, calls `supabase.auth.signUp()` with email verification required
+**Problem**: Search preferences are buried inside "Job Preferences" alongside auto-apply settings. Users cannot clearly see what drives their job matches.
 
-**2B. Account Settings page** — `src/pages/AccountSettings.tsx`
-- Profile info display, change password, link/unlink Google
-- **MFA**: TOTP (Authenticator App) fully functional via `supabase.auth.mfa.enroll({ factorType: 'totp' })`
-- Email MFA and SMS MFA grayed out as "Coming soon"
-- Delete account via existing `delete-own-account` edge function
+**Changes to `src/components/profile/ProfileForm.tsx`**:
 
-**2C. Auth helpers** — add `signup()`, `enrollTOTP()`, `verifyTOTP()`, `unenrollFactor()` to `src/services/user/auth.ts`
+1. Create a new visually distinct **"Search & Match Criteria"** card section (collapsible via Collapsible component) with its own icon (Target) and header, placed after Skills and before Work Experience
 
-**2D. Session & Token Security** (NEW)
-- Enable refresh token rotation via `cloud--configure_auth` tool
-- Set shorter JWT expiry (1 hour default is fine; document)
-- Add login attempt logging to `admin_logs` for suspicious pattern detection
+2. Move into this section:
+   - Target Job Titles (with AI suggestion button — calls existing `extract-profile-fields` edge function with current skills/experience to suggest titles)
+   - Career Level multi-select (already exists)
+   - **Location fields**: Replace single "Location" text input with structured fields: City, State/Province, Country — stored as comma-separated in the existing `location` column
+   - Work Mode toggle group: Remote / Hybrid / On-site (replaces the `remote_only` boolean — map to `preferred_job_types`)
+   - Salary Range with market guidance: show "Suggested: $X–$Y based on your level and titles" using the same `MARKET_BENCHMARKS` map from JobSearch.tsx
+   - Minimum Fit Score slider (move from Job Preferences) with tooltip: "Lower score = more opportunities; higher score = better fit"
+   - **Quality vs Volume toggle**: new field stored in profile — `search_mode: "quality" | "balanced" | "volume"` (maps to fit score thresholds: 70/50/35)
+   - Job Type badges (full-time, contract, part-time)
 
-**2E. User Profile Data Model** — already exists as `job_seeker_profiles` table with `preferred_job_types`, `target_job_titles`, `salary_min`, `salary_max`, `remote_only`, `career_level`. No new table needed — this data already feeds into job matching and query generation.
+3. Add a **"Top Missing Skills"** insight card below the criteria: query `analysis_history` for the user's most recent analysis, extract top 3 gaps, display as actionable badges with "Add to Profile" buttons
 
-**Files created:** `src/pages/auth/Signup.tsx`, `src/pages/AccountSettings.tsx`
-**Files modified:** `src/services/user/auth.ts`, `src/shell/routes.tsx`, `src/shell/navigation.ts`, `src/pages/auth/Login.tsx`
+4. Add **Saved Search Presets** (new feature):
+   - "Save Current Criteria" button saves a named preset
+   - Dropdown to load a saved preset
+   - Requires new DB table `search_presets`
 
----
+**Database migration**: 
+```sql
+ALTER TABLE job_seeker_profiles ADD COLUMN search_mode text DEFAULT 'balanced';
 
-### Phase 3: Job Search, Ingestion & Matching Optimization
-
-**3A. Improve search query construction** — expand `buildSearchQueries` from max 2 to max 5 queries (one per target title + skill fallbacks)
-
-**3B. Broaden Firecrawl search** — increase `limit: 10` → `limit: 30` per query, add 45s `AbortController` timeout
-
-**3C. Scoring relevance improvements**
-- Exact title match: +30 (currently +20)
-- Recency bonus: jobs < 7 days get +15
-- Benefits match scoring: +10 if job includes user's preferred benefits
-- Salary normalization scoring: +10 if within user's range
-- Remote preference scoring: +15 if matches user's `remote_only` preference
-
-**3D. Salary range filtering** — add server-side salary filtering in edge function when user has `salary_min`/`salary_max`
-
-**3E. Job Ingestion Pipeline** (NEW CORE LAYER)
-- Create `src/services/job/normalization.ts`:
-
-```text
-Raw Ingestion → Normalization → Deduplication → Enrichment → Scoring Input
+CREATE TABLE public.search_presets (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  name text NOT NULL DEFAULT '',
+  criteria jsonb NOT NULL DEFAULT '{}',
+  created_at timestamptz DEFAULT now()
+);
+ALTER TABLE public.search_presets ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can manage own presets" ON public.search_presets 
+  FOR ALL TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 ```
 
-  1. **Normalization**: standardize title casing, company name, location format, salary parsing (e.g., "$80k-100k" → `{min: 80000, max: 100000}`)
-  2. **Deduplication**: hash-based dedup using `md5(title + company + location)` — skip inserts on collision
-  3. **Enrichment**: infer seniority level, remote classification, standardized tags from description
-  4. The edge function already does much of this inline — refactor into reusable functions
+---
 
-**3F. Benefits Normalization System** (NEW)
-- Create `benefits_catalog` table (master reference, ~24 rows):
-  - `id`, `category` (enum matching existing `BenefitCategory` type), `label`, `keywords` (text array for matching)
-- Create `job_benefits` junction table: `job_id` (FK → `scraped_jobs`), `benefit_id` (FK → `benefits_catalog`)
-- Build `src/services/job/benefits.ts`:
-  - Extract benefits from description using regex + keyword matching against catalog
-  - Map to catalog entries and store in `job_benefits`
-- Integrate with scoring: jobs matching user's preferred benefits get +X points
+### Phase 2: Enhance Job Search Edge Function
 
-**Database migrations:** `benefits_catalog`, `job_benefits` tables + seed data
-**Files created:** `src/services/job/normalization.ts`, `src/services/job/benefits.ts`
-**Files modified:** `supabase/functions/search-jobs/index.ts`, `src/services/matching/service.ts`
+**Changes to `supabase/functions/search-jobs/index.ts`**:
+
+1. **Global location support**: Update `extractLocation()` to recognize international patterns (City, Country; City, UK; etc.) instead of only US state codes
+
+2. **Title normalization**: Add `normalizeSearchTitle()` function mapping common variations (e.g., "V.P. Business Information Security Officer" → "VP IT Security BISO") using a synonym map for common abbreviations
+
+3. **Parallel Firecrawl execution**: Run queries in batches of 2 via `Promise.allSettled` instead of sequential loop
+
+4. **Relaxed filtering**: Lower threshold from `finalScore >= 50` to `finalScore >= 35` on line 523
+
+5. **Increase limits**: DB fetch from 100 → 300, final result cap from 100 → 200
+
+6. **Remove US-centric "hiring" suffix** from `buildSearchQueries()` — generate location-aware queries instead
+
+7. **Accept `search_mode` parameter**: When "volume", use threshold 30; "quality" uses 60; "balanced" uses 35
 
 ---
 
-### Phase 4: Cleanup & Link Verification
+### Phase 3: Client-Side Search & Matching Updates
 
-**4A. Remove duplicate legacy files** — audit `src/components/` root for files that are re-exported from service subdirectories; remove unused originals
+**Changes to `src/pages/JobSearch.tsx`**:
+- Update location placeholder to indicate global support
+- Pass `search_mode` from profile to search request
+- Load profile's `search_mode` as default behavior
 
-**4B. Sidebar links** — all 10 job seeker + 4 hiring manager links verified correct. Add `/settings` (Phase 2)
+**Changes to `src/services/job/service.ts`**:
+- Increase DB search limit from 500 → 800
+- Support structured location matching
 
-**4C. Application action links** — verified: `handleAnalyzeFit` → `/job-seeker`, `handleSaveJob` → `saveJobToApplications`, external URLs → `window.open`
-
-**4D. SOA Boundary Enforcement** (NEW)
-- Run `scripts/check-cross-service-imports.ts` to detect violations
-- Ensure no service imports from another service except via `/shared`
-- Document public interfaces per service in each `api.ts`
-
----
-
-### Phase 5: Support Service Enhancement
-
-The support service already exists with `support_tickets`, `support_faq`, `ticket_responses` tables, admin ticket management at `/admin/tickets`, and user-facing `/support` page.
-
-**5A. Expand request types** — add `data_issue` and `account_issue` to `RequestType` enum in `src/services/support/types.ts`:
-```
-"data_issue" (wrong job info, salary, etc.)
-"account_issue" (login problems, profile data)
-```
-
-**5B. User feedback loop** — tag tickets by category for analytics; admin dashboard shows ticket volume by type to identify product improvement areas
-
-**5C. SLA tracking** (future) — add `sla_deadline` column to `support_tickets`, compute based on priority (high: 24h, medium: 48h, low: 72h)
-
-**Files modified:** `src/services/support/types.ts`, `src/services/support/service.ts`
-**Migration:** add `data_issue`, `account_issue` to request type validation (or keep flexible since it's a text column)
+**Changes to `src/services/matching/service.ts`**:
+- Add salary range matching: +10 score if job salary falls within user's min/max
+- Add remote preference bonus: +15 if job matches user's work mode preference
 
 ---
 
-### Phase 6: Leaked Password Protection
+### Phase 4: Smart Alerts Integration
 
-- Enable HIBP check via Cloud → Users → Auth Settings → Email → Password HIBP Check (manual configuration)
-
----
-
-### Phase 7: Observability & Monitoring (NEW)
-
-**7A. Edge function logging standardization**
-- Create `supabase/functions/_shared/logger.ts` with structured JSON logging:
-  ```typescript
-  log("info", "search_completed", { userId, jobCount: 15, duration: 2300 })
-  ```
-- Integrate into all edge functions
-
-**7B. Client-side error tracking**
-- Enhance existing `ErrorBoundary` to log errors to `admin_logs` table via edge function
-- Track: failed searches, scoring errors, auth failures
-
-**7C. Metrics dashboard** — add to admin panel:
-- Jobs ingested (daily/weekly)
-- Jobs matched per search (average)
-- Failed searches count
-- Edge function error rates
-
-**Files created:** `supabase/functions/_shared/logger.ts`
-**Files modified:** key edge functions, `src/components/ErrorBoundary.tsx`, admin dashboard
+**Changes to `src/components/EmailPreferences.tsx`**:
+- Display which search criteria are connected to alerts
+- Show "Alerts use your Search & Match Criteria" with link to profile section
 
 ---
 
-### Phase 8: Performance & Scalability (NEW)
+### Estimated Scope
 
-**8A. Formalize queue-based ingestion** — the `processing_jobs` queue already exists; add scheduled cleanup (trigger already exists for 1-hour cleanup)
-
-**8B. Caching layer**
-- Cache recent search results in `processing_jobs` — if identical query exists < 5 min old, return cached result
-- Client-side: use React Query with 2-min stale time for job search results
-
-**8C. Pagination & lazy loading**
-- Add cursor-based pagination to `scraped_jobs` queries (currently limited to 500)
-- Lazy load job cards on scroll in `JobSearch.tsx`
-
-**Files modified:** `src/services/job/service.ts`, `supabase/functions/search-jobs/index.ts`, `src/pages/JobSearch.tsx`
-
----
-
-### Technical Summary
-
-| Category | Files Created | Files Modified | Migrations |
-|----------|:---:|:---:|:---:|
-| Security (Phase 1) | 0 | 5-6 edge functions | 1 |
-| Auth (Phase 2) | 2 pages | 4 | 0 |
-| Search/Ingestion (Phase 3) | 2 modules | 2 | 2 |
-| Cleanup (Phase 4) | 0 | varies | 0 |
-| Support (Phase 5) | 0 | 2 | 0-1 |
-| Observability (Phase 7) | 1 shared module | 5+ | 0 |
-| Performance (Phase 8) | 0 | 3 | 0 |
-| **Total** | **~6-8** | **~12-18** | **3-4** |
+| Area | Files Created | Files Modified | Migrations |
+|---|---|---|---|
+| Profile reorganization | 0 | 2 (`ProfileForm.tsx`, `Profile.tsx`) | 1 |
+| Search presets | 0 | 1 (`ProfileForm.tsx`) | included above |
+| Edge function enhancement | 0 | 1 (`search-jobs/index.ts`) | 0 |
+| Client search/matching | 0 | 3 (`JobSearch.tsx`, `service.ts`, matching `service.ts`) | 0 |
+| Alerts integration | 0 | 1 (`EmailPreferences.tsx`) | 0 |
+| **Total** | **0** | **~8** | **1** |
 
 ### Implementation Order
 
-Phase 1 (security) → Phase 2 (auth) → Phase 3 (search/ingestion) → Phase 5 (support) → Phase 4 (cleanup) → Phase 7 (observability) → Phase 8 (performance) → Phase 6 (manual HIBP)
+Phase 1 (Profile UI) → Phase 2 (Edge function) → Phase 3 (Client search) → Phase 4 (Alerts)
 
