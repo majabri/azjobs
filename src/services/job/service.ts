@@ -316,6 +316,7 @@ export async function searchAIJobs(filters: JobSearchFilters): Promise<{ jobs: J
         body: JSON.stringify({
           skills: filters.skills, jobTypes: filters.jobTypes, location: filters.location,
           query: filters.query, careerLevel: filters.careerLevel, targetTitles: filters.targetTitles, limit: 50,
+          search_mode: filters.search_mode || "balanced",
         }),
       },
       { retries: 2, timeoutMs: 20000, label: "enqueue-search" }
