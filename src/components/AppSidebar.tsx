@@ -61,7 +61,7 @@ export function AppSidebar() {
                   {modes.map((m) => (
                     <DropdownMenuItem
                       key={m.value}
-                      onClick={() => navigate(m.value === "hiring" ? "/hiring-manager" : "/dashboard")}
+                      onClick={() => navigate("/dashboard")}
                       className={currentMode === m.value ? "bg-accent/50" : ""}
                     >
                       <m.icon className="mr-2 h-4 w-4" />
@@ -86,7 +86,7 @@ export function AppSidebar() {
                   {modes.map((m) => (
                     <DropdownMenuItem
                       key={m.value}
-                      onClick={() => navigate(m.value === "hiring" ? "/hiring-manager" : "/dashboard")}
+                      onClick={() => navigate("/dashboard")}
                       className={currentMode === m.value ? "bg-accent/50" : ""}
                     >
                       <m.icon className="mr-2 h-4 w-4" />
