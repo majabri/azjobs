@@ -43,6 +43,7 @@ export interface JobSearchFilters {
   searchSource: "all" | "ai" | "database";
   minFitScore: number;
   showFlagged: boolean;
+  search_mode?: "quality" | "balanced" | "volume";
 }
 
 export interface ParsedJobDescription {

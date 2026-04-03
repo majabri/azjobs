@@ -1,9 +1,7 @@
 /**
  * /auth/login — Primary login page.
- * Supports Google OAuth and email/password sign-in.
- * All errors are normalised to strings via normalizeError before being
- * stored in component state, so no raw object ever reaches JSX (prevents
- * React error #306).
+ * Supports Google OAuth, Apple OAuth, and email/password sign-in.
+ * Role-aware redirect: admins → /admin, regular users → /dashboard.
  */
 
 import { useEffect, useState } from "react";
@@ -11,29 +9,38 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Target } from "lucide-react";
+import { Target, Loader2 } from "lucide-react";
 import { useAuthReady } from "@/hooks/useAuthReady";
+import { useAdminRole } from "@/hooks/useAdminRole";
 import { login, loginWithGoogle, loginWithApple } from "@/services/user/auth";
 import { normalizeError } from "@/lib/normalizeError";
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const { user, isReady } = useAuthReady();
+  const { isAdmin, isLoading: isRoleLoading } = useAdminRole();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loadingGoogle, setLoadingGoogle] = useState(false);
   const [loadingApple, setLoadingApple] = useState(false);
   const [loadingEmail, setLoadingEmail] = useState(false);
-  /** Always a string (or null) — never a raw object. Safe to render. */
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Redirect already-authenticated users to the dashboard.
+  // Role-aware redirect after authentication
   useEffect(() => {
-    if (isReady && user) {
-      navigate("/dashboard", { replace: true });
-    }
-  }, [isReady, navigate, user]);
+    if (!isReady || !user || isRoleLoading) return;
+    navigate(isAdmin ? "/admin" : "/dashboard", { replace: true });
+  }, [isReady, user, isRoleLoading, isAdmin, navigate]);
+
+  // Show loading while resolving auth + role
+  if (isReady && user && isRoleLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center" role="status" aria-label="Redirecting">
+        <Loader2 className="w-6 h-6 text-muted-foreground animate-spin" />
+      </div>
+    );
+  }
 
   const handleGoogleLogin = async () => {
     setErrorMsg(null);
@@ -44,7 +51,6 @@ export default function LoginPage() {
         setErrorMsg(result.error);
         setLoadingGoogle(false);
       }
-      // On success the Supabase session update triggers useAuthReady → re-render → navigate above.
     } catch (e) {
       setErrorMsg(normalizeError(e));
       setLoadingGoogle(false);
@@ -77,7 +83,6 @@ export default function LoginPage() {
       if (result.error) {
         setErrorMsg(result.error);
       }
-      // On success, navigate handled by the useEffect above.
     } catch (e) {
       setErrorMsg(normalizeError(e));
     } finally {
@@ -171,7 +176,6 @@ export default function LoginPage() {
             />
           </div>
 
-          {/* Error message — always a string, never a raw object */}
           {errorMsg && (
             <p role="alert" className="text-sm text-destructive">
               {errorMsg}
