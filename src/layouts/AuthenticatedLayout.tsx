@@ -1,28 +1,9 @@
-import { useState } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import UserMenu from "@/components/UserMenu";
 import NotificationCenter from "@/components/NotificationCenter";
-import DashboardPickerDialog from "@/components/DashboardPickerDialog";
-import { useAuthReady } from "@/hooks/useAuthReady";
-import { useUserRole } from "@/hooks/useUserRole";
-import { useDashboardPref } from "@/hooks/useDashboardPref";
 
 export default function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
-  const { user } = useAuthReady();
-  const { isDualRole, isLoading: isRoleLoading } = useUserRole();
-  const { pref, isLoading: isPrefLoading } = useDashboardPref();
-
-  // Show the picker for dual-role users who haven't saved a default yet
-  const needsPicker =
-    !isRoleLoading &&
-    !isPrefLoading &&
-    isDualRole &&
-    !!user &&
-    pref === null;
-
-  const [pickerDismissed, setPickerDismissed] = useState(false);
-
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
@@ -40,11 +21,6 @@ export default function AuthenticatedLayout({ children }: { children: React.Reac
           </main>
         </div>
       </div>
-
-      <DashboardPickerDialog
-        open={needsPicker && !pickerDismissed}
-        onDismiss={() => setPickerDismissed(true)}
-      />
     </SidebarProvider>
   );
 }

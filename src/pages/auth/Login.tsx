@@ -1,12 +1,7 @@
 /**
  * /auth/login — Primary login page.
  * Supports Google OAuth, Apple OAuth, and email/password sign-in.
- * Role-aware redirect:
- *   admin                      → /admin
- *   recruiter only             → /hiring-manager
- *   job_seeker only / no role  → /dashboard
- *   both (dual-role)           → stored preference (DB-backed), or /dashboard
- *                                (DashboardPickerDialog will prompt on arrival)
+ * Role-aware redirect: admins → /admin, regular users → /dashboard.
  */
 
 import { useEffect, useState } from "react";
@@ -16,17 +11,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Target, Loader2 } from "lucide-react";
 import { useAuthReady } from "@/hooks/useAuthReady";
-import { useUserRole } from "@/hooks/useUserRole";
-import { useDashboardPref } from "@/hooks/useDashboardPref";
+import { useAdminRole } from "@/hooks/useAdminRole";
 import { login, loginWithGoogle, loginWithApple } from "@/services/user/auth";
 import { normalizeError } from "@/lib/normalizeError";
-import { supabase } from "@/integrations/supabase/client";
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const { user, isReady } = useAuthReady();
-  const { isAdmin, isJobSeeker, isRecruiter, isDualRole, isLoading: isRoleLoading } = useUserRole();
-  const { pref: dashboardPref, isLoading: isPrefLoading } = useDashboardPref();
+  const { isAdmin, isLoading: isRoleLoading } = useAdminRole();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -38,37 +30,11 @@ export default function LoginPage() {
   // Role-aware redirect after authentication
   useEffect(() => {
     if (!isReady || !user || isRoleLoading) return;
+    navigate(isAdmin ? "/admin" : "/dashboard", { replace: true });
+  }, [isReady, user, isRoleLoading, isAdmin, navigate]);
 
-    if (isAdmin) {
-      navigate("/admin", { replace: true });
-      return;
-    }
-
-    if (isRecruiter && !isJobSeeker) {
-      navigate("/hiring-manager", { replace: true });
-      return;
-    }
-
-    if (isDualRole) {
-      // Wait for the DB preference to load before routing dual-role users
-      if (isPrefLoading) return;
-
-      if (dashboardPref === "hiring_manager") {
-        navigate("/hiring-manager", { replace: true });
-        return;
-      }
-      // No preference yet (or job_seeker pref) — land on /dashboard;
-      // the DashboardPickerDialog mounted in AuthenticatedLayout will prompt.
-    }
-
-    navigate("/dashboard", { replace: true });
-  }, [isReady, user, isRoleLoading, isAdmin, isJobSeeker, isRecruiter, isDualRole, isPrefLoading, dashboardPref, navigate]);
-
-  // Show loading while resolving auth + role (+ pref for dual-role)
-  const showSpinner =
-    isReady && !!user && (isRoleLoading || (isDualRole && isPrefLoading));
-
-  if (showSpinner) {
+  // Show loading while resolving auth + role
+  if (isReady && user && isRoleLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center" role="status" aria-label="Redirecting">
         <Loader2 className="w-6 h-6 text-muted-foreground animate-spin" />
@@ -113,25 +79,9 @@ export default function LoginPage() {
     setErrorMsg(null);
     setLoadingEmail(true);
     try {
-      const identifier = email.trim();
-      let resolvedEmail = identifier;
-
-      if (!identifier.includes("@")) {
-        const { data: resolved, error: rpcError } = await supabase.rpc(
-          "resolve_admin_email",
-          { _username: identifier }
-        );
-        if (rpcError || !resolved) {
-          setErrorMsg("Invalid email/username or password.");
-          setLoadingEmail(false);
-          return;
-        }
-        resolvedEmail = resolved;
-      }
-
-      const result = await login(resolvedEmail, password);
+      const result = await login(email.trim(), password);
       if (result.error) {
-        setErrorMsg("Invalid email/username or password.");
+        setErrorMsg(result.error);
       }
     } catch (e) {
       setErrorMsg(normalizeError(e));
@@ -203,11 +153,8 @@ export default function LoginPage() {
             <Label htmlFor="email">Email</Label>
             <Input
               id="email"
-              type="text"
-              autoComplete="username"
-              spellCheck={false}
-              autoCorrect="off"
-              autoCapitalize="none"
+              type="email"
+              autoComplete="email"
               placeholder="you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
