@@ -4,6 +4,16 @@
  * No imports from other services.
  */
 
+/**
+ * Flags raised by the fake-job / trust detection engine.
+ * Owned by the matching service; job service types must NOT reference this directly.
+ */
+export interface FakeJobFlag {
+  type: "age" | "duplicate" | "missing_fields" | "scam_keywords" | "hidden_company" | "suspicious_url";
+  severity: "warning" | "danger";
+  label: string;
+}
+
 export interface ScoredJob {
   jobId: string;
   title: string;

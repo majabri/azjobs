@@ -25,7 +25,6 @@ export interface JobResult {
   smartTag?: string;
   decisionScore?: number;
   effortEstimate?: number;
-  flags?: import("@/lib/job-search/jobQualityEngine").FakeJobFlag[];
   trustScore?: number;
   trustLevel?: "trusted" | "caution" | "risky";
   strategy?: "apply_now" | "apply_fast" | "improve_first" | "skip";

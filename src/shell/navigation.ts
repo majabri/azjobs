@@ -1,54 +1,46 @@
 /**
  * Shell Navigation — Centralized navigation configuration.
- * Sidebar links point ONLY to top-level service routes.
+ * Sidebar links point ONLY to the 5 top-level service routes:
+ *   /dashboard, /job-search, /applications, /profile, /admin
  * No internal component or page references.
  */
 
 import {
-  LayoutDashboard, Search, ClipboardList, UserCircle, Target,
-  DollarSign, Compass, Mic, Zap, HelpCircle,
-  Users, Database, FileText, Calendar,
+  LayoutDashboard, Search, ClipboardList, UserCircle,
+  Shield,
 } from "lucide-react";
 
 export interface NavItem {
   title: string;
   url: string;
   icon: typeof LayoutDashboard;
+  /** When true, only show this item for admin users */
+  adminOnly?: boolean;
 }
 
 export const jobSeekerNav: NavItem[] = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
-  { title: "Analyze Job", url: "/job-seeker", icon: Target },
-  { title: "Find Jobs", url: "/job-search", icon: Search },
+  { title: "Job Search", url: "/job-search", icon: Search },
   { title: "Applications", url: "/applications", icon: ClipboardList },
-  { title: "Offers", url: "/offers", icon: DollarSign },
-  { title: "Career", url: "/career", icon: Compass },
-  { title: "Interview Prep", url: "/interview-prep", icon: Mic },
-  { title: "Auto Apply", url: "/auto-apply", icon: Zap },
   { title: "Profile", url: "/profile", icon: UserCircle },
-  { title: "Support", url: "/support", icon: HelpCircle },
+  { title: "Admin", url: "/admin", icon: Shield, adminOnly: true },
 ];
 
-export const hiringManagerNav: NavItem[] = [
-  { title: "Candidate Screener", url: "/hiring-manager", icon: Users },
-  { title: "Candidates Database", url: "/candidates", icon: Database },
-  { title: "Job Postings", url: "/job-postings", icon: FileText },
-  { title: "Interview Scheduling", url: "/interview-scheduling", icon: Calendar },
-];
+/** @deprecated Hiring manager mode is removed. Kept as empty array for backward-compat. */
+export const hiringManagerNav: NavItem[] = [];
 
 export const modes = [
-  { label: "Job Seeker", icon: Target, value: "seeker" as const },
-  { label: "Hiring Manager", icon: Users, value: "hiring" as const },
+  { label: "Job Seeker", icon: LayoutDashboard, value: "seeker" as const },
 ] as const;
 
 export type AppMode = typeof modes[number]["value"];
 
-export const hiringPaths = ["/hiring-manager", "/candidates", "/job-postings", "/interview-scheduling"];
+export const hiringPaths: string[] = [];
 
-export function detectMode(pathname: string): AppMode {
-  return hiringPaths.some(p => pathname.startsWith(p)) ? "hiring" : "seeker";
+export function detectMode(_pathname: string): AppMode {
+  return "seeker";
 }
 
-export function getNavItems(mode: AppMode): NavItem[] {
-  return mode === "hiring" ? hiringManagerNav : jobSeekerNav;
+export function getNavItems(_mode: AppMode): NavItem[] {
+  return jobSeekerNav;
 }

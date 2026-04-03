@@ -174,6 +174,77 @@ describe("Job Search Resilience", () => {
   });
 });
 
+describe("Navigation Enforcement", () => {
+  const ALLOWED_SEEKER_ROUTES = ["/dashboard", "/job-search", "/applications", "/profile", "/admin"];
+
+  it("jobSeekerNav contains only the 5 allowed routes", async () => {
+    const { jobSeekerNav } = await import("@/shell/navigation");
+    const urls = jobSeekerNav.map(item => item.url);
+    expect(urls).toHaveLength(ALLOWED_SEEKER_ROUTES.length);
+    for (const url of urls) {
+      expect(ALLOWED_SEEKER_ROUTES, `unexpected nav url: ${url}`).toContain(url);
+    }
+  });
+
+  it("jobSeekerNav does NOT include removed routes", async () => {
+    const { jobSeekerNav } = await import("@/shell/navigation");
+    const urls = jobSeekerNav.map(item => item.url);
+    const forbidden = ["/job-seeker", "/offers", "/career", "/interview-prep", "/auto-apply", "/support",
+      "/hiring-manager", "/candidates", "/job-postings", "/interview-scheduling"];
+    for (const f of forbidden) {
+      expect(urls, `forbidden route ${f} still in nav`).not.toContain(f);
+    }
+  });
+
+  it("hiringManagerNav is empty (deprecated)", async () => {
+    const { hiringManagerNav } = await import("@/shell/navigation");
+    expect(hiringManagerNav).toHaveLength(0);
+  });
+
+  it("admin nav item is marked adminOnly", async () => {
+    const { jobSeekerNav } = await import("@/shell/navigation");
+    const adminItem = jobSeekerNav.find(item => item.url === "/admin");
+    expect(adminItem, "/admin nav item not found").toBeDefined();
+    expect(adminItem?.adminOnly).toBe(true);
+  });
+});
+
+describe("Job Search Resilience (scoreJobs fallback)", () => {
+  it("scoreJobs handles empty jobs without throwing", async () => {
+    const { scoreJobs } = await import("@/services/matching/api");
+    expect(() => scoreJobs({ jobs: [], skills: [] })).not.toThrow();
+  });
+
+  it("scoreJobs returns an array of enriched jobs", async () => {
+    const { scoreJobs } = await import("@/services/matching/api");
+    const job = {
+      title: "Engineer", company: "Acme", location: "Remote",
+      type: "full-time", description: "Build stuff", url: "https://acme.com/job/1",
+      matchReason: "good match",
+    };
+    const result = scoreJobs({ jobs: [job], skills: ["javascript"] });
+    expect(result).toHaveLength(1);
+    expect(result[0]).toHaveProperty("trustScore");
+    expect(result[0]).toHaveProperty("strategy");
+  });
+
+  it("JobResult type in job service does NOT have flags (flags live on EnrichedJob)", () => {
+    // Validate at the file-content level that no lib import exists in job/types.ts
+    const typesPath = join(process.cwd(), "src", "services", "job", "types.ts");
+    const content = require("fs").readFileSync(typesPath, "utf-8");
+    expect(content).not.toContain("jobQualityEngine");
+    expect(content).not.toContain("FakeJobFlag");
+  });
+
+  it("FakeJobFlag type is defined in matching service types file", () => {
+    // Structural check: verify FakeJobFlag interface is declared in matching/types.ts
+    const typesPath = join(process.cwd(), "src", "services", "matching", "types.ts");
+    const content = require("fs").readFileSync(typesPath, "utf-8");
+    expect(content).toContain("FakeJobFlag");
+    expect(content).toContain("interface FakeJobFlag");
+  });
+});
+
 describe("Orchestrator", () => {
   it("orchestrator.ts exists in shell", () => {
     const path = join(SHELL_DIR, "orchestrator.ts");

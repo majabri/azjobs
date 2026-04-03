@@ -1,6 +1,6 @@
-import { ChevronDown, Shield, Target } from "lucide-react";
+import { Target } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
   SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
@@ -19,16 +19,14 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
-  const navigate = useNavigate();
   const { isAdmin } = useAdminRole();
 
   // Use exact match OR startsWith with "/" boundary so /dashboard matches
   // /dashboard/sub-page but NOT /dashboard-settings (different prefix)
   const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(path + "/");
 
-  const currentMode = detectMode(location.pathname);
-  const navItems = getNavItems(currentMode);
-  const modeInfo = modes.find((m) => m.value === currentMode)!;
+  // Filter nav: adminOnly items only shown to admins
+  const navItems = jobSeekerNav.filter(item => !item.adminOnly || isAdmin);
 
   return (
     <TooltipProvider delayDuration={300}>
