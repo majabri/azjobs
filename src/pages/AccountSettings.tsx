@@ -221,7 +221,13 @@ export default function AccountSettings() {
               </div>
             </div>
             {hasGoogle ? (
-              <Badge className="bg-primary/10 text-primary border-0">Linked</Badge>
+              <div className="flex items-center gap-2">
+                <Badge className="bg-primary/10 text-primary border-0">Linked</Badge>
+                <Button size="sm" variant="outline" disabled={!canUnlink || linkLoading === "google"} onClick={() => handleUnlinkProvider("google")}
+                  title={!canUnlink ? "Cannot unlink your only sign-in method" : "Unlink Google"}>
+                  {linkLoading === "google" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Unlink className="w-4 h-4" />}
+                </Button>
+              </div>
             ) : (
               <Button size="sm" variant="outline" disabled={linkLoading === "google"} onClick={() => handleLinkProvider("google")}>
                 {linkLoading === "google" ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
