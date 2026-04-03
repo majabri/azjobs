@@ -85,7 +85,7 @@ export default function LoginPage() {
     }
   };
 
-  const loading = loadingGoogle || loadingEmail;
+  const loading = loadingGoogle || loadingApple || loadingEmail;
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-6">
