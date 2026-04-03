@@ -99,7 +99,7 @@ export default function AnalysisForm({ onAnalyze, isAnalyzing, isDemo, prefillJo
             toast.warning(result.error || "Could not extract job description. Please paste it manually.", { duration: 6000 });
             if (result.partialText) setJobDesc(result.partialText);
           }
-        } catch {}
+        } catch { /* URL fetch failed — user can paste manually */ }
         finally { setIsFetchingJob(false); }
       })();
     }
@@ -188,7 +188,7 @@ export default function AnalysisForm({ onAnalyze, isAnalyzing, isDemo, prefillJo
               }
             }
           }
-        } catch {}
+        } catch { /* skill sync failed — non-critical */ }
       } else {
         toast.error(result.error || "Could not extract text");
       }

@@ -293,7 +293,7 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
             return;
           }
         }
-      } catch {}
+      } catch { /* cache read failure — proceed to fetch */ }
     }
 
     fetchJobs(profile, session, cacheKey, outcomes);

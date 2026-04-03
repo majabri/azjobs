@@ -162,7 +162,7 @@ export default function AdminSettings() {
                           }
                         />
                         <Label className="text-xs text-muted-foreground">
-                          {Boolean(currentValue) ? "Enabled" : "Disabled"}
+                          {currentValue ? "Enabled" : "Disabled"}
                         </Label>
                       </div>
                     ) : STRING_KEYS.has(row.key) ? (

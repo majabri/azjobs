@@ -193,7 +193,7 @@ export default function JobSearchPage() {
       const { jobs: rawJobs, citations: cits } = await searchJobsService(filters);
 
       // Step 2: Filter out ignored/saved jobs
-      let filtered = rawJobs
+      const filtered = rawJobs
         .filter(job => !isJobIgnored(job, ignoredList))
         .filter(job => !isJobAlreadySaved(job, savedApps));
 
