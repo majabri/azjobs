@@ -53,6 +53,7 @@ export default function AdminRoutes() {
         <Route path="console" element={<AdminConsole />} />
         <Route path="audit" element={<AdminAudit />} />
         <Route path="tickets" element={<AdminTickets />} />
+        <Route path="surveys" element={<AdminSurveys />} />
       </Routes>
     </Suspense>
   );
