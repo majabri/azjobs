@@ -637,7 +637,8 @@ Deno.serve(async (req) => {
     const location = normalizeText(requestBody.location);
     const query = normalizeText(requestBody.query);
     const careerLevel = normalizeText(requestBody.careerLevel);
-    const limit = Math.max(5, Math.min(Number(requestBody.limit || 50), 100));
+    const limit = Math.max(5, Math.min(Number(requestBody.limit || 50), 200));
+    const search_mode = requestBody.search_mode || "balanced";
 
     // Create the processing job record
     const supabaseAdmin = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
@@ -647,7 +648,7 @@ Deno.serve(async (req) => {
         user_id: userId,
         status: "processing",
         progress: 0,
-        query: { skills, targetTitles, jobTypes, location, query, careerLevel, limit },
+        query: { skills, targetTitles, jobTypes, location, query, careerLevel, limit, search_mode },
       })
       .select("id")
       .single();
