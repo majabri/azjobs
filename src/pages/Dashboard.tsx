@@ -184,14 +184,15 @@ export default function Dashboard() {
   );
 }
 
-function StatCard({ label, value, icon, color, onClick, className, help }: { label: string; value: string; icon: React.ReactNode; color?: string; onClick?: () => void; className?: string; help?: string }) {
-  return (
-    <div className={`bg-card rounded-xl p-4 border border-border shadow-sm ${className || ""}`} onClick={onClick}>
+const StatCard = forwardRef<HTMLDivElement, { label: string; value: string; icon: React.ReactNode; color?: string; onClick?: () => void; className?: string; help?: string }>(
+  ({ label, value, icon, color, onClick, className, help }, ref) => (
+    <div ref={ref} className={`bg-card rounded-xl p-4 border border-border shadow-sm ${className || ""}`} onClick={onClick}>
       <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
         {icon} {label}
         {help && <HelpTooltip text={help} />}
       </div>
       <div className={`text-2xl font-display font-bold ${color || "text-foreground"}`}>{value}</div>
     </div>
-  );
-}
+  )
+);
+StatCard.displayName = "StatCard";
