@@ -248,7 +248,13 @@ export default function AccountSettings() {
               </div>
             </div>
             {hasApple ? (
-              <Badge className="bg-primary/10 text-primary border-0">Linked</Badge>
+              <div className="flex items-center gap-2">
+                <Badge className="bg-primary/10 text-primary border-0">Linked</Badge>
+                <Button size="sm" variant="outline" disabled={!canUnlink || linkLoading === "apple"} onClick={() => handleUnlinkProvider("apple")}
+                  title={!canUnlink ? "Cannot unlink your only sign-in method" : "Unlink Apple"}>
+                  {linkLoading === "apple" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Unlink className="w-4 h-4" />}
+                </Button>
+              </div>
             ) : (
               <Button size="sm" variant="outline" disabled={linkLoading === "apple"} onClick={() => handleLinkProvider("apple")}>
                 {linkLoading === "apple" ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
