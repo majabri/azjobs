@@ -7,7 +7,7 @@
 
 import { createContext, useContext, type ReactNode } from "react";
 import { useAuthReady } from "@/hooks/useAuthReady";
-import { login, loginWithGoogle, logout } from "@/services/user/auth";
+import { login, loginWithGoogle, loginWithApple, logout } from "@/services/user/auth";
 import type { User } from "@supabase/supabase-js";
 
 interface AuthContextValue {
@@ -16,6 +16,7 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   login: typeof login;
   loginWithGoogle: typeof loginWithGoogle;
+  loginWithApple: typeof loginWithApple;
   logout: typeof logout;
 }
 
@@ -26,7 +27,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, isReady, isAuthenticated, login, loginWithGoogle, logout }}
+      value={{ user, isReady, isAuthenticated, login, loginWithGoogle, loginWithApple, logout }}
     >
       {children}
     </AuthContext.Provider>

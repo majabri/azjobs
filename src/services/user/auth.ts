@@ -56,6 +56,19 @@ export async function loginWithGoogle(): Promise<AuthResult> {
   }
 }
 
+/** Initiate Apple OAuth via Lovable + sync session into Supabase. */
+export async function loginWithApple(): Promise<AuthResult> {
+  try {
+    const result = await lovable.auth.signInWithOAuth("apple", {
+      redirect_uri: `${window.location.origin}/dashboard`,
+    });
+    if (result.error) return { error: normalizeError(result.error) };
+    return {};
+  } catch (e) {
+    return { error: normalizeError(e) };
+  }
+}
+
 /** Sign out the current user. */
 export async function logout(): Promise<void> {
   try {
