@@ -111,6 +111,8 @@ export default function JobSearchPage() {
   const [savedApps, setSavedApps] = useState<{ job_title: string; company: string; job_url: string | null }[]>([]);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [minFitScore, setMinFitScore] = useState(60);
+  const [searchMode, setSearchMode] = useState<"quality" | "balanced" | "volume">("balanced");
+  const [totalBeforeFilter, setTotalBeforeFilter] = useState(0);
 
   useEffect(() => { loadProfile(); loadIgnoredAndSaved(); }, []);
 
