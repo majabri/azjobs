@@ -16,8 +16,7 @@ import {
   saveJobToApplications,
   getIgnoredJobs, ignoreJob, isJobIgnored, isJobAlreadySaved, type IgnoredJob,
 } from "@/lib/job-search";
-import { STRATEGY_CONFIG, TRUST_LEVEL_CONFIG, type HistoricalOutcomes } from "@/lib/job-search/jobQualityEngine";
-import type { FakeJobFlag } from "@/services/matching/api";
+import { STRATEGY_CONFIG, TRUST_LEVEL_CONFIG, type FakeJobFlag, type HistoricalOutcomes } from "@/lib/job-search/jobQualityEngine";
 import { searchJobs as searchJobsService } from "@/services/job/api";
 import { scoreJobs, type EnrichedJob } from "@/services/matching/api";
 import type { JobResult, JobSearchFilters } from "@/services/job/types";
@@ -194,7 +193,7 @@ export default function JobSearchPage() {
       const { jobs: rawJobs, citations: cits } = await searchJobsService(filters);
 
       // Step 2: Filter out ignored/saved jobs
-      const filtered = rawJobs
+      let filtered = rawJobs
         .filter(job => !isJobIgnored(job, ignoredList))
         .filter(job => !isJobAlreadySaved(job, savedApps));
 

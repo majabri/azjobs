@@ -251,7 +251,7 @@ function extractCompany(rawCompany: string, title: string, url: string): string 
   if (fromUrl) return fromUrl;
   const hm = title.match(/^(.{2,80}?)\s+hiring\b/i);
   if (hm?.[1] && !GENERIC_COMPANY_NAMES.has(normalizeText(hm[1]).toLowerCase())) return normalizeText(hm[1]);
-  const am = title.match(/\s+at\s+([^|-]{2,80})/i);
+  const am = title.match(/\s+at\s+([^|\-]{2,80})/i);
   if (am?.[1]) return normalizeText(am[1]);
   return c;
 }
@@ -309,7 +309,7 @@ function hasMinimalDescription(desc: string): boolean {
 
 function cleanSearchFragment(input: string, maxWords = 10): string {
   const ignored = new Set(["and", "or", "with", "for", "the", "of", "to", "in", "at"]);
-  return normalizeText(input).replace(/\([^)]*\)/g, " ").replace(/[^a-zA-Z0-9+\-/\s]/g, " ")
+  return normalizeText(input).replace(/\([^)]*\)/g, " ").replace(/[^a-zA-Z0-9+\-\/\s]/g, " ")
     .split(/\s+/).filter((t) => t.length >= 2 && !ignored.has(t.toLowerCase())).slice(0, maxWords).join(" ");
 }
 
@@ -619,9 +619,9 @@ Deno.serve(async (req) => {
     // Start background processing using EdgeRuntime.waitUntil
     const bgParams = { skills, targetTitles, jobTypes, location, query, careerLevel, limit };
 
-    // @ts-expect-error - EdgeRuntime.waitUntil is available in Supabase Edge Functions
+    // @ts-ignore - EdgeRuntime.waitUntil is available in Supabase Edge Functions
     if (typeof EdgeRuntime !== "undefined" && EdgeRuntime.waitUntil) {
-      // @ts-expect-error - EdgeRuntime global is defined in Supabase Edge Functions runtime
+      // @ts-ignore
       EdgeRuntime.waitUntil(processSearchInBackground(job.id, userId, bgParams));
     } else {
       // Fallback: run inline (less ideal but works)

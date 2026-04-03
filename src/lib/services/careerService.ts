@@ -126,7 +126,7 @@ export function extractJobTitles(text: string): string[] {
   for (const cp of compoundPatterns) {
     let m: RegExpExecArray | null;
     while ((m = cp.exec(text)) !== null) {
-      const title = m[0].trim().replace(/[,|–—]+\s*$/, "").trim();
+      let title = m[0].trim().replace(/[,|–—]+\s*$/, "").trim();
       if (title.length > 5 && title.length < 100) titles.add(title);
     }
   }
@@ -144,7 +144,7 @@ export function extractJobTitles(text: string): string[] {
     const isTitle = titleIndicators.some(p => p.test(line));
     const isBullet = /^[-•●▪]/.test(line) || line.length > 80;
     if (isTitle && !isBullet) {
-      const title = line.replace(/^#+ /, "").replace(/[,|–—]\s*\d{4}.*$/, "").replace(/\s*\(.*?\)\s*$/, "").replace(/["']/g, "").trim();
+      let title = line.replace(/^#+ /, "").replace(/[,|–—]\s*\d{4}.*$/, "").replace(/\s*\(.*?\)\s*$/, "").replace(/["']/g, "").trim();
       if (title.length > 4 && title.length < 100) titles.add(title);
     }
   }

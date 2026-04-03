@@ -15,7 +15,7 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, serviceKey);
 
     const { type, user_id } = await req.json();
-    const notifications: any[] = [];
+    let notifications: any[] = [];
 
     if (type === "job_alerts") {
       // Generate job alert notifications for users with daily alerts enabled

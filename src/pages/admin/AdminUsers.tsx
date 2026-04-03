@@ -536,7 +536,7 @@ function JobSeekerPanel({
 
       setRecords(merged);
       onRecordsLoaded?.(merged);
-    } catch { /* load failed — table stays empty */
+    } catch (e) {
     } finally {
       setLoading(false);
     }

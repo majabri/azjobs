@@ -49,7 +49,7 @@ export async function runAllAgents(filters: JobSearchFilters): Promise<Orchestra
 
   // ── Step 1: Job Service — fetch jobs only ──────────────────────────────────
   console.log("[Orchestrator] Step 1: searching jobs...");
-  const jobs = await searchJobs(filters).then(r => r.jobs).catch(e => {
+  let jobs = await searchJobs(filters).then(r => r.jobs).catch(e => {
     console.error("[Orchestrator] searchJobs failed:", e);
     result.errors.push(`searchJobs: ${errMsg(e)}`);
     return [];

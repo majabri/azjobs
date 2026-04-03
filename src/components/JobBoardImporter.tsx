@@ -30,12 +30,12 @@ export default function JobBoardImporter() {
 
   const parseJobsFromText = (text: string): ImportedJob[] => {
     // Split by common separators (double newlines, dashes, numbered items)
-    const sections = text.split(/\n{2,}|---+|\n(?=\d+[.)]\s)/).filter(s => s.trim().length > 30);
+    const sections = text.split(/\n{2,}|---+|\n(?=\d+[\.\)]\s)/).filter(s => s.trim().length > 30);
     
     return sections.map(section => {
       const lines = section.trim().split("\n").filter(Boolean);
       // Try to extract title and company from first lines
-      let title = lines[0]?.replace(/^\d+[.)]\s*/, "").trim() || "Unknown Role";
+      let title = lines[0]?.replace(/^\d+[\.\)]\s*/, "").trim() || "Unknown Role";
       let company = "";
       
       // Common patterns: "Title at Company" or "Title - Company" or "Company: Title"
