@@ -271,8 +271,12 @@ function extractLocation(rawLoc: string, title: string, desc: string, fallback: 
   if (c && c.length <= 80) return inferLocation(c, fallback);
   const text = `${title} ${desc}`;
   if (/\bremote\b/i.test(text)) return "Remote";
-  const m = text.match(/\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*,\s*[A-Z]{2})\b/);
-  if (m?.[1]) return m[1];
+  // US pattern: City, ST
+  const usMatch = text.match(/\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*,\s*[A-Z]{2})\b/);
+  if (usMatch?.[1]) return usMatch[1];
+  // International pattern: City, Country
+  const intlMatch = text.match(/\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*,\s*[A-Z][a-z]{2,})\b/);
+  if (intlMatch?.[1]) return intlMatch[1];
   return fallback || "Remote";
 }
 
