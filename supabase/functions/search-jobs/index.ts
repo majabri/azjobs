@@ -382,14 +382,23 @@ async function searchFirecrawlSingleQuery(
   const q = normalizeText(`${query} ${cleanSearchFragment(location, 5)} hiring`).slice(0, 200);
   console.log(`Firecrawl query:`, q);
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 45_000);
+
   let response: Response;
   try {
     response = await fetch("https://api.firecrawl.dev/v1/search", {
       method: "POST",
       headers: { Authorization: `Bearer ${firecrawlApiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ query: q, limit: 10, tbs: "qdr:m", scrapeOptions: { formats: ["markdown"], onlyMainContent: true } }),
+      body: JSON.stringify({ query: q, limit: 30, tbs: "qdr:m", scrapeOptions: { formats: ["markdown"], onlyMainContent: true } }),
+      signal: controller.signal,
     });
-  } catch (e) { console.error("Firecrawl fetch error:", e); return []; }
+  } catch (e) {
+    clearTimeout(timeoutId);
+    console.error("Firecrawl fetch error:", e);
+    return [];
+  }
+  clearTimeout(timeoutId);
 
   if (!response.ok) {
     await response.text(); // consume body
