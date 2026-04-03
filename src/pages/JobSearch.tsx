@@ -392,7 +392,7 @@ export default function JobSearchPage() {
                 <label className="text-sm font-semibold text-foreground mb-1 block">Location</label>
                 <div className="flex items-center gap-2">
                   <MapPin className="w-4 h-4 text-muted-foreground" />
-                  <Input value={location} onChange={e => setLocation(e.target.value)} placeholder="City, State or Remote" />
+                  <Input value={location} onChange={e => setLocation(e.target.value)} placeholder="e.g. Remote, London, Berlin, Singapore, or leave blank for global" />
                 </div>
               </div>
               <div>
