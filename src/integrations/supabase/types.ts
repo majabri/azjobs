@@ -176,6 +176,30 @@ export type Database = {
         }
         Relationships: []
       }
+      benefits_catalog: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          keywords: string[]
+          label: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          id?: string
+          keywords?: string[]
+          label: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          keywords?: string[]
+          label?: string
+        }
+        Relationships: []
+      }
       email_preferences: {
         Row: {
           daily_job_alerts: boolean
@@ -378,6 +402,42 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      job_benefits: {
+        Row: {
+          benefit_id: string
+          created_at: string
+          id: string
+          job_id: string
+        }
+        Insert: {
+          benefit_id: string
+          created_at?: string
+          id?: string
+          job_id: string
+        }
+        Update: {
+          benefit_id?: string
+          created_at?: string
+          id?: string
+          job_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_benefits_benefit_id_fkey"
+            columns: ["benefit_id"]
+            isOneToOne: false
+            referencedRelation: "benefits_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_benefits_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "scraped_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       job_postings: {
         Row: {
