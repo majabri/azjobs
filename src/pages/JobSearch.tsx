@@ -202,7 +202,7 @@ export default function JobSearchPage() {
     // If matching fails, we still show jobs with default scores
     let enriched: EnrichedJob[];
     try {
-      enriched = scoreJobs({ jobs: filtered, skills, historicalOutcomes });
+      enriched = scoreJobs({ jobs: filtered, skills, historicalOutcomes, salaryMin, salaryMax, remotePreferred: jobTypes.includes("remote") });
     } catch (e) {
       console.error("[JobSearch] Matching service error (degrading gracefully):", e);
       // Fallback: show jobs without enrichment
