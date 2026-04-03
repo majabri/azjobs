@@ -22,24 +22,24 @@ import { Loader2 } from "lucide-react";
 // ─── Lazy-loaded service route components ────────────────────────────────────
 const AnalyticsRoutes = lazy(() => import("@/services/analytics/routes"));
 const JobRoutes = lazy(() => import("@/services/job/routes"));
-const JobSeeker = lazy(() => import("@/services/job/routes").then(m => ({ default: m.JobSeeker })));
+const JobSeeker = lazy(() => import("@/services/job/pages/JobSeeker"));
 const ApplicationRoutes = lazy(() => import("@/services/application/routes"));
-const Offers = lazy(() => import("@/services/application/routes").then(m => ({ default: m.Offers })));
+const Offers = lazy(() => import("@/services/application/pages/Offers"));
 const UserRoutes = lazy(() => import("@/services/user/routes"));
-const UserAuth = lazy(() => import("@/services/user/routes").then(m => ({ default: m.Auth })));
-const UserPublicProfile = lazy(() => import("@/services/user/routes").then(m => ({ default: m.PublicProfile })));
+const UserAuth = lazy(() => import("@/services/user/pages/Auth"));
+const UserPublicProfile = lazy(() => import("@/services/user/pages/PublicProfile"));
 const AdminRoutes = lazy(() => import("@/services/admin/routes"));
-const AdminUsernameLogin = lazy(() => import("@/services/admin/routes").then(m => ({ default: m.AdminUsernameLogin })));
-const AdminSetPassword = lazy(() => import("@/services/admin/routes").then(m => ({ default: m.AdminSetPassword })));
+const AdminUsernameLogin = lazy(() => import("@/services/admin/pages/AdminUsernameLogin"));
+const AdminSetPassword = lazy(() => import("@/services/admin/pages/AdminSetPassword"));
 const CareerRoutes = lazy(() => import("@/services/career/routes"));
-const InterviewPrep = lazy(() => import("@/services/career/routes").then(m => ({ default: m.InterviewPrep })));
-const AutoApply = lazy(() => import("@/services/career/routes").then(m => ({ default: m.AutoApply })));
-const ScoreReport = lazy(() => import("@/services/matching/routes").then(m => ({ default: m.ScoreReport })));
+const InterviewPrep = lazy(() => import("@/services/career/pages/InterviewPrep"));
+const AutoApply = lazy(() => import("@/services/career/pages/AutoApply"));
+const ScoreReport = lazy(() => import("@/services/matching/pages/ScoreReport"));
 const SupportRoutes = lazy(() => import("@/services/support/routes"));
 const HiringRoutes = lazy(() => import("@/services/hiring/routes"));
-const CandidatesDatabase = lazy(() => import("@/services/hiring/routes").then(m => ({ default: m.CandidatesDatabase })));
-const JobPostings = lazy(() => import("@/services/hiring/routes").then(m => ({ default: m.JobPostings })));
-const InterviewScheduling = lazy(() => import("@/services/hiring/routes").then(m => ({ default: m.InterviewScheduling })));
+const CandidatesDatabase = lazy(() => import("@/services/hiring/pages/CandidatesDatabase"));
+const JobPostings = lazy(() => import("@/services/hiring/pages/JobPostings"));
+const InterviewScheduling = lazy(() => import("@/services/hiring/pages/InterviewScheduling"));
 
 // ─── Non-service pages (landing, 404) ────────────────────────────────────────
 const Index = lazy(() => import("@/pages/Index"));
