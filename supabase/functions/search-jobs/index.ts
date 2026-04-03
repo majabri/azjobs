@@ -482,10 +482,14 @@ function buildSearchUrl(title: string, company: string): string {
 
 async function processSearchInBackground(
   jobId: string, userId: string,
-  params: { skills: string[]; targetTitles: string[]; jobTypes: string[]; location: string; query: string; careerLevel: string; limit: number },
+  params: { skills: string[]; targetTitles: string[]; jobTypes: string[]; location: string; query: string; careerLevel: string; limit: number; search_mode?: string },
 ) {
   const supabaseAdmin = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
   const firecrawlApiKey = Deno.env.get("FIRECRAWL_API_KEY");
+
+  // Determine score threshold based on search_mode
+  const thresholdMap: Record<string, number> = { quality: 60, balanced: 35, volume: 30 };
+  const scoreThreshold = thresholdMap[params.search_mode || "balanced"] ?? 35;
 
   try {
     // Update progress: 10%
@@ -494,28 +498,34 @@ async function processSearchInBackground(
     const searchQueries = buildSearchQueries({
       query: params.query, targetTitles: params.targetTitles,
       skills: params.skills, careerLevel: params.careerLevel, jobTypes: params.jobTypes,
+      location: params.location,
     });
     const skillTokens = tokenize(params.skills.join(" ")).slice(0, 16);
     const titleTokens = tokenize(`${params.targetTitles.join(" ")} ${params.query} ${params.careerLevel}`).slice(0, 16);
     const titlePhrases = params.targetTitles.map((t) => cleanSearchFragment(t, 8).toLowerCase()).filter((t) => t.length >= 5).slice(0, 4);
 
-    console.log("BG Queries:", searchQueries, "location:", params.location);
+    console.log("BG Queries:", searchQueries, "location:", params.location, "mode:", params.search_mode);
 
     // Fetch DB jobs
     const databaseJobs = await fetchDatabaseJobs(supabaseAdmin);
     await supabaseAdmin.from("processing_jobs").update({ progress: 30, updated_at: new Date().toISOString() }).eq("id", jobId);
 
-    // Fetch Firecrawl jobs sequentially (one query at a time to minimize memory)
+    // Fetch Firecrawl jobs in parallel batches of 2
     let crawledJobs: NormalizedJob[] = [];
     if (firecrawlApiKey) {
-      for (const [i, q] of searchQueries.entries()) {
-        const batch = await searchFirecrawlSingleQuery(firecrawlApiKey, q, params.location);
-        crawledJobs = crawledJobs.concat(batch);
+      for (let i = 0; i < searchQueries.length; i += 2) {
+        const batch = searchQueries.slice(i, i + 2);
+        const results = await Promise.allSettled(
+          batch.map((q) => searchFirecrawlSingleQuery(firecrawlApiKey, q, params.location)),
+        );
+        for (const r of results) {
+          if (r.status === "fulfilled") crawledJobs = crawledJobs.concat(r.value);
+        }
         await supabaseAdmin.from("processing_jobs").update({
-          progress: 30 + Math.floor(((i + 1) / searchQueries.length) * 40),
+          progress: 30 + Math.floor(((Math.min(i + 2, searchQueries.length)) / searchQueries.length) * 40),
           updated_at: new Date().toISOString(),
         }).eq("id", jobId);
-        if (crawledJobs.length >= params.limit) break;
+        if (crawledJobs.length >= params.limit * 2) break;
       }
     }
 
@@ -532,7 +542,7 @@ async function processSearchInBackground(
     // Score and rank
     const ranked = [...dedupedByUrl.values()]
       .map((job) => ({ ...job, ...scoreJobMatch(job, skillTokens, titleTokens, titlePhrases, params.location) }))
-      .filter((j) => j.phraseHit || j.skillHits >= 1 || j.titleHits >= 1 || j.finalScore >= 50)
+      .filter((j) => j.phraseHit || j.skillHits >= 1 || j.titleHits >= 1 || j.finalScore >= scoreThreshold)
       .sort((a, b) => b.finalScore - a.finalScore)
       .slice(0, params.limit)
       .map((job) => ({
