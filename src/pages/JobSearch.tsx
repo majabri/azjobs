@@ -111,6 +111,8 @@ export default function JobSearchPage() {
   const [savedApps, setSavedApps] = useState<{ job_title: string; company: string; job_url: string | null }[]>([]);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [minFitScore, setMinFitScore] = useState(60);
+  const [searchMode, setSearchMode] = useState<"quality" | "balanced" | "volume">("balanced");
+  const [totalBeforeFilter, setTotalBeforeFilter] = useState(0);
 
   useEffect(() => { loadProfile(); loadIgnoredAndSaved(); }, []);
 
@@ -148,7 +150,7 @@ export default function JobSearchPage() {
         if (data.salary_min) setSalaryMin(data.salary_min);
         if (data.salary_max) setSalaryMax(data.salary_max);
         if (data.min_match_score != null) setMinFitScore(data.min_match_score);
-        setProfileLoaded(true);
+        if (data.search_mode) setSearchMode(data.search_mode as "quality" | "balanced" | "volume");
       }
       if (appData && appData.length >= 3) {
         const total = appData.length;
@@ -178,6 +180,7 @@ export default function JobSearchPage() {
     const filters: JobSearchFilters = {
       skills, jobTypes, location, query: customQuery, careerLevel,
       targetTitles, salaryMin, salaryMax, searchSource, minFitScore, showFlagged,
+      search_mode: searchMode,
     };
 
     // Step 1: Job service fetches raw results (DB + AI with async queue)
@@ -235,13 +238,17 @@ export default function JobSearchPage() {
 
     // Step 5: Client-side filters
     if (!showFlagged) enriched = enriched.filter(j => !j.is_flagged);
+    const beforeFilterCount = enriched.length;
     enriched = enriched.filter(j => (j.decisionScore || 0) >= minFitScore);
+    setTotalBeforeFilter(beforeFilterCount);
 
     setJobs(enriched);
     setCitations(cits);
     setVisibleCount(PAGE_SIZE);
-    if (!enriched.length && rawJobs.length > 0) {
-      toast.info("Jobs found but filtered out. Try lowering minimum fit score.");
+    if (!enriched.length && beforeFilterCount > 0) {
+      toast.info(`${beforeFilterCount} jobs found but hidden by your ${minFitScore}% fit score filter. Try lowering it.`);
+    } else if (!enriched.length && rawJobs.length > 0) {
+      toast.info("Jobs found but all filtered out. Try lowering minimum fit score.");
     } else if (!enriched.length) {
       toast.info("No jobs found. Try adjusting your criteria.");
     }
