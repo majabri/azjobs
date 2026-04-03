@@ -370,7 +370,7 @@ async function fetchDatabaseJobs(supabaseAdmin: any): Promise<NormalizedJob[]> {
     .from("scraped_jobs")
     .select("title, company, location, job_type, description, job_url, quality_score")
     .gte("quality_score", 30).not("job_url", "is", null)
-    .order("quality_score", { ascending: false }).limit(100);
+    .order("quality_score", { ascending: false }).limit(300);
   if (error) { console.error("DB error:", error.message); return []; }
   if (!data?.length) { console.warn("fetchDatabaseJobs: 0 rows"); return []; }
   return data.map((row: any) => {
