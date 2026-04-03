@@ -331,7 +331,7 @@ function buildSearchQueries(p: { query: string; targetTitles: string[]; skills: 
     cleanSearchFragment(`${secondary} ${remote}`, 10),
   ];
   const deduped = [...new Set(candidates.filter((c) => c.length >= 4))].slice(0, 2);
-  return deduped.length ? deduped : ["software engineer remote"];
+  return deduped.length ? deduped : ["jobs hiring now"];
 }
 
 // ── Data fetching ──────────────────────────────────────────────────────
@@ -340,7 +340,7 @@ async function fetchDatabaseJobs(supabaseAdmin: any): Promise<NormalizedJob[]> {
   const { data, error } = await supabaseAdmin
     .from("scraped_jobs")
     .select("title, company, location, job_type, description, job_url, quality_score")
-    .gte("quality_score", 30).not("job_url", "is", null)
+    .gte("quality_score", 10).not("job_url", "is", null)
     .order("quality_score", { ascending: false }).limit(100);
   if (error) { console.error("DB error:", error.message); return []; }
   if (!data?.length) { console.warn("fetchDatabaseJobs: 0 rows"); return []; }
@@ -467,6 +467,9 @@ async function processSearchInBackground(
 
     // Fetch Firecrawl jobs sequentially (one query at a time to minimize memory)
     let crawledJobs: NormalizedJob[] = [];
+    if (!firecrawlApiKey) {
+      console.warn("FIRECRAWL_API_KEY not set — web search disabled, using database results only");
+    }
     if (firecrawlApiKey) {
       for (const [i, q] of searchQueries.entries()) {
         const batch = await searchFirecrawlSingleQuery(firecrawlApiKey, q, params.location);
@@ -490,9 +493,14 @@ async function processSearchInBackground(
     }
 
     // Score and rank
+    // When no tokens exist (empty profile), skip the relevance filter and rank purely by quality score
+    const hasTokens = skillTokens.length > 0 || titleTokens.length > 0 || titlePhrases.length > 0;
+    if (!hasTokens) {
+      console.log("No search tokens — returning all DB jobs by quality score");
+    }
     const ranked = [...dedupedByUrl.values()]
       .map((job) => ({ ...job, ...scoreJobMatch(job, skillTokens, titleTokens, titlePhrases, params.location) }))
-      .filter((j) => j.phraseHit || j.skillHits >= 1 || j.titleHits >= 1 || j.finalScore >= 50)
+      .filter((j) => !hasTokens || j.phraseHit || j.skillHits >= 1 || j.titleHits >= 1 || j.finalScore >= 50)
       .sort((a, b) => b.finalScore - a.finalScore)
       .slice(0, params.limit)
       .map((job) => ({
@@ -507,7 +515,7 @@ async function processSearchInBackground(
 
     await supabaseAdmin.from("processing_jobs").update({
       status: "completed", progress: 100,
-      result: { jobs: ranked, citations: [] },
+      result: { jobs: ranked, citations: [], webSearchEnabled: Boolean(firecrawlApiKey), dbJobCount: databaseJobs.length },
       updated_at: new Date().toISOString(),
     }).eq("id", jobId);
 

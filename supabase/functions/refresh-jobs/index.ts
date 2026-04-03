@@ -6,6 +6,10 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+// Minimum number of jobs that must be present before stale records are purged.
+// Guards against the table self-emptying when the cron lapses and all rows age out.
+const CLEANUP_SAFETY_THRESHOLD = 500;
+
 // ── Well-known ATS boards to crawl daily ──
 const DEFAULT_GREENHOUSE_BOARDS = [
   "airbnb", "figma", "stripe", "notion", "databricks", "cloudflare",
@@ -472,13 +476,22 @@ Deno.serve(async (req) => {
       else console.error("Upsert error:", error.message);
     }
 
-    // ── Step 6: Clean up stale jobs (not seen in 14 days) ──
+    // ── Step 6: Clean up stale jobs only when fresh data has been loaded (prevents self-emptying if cron lapses) ──
     const staleDate = new Date();
     staleDate.setDate(staleDate.getDate() - 14);
-    const { count: deletedCount } = await supabaseAdmin
+    const { count: totalCount } = await supabaseAdmin
       .from("scraped_jobs")
-      .delete({ count: "exact" })
-      .lt("last_seen_at", staleDate.toISOString());
+      .select("*", { count: "exact", head: true });
+    let deletedCount = 0;
+    if ((totalCount || 0) > CLEANUP_SAFETY_THRESHOLD) {
+      const { count } = await supabaseAdmin
+        .from("scraped_jobs")
+        .delete({ count: "exact" })
+        .lt("last_seen_at", staleDate.toISOString());
+      deletedCount = count || 0;
+    } else {
+      console.log(`Skipping stale cleanup — only ${totalCount ?? 0} jobs in DB (threshold: ${CLEANUP_SAFETY_THRESHOLD})`);
+    }
 
     console.log(`🗑️ Cleaned up ${deletedCount || 0} stale jobs`);
     console.log(`✅ Daily refresh complete: ${inserted} jobs upserted`);
