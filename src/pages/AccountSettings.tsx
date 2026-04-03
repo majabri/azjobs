@@ -2,7 +2,7 @@
  * Account Settings page — password, MFA (TOTP), Google linking, delete account.
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,10 +10,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Shield, Smartphone, Mail, MessageSquare, Key, Trash2, Loader2 } from "lucide-react";
+import { Shield, Smartphone, Mail, MessageSquare, Key, Trash2, Loader2, Link2, Unlink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
-import { enrollTOTP, verifyTOTP, unenrollFactor, listFactors } from "@/services/user/auth";
+import { enrollTOTP, verifyTOTP, unenrollFactor, listFactors, loginWithGoogle, loginWithApple } from "@/services/user/auth";
 import { normalizeError } from "@/lib/normalizeError";
 import { toast } from "sonner";
 
