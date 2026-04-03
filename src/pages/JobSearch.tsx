@@ -198,7 +198,24 @@ export default function JobSearchPage() {
         .filter(job => !isJobAlreadySaved(job, savedApps));
 
       // Step 3: Matching service enriches with trust, probability, strategy
-      let enriched = scoreJobs({ jobs: filtered, skills, historicalOutcomes });
+      let enriched: EnrichedJob[];
+      try {
+        enriched = scoreJobs({ jobs: filtered, skills, historicalOutcomes });
+      } catch (matchErr) {
+        console.warn("Matching service failed — showing raw results without scores", matchErr);
+        // Provide safe defaults for enrichment fields so the UI renders correctly
+        enriched = filtered.map(job => ({
+          ...job,
+          flags: [],
+          trustScore: 50,
+          trustLevel: "caution" as const,
+          strategy: "apply_now" as const,
+          responseProbability: job.responseProbability ?? 50,
+          decisionScore: job.decisionScore ?? 50,
+          effortEstimate: job.effortEstimate ?? 50,
+          smartTag: job.smartTag ?? "Worth Applying",
+        }));
+      }
 
       // Step 4: Sort
       if (sortBy === "decision") {
