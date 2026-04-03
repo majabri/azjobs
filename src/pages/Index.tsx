@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { analyzeJobFit } from "@/lib/analysisEngine";
 import { AUTH_LOGIN } from "@/lib/routes";
+import CustomerSurvey from "@/components/CustomerSurvey";
 
 const stats = [
   { value: "AI-Powered", label: "resume optimization for every application" },
