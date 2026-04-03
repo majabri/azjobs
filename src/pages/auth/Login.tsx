@@ -1,7 +1,12 @@
 /**
  * /auth/login — Primary login page.
  * Supports Google OAuth, Apple OAuth, and email/password sign-in.
- * Role-aware redirect: admins → /admin, regular users → /dashboard.
+ * Role-aware redirect:
+ *   admin                      → /admin
+ *   recruiter only             → /hiring-manager
+ *   job_seeker only / no role  → /dashboard
+ *   both (dual-role)           → stored preference, or /dashboard
+ *                                (DashboardPickerDialog will prompt on arrival)
  */
 
 import { useEffect, useState } from "react";
@@ -11,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Target, Loader2 } from "lucide-react";
 import { useAuthReady } from "@/hooks/useAuthReady";
-import { useAdminRole } from "@/hooks/useAdminRole";
+import { useUserRole, dashboardPrefKey } from "@/hooks/useUserRole";
 import { login, loginWithGoogle, loginWithApple } from "@/services/user/auth";
 import { normalizeError } from "@/lib/normalizeError";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,7 +24,7 @@ import { supabase } from "@/integrations/supabase/client";
 export default function LoginPage() {
   const navigate = useNavigate();
   const { user, isReady } = useAuthReady();
-  const { isAdmin, isLoading: isRoleLoading } = useAdminRole();
+  const { isAdmin, isJobSeeker, isRecruiter, isDualRole, isLoading: isRoleLoading } = useUserRole();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -31,8 +36,30 @@ export default function LoginPage() {
   // Role-aware redirect after authentication
   useEffect(() => {
     if (!isReady || !user || isRoleLoading) return;
-    navigate(isAdmin ? "/admin" : "/dashboard", { replace: true });
-  }, [isReady, user, isRoleLoading, isAdmin, navigate]);
+
+    if (isAdmin) {
+      navigate("/admin", { replace: true });
+      return;
+    }
+
+    if (isRecruiter && !isJobSeeker) {
+      navigate("/hiring-manager", { replace: true });
+      return;
+    }
+
+    if (isDualRole) {
+      // Respect an already-stored default dashboard preference
+      const pref = localStorage.getItem(dashboardPrefKey(user.id));
+      if (pref === "hiring") {
+        navigate("/hiring-manager", { replace: true });
+        return;
+      }
+      // No preference yet — land on /dashboard; the DashboardPickerDialog
+      // mounted in AuthenticatedLayout will prompt the user on arrival.
+    }
+
+    navigate("/dashboard", { replace: true });
+  }, [isReady, user, isRoleLoading, isAdmin, isJobSeeker, isRecruiter, isDualRole, navigate]);
 
   // Show loading while resolving auth + role
   if (isReady && user && isRoleLoading) {
