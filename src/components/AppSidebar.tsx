@@ -1,6 +1,6 @@
-import { Target, ChevronDown, Shield } from "lucide-react";
+import { Target } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
   SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
@@ -12,18 +12,14 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAdminRole } from "@/hooks/useAdminRole";
 import {
-  modes, detectMode, jobSeekerNav,
+  modes, detectMode, getNavItems,
 } from "@/shell/navigation";
 
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
-  const navigate = useNavigate();
   const { isAdmin } = useAdminRole();
-
-  const currentMode = detectMode(location.pathname);
-  const modeInfo = modes.find(m => m.value === currentMode) ?? modes[0];
 
   // Use exact match OR startsWith with "/" boundary so /dashboard matches
   // /dashboard/sub-page but NOT /dashboard-settings (different prefix)
@@ -61,7 +57,7 @@ export function AppSidebar() {
                   {modes.map((m) => (
                     <DropdownMenuItem
                       key={m.value}
-                      onClick={() => navigate("/dashboard")}
+                      onClick={() => navigate(m.value === "hiring" ? "/hiring-manager" : "/dashboard")}
                       className={currentMode === m.value ? "bg-accent/50" : ""}
                     >
                       <m.icon className="mr-2 h-4 w-4" />
@@ -86,7 +82,7 @@ export function AppSidebar() {
                   {modes.map((m) => (
                     <DropdownMenuItem
                       key={m.value}
-                      onClick={() => navigate("/dashboard")}
+                      onClick={() => navigate(m.value === "hiring" ? "/hiring-manager" : "/dashboard")}
                       className={currentMode === m.value ? "bg-accent/50" : ""}
                     >
                       <m.icon className="mr-2 h-4 w-4" />
