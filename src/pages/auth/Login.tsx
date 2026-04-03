@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Target } from "lucide-react";
 import { useAuthReady } from "@/hooks/useAuthReady";
-import { login, loginWithGoogle } from "@/services/user/auth";
+import { login, loginWithGoogle, loginWithApple } from "@/services/user/auth";
 import { normalizeError } from "@/lib/normalizeError";
 
 export default function LoginPage() {
