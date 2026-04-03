@@ -55,6 +55,7 @@ export default function ProfilePage() {
           salary_max: data.salary_max || "",
           remote_only: data.remote_only || false,
           min_match_score: data.min_match_score ?? 60,
+          search_mode: (data as any).search_mode || "balanced",
         });
       }
     } catch (e) {
@@ -70,33 +71,19 @@ export default function ProfilePage() {
       if (!session) { toast.error("Please sign in"); return; }
       const resp = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/export-my-data`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          },
-        },
+        { method: "GET", headers: { Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY } },
       );
-      if (!resp.ok) {
-        const json = await resp.json();
-        throw new Error(json.error ?? "Failed to export data");
-      }
+      if (!resp.ok) { const json = await resp.json(); throw new Error(json.error ?? "Failed to export data"); }
       const blob = await resp.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
       a.download = `my_data_export_${new Date().toISOString().split("T")[0]}.json`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
+      document.body.appendChild(a); a.click(); a.remove();
       URL.revokeObjectURL(url);
       toast.success("Your data has been exported.");
-    } catch (e: any) {
-      toast.error(e.message ?? "Failed to export data");
-    } finally {
-      setExporting(false);
-    }
+    } catch (e: any) { toast.error(e.message ?? "Failed to export data"); }
+    finally { setExporting(false); }
   };
 
   const handleDeleteAccount = async () => {
@@ -106,26 +93,15 @@ export default function ProfilePage() {
       if (!session) { toast.error("Please sign in"); return; }
       const resp = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-own-account`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          },
-        },
+        { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY } },
       );
       const json = await resp.json();
       if (!resp.ok) throw new Error(json.error ?? "Failed to delete account");
       await supabase.auth.signOut();
       toast.success("Your account has been deleted.");
       navigate("/", { replace: true });
-    } catch (e: any) {
-      toast.error(e.message ?? "Failed to delete account");
-    } finally {
-      setDeleting(false);
-      setShowDeleteDialog(false);
-    }
+    } catch (e: any) { toast.error(e.message ?? "Failed to delete account"); }
+    finally { setDeleting(false); setShowDeleteDialog(false); }
   };
 
   const handleSave = async () => {
@@ -152,6 +128,7 @@ export default function ProfilePage() {
         salary_max: profile.salary_max || null,
         remote_only: profile.remote_only,
         min_match_score: profile.min_match_score,
+        search_mode: profile.search_mode || "balanced",
         updated_at: new Date().toISOString(),
       };
       const { error } = await supabase.from("job_seeker_profiles").upsert(payload as any, { onConflict: "user_id" });
@@ -181,34 +158,18 @@ export default function ProfilePage() {
         {/* Danger Zone */}
         <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-6 space-y-3">
           <h2 className="text-sm font-semibold text-destructive">Danger Zone</h2>
-          <p className="text-sm text-muted-foreground">
-            Permanently delete your account and all associated data. This action cannot be undone.
-          </p>
+          <p className="text-sm text-muted-foreground">Permanently delete your account and all associated data. This action cannot be undone.</p>
           <div className="flex flex-wrap gap-3">
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-2"
-              onClick={handleExportData}
-              disabled={exporting}
-            >
-              {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-              Export My Data
+            <Button variant="outline" size="sm" className="flex items-center gap-2" onClick={handleExportData} disabled={exporting}>
+              {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />} Export My Data
             </Button>
-            <Button
-              variant="destructive"
-              size="sm"
-              className="flex items-center gap-2"
-              onClick={() => setShowDeleteDialog(true)}
-            >
-              <Trash2 className="w-4 h-4" />
-              Delete My Account
+            <Button variant="destructive" size="sm" className="flex items-center gap-2" onClick={() => setShowDeleteDialog(true)}>
+              <Trash2 className="w-4 h-4" /> Delete My Account
             </Button>
           </div>
         </div>
       </div>
 
-      {/* Delete Account confirmation dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={(v) => { if (!v && !deleting) setShowDeleteDialog(false); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -219,11 +180,7 @@ export default function ProfilePage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteAccount}
-              disabled={deleting}
-              className="bg-destructive hover:bg-destructive/90 text-white"
-            >
+            <AlertDialogAction onClick={handleDeleteAccount} disabled={deleting} className="bg-destructive hover:bg-destructive/90 text-white">
               {deleting ? "Deleting…" : "Yes, delete my account"}
             </AlertDialogAction>
           </AlertDialogFooter>
