@@ -20,6 +20,9 @@ interface MatchingInput {
   jobs: JobResult[];
   skills: string[];
   historicalOutcomes?: HistoricalOutcomes;
+  salaryMin?: string;
+  salaryMax?: string;
+  remotePreferred?: boolean;
 }
 
 export interface EnrichedJob extends JobResult {
