@@ -34,6 +34,7 @@ export async function loadUserProfile(userId: string): Promise<UserProfile | nul
     salary_max: data.salary_max || "",
     remote_only: data.remote_only || false,
     min_match_score: data.min_match_score ?? 60,
+    search_mode: (data as any).search_mode || "balanced",
   };
 }
 
