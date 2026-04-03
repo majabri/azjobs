@@ -324,13 +324,30 @@ function buildSearchQueries(p: { query: string; targetTitles: string[]; skills: 
   const eq = cleanSearchFragment(p.query, 10);
   const level = cleanSearchFragment(p.careerLevel, 4);
   const remote = p.jobTypes.some((t) => /remote/i.test(t)) ? "remote" : "";
-  const primary = eq || titles[0] || skills[0] || "software engineer";
-  const secondary = titles[1] || cleanSearchFragment(`${primary} ${skills[0] || ""}`, 10);
-  const candidates = [
-    cleanSearchFragment(`${primary} ${remote}`, 10),
-    cleanSearchFragment(`${secondary} ${remote}`, 10),
-  ];
-  const deduped = [...new Set(candidates.filter((c) => c.length >= 4))].slice(0, 2);
+
+  const candidates: string[] = [];
+
+  // One query per target title (up to 3)
+  for (const title of titles) {
+    candidates.push(cleanSearchFragment(`${title} ${remote} hiring`, 10));
+  }
+
+  // Skill-based queries
+  if (skills.length > 0) {
+    const primary = titles[0] || eq || skills[0];
+    candidates.push(cleanSearchFragment(`${primary} ${skills.slice(0, 3).join(" ")} ${remote}`, 12));
+  }
+
+  // General fallback with career level
+  if (eq) {
+    candidates.push(cleanSearchFragment(`${eq} ${level} ${remote}`, 10));
+  }
+
+  // Broader fallback
+  const fallback = eq || titles[0] || skills[0] || "software engineer";
+  candidates.push(cleanSearchFragment(`${fallback} jobs ${remote}`, 10));
+
+  const deduped = [...new Set(candidates.filter((c) => c.length >= 4))].slice(0, 5);
   return deduped.length ? deduped : ["software engineer remote"];
 }
 
