@@ -16,7 +16,8 @@ import {
   saveJobToApplications,
   getIgnoredJobs, ignoreJob, isJobIgnored, isJobAlreadySaved, type IgnoredJob,
 } from "@/lib/job-search";
-import { STRATEGY_CONFIG, TRUST_LEVEL_CONFIG, type FakeJobFlag, type HistoricalOutcomes } from "@/lib/job-search/jobQualityEngine";
+import { STRATEGY_CONFIG, TRUST_LEVEL_CONFIG, type HistoricalOutcomes } from "@/lib/job-search/jobQualityEngine";
+import type { FakeJobFlag } from "@/services/matching/api";
 import { searchJobs as searchJobsService } from "@/services/job/api";
 import { scoreJobs, type EnrichedJob } from "@/services/matching/api";
 import type { JobResult, JobSearchFilters } from "@/services/job/types";
