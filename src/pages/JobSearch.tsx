@@ -238,13 +238,17 @@ export default function JobSearchPage() {
 
     // Step 5: Client-side filters
     if (!showFlagged) enriched = enriched.filter(j => !j.is_flagged);
+    const beforeFilterCount = enriched.length;
     enriched = enriched.filter(j => (j.decisionScore || 0) >= minFitScore);
+    setTotalBeforeFilter(beforeFilterCount);
 
     setJobs(enriched);
     setCitations(cits);
     setVisibleCount(PAGE_SIZE);
-    if (!enriched.length && rawJobs.length > 0) {
-      toast.info("Jobs found but filtered out. Try lowering minimum fit score.");
+    if (!enriched.length && beforeFilterCount > 0) {
+      toast.info(`${beforeFilterCount} jobs found but hidden by your ${minFitScore}% fit score filter. Try lowering it.`);
+    } else if (!enriched.length && rawJobs.length > 0) {
+      toast.info("Jobs found but all filtered out. Try lowering minimum fit score.");
     } else if (!enriched.length) {
       toast.info("No jobs found. Try adjusting your criteria.");
     }
