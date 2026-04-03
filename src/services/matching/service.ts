@@ -137,7 +137,7 @@ export function scoreJobs(input: MatchingInput): EnrichedJob[] {
     return {
       ...job,
       responseProbability: prob,
-      decisionScore: decScore,
+      decisionScore: adjustedDecScore,
       effortEstimate: effort,
       smartTag,
       flags,
