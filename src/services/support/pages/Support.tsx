@@ -3,8 +3,9 @@
  * category cards, FAQ, and ticket status viewer with conversation thread.
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuthReady } from "@/hooks/useAuthReady";
+import { useAdminRole } from "@/hooks/useAdminRole";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -44,9 +45,29 @@ const CATEGORY_CARDS = [
 ];
 
 const FAQ_CATEGORY_LABELS: Record<string, string> = {
+  // Legacy categories (kept for backward compatibility)
   getting_started: "Getting Started",
   job_search: "Job Search Features",
   account: "Account Management",
+  // Job Seeker categories
+  seeker_dashboard: "Dashboard",
+  seeker_analyze_job: "Analyze a Job",
+  seeker_find_jobs: "Find Jobs",
+  seeker_applications: "Applications",
+  seeker_offers: "Offers",
+  seeker_career: "Career Planning",
+  seeker_interview_prep: "Interview Prep",
+  seeker_auto_apply: "Auto Apply",
+  seeker_profile: "Profile & Resume",
+  // Hiring Manager / Recruiter categories
+  recruiter_screener: "Candidate Screener",
+  recruiter_candidates: "Candidates Database",
+  recruiter_job_postings: "Job Postings",
+  recruiter_interview_scheduling: "Interview Scheduling",
+  // Admin categories
+  admin_support_tickets: "Support Tickets",
+  admin_system_health: "System Health & Agents",
+  admin_users_roles: "Users & Roles",
 };
 
 function statusIcon(status: string) {
@@ -58,8 +79,15 @@ function statusIcon(status: string) {
   }
 }
 
+// The DB roles ('job_seeker', 'recruiter', 'admin') may not match the TypeScript
+// UserRole type which reflects an older enum. We normalise to string for comparison.
+function isRecruiterRole(role: string | null | undefined): boolean {
+  return role === "recruiter";
+}
+
 export default function SupportPage() {
   const { user } = useAuthReady();
+  const { role, isAdmin } = useAdminRole();
   const userId = user?.id;
 
   // Form state
@@ -142,8 +170,18 @@ export default function SupportPage() {
     document.getElementById("support-form")?.scrollIntoView({ behavior: "smooth" });
   };
 
-  // FAQ filtering
-  const filteredFaqs = faqs.filter(
+  // Role-based FAQ visibility:
+  // Admin → sees all published FAQs.
+  // Recruiter → sees audience='all' and audience='recruiter'.
+  // Job seeker (default) → sees audience='all' and audience='job_seeker'.
+  const visibleFaqs = useMemo(() => {
+    if (isAdmin) return faqs;
+    const allowed = new Set(isRecruiterRole(role) ? ["all", "recruiter"] : ["all", "job_seeker"]);
+    return faqs.filter((f) => allowed.has(f.audience ?? "all"));
+  }, [faqs, isAdmin, role]);
+
+  // FAQ search + category grouping
+  const filteredFaqs = visibleFaqs.filter(
     (f) =>
       !faqSearch ||
       f.question.toLowerCase().includes(faqSearch.toLowerCase()) ||
@@ -158,7 +196,7 @@ export default function SupportPage() {
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-foreground">Support Center</h1>
           <p className="text-muted-foreground mt-1">
-            Get help, report issues, or share feedback to improve FitCheck.
+            Get help, report issues, or share feedback to improve AZJobs.
           </p>
         </div>
 

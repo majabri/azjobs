@@ -36,6 +36,8 @@ export interface CreateTicketPayload {
   email?: string;
 }
 
+export type FaqAudience = "all" | "job_seeker" | "recruiter" | "admin";
+
 export interface FaqEntry {
   id: string;
   category: string;
@@ -43,6 +45,7 @@ export interface FaqEntry {
   answer: string;
   display_order: number;
   is_published: boolean;
+  audience: FaqAudience;
 }
 
 export const REQUEST_TYPE_LABELS: Record<RequestType, string> = {
