@@ -199,7 +199,7 @@ export async function searchDatabaseJobs(filters: JobSearchFilters): Promise<Job
       if (nonRemoteTypes.length > 0) query = query.in("job_type", nonRemoteTypes);
     }
 
-    query = query.order("created_at", { ascending: false }).limit(500);
+    query = query.order("created_at", { ascending: false }).limit(800);
     const { data, error } = await query;
     if (error) { console.error("[JobService] DB search error:", error); return []; }
 

@@ -135,7 +135,7 @@ export default function JobSearchPage() {
       if (!session) return;
       const [{ data }, { data: appData }] = await Promise.all([
         supabase.from("job_seeker_profiles")
-          .select("skills, preferred_job_types, location, career_level, target_job_titles, salary_min, salary_max, min_match_score")
+          .select("skills, preferred_job_types, location, career_level, target_job_titles, salary_min, salary_max, min_match_score, search_mode")
           .eq("user_id", session.user.id).maybeSingle(),
         supabase.from("job_applications").select("status, response_days").eq("user_id", session.user.id),
       ]);
