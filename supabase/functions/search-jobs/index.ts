@@ -446,7 +446,7 @@ function scoreJobMatch(
   const skillHits = skillTokens.filter((t) => h.includes(t)).length;
   const titleHits = titleTokens.filter((t) => h.includes(t)).length;
   const phraseHit = titlePhrases.some((p) => p && job.title.toLowerCase().includes(p));
-  score += skillHits * 12 + titleHits * 7 + (phraseHit ? 20 : 0);
+  score += skillHits * 12 + titleHits * 7 + (phraseHit ? 30 : 0);
   const loc = normalizeText(locationPref).toLowerCase();
   if (loc) {
     if (job.location.toLowerCase().includes(loc)) score += 15;
@@ -457,6 +457,8 @@ function scoreJobMatch(
   if (isHighSignalHost(job.url)) score += 8;
   if (getUrlHost(job.url).includes("linkedin.com")) score -= 6;
   if (isSuspiciousCompanyName(job.company)) score -= 14;
+  // Recency bonus: jobs created recently get a boost
+  // (not available from Firecrawl results, only DB jobs via quality_score)
   return { finalScore: score, skillHits, titleHits, phraseHit };
 }
 
