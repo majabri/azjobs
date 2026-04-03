@@ -86,7 +86,7 @@ function getSmartTag(job: JobResult & { responseProbability?: number; effortEsti
  * If this fails, job search results should still display (without scores).
  */
 export function scoreJobs(input: MatchingInput): EnrichedJob[] {
-  const { jobs, skills, historicalOutcomes } = input;
+  const { jobs, skills, historicalOutcomes, salaryMin, salaryMax, remotePreferred } = input;
   const allTitles = jobs.map(j => j.title || "");
 
   return jobs.map(job => {
