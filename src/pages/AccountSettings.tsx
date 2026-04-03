@@ -129,6 +129,8 @@ export default function AccountSettings() {
   const providers: string[] = useMemo(() => user?.app_metadata?.providers || [], [user]);
   const hasGoogle = providers.includes("google");
   const hasApple = providers.includes("apple");
+  const identityCount = user?.identities?.length ?? 0;
+  const canUnlink = identityCount > 1;
 
   const handleLinkProvider = async (provider: "google" | "apple") => {
     setLinkLoading(provider);
@@ -139,6 +141,31 @@ export default function AccountSettings() {
         toast.error(result.error);
       } else {
         toast.success(`${provider === "google" ? "Google" : "Apple"} account linked!`);
+      }
+    } catch (e) {
+      toast.error(normalizeError(e));
+    } finally {
+      setLinkLoading(null);
+    }
+  };
+
+  const handleUnlinkProvider = async (provider: "google" | "apple") => {
+    if (!canUnlink) {
+      toast.error("Cannot unlink your only sign-in method. Add another provider or set a password first.");
+      return;
+    }
+    const identity = user?.identities?.find(i => i.provider === provider);
+    if (!identity) { toast.error("Identity not found."); return; }
+
+    setLinkLoading(provider);
+    try {
+      const { error } = await supabase.auth.unlinkIdentity(identity);
+      if (error) {
+        toast.error(normalizeError(error));
+      } else {
+        toast.success(`${provider === "google" ? "Google" : "Apple"} account unlinked.`);
+        // Refresh session to update user metadata
+        await supabase.auth.refreshSession();
       }
     } catch (e) {
       toast.error(normalizeError(e));
