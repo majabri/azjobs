@@ -5,7 +5,7 @@
  * onAuthStateChange + getSession) so it persists across page reloads.
  */
 
-import { createContext, useContext, useEffect, type ReactNode } from "react";
+import { createContext, useContext, type ReactNode } from "react";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { login, loginWithGoogle, logout } from "@/services/user/auth";
 import type { User } from "@supabase/supabase-js";
@@ -13,8 +13,6 @@ import type { User } from "@supabase/supabase-js";
 interface AuthContextValue {
   user: User | null;
   isReady: boolean;
-  /** True while auth state is being initialised (inverse of isReady). */
-  loading: boolean;
   isAuthenticated: boolean;
   login: typeof login;
   loginWithGoogle: typeof loginWithGoogle;
@@ -24,15 +22,11 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const { user, isReady, loading, isAuthenticated } = useAuthReady();
-
-  useEffect(() => {
-    console.debug("[AuthProvider] auth ready:", isReady, "authenticated:", isAuthenticated);
-  }, [isReady, isAuthenticated]);
+  const { user, isReady, isAuthenticated } = useAuthReady();
 
   return (
     <AuthContext.Provider
-      value={{ user, isReady, loading, isAuthenticated, login, loginWithGoogle, logout }}
+      value={{ user, isReady, isAuthenticated, login, loginWithGoogle, logout }}
     >
       {children}
     </AuthContext.Provider>

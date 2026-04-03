@@ -231,7 +231,7 @@ describe("Job Search Resilience (scoreJobs fallback)", () => {
   it("JobResult type in job service does NOT have flags (flags live on EnrichedJob)", () => {
     // Validate at the file-content level that no lib import exists in job/types.ts
     const typesPath = join(process.cwd(), "src", "services", "job", "types.ts");
-    const content = readFileSync(typesPath, "utf-8");
+    const content = require("fs").readFileSync(typesPath, "utf-8");
     expect(content).not.toContain("jobQualityEngine");
     expect(content).not.toContain("FakeJobFlag");
   });
@@ -239,7 +239,7 @@ describe("Job Search Resilience (scoreJobs fallback)", () => {
   it("FakeJobFlag type is defined in matching service types file", () => {
     // Structural check: verify FakeJobFlag interface is declared in matching/types.ts
     const typesPath = join(process.cwd(), "src", "services", "matching", "types.ts");
-    const content = readFileSync(typesPath, "utf-8");
+    const content = require("fs").readFileSync(typesPath, "utf-8");
     expect(content).toContain("FakeJobFlag");
     expect(content).toContain("interface FakeJobFlag");
   });

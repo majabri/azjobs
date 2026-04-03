@@ -20,16 +20,10 @@ export interface AuthResult {
 /** Sign in with email + password via Supabase. */
 export async function login(email: string, password: string): Promise<AuthResult> {
   try {
-    console.debug("[auth] login attempt for:", email);
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      console.debug("[auth] login failed:", error.message);
-      return { error: normalizeError(error) };
-    }
-    console.debug("[auth] login success, user:", data.user?.id);
+    if (error) return { error: normalizeError(error) };
     return { user: data.user, session: data.session };
   } catch (e) {
-    console.debug("[auth] login exception:", normalizeError(e));
     return { error: normalizeError(e) };
   }
 }
@@ -50,9 +44,7 @@ export async function loginWithGoogle(): Promise<AuthResult> {
 /** Sign out the current user. */
 export async function logout(): Promise<void> {
   try {
-    console.debug("[auth] logout initiated");
     await supabase.auth.signOut();
-    console.debug("[auth] logout complete");
   } catch (e) {
     console.error("logout error:", normalizeError(e));
   }
@@ -62,7 +54,6 @@ export async function logout(): Promise<void> {
 export async function getCurrentUser(): Promise<User | null> {
   try {
     const { data: { user } } = await supabase.auth.getUser();
-    console.debug("[auth] getCurrentUser:", user ? `user ${user.id}` : "no user");
     return user;
   } catch (e) {
     console.error("getCurrentUser error:", normalizeError(e));
