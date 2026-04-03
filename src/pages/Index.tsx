@@ -13,6 +13,7 @@ import heroBg from "@/assets/hero-bg.jpg";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { analyzeJobFit } from "@/lib/analysisEngine";
+import { AUTH_LOGIN } from "@/lib/routes";
 
 const stats = [
   { value: "AI-Powered", label: "resume optimization for every application" },
@@ -144,7 +145,7 @@ export default function Index() {
               <Button variant="ghost" className="text-primary-foreground/80 hover:text-primary-foreground hover:bg-white/10 text-sm" onClick={() => navigate("/job-seeker?demo=true")}>
                 Try Demo
               </Button>
-              <Button size="sm" className="gradient-teal text-white font-semibold shadow-teal hover:opacity-90 ml-2" onClick={() => navigate("/auth")}>
+              <Button size="sm" className="gradient-teal text-white font-semibold shadow-teal hover:opacity-90 ml-2" onClick={() => navigate(AUTH_LOGIN)}>
                 Sign In
               </Button>
             </>
@@ -187,7 +188,7 @@ export default function Index() {
             <Button
               size="lg"
               className="gradient-teal text-white font-semibold text-lg px-8 py-6 rounded-xl shadow-teal hover:opacity-90 transition-opacity animate-pulse-glow"
-              onClick={() => navigate(user ? "/dashboard" : "/auth")}
+              onClick={() => navigate(user ? "/dashboard" : AUTH_LOGIN)}
             >
               <Bot className="mr-2 w-5 h-5" />
               {user ? "Go to Dashboard" : "Activate My Job Agent"}
@@ -196,7 +197,7 @@ export default function Index() {
               size="lg"
               variant="outline"
               className="border-white/30 text-white bg-white/10 hover:bg-white/20 text-lg px-8 py-6 rounded-xl backdrop-blur-sm"
-              onClick={() => navigate(user ? "/job-seeker" : "/auth")}
+              onClick={() => navigate(user ? "/job-seeker" : AUTH_LOGIN)}
             >
               <Target className="mr-2 w-5 h-5" />
               {user ? "Analyze a Job" : "Get Started Free"}
@@ -207,7 +208,7 @@ export default function Index() {
             <Button variant="ghost" className="text-white/60 hover:text-white hover:bg-white/10 text-sm" onClick={() => navigate("/job-seeker?demo=true")}>
               <Play className="mr-2 w-4 h-4" /> Try Demo — No Sign Up
             </Button>
-            <Button variant="ghost" className="text-white/60 hover:text-white hover:bg-white/10 text-sm" onClick={() => navigate(user ? "/job-search" : "/auth")}>
+            <Button variant="ghost" className="text-white/60 hover:text-white hover:bg-white/10 text-sm" onClick={() => navigate(user ? "/job-search" : AUTH_LOGIN)}>
               <Search className="mr-2 w-4 h-4" /> Find Jobs For Me
             </Button>
           </div>
@@ -264,7 +265,7 @@ export default function Index() {
           </div>
 
           <div className="text-center mt-12">
-            <Button size="lg" className="gradient-teal text-white font-semibold shadow-teal hover:opacity-90 px-8 py-6 text-lg" onClick={() => navigate(user ? "/job-seeker" : "/auth")}>
+            <Button size="lg" className="gradient-teal text-white font-semibold shadow-teal hover:opacity-90 px-8 py-6 text-lg" onClick={() => navigate(user ? "/job-seeker" : AUTH_LOGIN)}>
               <Upload className="mr-2 w-5 h-5" /> Upload Resume Now
             </Button>
           </div>
@@ -325,7 +326,7 @@ export default function Index() {
                     </ul>
                   </div>
                 )}
-                <Button className="gradient-teal text-white shadow-teal hover:opacity-90 w-full" onClick={() => navigate(user ? "/job-seeker" : "/auth")}>
+                <Button className="gradient-teal text-white shadow-teal hover:opacity-90 w-full" onClick={() => navigate(user ? "/job-seeker" : AUTH_LOGIN)}>
                   <Sparkles className="w-4 h-4 mr-2" /> Get Full Analysis & Optimized Resume
                 </Button>
               </div>
@@ -346,7 +347,7 @@ export default function Index() {
 
           <div className="grid sm:grid-cols-2 gap-4 max-w-3xl mx-auto">
             {sampleCapabilities.map((cap) => (
-              <div key={cap.title} className="bg-card rounded-2xl p-5 border border-border shadow-card hover:shadow-elevated transition-shadow group cursor-pointer" onClick={() => navigate(user ? "/job-search" : "/auth")}>
+              <div key={cap.title} className="bg-card rounded-2xl p-5 border border-border shadow-card hover:shadow-elevated transition-shadow group cursor-pointer" onClick={() => navigate(user ? "/job-search" : AUTH_LOGIN)}>
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-start gap-3">
                     <div className="w-9 h-9 gradient-teal rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -363,7 +364,7 @@ export default function Index() {
           </div>
 
           <div className="text-center mt-8">
-            <Button variant="outline" size="lg" className="border-accent/30 text-accent hover:bg-accent/10" onClick={() => navigate(user ? "/job-search" : "/auth")}>
+            <Button variant="outline" size="lg" className="border-accent/30 text-accent hover:bg-accent/10" onClick={() => navigate(user ? "/job-search" : AUTH_LOGIN)}>
               <Search className="mr-2 w-4 h-4" /> Get Started
             </Button>
           </div>
@@ -420,7 +421,7 @@ export default function Index() {
           </div>
 
           <div className="text-center mt-10">
-            <Button size="lg" className="gradient-teal text-white font-semibold shadow-teal hover:opacity-90 px-8 py-6 text-lg" onClick={() => navigate(user ? "/job-seeker" : "/auth")}>
+            <Button size="lg" className="gradient-teal text-white font-semibold shadow-teal hover:opacity-90 px-8 py-6 text-lg" onClick={() => navigate(user ? "/job-seeker" : AUTH_LOGIN)}>
               <Sparkles className="mr-2 w-5 h-5" /> Optimize My Resume
             </Button>
           </div>
@@ -467,7 +468,7 @@ export default function Index() {
           </div>
 
           <div className="text-center mt-10">
-            <Button size="lg" className="gradient-teal text-white font-semibold shadow-teal hover:opacity-90 px-8 py-6 text-lg" onClick={() => navigate(user ? "/job-seeker" : "/auth")}>
+            <Button size="lg" className="gradient-teal text-white font-semibold shadow-teal hover:opacity-90 px-8 py-6 text-lg" onClick={() => navigate(user ? "/job-seeker" : AUTH_LOGIN)}>
               {user ? "Go to Dashboard" : "Get Started Free"} <ArrowRight className="ml-2 w-5 h-5" />
             </Button>
           </div>
@@ -492,7 +493,7 @@ export default function Index() {
                 key={f.title}
                 className="bg-background rounded-2xl p-7 shadow-card border border-border hover:shadow-elevated hover:border-accent/30 transition-all cursor-pointer group"
                 style={{ animationDelay: `${i * 0.1}s` }}
-                onClick={() => navigate(user ? f.link : "/auth")}
+                onClick={() => navigate(user ? f.link : AUTH_LOGIN)}
               >
                 <div className="w-11 h-11 gradient-teal rounded-xl flex items-center justify-center mb-5 shadow-teal group-hover:scale-110 transition-transform">
                   <f.icon className="w-5 h-5 text-white" />
@@ -526,7 +527,7 @@ export default function Index() {
 
             <div
               className="relative overflow-hidden bg-background rounded-3xl p-10 cursor-pointer group border border-border hover:shadow-elevated transition-shadow"
-              onClick={() => navigate(user ? "/profile" : "/auth")}
+              onClick={() => navigate(user ? "/profile" : AUTH_LOGIN)}
             >
               <div className="absolute top-0 right-0 w-48 h-48 bg-accent/5 rounded-full -translate-y-12 translate-x-12 group-hover:scale-125 transition-transform duration-500" />
               <UserCircle className="w-10 h-10 text-accent mb-6" />
@@ -585,7 +586,7 @@ export default function Index() {
                 </div>
               ))}
             </div>
-            <Button size="lg" className="gradient-teal text-white font-semibold text-lg px-10 py-6 rounded-xl shadow-teal hover:opacity-90 animate-pulse-glow" onClick={() => navigate("/auth")}>
+            <Button size="lg" className="gradient-teal text-white font-semibold text-lg px-10 py-6 rounded-xl shadow-teal hover:opacity-90 animate-pulse-glow" onClick={() => navigate(AUTH_LOGIN)}>
               Get Started Free <ArrowRight className="ml-2 w-5 h-5" />
             </Button>
             <p className="text-white/40 text-sm mt-4">No credit card required. Free forever for basic features.</p>
@@ -595,13 +596,13 @@ export default function Index() {
 
       {/* ═══════════════ STICKY CTA BAR ═══════════════ */}
       <div className="fixed bottom-0 left-0 right-0 z-50 bg-primary/95 backdrop-blur-sm border-t border-white/10 px-4 py-3 flex items-center justify-center gap-3 sm:hidden">
-        <Button size="sm" className="gradient-teal text-white font-semibold shadow-teal text-xs flex-1" onClick={() => navigate(user ? "/job-seeker" : "/auth")}>
+        <Button size="sm" className="gradient-teal text-white font-semibold shadow-teal text-xs flex-1" onClick={() => navigate(user ? "/job-seeker" : AUTH_LOGIN)}>
           <Upload className="w-3.5 h-3.5 mr-1" /> Upload Resume
         </Button>
-        <Button size="sm" variant="outline" className="border-white/30 text-white bg-white/10 text-xs flex-1" onClick={() => navigate(user ? "/job-search" : "/auth")}>
+        <Button size="sm" variant="outline" className="border-white/30 text-white bg-white/10 text-xs flex-1" onClick={() => navigate(user ? "/job-search" : AUTH_LOGIN)}>
           <Search className="w-3.5 h-3.5 mr-1" /> Find Jobs
         </Button>
-        <Button size="sm" variant="outline" className="border-white/30 text-white bg-white/10 text-xs flex-1" onClick={() => navigate(user ? "/dashboard" : "/auth")}>
+        <Button size="sm" variant="outline" className="border-white/30 text-white bg-white/10 text-xs flex-1" onClick={() => navigate(user ? "/dashboard" : AUTH_LOGIN)}>
           <Bot className="w-3.5 h-3.5 mr-1" /> Dashboard
         </Button>
       </div>

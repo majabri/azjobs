@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { type FitAnalysis, type BenefitCategory } from "@/lib/analysisEngine";
 import { ScoreRingInline, AnimatedBar } from "@/components/ScoreDisplay";
 import { supabase } from "@/integrations/supabase/client";
+import { AUTH_LOGIN } from "@/lib/routes";
 import ApplicationToolkit from "@/components/applications/ApplicationToolkit";
 import ApplicationPackageGenerator from "@/components/applications/ApplicationPackageGenerator";
 import ResumeComparison from "@/components/job-seeker/ResumeComparison";
@@ -501,7 +502,7 @@ export default function AnalysisResults({
           <div className="w-full max-w-md bg-accent/10 border border-accent/20 rounded-2xl p-6 text-center">
             <h3 className="font-display font-bold text-foreground text-lg mb-2">Ready to optimize your real resume?</h3>
             <p className="text-sm text-muted-foreground mb-4">Sign up free to unlock all features.</p>
-            <Button className="gradient-teal text-white shadow-teal hover:opacity-90" onClick={() => navigate("/auth")}>Sign Up Free</Button>
+            <Button className="gradient-teal text-white shadow-teal hover:opacity-90" onClick={() => navigate(AUTH_LOGIN)}>Sign Up Free</Button>
           </div>
         )}
         <Button variant="outline" onClick={onReset}>Analyze Another Role</Button>
