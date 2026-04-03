@@ -116,6 +116,22 @@ export function scoreJobs(input: MatchingInput): EnrichedJob[] {
 
     const { score: decScore, effort } = calculateDecisionScore(job, prob, skills);
     const strategy = getJobStrategy(matchScore, prob, trustLevel, jobAge || 7);
+
+    // Salary range bonus
+    let salaryBonus = 0;
+    if (job.salary && (salaryMin || salaryMax)) {
+      const salaryNum = parseInt(String(job.salary).replace(/[^0-9]/g, ""));
+      const min = parseInt(String(salaryMin || "0").replace(/[^0-9]/g, "")) || 0;
+      const max = parseInt(String(salaryMax || "999999").replace(/[^0-9]/g, "")) || 999999;
+      if (salaryNum >= min && salaryNum <= max) salaryBonus = 10;
+    }
+
+    // Work mode preference bonus
+    let modeBonus = 0;
+    if (remotePreferred && job.is_remote) modeBonus = 15;
+
+    const adjustedDecScore = Math.min(99, decScore + salaryBonus + modeBonus);
+
     const smartTag = getSmartTag({ ...job, responseProbability: prob, effortEstimate: effort, is_flagged: combinedFlagged }, prob);
 
     return {
