@@ -5,7 +5,7 @@
  *   admin                      → /admin
  *   recruiter only             → /hiring-manager
  *   job_seeker only / no role  → /dashboard
- *   both (dual-role)           → stored preference, or /dashboard
+ *   both (dual-role)           → stored preference (DB-backed), or /dashboard
  *                                (DashboardPickerDialog will prompt on arrival)
  */
 
@@ -16,7 +16,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Target, Loader2 } from "lucide-react";
 import { useAuthReady } from "@/hooks/useAuthReady";
-import { useUserRole, dashboardPrefKey } from "@/hooks/useUserRole";
+import { useUserRole } from "@/hooks/useUserRole";
+import { useDashboardPref } from "@/hooks/useDashboardPref";
 import { login, loginWithGoogle, loginWithApple } from "@/services/user/auth";
 import { normalizeError } from "@/lib/normalizeError";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,6 +26,7 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const { user, isReady } = useAuthReady();
   const { isAdmin, isJobSeeker, isRecruiter, isDualRole, isLoading: isRoleLoading } = useUserRole();
+  const { pref: dashboardPref, isLoading: isPrefLoading } = useDashboardPref();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -48,21 +50,25 @@ export default function LoginPage() {
     }
 
     if (isDualRole) {
-      // Respect an already-stored default dashboard preference
-      const pref = localStorage.getItem(dashboardPrefKey(user.id));
-      if (pref === "hiring") {
+      // Wait for the DB preference to load before routing dual-role users
+      if (isPrefLoading) return;
+
+      if (dashboardPref === "hiring_manager") {
         navigate("/hiring-manager", { replace: true });
         return;
       }
-      // No preference yet — land on /dashboard; the DashboardPickerDialog
-      // mounted in AuthenticatedLayout will prompt the user on arrival.
+      // No preference yet (or job_seeker pref) — land on /dashboard;
+      // the DashboardPickerDialog mounted in AuthenticatedLayout will prompt.
     }
 
     navigate("/dashboard", { replace: true });
-  }, [isReady, user, isRoleLoading, isAdmin, isJobSeeker, isRecruiter, isDualRole, navigate]);
+  }, [isReady, user, isRoleLoading, isAdmin, isJobSeeker, isRecruiter, isDualRole, isPrefLoading, dashboardPref, navigate]);
 
-  // Show loading while resolving auth + role
-  if (isReady && user && isRoleLoading) {
+  // Show loading while resolving auth + role (+ pref for dual-role)
+  const showSpinner =
+    isReady && !!user && (isRoleLoading || (isDualRole && isPrefLoading));
+
+  if (showSpinner) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center" role="status" aria-label="Redirecting">
         <Loader2 className="w-6 h-6 text-muted-foreground animate-spin" />
