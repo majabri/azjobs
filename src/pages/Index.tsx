@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { analyzeJobFit } from "@/lib/analysisEngine";
 import { AUTH_LOGIN } from "@/lib/routes";
+import CustomerSurvey from "@/components/CustomerSurvey";
 
 const stats = [
   { value: "AI-Powered", label: "resume optimization for every application" },
@@ -606,6 +607,19 @@ export default function Index() {
           <Bot className="w-3.5 h-3.5 mr-1" /> Dashboard
         </Button>
       </div>
+
+      {/* ═══════════════ CUSTOMER SURVEY ═══════════════ */}
+      <section className="bg-background py-24 px-6">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-10">
+            <h2 className="text-4xl font-display font-bold text-primary mb-4">
+              We Want to <span className="text-gradient-teal">Hear From You</span>
+            </h2>
+            <p className="text-muted-foreground text-lg">Help us understand your experience and build the features you need most.</p>
+          </div>
+          <CustomerSurvey />
+        </div>
+      </section>
 
       {/* Footer */}
       <footer className="bg-primary py-10 px-6 sm:pb-10 pb-20">

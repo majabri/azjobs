@@ -200,6 +200,36 @@ export type Database = {
         }
         Relationships: []
       }
+      customer_surveys: {
+        Row: {
+          answers: Json
+          created_at: string
+          email: string | null
+          id: string
+          phone: string | null
+          role: string
+          wants_callback: boolean
+        }
+        Insert: {
+          answers?: Json
+          created_at?: string
+          email?: string | null
+          id?: string
+          phone?: string | null
+          role: string
+          wants_callback?: boolean
+        }
+        Update: {
+          answers?: Json
+          created_at?: string
+          email?: string | null
+          id?: string
+          phone?: string | null
+          role?: string
+          wants_callback?: boolean
+        }
+        Relationships: []
+      }
       email_preferences: {
         Row: {
           daily_job_alerts: boolean
