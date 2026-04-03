@@ -391,7 +391,7 @@ async function fetchDatabaseJobs(supabaseAdmin: any): Promise<NormalizedJob[]> {
 async function searchFirecrawlSingleQuery(
   firecrawlApiKey: string, query: string, location: string,
 ): Promise<NormalizedJob[]> {
-  const q = normalizeText(`${query} ${cleanSearchFragment(location, 5)} hiring`).slice(0, 200);
+  const q = normalizeText(`${query} ${cleanSearchFragment(location, 5)}`).slice(0, 200);
   console.log(`Firecrawl query:`, q);
 
   const controller = new AbortController();
