@@ -196,9 +196,30 @@ function looksLikeLocationText(value: string): boolean {
   const v = normalizeText(value).toLowerCase();
   if (!v) return false;
   return /\bremote\b/.test(v) || /^[a-z\s]+,\s*[a-z]{2}$/.test(v) ||
-    /\b(united states|usa|us|canada|uk|united kingdom)\b/.test(v);
+    /^[a-z\s]+,\s*[a-z]{2,}$/i.test(v) ||
+    /\b(united states|usa|us|canada|uk|united kingdom|germany|france|australia|india|singapore|japan|netherlands|ireland|sweden|switzerland|brazil|mexico|spain|italy|poland|belgium|austria|norway|denmark|finland|israel|south africa|new zealand|hong kong|uae|dubai|qatar|saudi arabia)\b/i.test(v);
 }
 
+/** Sanitize location: remove quoted text, company names, suspicious values */
+function sanitizeLocation(rawLocation: string): string {
+  let loc = normalizeText(rawLocation);
+  if (!loc) return "";
+  // Remove quoted strings (e.g. "An RBC Company")
+  loc = loc.replace(/"[^"]*"/g, " ").replace(/'[^']*'/g, " ");
+  // Remove common non-location patterns
+  loc = loc.replace(/\b(national bank|company|inc|corp|corporation|llc|ltd|group|holdings|services|solutions|technologies|consulting)\b/gi, " ");
+  loc = normalizeText(loc);
+  // If what remains is too short or doesn't look like a location, clear it
+  if (loc.length < 2) return "";
+  if (loc.split(/\s+/).length > 5) return ""; // Too many words for a location
+  // Check if it looks like a company name (no commas, no location keywords)
+  if (!looksLikeLocationText(loc) && !/,/.test(loc) && !/\b(remote|hybrid)\b/i.test(loc)) {
+    // Check if it could still be a city name (single/double word)
+    if (loc.split(/\s+/).length <= 2 && /^[A-Z]/.test(loc)) return loc;
+    return "";
+  }
+  return loc;
+}
 function isSuspiciousCompanyName(company: string): boolean {
   const cleaned = normalizeText(company);
   return !cleaned || GENERIC_COMPANY_NAMES.has(cleaned.toLowerCase()) || looksLikeLocationText(cleaned) || cleaned.length < 2;
