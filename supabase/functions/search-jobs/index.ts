@@ -15,6 +15,7 @@ type SearchRequest = {
   careerLevel?: string;
   targetTitles?: string[];
   limit?: number;
+  search_mode?: "quality" | "balanced" | "volume";
   // Polling mode: client sends job_id to check status
   job_id?: string;
 };
@@ -270,8 +271,12 @@ function extractLocation(rawLoc: string, title: string, desc: string, fallback: 
   if (c && c.length <= 80) return inferLocation(c, fallback);
   const text = `${title} ${desc}`;
   if (/\bremote\b/i.test(text)) return "Remote";
-  const m = text.match(/\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*,\s*[A-Z]{2})\b/);
-  if (m?.[1]) return m[1];
+  // US pattern: City, ST
+  const usMatch = text.match(/\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*,\s*[A-Z]{2})\b/);
+  if (usMatch?.[1]) return usMatch[1];
+  // International pattern: City, Country
+  const intlMatch = text.match(/\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*,\s*[A-Z][a-z]{2,})\b/);
+  if (intlMatch?.[1]) return intlMatch[1];
   return fallback || "Remote";
 }
 
@@ -318,18 +323,20 @@ function tokenize(text: string): string[] {
   return normalizeText(text).toLowerCase().replace(/[^a-z0-9\s]/g, " ").split(/\s+/).filter((t) => t.length >= 3 && !stop.has(t));
 }
 
-function buildSearchQueries(p: { query: string; targetTitles: string[]; skills: string[]; careerLevel: string; jobTypes: string[] }): string[] {
+function buildSearchQueries(p: { query: string; targetTitles: string[]; skills: string[]; careerLevel: string; jobTypes: string[]; location?: string }): string[] {
   const titles = p.targetTitles.map((t) => cleanSearchFragment(t, 8)).filter(Boolean).slice(0, 3);
   const skills = p.skills.map((s) => cleanSearchFragment(s, 4)).filter(Boolean).slice(0, 4);
   const eq = cleanSearchFragment(p.query, 10);
   const level = cleanSearchFragment(p.careerLevel, 4);
   const remote = p.jobTypes.some((t) => /remote/i.test(t)) ? "remote" : "";
+  const loc = cleanSearchFragment(p.location || "", 4);
+  const locSuffix = loc && !/remote/i.test(loc) ? loc : "";
 
   const candidates: string[] = [];
 
-  // One query per target title (up to 3)
+  // One query per target title with location (up to 3)
   for (const title of titles) {
-    candidates.push(cleanSearchFragment(`${title} ${remote} hiring`, 10));
+    candidates.push(cleanSearchFragment(`${title} ${locSuffix || remote} jobs`, 10));
   }
 
   // Skill-based queries
@@ -340,15 +347,20 @@ function buildSearchQueries(p: { query: string; targetTitles: string[]; skills: 
 
   // General fallback with career level
   if (eq) {
-    candidates.push(cleanSearchFragment(`${eq} ${level} ${remote}`, 10));
+    candidates.push(cleanSearchFragment(`${eq} ${level} ${locSuffix || remote}`, 10));
+  }
+
+  // Location-specific variant
+  if (locSuffix && titles[0]) {
+    candidates.push(cleanSearchFragment(`${titles[0]} jobs ${locSuffix}`, 10));
   }
 
   // Broader fallback
   const fallback = eq || titles[0] || skills[0] || "software engineer";
-  candidates.push(cleanSearchFragment(`${fallback} jobs ${remote}`, 10));
+  candidates.push(cleanSearchFragment(`${fallback} jobs ${locSuffix || remote}`, 10));
 
-  const deduped = [...new Set(candidates.filter((c) => c.length >= 4))].slice(0, 5);
-  return deduped.length ? deduped : ["software engineer remote"];
+  const deduped = [...new Set(candidates.filter((c) => c.length >= 4))].slice(0, 7);
+  return deduped.length ? deduped : ["software engineer remote jobs"];
 }
 
 // ── Data fetching ──────────────────────────────────────────────────────
@@ -358,7 +370,7 @@ async function fetchDatabaseJobs(supabaseAdmin: any): Promise<NormalizedJob[]> {
     .from("scraped_jobs")
     .select("title, company, location, job_type, description, job_url, quality_score")
     .gte("quality_score", 30).not("job_url", "is", null)
-    .order("quality_score", { ascending: false }).limit(100);
+    .order("quality_score", { ascending: false }).limit(300);
   if (error) { console.error("DB error:", error.message); return []; }
   if (!data?.length) { console.warn("fetchDatabaseJobs: 0 rows"); return []; }
   return data.map((row: any) => {
@@ -379,7 +391,7 @@ async function fetchDatabaseJobs(supabaseAdmin: any): Promise<NormalizedJob[]> {
 async function searchFirecrawlSingleQuery(
   firecrawlApiKey: string, query: string, location: string,
 ): Promise<NormalizedJob[]> {
-  const q = normalizeText(`${query} ${cleanSearchFragment(location, 5)} hiring`).slice(0, 200);
+  const q = normalizeText(`${query} ${cleanSearchFragment(location, 5)}`).slice(0, 200);
   console.log(`Firecrawl query:`, q);
 
   const controller = new AbortController();
@@ -470,10 +482,14 @@ function buildSearchUrl(title: string, company: string): string {
 
 async function processSearchInBackground(
   jobId: string, userId: string,
-  params: { skills: string[]; targetTitles: string[]; jobTypes: string[]; location: string; query: string; careerLevel: string; limit: number },
+  params: { skills: string[]; targetTitles: string[]; jobTypes: string[]; location: string; query: string; careerLevel: string; limit: number; search_mode?: string },
 ) {
   const supabaseAdmin = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
   const firecrawlApiKey = Deno.env.get("FIRECRAWL_API_KEY");
+
+  // Determine score threshold based on search_mode
+  const thresholdMap: Record<string, number> = { quality: 60, balanced: 35, volume: 30 };
+  const scoreThreshold = thresholdMap[params.search_mode || "balanced"] ?? 35;
 
   try {
     // Update progress: 10%
@@ -482,28 +498,34 @@ async function processSearchInBackground(
     const searchQueries = buildSearchQueries({
       query: params.query, targetTitles: params.targetTitles,
       skills: params.skills, careerLevel: params.careerLevel, jobTypes: params.jobTypes,
+      location: params.location,
     });
     const skillTokens = tokenize(params.skills.join(" ")).slice(0, 16);
     const titleTokens = tokenize(`${params.targetTitles.join(" ")} ${params.query} ${params.careerLevel}`).slice(0, 16);
     const titlePhrases = params.targetTitles.map((t) => cleanSearchFragment(t, 8).toLowerCase()).filter((t) => t.length >= 5).slice(0, 4);
 
-    console.log("BG Queries:", searchQueries, "location:", params.location);
+    console.log("BG Queries:", searchQueries, "location:", params.location, "mode:", params.search_mode);
 
     // Fetch DB jobs
     const databaseJobs = await fetchDatabaseJobs(supabaseAdmin);
     await supabaseAdmin.from("processing_jobs").update({ progress: 30, updated_at: new Date().toISOString() }).eq("id", jobId);
 
-    // Fetch Firecrawl jobs sequentially (one query at a time to minimize memory)
+    // Fetch Firecrawl jobs in parallel batches of 2
     let crawledJobs: NormalizedJob[] = [];
     if (firecrawlApiKey) {
-      for (const [i, q] of searchQueries.entries()) {
-        const batch = await searchFirecrawlSingleQuery(firecrawlApiKey, q, params.location);
-        crawledJobs = crawledJobs.concat(batch);
+      for (let i = 0; i < searchQueries.length; i += 2) {
+        const batch = searchQueries.slice(i, i + 2);
+        const results = await Promise.allSettled(
+          batch.map((q) => searchFirecrawlSingleQuery(firecrawlApiKey, q, params.location)),
+        );
+        for (const r of results) {
+          if (r.status === "fulfilled") crawledJobs = crawledJobs.concat(r.value);
+        }
         await supabaseAdmin.from("processing_jobs").update({
-          progress: 30 + Math.floor(((i + 1) / searchQueries.length) * 40),
+          progress: 30 + Math.floor(((Math.min(i + 2, searchQueries.length)) / searchQueries.length) * 40),
           updated_at: new Date().toISOString(),
         }).eq("id", jobId);
-        if (crawledJobs.length >= params.limit) break;
+        if (crawledJobs.length >= params.limit * 2) break;
       }
     }
 
@@ -520,7 +542,7 @@ async function processSearchInBackground(
     // Score and rank
     const ranked = [...dedupedByUrl.values()]
       .map((job) => ({ ...job, ...scoreJobMatch(job, skillTokens, titleTokens, titlePhrases, params.location) }))
-      .filter((j) => j.phraseHit || j.skillHits >= 1 || j.titleHits >= 1 || j.finalScore >= 50)
+      .filter((j) => j.phraseHit || j.skillHits >= 1 || j.titleHits >= 1 || j.finalScore >= scoreThreshold)
       .sort((a, b) => b.finalScore - a.finalScore)
       .slice(0, params.limit)
       .map((job) => ({
@@ -615,7 +637,8 @@ Deno.serve(async (req) => {
     const location = normalizeText(requestBody.location);
     const query = normalizeText(requestBody.query);
     const careerLevel = normalizeText(requestBody.careerLevel);
-    const limit = Math.max(5, Math.min(Number(requestBody.limit || 50), 100));
+    const limit = Math.max(5, Math.min(Number(requestBody.limit || 50), 200));
+    const search_mode = requestBody.search_mode || "balanced";
 
     // Create the processing job record
     const supabaseAdmin = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "");
@@ -625,7 +648,7 @@ Deno.serve(async (req) => {
         user_id: userId,
         status: "processing",
         progress: 0,
-        query: { skills, targetTitles, jobTypes, location, query, careerLevel, limit },
+        query: { skills, targetTitles, jobTypes, location, query, careerLevel, limit, search_mode },
       })
       .select("id")
       .single();
@@ -637,7 +660,7 @@ Deno.serve(async (req) => {
     }
 
     // Start background processing using EdgeRuntime.waitUntil
-    const bgParams = { skills, targetTitles, jobTypes, location, query, careerLevel, limit };
+    const bgParams = { skills, targetTitles, jobTypes, location, query, careerLevel, limit, search_mode };
 
     // @ts-ignore - EdgeRuntime.waitUntil is available in Supabase Edge Functions
     if (typeof EdgeRuntime !== "undefined" && EdgeRuntime.waitUntil) {

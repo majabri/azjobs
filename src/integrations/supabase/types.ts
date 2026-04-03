@@ -591,6 +591,7 @@ export type Database = {
           salary_max: string | null
           salary_min: string | null
           salary_target: string | null
+          search_mode: string | null
           skills: string[] | null
           summary: string | null
           target_job_titles: string[] | null
@@ -620,6 +621,7 @@ export type Database = {
           salary_max?: string | null
           salary_min?: string | null
           salary_target?: string | null
+          search_mode?: string | null
           skills?: string[] | null
           summary?: string | null
           target_job_titles?: string[] | null
@@ -649,6 +651,7 @@ export type Database = {
           salary_max?: string | null
           salary_min?: string | null
           salary_target?: string | null
+          search_mode?: string | null
           skills?: string[] | null
           summary?: string | null
           target_job_titles?: string[] | null
@@ -1074,6 +1077,30 @@ export type Database = {
           name?: string
           target_type?: string
           url?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      search_presets: {
+        Row: {
+          created_at: string | null
+          criteria: Json
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          criteria?: Json
+          id?: string
+          name?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          criteria?: Json
+          id?: string
+          name?: string
           user_id?: string
         }
         Relationships: []

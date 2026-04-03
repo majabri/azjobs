@@ -34,6 +34,7 @@ export async function loadUserProfile(userId: string): Promise<UserProfile | nul
     salary_max: data.salary_max || "",
     remote_only: data.remote_only || false,
     min_match_score: data.min_match_score ?? 60,
+    search_mode: (data as any).search_mode || "balanced",
   };
 }
 
@@ -57,6 +58,7 @@ export async function saveUserProfile(userId: string, profile: UserProfile): Pro
     salary_max: profile.salary_max || null,
     remote_only: profile.remote_only,
     min_match_score: profile.min_match_score,
+    search_mode: profile.search_mode || "balanced",
     updated_at: new Date().toISOString(),
   };
 

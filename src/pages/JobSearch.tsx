@@ -135,7 +135,7 @@ export default function JobSearchPage() {
       if (!session) return;
       const [{ data }, { data: appData }] = await Promise.all([
         supabase.from("job_seeker_profiles")
-          .select("skills, preferred_job_types, location, career_level, target_job_titles, salary_min, salary_max, min_match_score")
+          .select("skills, preferred_job_types, location, career_level, target_job_titles, salary_min, salary_max, min_match_score, search_mode")
           .eq("user_id", session.user.id).maybeSingle(),
         supabase.from("job_applications").select("status, response_days").eq("user_id", session.user.id),
       ]);
@@ -202,7 +202,7 @@ export default function JobSearchPage() {
     // If matching fails, we still show jobs with default scores
     let enriched: EnrichedJob[];
     try {
-      enriched = scoreJobs({ jobs: filtered, skills, historicalOutcomes });
+      enriched = scoreJobs({ jobs: filtered, skills, historicalOutcomes, salaryMin, salaryMax, remotePreferred: jobTypes.includes("remote") });
     } catch (e) {
       console.error("[JobSearch] Matching service error (degrading gracefully):", e);
       // Fallback: show jobs without enrichment
@@ -392,7 +392,7 @@ export default function JobSearchPage() {
                 <label className="text-sm font-semibold text-foreground mb-1 block">Location</label>
                 <div className="flex items-center gap-2">
                   <MapPin className="w-4 h-4 text-muted-foreground" />
-                  <Input value={location} onChange={e => setLocation(e.target.value)} placeholder="City, State or Remote" />
+                  <Input value={location} onChange={e => setLocation(e.target.value)} placeholder="e.g. Remote, London, Berlin, Singapore, or leave blank for global" />
                 </div>
               </div>
               <div>

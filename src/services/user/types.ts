@@ -20,4 +20,5 @@ export interface UserProfile {
   salary_max: string;
   remote_only: boolean;
   min_match_score: number;
+  search_mode?: string;
 }
