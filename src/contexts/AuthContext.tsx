@@ -16,6 +16,7 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   login: typeof login;
   loginWithGoogle: typeof loginWithGoogle;
+  loginWithApple: typeof loginWithApple;
   logout: typeof logout;
 }
 
