@@ -1,135 +1,113 @@
 
+Goal: make job search reliably return visible results again, and automatically send admins to the admin area immediately after login.
 
-## Profile Search Criteria & Job Search/Matching Enhancement Plan
+What I found
+- The live app uses `src/main.tsx` -> `src/shell/App.tsx` -> `src/shell/routes.tsx`. The older `src/App.tsx` is not the active router, so fixes must go into the shell-based flow.
+- `src/pages/auth/Login.tsx` currently redirects every authenticated user to `/dashboard`; it never checks whether the user is an admin.
+- `src/pages/admin/AdminUsernameLogin.tsx` already redirects admins, but only on the dedicated admin login page.
+- Job search is partially working server-side, but the current pipeline is still weak:
+  - Firecrawl is returning results in logs.
+  - Database search is returning `0 rows`.
+  - Search queries are being polluted by bad location values like company text.
+  - Firecrawl requests are timing out/aborting.
+- `JobSearch.tsx` loads `search_mode` from the profile, but never stores or sends it.
+- `JobSearchFilters` does not include `search_mode`, so the edge function always falls back to `"balanced"`.
+- The client applies `minFitScore` after scoring, which can hide all fetched jobs and make the search look broken even when the backend found results.
 
-### What This Plan Covers
+Plan
 
-Comparing the user's improvement requirements against the current codebase, here is what **already exists** vs **what needs to be built**:
+1. Fix admin auto-redirect after login
+- Update the main login page to wait for both auth readiness and admin role loading.
+- Redirect admins to `/admin` and regular users to `/dashboard`.
+- Keep the dedicated `/admin/login` page, but make post-login routing consistent with the main login flow.
+- Use a shared post-login route resolver so email/password and OAuth behave the same way.
+- Show a loading state while role data is resolving to avoid redirect races.
 
-| Requirement | Status | Action |
-|---|---|---|
-| Target job titles with tags | Already exists | No change |
-| Career level multi-select | Already exists | No change |
-| Location & work mode | Partial (remote toggle, text input) | Enhance: split into city/state/country fields |
-| Salary range inputs | Already exists (text fields) | Enhance: add market guidance |
-| Min fit score slider | Already exists | Enhance: add tooltip explanation |
-| Job type badges | Already exists | No change |
-| Quality vs Volume toggle | Missing | Add |
-| Saved Search Presets | Missing | Add |
-| AI title suggestions | Missing | Add |
-| Separate location fields | Missing (single text field) | Add |
-| "Search & Match Criteria" as distinct profile section | Missing (mixed into "Job Preferences") | Reorganize |
-| Job title normalization in edge function | Missing | Add |
-| Salary guidance/market rate display | Missing | Add |
-| Smart Alerts integration | Partial (email prefs exist) | Wire to search criteria |
-| Top Skills Missing insight | Missing from profile | Add |
-| Parallel Firecrawl queries | Missing (sequential) | Add |
-| DB fetch limit 100 | Too low | Increase to 300 |
-| Filter threshold 50 | Too strict | Lower to 35 |
-| Global search support | Missing (US-centric location) | Add |
+Files:
+- `src/pages/auth/Login.tsx`
+- `src/hooks/useAdminRole.ts` or a small new redirect helper
+- `src/pages/admin/AdminUsernameLogin.tsx` if needed for consistency
 
----
+2. Fix the job search request contract
+- Add `search_mode` to `JobSearchFilters`.
+- Track `search_mode` in `JobSearch.tsx` state and initialize it from the profile.
+- Pass `search_mode` from the page -> job service -> edge function.
+- Align the frontend fit filtering with the selected search mode so “volume” is not canceled by a stricter local threshold.
 
-### Phase 1: Reorganize Profile Page — Clear "Search & Match Criteria" Section
+Files:
+- `src/services/job/types.ts`
+- `src/services/job/service.ts`
+- `src/pages/JobSearch.tsx`
 
-**Problem**: Search preferences are buried inside "Job Preferences" alongside auto-apply settings. Users cannot clearly see what drives their job matches.
+3. Repair search query construction
+- Sanitize the location input before generating queries.
+- Ignore suspicious “location” values that look like company names or quoted text.
+- Stop appending location twice in Firecrawl queries.
+- Add title normalization for executive/security titles so searches use cleaner ATS-style titles and synonyms.
 
-**Changes to `src/components/profile/ProfileForm.tsx`**:
+Files:
+- `supabase/functions/search-jobs/index.ts`
 
-1. Create a new visually distinct **"Search & Match Criteria"** card section (collapsible via Collapsible component) with its own icon (Target) and header, placed after Skills and before Work Experience
+4. Improve result yield and fallback behavior
+- Rework DB search so it contributes useful matches instead of acting like a broad top-300 fetch that currently returns nothing useful.
+- Relax overly strict assumptions around stored job quality where appropriate.
+- Keep backend ranking, but improve client visibility when results are hidden by filters.
+- If jobs were fetched but then filtered out, show a specific message and a quick way to lower the threshold/reset filters.
 
-2. Move into this section:
-   - Target Job Titles (with AI suggestion button — calls existing `extract-profile-fields` edge function with current skills/experience to suggest titles)
-   - Career Level multi-select (already exists)
-   - **Location fields**: Replace single "Location" text input with structured fields: City, State/Province, Country — stored as comma-separated in the existing `location` column
-   - Work Mode toggle group: Remote / Hybrid / On-site (replaces the `remote_only` boolean — map to `preferred_job_types`)
-   - Salary Range with market guidance: show "Suggested: $X–$Y based on your level and titles" using the same `MARKET_BENCHMARKS` map from JobSearch.tsx
-   - Minimum Fit Score slider (move from Job Preferences) with tooltip: "Lower score = more opportunities; higher score = better fit"
-   - **Quality vs Volume toggle**: new field stored in profile — `search_mode: "quality" | "balanced" | "volume"` (maps to fit score thresholds: 70/50/35)
-   - Job Type badges (full-time, contract, part-time)
+Files:
+- `supabase/functions/search-jobs/index.ts`
+- `src/pages/JobSearch.tsx`
+- `src/services/matching/service.ts` only if score alignment needs adjustment
 
-3. Add a **"Top Missing Skills"** insight card below the criteria: query `analysis_history` for the user's most recent analysis, extract top 3 gaps, display as actionable badges with "Add to Profile" buttons
+5. Final routing cleanup review
+- Verify the active shell routes handle `/`, `/auth`, `/auth/login`, `/admin/login`, and `/admin/*` correctly.
+- Make sure no legacy route file is masking or duplicating behavior.
+- Keep redirects role-aware and `replace: true` so history stays clean.
 
-4. Add **Saved Search Presets** (new feature):
-   - "Save Current Criteria" button saves a named preset
-   - Dropdown to load a saved preset
-   - Requires new DB table `search_presets`
+Files:
+- `src/shell/routes.tsx`
+- `src/main.tsx`
+- `src/shell/App.tsx`
+- review `src/App.tsx` only to avoid confusion
 
-**Database migration**: 
-```sql
-ALTER TABLE job_seeker_profiles ADD COLUMN search_mode text DEFAULT 'balanced';
+Technical details
 
-CREATE TABLE public.search_presets (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL,
-  name text NOT NULL DEFAULT '',
-  criteria jsonb NOT NULL DEFAULT '{}',
-  created_at timestamptz DEFAULT now()
-);
-ALTER TABLE public.search_presets ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Users can manage own presets" ON public.search_presets 
-  FOR ALL TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+```text
+Current job-search failure chain
+Profile loads search_mode + min_match_score
+  -> only min_match_score is actually used on the page
+  -> search request omits search_mode
+  -> edge function defaults to "balanced"
+  -> client may still filter harder than backend
+  -> user sees too few/no jobs even when backend found some
 ```
 
----
+```text
+Current admin-login failure chain
+/auth/login
+  -> auth succeeds
+  -> useEffect sees authenticated user
+  -> always navigate("/dashboard")
+  -> admin never gets auto-sent to /admin
+```
 
-### Phase 2: Enhance Job Search Edge Function
+Validation checklist
+- Normal user logs in on `/auth/login` -> lands on `/dashboard`.
+- Admin logs in on `/auth/login` -> lands on `/admin` without refresh.
+- Already-authenticated admin visiting `/` or `/auth/login` is redirected correctly.
+- Search works with blank location, remote, and non-US/global locations.
+- Bad profile/location strings no longer pollute Firecrawl queries.
+- “Volume” mode shows more visible results than “quality”.
+- If backend finds jobs but filters hide them, the UI explains why.
 
-**Changes to `supabase/functions/search-jobs/index.ts`**:
+Estimated scope
+- Modified: ~5–8 files
+- Created: 0–1 small helper
+- Migrations: 0
 
-1. **Global location support**: Update `extractLocation()` to recognize international patterns (City, Country; City, UK; etc.) instead of only US state codes
-
-2. **Title normalization**: Add `normalizeSearchTitle()` function mapping common variations (e.g., "V.P. Business Information Security Officer" → "VP IT Security BISO") using a synonym map for common abbreviations
-
-3. **Parallel Firecrawl execution**: Run queries in batches of 2 via `Promise.allSettled` instead of sequential loop
-
-4. **Relaxed filtering**: Lower threshold from `finalScore >= 50` to `finalScore >= 35` on line 523
-
-5. **Increase limits**: DB fetch from 100 → 300, final result cap from 100 → 200
-
-6. **Remove US-centric "hiring" suffix** from `buildSearchQueries()` — generate location-aware queries instead
-
-7. **Accept `search_mode` parameter**: When "volume", use threshold 30; "quality" uses 60; "balanced" uses 35
-
----
-
-### Phase 3: Client-Side Search & Matching Updates
-
-**Changes to `src/pages/JobSearch.tsx`**:
-- Update location placeholder to indicate global support
-- Pass `search_mode` from profile to search request
-- Load profile's `search_mode` as default behavior
-
-**Changes to `src/services/job/service.ts`**:
-- Increase DB search limit from 500 → 800
-- Support structured location matching
-
-**Changes to `src/services/matching/service.ts`**:
-- Add salary range matching: +10 score if job salary falls within user's min/max
-- Add remote preference bonus: +15 if job matches user's work mode preference
-
----
-
-### Phase 4: Smart Alerts Integration
-
-**Changes to `src/components/EmailPreferences.tsx`**:
-- Display which search criteria are connected to alerts
-- Show "Alerts use your Search & Match Criteria" with link to profile section
-
----
-
-### Estimated Scope
-
-| Area | Files Created | Files Modified | Migrations |
-|---|---|---|---|
-| Profile reorganization | 0 | 2 (`ProfileForm.tsx`, `Profile.tsx`) | 1 |
-| Search presets | 0 | 1 (`ProfileForm.tsx`) | included above |
-| Edge function enhancement | 0 | 1 (`search-jobs/index.ts`) | 0 |
-| Client search/matching | 0 | 3 (`JobSearch.tsx`, `service.ts`, matching `service.ts`) | 0 |
-| Alerts integration | 0 | 1 (`EmailPreferences.tsx`) | 0 |
-| **Total** | **0** | **~8** | **1** |
-
-### Implementation Order
-
-Phase 1 (Profile UI) → Phase 2 (Edge function) → Phase 3 (Client search) → Phase 4 (Alerts)
-
+Implementation order
+1. Admin redirect fix
+2. Search-mode wiring
+3. Query sanitization and Firecrawl fix
+4. Result visibility / fallback improvements
+5. Route cleanup verification
