@@ -1,6 +1,6 @@
-import { Target } from "lucide-react";
+import { Target, ChevronDown, Shield } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
   SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
@@ -12,14 +12,18 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAdminRole } from "@/hooks/useAdminRole";
 import {
-  modes, detectMode, getNavItems,
+  modes, detectMode, jobSeekerNav,
 } from "@/shell/navigation";
 
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
+  const navigate = useNavigate();
   const { isAdmin } = useAdminRole();
+
+  const currentMode = detectMode(location.pathname);
+  const modeInfo = modes.find(m => m.value === currentMode) ?? modes[0];
 
   // Use exact match OR startsWith with "/" boundary so /dashboard matches
   // /dashboard/sub-page but NOT /dashboard-settings (different prefix)
