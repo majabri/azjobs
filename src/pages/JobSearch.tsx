@@ -180,6 +180,7 @@ export default function JobSearchPage() {
     const filters: JobSearchFilters = {
       skills, jobTypes, location, query: customQuery, careerLevel,
       targetTitles, salaryMin, salaryMax, searchSource, minFitScore, showFlagged,
+      search_mode: searchMode,
     };
 
     // Step 1: Job service fetches raw results (DB + AI with async queue)
