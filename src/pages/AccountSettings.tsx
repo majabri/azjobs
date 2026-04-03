@@ -129,6 +129,8 @@ export default function AccountSettings() {
   const providers: string[] = useMemo(() => user?.app_metadata?.providers || [], [user]);
   const hasGoogle = providers.includes("google");
   const hasApple = providers.includes("apple");
+  const identityCount = user?.identities?.length ?? 0;
+  const canUnlink = identityCount > 1;
 
   const handleLinkProvider = async (provider: "google" | "apple") => {
     setLinkLoading(provider);
@@ -139,6 +141,31 @@ export default function AccountSettings() {
         toast.error(result.error);
       } else {
         toast.success(`${provider === "google" ? "Google" : "Apple"} account linked!`);
+      }
+    } catch (e) {
+      toast.error(normalizeError(e));
+    } finally {
+      setLinkLoading(null);
+    }
+  };
+
+  const handleUnlinkProvider = async (provider: "google" | "apple") => {
+    if (!canUnlink) {
+      toast.error("Cannot unlink your only sign-in method. Add another provider or set a password first.");
+      return;
+    }
+    const identity = user?.identities?.find(i => i.provider === provider);
+    if (!identity) { toast.error("Identity not found."); return; }
+
+    setLinkLoading(provider);
+    try {
+      const { error } = await supabase.auth.unlinkIdentity(identity);
+      if (error) {
+        toast.error(normalizeError(error));
+      } else {
+        toast.success(`${provider === "google" ? "Google" : "Apple"} account unlinked.`);
+        // Refresh session to update user metadata
+        await supabase.auth.refreshSession();
       }
     } catch (e) {
       toast.error(normalizeError(e));
@@ -194,7 +221,13 @@ export default function AccountSettings() {
               </div>
             </div>
             {hasGoogle ? (
-              <Badge className="bg-primary/10 text-primary border-0">Linked</Badge>
+              <div className="flex items-center gap-2">
+                <Badge className="bg-primary/10 text-primary border-0">Linked</Badge>
+                <Button size="sm" variant="outline" disabled={!canUnlink || linkLoading === "google"} onClick={() => handleUnlinkProvider("google")}
+                  title={!canUnlink ? "Cannot unlink your only sign-in method" : "Unlink Google"}>
+                  {linkLoading === "google" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Unlink className="w-4 h-4" />}
+                </Button>
+              </div>
             ) : (
               <Button size="sm" variant="outline" disabled={linkLoading === "google"} onClick={() => handleLinkProvider("google")}>
                 {linkLoading === "google" ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
@@ -215,7 +248,13 @@ export default function AccountSettings() {
               </div>
             </div>
             {hasApple ? (
-              <Badge className="bg-primary/10 text-primary border-0">Linked</Badge>
+              <div className="flex items-center gap-2">
+                <Badge className="bg-primary/10 text-primary border-0">Linked</Badge>
+                <Button size="sm" variant="outline" disabled={!canUnlink || linkLoading === "apple"} onClick={() => handleUnlinkProvider("apple")}
+                  title={!canUnlink ? "Cannot unlink your only sign-in method" : "Unlink Apple"}>
+                  {linkLoading === "apple" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Unlink className="w-4 h-4" />}
+                </Button>
+              </div>
             ) : (
               <Button size="sm" variant="outline" disabled={linkLoading === "apple"} onClick={() => handleLinkProvider("apple")}>
                 {linkLoading === "apple" ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
