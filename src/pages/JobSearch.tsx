@@ -175,50 +175,77 @@ export default function JobSearchPage() {
     setJobs([]);
     setCitations([]);
 
+    const filters: JobSearchFilters = {
+      skills, jobTypes, location, query: customQuery, careerLevel,
+      targetTitles, salaryMin, salaryMax, searchSource, minFitScore, showFlagged,
+    };
+
+    // Step 1: Job service fetches raw results (DB + AI with async queue)
+    // This NEVER throws — always returns a result (possibly empty)
+    let rawJobs: JobResult[] = [];
+    let cits: string[] = [];
     try {
-      const filters: JobSearchFilters = {
-        skills, jobTypes, location, query: customQuery, careerLevel,
-        targetTitles, salaryMin, salaryMax, searchSource, minFitScore, showFlagged,
-      };
-
-      // Step 1: Job service fetches raw results (DB + AI with async queue)
-      const { jobs: rawJobs, citations: cits } = await searchJobsService(filters);
-
-      // Step 2: Filter out ignored/saved jobs
-      let filtered = rawJobs
-        .filter(job => !isJobIgnored(job, ignoredList))
-        .filter(job => !isJobAlreadySaved(job, savedApps));
-
-      // Step 3: Matching service enriches with trust, probability, strategy
-      let enriched = scoreJobs({ jobs: filtered, skills, historicalOutcomes });
-
-      // Step 4: Sort
-      if (sortBy === "decision") {
-        enriched.sort((a, b) => (b.decisionScore || 0) - (a.decisionScore || 0));
-      } else if (sortBy === "probability") {
-        enriched.sort((a, b) => (b.responseProbability || 0) - (a.responseProbability || 0));
-      } else if (sortBy === "newest") {
-        enriched.sort((a, b) => {
-          if (!a.first_seen_at && !b.first_seen_at) return 0;
-          if (!a.first_seen_at) return 1;
-          if (!b.first_seen_at) return -1;
-          return new Date(b.first_seen_at).getTime() - new Date(a.first_seen_at).getTime();
-        });
-      }
-
-      // Step 5: Client-side filters
-      if (!showFlagged) enriched = enriched.filter(j => !j.is_flagged);
-      enriched = enriched.filter(j => (j.decisionScore || 0) >= minFitScore);
-
-      setJobs(enriched);
-      setCitations(cits);
-      setVisibleCount(PAGE_SIZE);
-      if (!enriched.length) toast.info("No jobs found. Try adjusting your criteria.");
-    } catch {
-      toast.error("Failed to search for jobs");
-    } finally {
-      setSearching(false);
+      const result = await searchJobsService(filters);
+      rawJobs = result.jobs;
+      cits = result.citations;
+    } catch (e) {
+      console.error("[JobSearch] Search service error (recovering):", e);
+      toast.error("Search encountered an issue. Showing partial results.");
     }
+
+    // Step 2: Filter out ignored/saved jobs
+    let filtered = rawJobs
+      .filter(job => !isJobIgnored(job, ignoredList))
+      .filter(job => !isJobAlreadySaved(job, savedApps));
+
+    // Step 3: Matching service enriches with trust, probability, strategy
+    // If matching fails, we still show jobs with default scores
+    let enriched: EnrichedJob[];
+    try {
+      enriched = scoreJobs({ jobs: filtered, skills, historicalOutcomes });
+    } catch (e) {
+      console.error("[JobSearch] Matching service error (degrading gracefully):", e);
+      // Fallback: show jobs without enrichment
+      enriched = filtered.map(job => ({
+        ...job,
+        flags: [],
+        trustScore: 50,
+        trustLevel: "caution" as const,
+        strategy: "apply_now" as const,
+        responseProbability: 50,
+        decisionScore: job.quality_score || 50,
+        effortEstimate: 50,
+        smartTag: "Worth Applying",
+      }));
+    }
+
+    // Step 4: Sort
+    if (sortBy === "decision") {
+      enriched.sort((a, b) => (b.decisionScore || 0) - (a.decisionScore || 0));
+    } else if (sortBy === "probability") {
+      enriched.sort((a, b) => (b.responseProbability || 0) - (a.responseProbability || 0));
+    } else if (sortBy === "newest") {
+      enriched.sort((a, b) => {
+        if (!a.first_seen_at && !b.first_seen_at) return 0;
+        if (!a.first_seen_at) return 1;
+        if (!b.first_seen_at) return -1;
+        return new Date(b.first_seen_at).getTime() - new Date(a.first_seen_at).getTime();
+      });
+    }
+
+    // Step 5: Client-side filters
+    if (!showFlagged) enriched = enriched.filter(j => !j.is_flagged);
+    enriched = enriched.filter(j => (j.decisionScore || 0) >= minFitScore);
+
+    setJobs(enriched);
+    setCitations(cits);
+    setVisibleCount(PAGE_SIZE);
+    if (!enriched.length && rawJobs.length > 0) {
+      toast.info("Jobs found but filtered out. Try lowering minimum fit score.");
+    } else if (!enriched.length) {
+      toast.info("No jobs found. Try adjusting your criteria.");
+    }
+    setSearching(false);
   };
 
   const handleAnalyzeFit = (job: EnrichedJob) => {
