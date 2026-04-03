@@ -87,14 +87,6 @@ const JOB_TYPE_OPTIONS = [
 
 const PAGE_SIZE = 50;
 
-function hasAnySearchCriteria(
-  skills: string[], customQuery: string, targetTitles: string[],
-  location: string, careerLevel: string, jobTypes: string[],
-): boolean {
-  return skills.length > 0 || customQuery.trim().length > 0 || targetTitles.length > 0 ||
-    location.trim().length > 0 || careerLevel.length > 0 || jobTypes.length > 0;
-}
-
 export default function JobSearchPage() {
   const navigate = useNavigate();
   const [skills, setSkills] = useState<string[]>([]);
@@ -118,7 +110,7 @@ export default function JobSearchPage() {
   const [ignoredList, setIgnoredList] = useState<IgnoredJob[]>([]);
   const [savedApps, setSavedApps] = useState<{ job_title: string; company: string; job_url: string | null }[]>([]);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
-  const [minFitScore, setMinFitScore] = useState(0);
+  const [minFitScore, setMinFitScore] = useState(60);
 
   useEffect(() => { loadProfile(); loadIgnoredAndSaved(); }, []);
 
@@ -175,8 +167,8 @@ export default function JobSearchPage() {
   // ── Search orchestration: delegates to job-service + matching-service ──
 
   const handleSearch = async () => {
-    if (!hasAnySearchCriteria(skills, customQuery, targetTitles, location, careerLevel, jobTypes)) {
-      toast.error("Add at least one search criterion (skills, title, location, or job type)");
+    if (!skills.length && !customQuery.trim() && !targetTitles.length) {
+      toast.error("Add skills, titles, or a search query");
       return;
     }
     setSearching(true);
@@ -198,24 +190,7 @@ export default function JobSearchPage() {
         .filter(job => !isJobAlreadySaved(job, savedApps));
 
       // Step 3: Matching service enriches with trust, probability, strategy
-      let enriched: EnrichedJob[];
-      try {
-        enriched = scoreJobs({ jobs: filtered, skills, historicalOutcomes });
-      } catch (matchErr) {
-        console.warn("Matching service failed — showing raw results without scores", matchErr);
-        // Provide safe defaults for enrichment fields so the UI renders correctly
-        enriched = filtered.map(job => ({
-          ...job,
-          flags: [],
-          trustScore: 50,
-          trustLevel: "caution" as const,
-          strategy: "apply_now" as const,
-          responseProbability: job.responseProbability ?? 50,
-          decisionScore: job.decisionScore ?? 50,
-          effortEstimate: job.effortEstimate ?? 50,
-          smartTag: job.smartTag ?? "Worth Applying",
-        }));
-      }
+      let enriched = scoreJobs({ jobs: filtered, skills, historicalOutcomes });
 
       // Step 4: Sort
       if (sortBy === "decision") {
@@ -231,8 +206,9 @@ export default function JobSearchPage() {
         });
       }
 
-      // Step 5: Client-side flags filter
+      // Step 5: Client-side filters
       if (!showFlagged) enriched = enriched.filter(j => !j.is_flagged);
+      enriched = enriched.filter(j => (j.decisionScore || 0) >= minFitScore);
 
       setJobs(enriched);
       setCitations(cits);
@@ -267,9 +243,6 @@ export default function JobSearchPage() {
       setSavingJobKeys((prev) => ({ ...prev, [saveKey]: false }));
     }
   };
-
-  // Display-layer filter: minFitScore is applied here so the slider works without a re-search
-  const visibleJobs = jobs.filter(j => (showFlagged || !j.is_flagged) && (j.decisionScore || 0) >= minFitScore);
 
   return (
     <div className="bg-background">
@@ -452,9 +425,7 @@ export default function JobSearchPage() {
         {/* Results Controls */}
         {jobs.length > 0 && (
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-            <h2 className="font-display font-bold text-primary text-xl">
-              {visibleJobs.length}{jobs.length !== visibleJobs.length ? ` of ${jobs.length}` : ""} Jobs Found
-            </h2>
+            <h2 className="font-display font-bold text-primary text-xl">{jobs.length} Jobs Found</h2>
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2">
                 <Filter className="w-4 h-4 text-muted-foreground" />
@@ -494,7 +465,7 @@ export default function JobSearchPage() {
 
         {/* Job Cards */}
         <div className="space-y-4">
-          {visibleJobs.slice(0, visibleCount).map((job, i) => {
+          {jobs.filter(j => showFlagged || !j.is_flagged).slice(0, visibleCount).map((job, i) => {
             const prob = job.responseProbability || 0;
             const tag = getSmartTagUI(job, prob);
             const TagIcon = tag.icon;
@@ -607,13 +578,13 @@ export default function JobSearchPage() {
           })}
         </div>
 
-        {visibleCount < visibleJobs.length && (
+        {visibleCount < jobs.filter(j => showFlagged || !j.is_flagged).length && (
           <div className="mt-4 text-center">
             <Button
               variant="outline"
               onClick={() => setVisibleCount(prev => prev + PAGE_SIZE)}
             >
-              Load More ({visibleJobs.length - visibleCount} remaining)
+              Load More ({jobs.filter(j => showFlagged || !j.is_flagged).length - visibleCount} remaining)
             </Button>
           </div>
         )}

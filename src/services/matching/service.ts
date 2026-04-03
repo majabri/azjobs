@@ -103,7 +103,7 @@ export function scoreJobs(input: MatchingInput): EnrichedJob[] {
     const matchScore = job.quality_score || 50;
     const descLower = (job.description || "").toLowerCase();
     const matched = skills.filter(s => descLower.includes(s.toLowerCase())).length;
-    const skillMatchRatio = skills.length > 0 ? matched / skills.length : 1.0;
+    const skillMatchRatio = skills.length > 0 ? matched / skills.length : 0.5;
     const competitionLevel = job.is_remote ? "high" as const : "medium" as const;
 
     const prob = calcResponseProb({

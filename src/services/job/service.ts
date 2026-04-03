@@ -22,9 +22,6 @@ const NON_JOB_PAGE_SEGMENTS = new Set([
   "about", "company", "team", "culture", "people", "mission", "values", "home", "contact",
 ]);
 
-// Minimum description length to keep a job that fails the URL check (soft gate)
-const MIN_DESCRIPTION_LENGTH = 20;
-
 export function normalizeJobUrl(rawUrl?: string | null): string {
   if (!rawUrl) return "";
   let value = rawUrl.trim();
@@ -118,7 +115,7 @@ export async function searchDatabaseJobs(filters: JobSearchFilters): Promise<Job
     if (nonRemoteTypes.length > 0) query = query.in("job_type", nonRemoteTypes);
   }
 
-  query = query.gte("quality_score", 20).order("created_at", { ascending: false }).limit(500);
+  query = query.order("created_at", { ascending: false }).limit(500);
   const { data, error } = await query;
   if (error) { console.error("[JobService] DB search error:", error); return []; }
 
@@ -141,14 +138,7 @@ export async function searchDatabaseJobs(filters: JobSearchFilters): Promise<Job
       source: job.source,
       first_seen_at: job.first_seen_at,
     }))
-    .filter(job => {
-      if (!job.url) return false;
-      if (isGenericJobListingUrl(job.url)) return false;
-      // Drop only when BOTH the URL check and description check fail — if either passes, keep the job
-      const goodUrl = isLikelyDirectJobPostingUrl(job.url);
-      const hasDesc = (job.description || "").trim().length > MIN_DESCRIPTION_LENGTH;
-      return goodUrl || hasDesc;
-    });
+    .filter(job => Boolean(job.url) && !isGenericJobListingUrl(job.url) && isLikelyDirectJobPostingUrl(job.url) && hasSubstantiveJobDescription(job.description));
 }
 
 // ─── AI Search (async queue with polling) ──────────────────────────────────
