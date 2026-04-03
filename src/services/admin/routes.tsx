@@ -22,6 +22,7 @@ const AdminConsole = lazy(() => import("./pages/AdminConsole"));
 const AdminAudit = lazy(() => import("./pages/AdminAudit"));
 const AdminAgentRunDetail = lazy(() => import("./pages/AdminAgentRunDetail"));
 const AdminTickets = lazy(() => import("./pages/AdminTickets"));
+const AdminSurveys = lazy(() => import("./pages/AdminSurveys"));
 
 // Public admin pages (exported for shell to mount without auth guard)
 export const AdminUsernameLogin = lazy(() => import("./pages/AdminUsernameLogin"));
