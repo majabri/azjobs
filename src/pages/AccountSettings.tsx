@@ -37,6 +37,7 @@ export default function AccountSettings() {
   // Delete
   const [deleteConfirm, setDeleteConfirm] = useState("");
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [linkLoading, setLinkLoading] = useState<string | null>(null);
 
   useEffect(() => {
     loadFactors();
