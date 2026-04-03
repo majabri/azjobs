@@ -126,6 +126,27 @@ export default function AccountSettings() {
 
   const activeTotpFactors = mfaFactors.filter(f => f.factor_type === "totp" && f.status === "verified");
 
+  const providers: string[] = useMemo(() => user?.app_metadata?.providers || [], [user]);
+  const hasGoogle = providers.includes("google");
+  const hasApple = providers.includes("apple");
+
+  const handleLinkProvider = async (provider: "google" | "apple") => {
+    setLinkLoading(provider);
+    try {
+      const fn = provider === "google" ? loginWithGoogle : loginWithApple;
+      const result = await fn();
+      if (result.error) {
+        toast.error(result.error);
+      } else {
+        toast.success(`${provider === "google" ? "Google" : "Apple"} account linked!`);
+      }
+    } catch (e) {
+      toast.error(normalizeError(e));
+    } finally {
+      setLinkLoading(null);
+    }
+  };
+
   return (
     <div className="max-w-2xl mx-auto py-8 px-4 space-y-6">
       <h1 className="text-2xl font-bold text-foreground">Account Settings</h1>
