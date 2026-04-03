@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { readdirSync, existsSync } from "fs";
+import { readdirSync, existsSync, readFileSync } from "fs";
 import { join } from "path";
 
 const SERVICES_DIR = join(process.cwd(), "src", "services");
@@ -140,7 +140,7 @@ describe("Job Search Resilience", () => {
     // We verify the export exists at module level without needing Supabase
     // The actual function body uses Supabase but the export must exist
     const jobApiPath = join(process.cwd(), "src", "services", "job", "api.ts");
-    const content = require("fs").readFileSync(jobApiPath, "utf-8");
+    const content = readFileSync(jobApiPath, "utf-8");
     expect(content).toContain("searchJobs");
   });
 
@@ -182,7 +182,7 @@ describe("Orchestrator", () => {
 
   it("runAllAgents is exported from orchestrator file", () => {
     const orchPath = join(SHELL_DIR, "orchestrator.ts");
-    const content = require("fs").readFileSync(orchPath, "utf-8");
+    const content = readFileSync(orchPath, "utf-8");
     expect(content).toContain("runAllAgents");
     expect(content).toContain("searchJobs");
     expect(content).toContain("scoreJobs");

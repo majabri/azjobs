@@ -79,7 +79,7 @@ export default function RecruiterAssistant() {
                 const parsed = JSON.parse(line.slice(6));
                 text += parsed.choices?.[0]?.delta?.content || "";
                 setDraftReply(text);
-              } catch {}
+              } catch { /* skip malformed SSE chunk */ }
             }
           }
         }
