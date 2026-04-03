@@ -45,6 +45,8 @@ const InterviewScheduling = lazy(() => import("@/services/hiring/pages/Interview
 const Index = lazy(() => import("@/pages/Index"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 const LoginPage = lazy(() => import("@/pages/auth/Login"));
+const SignupPage = lazy(() => import("@/pages/auth/Signup"));
+const AccountSettings = lazy(() => import("@/pages/AccountSettings"));
 
 // ─── Layout wrappers ─────────────────────────────────────────────────────────
 import ProtectedRoute from "@/components/ProtectedRoute";
