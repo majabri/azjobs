@@ -150,7 +150,7 @@ export default function JobSearchPage() {
         if (data.salary_min) setSalaryMin(data.salary_min);
         if (data.salary_max) setSalaryMax(data.salary_max);
         if (data.min_match_score != null) setMinFitScore(data.min_match_score);
-        setProfileLoaded(true);
+        if (data.search_mode) setSearchMode(data.search_mode as "quality" | "balanced" | "volume");
       }
       if (appData && appData.length >= 3) {
         const total = appData.length;
