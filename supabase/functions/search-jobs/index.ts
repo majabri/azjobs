@@ -324,13 +324,30 @@ function buildSearchQueries(p: { query: string; targetTitles: string[]; skills: 
   const eq = cleanSearchFragment(p.query, 10);
   const level = cleanSearchFragment(p.careerLevel, 4);
   const remote = p.jobTypes.some((t) => /remote/i.test(t)) ? "remote" : "";
-  const primary = eq || titles[0] || skills[0] || "software engineer";
-  const secondary = titles[1] || cleanSearchFragment(`${primary} ${skills[0] || ""}`, 10);
-  const candidates = [
-    cleanSearchFragment(`${primary} ${remote}`, 10),
-    cleanSearchFragment(`${secondary} ${remote}`, 10),
-  ];
-  const deduped = [...new Set(candidates.filter((c) => c.length >= 4))].slice(0, 2);
+
+  const candidates: string[] = [];
+
+  // One query per target title (up to 3)
+  for (const title of titles) {
+    candidates.push(cleanSearchFragment(`${title} ${remote} hiring`, 10));
+  }
+
+  // Skill-based queries
+  if (skills.length > 0) {
+    const primary = titles[0] || eq || skills[0];
+    candidates.push(cleanSearchFragment(`${primary} ${skills.slice(0, 3).join(" ")} ${remote}`, 12));
+  }
+
+  // General fallback with career level
+  if (eq) {
+    candidates.push(cleanSearchFragment(`${eq} ${level} ${remote}`, 10));
+  }
+
+  // Broader fallback
+  const fallback = eq || titles[0] || skills[0] || "software engineer";
+  candidates.push(cleanSearchFragment(`${fallback} jobs ${remote}`, 10));
+
+  const deduped = [...new Set(candidates.filter((c) => c.length >= 4))].slice(0, 5);
   return deduped.length ? deduped : ["software engineer remote"];
 }
 
@@ -365,14 +382,23 @@ async function searchFirecrawlSingleQuery(
   const q = normalizeText(`${query} ${cleanSearchFragment(location, 5)} hiring`).slice(0, 200);
   console.log(`Firecrawl query:`, q);
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 45_000);
+
   let response: Response;
   try {
     response = await fetch("https://api.firecrawl.dev/v1/search", {
       method: "POST",
       headers: { Authorization: `Bearer ${firecrawlApiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ query: q, limit: 10, tbs: "qdr:m", scrapeOptions: { formats: ["markdown"], onlyMainContent: true } }),
+      body: JSON.stringify({ query: q, limit: 30, tbs: "qdr:m", scrapeOptions: { formats: ["markdown"], onlyMainContent: true } }),
+      signal: controller.signal,
     });
-  } catch (e) { console.error("Firecrawl fetch error:", e); return []; }
+  } catch (e) {
+    clearTimeout(timeoutId);
+    console.error("Firecrawl fetch error:", e);
+    return [];
+  }
+  clearTimeout(timeoutId);
 
   if (!response.ok) {
     await response.text(); // consume body
@@ -420,7 +446,7 @@ function scoreJobMatch(
   const skillHits = skillTokens.filter((t) => h.includes(t)).length;
   const titleHits = titleTokens.filter((t) => h.includes(t)).length;
   const phraseHit = titlePhrases.some((p) => p && job.title.toLowerCase().includes(p));
-  score += skillHits * 12 + titleHits * 7 + (phraseHit ? 20 : 0);
+  score += skillHits * 12 + titleHits * 7 + (phraseHit ? 30 : 0);
   const loc = normalizeText(locationPref).toLowerCase();
   if (loc) {
     if (job.location.toLowerCase().includes(loc)) score += 15;
@@ -431,6 +457,8 @@ function scoreJobMatch(
   if (isHighSignalHost(job.url)) score += 8;
   if (getUrlHost(job.url).includes("linkedin.com")) score -= 6;
   if (isSuspiciousCompanyName(job.company)) score -= 14;
+  // Recency bonus: jobs created recently get a boost
+  // (not available from Firecrawl results, only DB jobs via quality_score)
   return { finalScore: score, skillHits, titleHits, phraseHit };
 }
 

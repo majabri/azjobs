@@ -8,7 +8,9 @@ export type RequestType =
   | "enhancement_request"
   | "general_feedback"
   | "feature_request"
-  | "account_billing";
+  | "account_billing"
+  | "data_issue"
+  | "account_issue";
 
 export type Priority = "low" | "medium" | "high";
 export type TicketStatus = "open" | "in_progress" | "resolved" | "closed";
@@ -54,6 +56,8 @@ export const REQUEST_TYPE_LABELS: Record<RequestType, string> = {
   general_feedback: "General Feedback",
   feature_request: "Feature Request",
   account_billing: "Account / Billing Issue",
+  data_issue: "Data Issue (wrong job info, salary, etc.)",
+  account_issue: "Account Issue (login, profile)",
 };
 
 export const PRIORITY_LABELS: Record<Priority, string> = {

@@ -157,6 +157,13 @@ export default function LoginPage() {
           </Button>
         </form>
 
+        <p className="text-sm text-muted-foreground">
+          Don't have an account?{" "}
+          <a href="/auth/signup" className="text-primary hover:underline font-medium">
+            Sign up
+          </a>
+        </p>
+
         <p className="text-xs text-muted-foreground">
           By signing in, you agree to our terms of service.
         </p>
