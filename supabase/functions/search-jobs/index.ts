@@ -323,18 +323,20 @@ function tokenize(text: string): string[] {
   return normalizeText(text).toLowerCase().replace(/[^a-z0-9\s]/g, " ").split(/\s+/).filter((t) => t.length >= 3 && !stop.has(t));
 }
 
-function buildSearchQueries(p: { query: string; targetTitles: string[]; skills: string[]; careerLevel: string; jobTypes: string[] }): string[] {
+function buildSearchQueries(p: { query: string; targetTitles: string[]; skills: string[]; careerLevel: string; jobTypes: string[]; location?: string }): string[] {
   const titles = p.targetTitles.map((t) => cleanSearchFragment(t, 8)).filter(Boolean).slice(0, 3);
   const skills = p.skills.map((s) => cleanSearchFragment(s, 4)).filter(Boolean).slice(0, 4);
   const eq = cleanSearchFragment(p.query, 10);
   const level = cleanSearchFragment(p.careerLevel, 4);
   const remote = p.jobTypes.some((t) => /remote/i.test(t)) ? "remote" : "";
+  const loc = cleanSearchFragment(p.location || "", 4);
+  const locSuffix = loc && !/remote/i.test(loc) ? loc : "";
 
   const candidates: string[] = [];
 
-  // One query per target title (up to 3)
+  // One query per target title with location (up to 3)
   for (const title of titles) {
-    candidates.push(cleanSearchFragment(`${title} ${remote} hiring`, 10));
+    candidates.push(cleanSearchFragment(`${title} ${locSuffix || remote} jobs`, 10));
   }
 
   // Skill-based queries
@@ -345,15 +347,20 @@ function buildSearchQueries(p: { query: string; targetTitles: string[]; skills: 
 
   // General fallback with career level
   if (eq) {
-    candidates.push(cleanSearchFragment(`${eq} ${level} ${remote}`, 10));
+    candidates.push(cleanSearchFragment(`${eq} ${level} ${locSuffix || remote}`, 10));
+  }
+
+  // Location-specific variant
+  if (locSuffix && titles[0]) {
+    candidates.push(cleanSearchFragment(`${titles[0]} jobs ${locSuffix}`, 10));
   }
 
   // Broader fallback
   const fallback = eq || titles[0] || skills[0] || "software engineer";
-  candidates.push(cleanSearchFragment(`${fallback} jobs ${remote}`, 10));
+  candidates.push(cleanSearchFragment(`${fallback} jobs ${locSuffix || remote}`, 10));
 
-  const deduped = [...new Set(candidates.filter((c) => c.length >= 4))].slice(0, 5);
-  return deduped.length ? deduped : ["software engineer remote"];
+  const deduped = [...new Set(candidates.filter((c) => c.length >= 4))].slice(0, 7);
+  return deduped.length ? deduped : ["software engineer remote jobs"];
 }
 
 // ── Data fetching ──────────────────────────────────────────────────────
