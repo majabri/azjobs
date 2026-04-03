@@ -8,7 +8,9 @@ export type RequestType =
   | "enhancement_request"
   | "general_feedback"
   | "feature_request"
-  | "account_billing";
+  | "account_billing"
+  | "data_issue"
+  | "account_issue";
 
 export type Priority = "low" | "medium" | "high";
 export type TicketStatus = "open" | "in_progress" | "resolved" | "closed";
