@@ -19,6 +19,7 @@ import { useAuthReady } from "@/hooks/useAuthReady";
 import { useUserRole, dashboardPrefKey } from "@/hooks/useUserRole";
 import { login, loginWithGoogle, loginWithApple } from "@/services/user/auth";
 import { normalizeError } from "@/lib/normalizeError";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -106,9 +107,25 @@ export default function LoginPage() {
     setErrorMsg(null);
     setLoadingEmail(true);
     try {
-      const result = await login(email.trim(), password);
+      const identifier = email.trim();
+      let resolvedEmail = identifier;
+
+      if (!identifier.includes("@")) {
+        const { data: resolved, error: rpcError } = await supabase.rpc(
+          "resolve_admin_email",
+          { _username: identifier }
+        );
+        if (rpcError || !resolved) {
+          setErrorMsg("Invalid email/username or password.");
+          setLoadingEmail(false);
+          return;
+        }
+        resolvedEmail = resolved;
+      }
+
+      const result = await login(resolvedEmail, password);
       if (result.error) {
-        setErrorMsg(result.error);
+        setErrorMsg("Invalid email/username or password.");
       }
     } catch (e) {
       setErrorMsg(normalizeError(e));
@@ -180,8 +197,11 @@ export default function LoginPage() {
             <Label htmlFor="email">Email</Label>
             <Input
               id="email"
-              type="email"
-              autoComplete="email"
+              type="text"
+              autoComplete="username"
+              spellCheck={false}
+              autoCorrect="off"
+              autoCapitalize="none"
               placeholder="you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
