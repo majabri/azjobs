@@ -24,6 +24,7 @@ const adminNav = [
   { title: "Audit Log", url: "/admin/audit", icon: ClipboardList },
   { title: "System Health", url: "/admin/system", icon: Shield },
   { title: "Support Tickets", url: "/admin/tickets", icon: LifeBuoy },
+  { title: "Customer Surveys", url: "/admin/surveys", icon: MessageSquare },
   { title: "Settings", url: "/admin/settings", icon: Settings },
   { title: "My Profile", url: "/admin/profile", icon: UserCircle },
 ];
