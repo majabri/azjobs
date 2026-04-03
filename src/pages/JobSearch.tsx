@@ -87,6 +87,14 @@ const JOB_TYPE_OPTIONS = [
 
 const PAGE_SIZE = 50;
 
+function hasAnySearchCriteria(
+  skills: string[], customQuery: string, targetTitles: string[],
+  location: string, careerLevel: string, jobTypes: string[],
+): boolean {
+  return skills.length > 0 || customQuery.trim().length > 0 || targetTitles.length > 0 ||
+    location.trim().length > 0 || careerLevel.length > 0 || jobTypes.length > 0;
+}
+
 export default function JobSearchPage() {
   const navigate = useNavigate();
   const [skills, setSkills] = useState<string[]>([]);
@@ -110,7 +118,7 @@ export default function JobSearchPage() {
   const [ignoredList, setIgnoredList] = useState<IgnoredJob[]>([]);
   const [savedApps, setSavedApps] = useState<{ job_title: string; company: string; job_url: string | null }[]>([]);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
-  const [minFitScore, setMinFitScore] = useState(60);
+  const [minFitScore, setMinFitScore] = useState(0);
 
   useEffect(() => { loadProfile(); loadIgnoredAndSaved(); }, []);
 
@@ -167,8 +175,8 @@ export default function JobSearchPage() {
   // ── Search orchestration: delegates to job-service + matching-service ──
 
   const handleSearch = async () => {
-    if (!skills.length && !customQuery.trim() && !targetTitles.length) {
-      toast.error("Add skills, titles, or a search query");
+    if (!hasAnySearchCriteria(skills, customQuery, targetTitles, location, careerLevel, jobTypes)) {
+      toast.error("Add at least one search criterion (skills, title, location, or job type)");
       return;
     }
     setSearching(true);
@@ -206,9 +214,8 @@ export default function JobSearchPage() {
         });
       }
 
-      // Step 5: Client-side filters
+      // Step 5: Client-side flags filter
       if (!showFlagged) enriched = enriched.filter(j => !j.is_flagged);
-      enriched = enriched.filter(j => (j.decisionScore || 0) >= minFitScore);
 
       setJobs(enriched);
       setCitations(cits);
@@ -243,6 +250,9 @@ export default function JobSearchPage() {
       setSavingJobKeys((prev) => ({ ...prev, [saveKey]: false }));
     }
   };
+
+  // Display-layer filter: minFitScore is applied here so the slider works without a re-search
+  const visibleJobs = jobs.filter(j => (showFlagged || !j.is_flagged) && (j.decisionScore || 0) >= minFitScore);
 
   return (
     <div className="bg-background">
@@ -425,7 +435,9 @@ export default function JobSearchPage() {
         {/* Results Controls */}
         {jobs.length > 0 && (
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-            <h2 className="font-display font-bold text-primary text-xl">{jobs.length} Jobs Found</h2>
+            <h2 className="font-display font-bold text-primary text-xl">
+              {visibleJobs.length}{jobs.length !== visibleJobs.length ? ` of ${jobs.length}` : ""} Jobs Found
+            </h2>
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2">
                 <Filter className="w-4 h-4 text-muted-foreground" />
@@ -465,7 +477,7 @@ export default function JobSearchPage() {
 
         {/* Job Cards */}
         <div className="space-y-4">
-          {jobs.filter(j => showFlagged || !j.is_flagged).slice(0, visibleCount).map((job, i) => {
+          {visibleJobs.slice(0, visibleCount).map((job, i) => {
             const prob = job.responseProbability || 0;
             const tag = getSmartTagUI(job, prob);
             const TagIcon = tag.icon;
@@ -578,13 +590,13 @@ export default function JobSearchPage() {
           })}
         </div>
 
-        {visibleCount < jobs.filter(j => showFlagged || !j.is_flagged).length && (
+        {visibleCount < visibleJobs.length && (
           <div className="mt-4 text-center">
             <Button
               variant="outline"
               onClick={() => setVisibleCount(prev => prev + PAGE_SIZE)}
             >
-              Load More ({jobs.filter(j => showFlagged || !j.is_flagged).length - visibleCount} remaining)
+              Load More ({visibleJobs.length - visibleCount} remaining)
             </Button>
           </div>
         )}
