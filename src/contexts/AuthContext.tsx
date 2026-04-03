@@ -7,7 +7,7 @@
 
 import { createContext, useContext, type ReactNode } from "react";
 import { useAuthReady } from "@/hooks/useAuthReady";
-import { login, loginWithGoogle, logout } from "@/services/user/auth";
+import { login, loginWithGoogle, loginWithApple, logout } from "@/services/user/auth";
 import type { User } from "@supabase/supabase-js";
 
 interface AuthContextValue {
