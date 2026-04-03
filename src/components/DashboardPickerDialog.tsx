@@ -3,8 +3,8 @@
  * the first time they log in (or whenever they have no stored preference).
  *
  * The user picks their default landing dashboard.  The choice is persisted in
- * localStorage under the key produced by `dashboardPrefKey(userId)` so the
- * dialog never re-appears on the same device once a preference is saved.
+ * `profiles.default_dashboard` (and cached in localStorage) so the dialog
+ * never re-appears once a preference is saved.
  */
 
 import { useNavigate } from "react-router-dom";
@@ -17,11 +17,11 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { type DashboardPref, dashboardPrefKey } from "@/hooks/useUserRole";
+import { type DashboardPref } from "@/hooks/useUserRole";
+import { useDashboardPref } from "@/hooks/useDashboardPref";
 
 interface Props {
   open: boolean;
-  userId: string;
   onDismiss: () => void;
 }
 
@@ -35,14 +35,14 @@ interface OptionConfig {
 
 const OPTIONS: OptionConfig[] = [
   {
-    pref: "seeker",
+    pref: "job_seeker",
     route: "/dashboard",
     icon: LayoutDashboard,
     label: "Job Seeker Dashboard",
     description: "Track applications, analyze job fits, and manage your career.",
   },
   {
-    pref: "hiring",
+    pref: "hiring_manager",
     route: "/hiring-manager",
     icon: Users,
     label: "Hiring Manager Dashboard",
@@ -50,11 +50,12 @@ const OPTIONS: OptionConfig[] = [
   },
 ];
 
-export default function DashboardPickerDialog({ open, userId, onDismiss }: Props) {
+export default function DashboardPickerDialog({ open, onDismiss }: Props) {
   const navigate = useNavigate();
+  const { updatePref } = useDashboardPref();
 
-  const handlePick = (option: OptionConfig) => {
-    localStorage.setItem(dashboardPrefKey(userId), option.pref);
+  const handlePick = async (option: OptionConfig) => {
+    await updatePref(option.pref);
     onDismiss();
     navigate(option.route, { replace: true });
   };
@@ -74,7 +75,7 @@ export default function DashboardPickerDialog({ open, userId, onDismiss }: Props
           {OPTIONS.map((opt) => (
             <button
               key={opt.pref}
-              onClick={() => handlePick(opt)}
+              onClick={() => void handlePick(opt)}
               className="flex items-start gap-4 rounded-xl border border-border bg-card p-4 text-left transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <div className="mt-0.5 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10">
@@ -100,3 +101,4 @@ export default function DashboardPickerDialog({ open, userId, onDismiss }: Props
     </Dialog>
   );
 }
+

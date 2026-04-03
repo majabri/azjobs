@@ -91,4 +91,4 @@ export function dashboardPrefKey(userId: string): string {
 }
 
 /** Values that can be stored as a dashboard preference. */
-export type DashboardPref = "seeker" | "hiring";
+export type DashboardPref = "job_seeker" | "hiring_manager";

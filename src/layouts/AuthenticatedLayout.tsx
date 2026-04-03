@@ -5,18 +5,21 @@ import UserMenu from "@/components/UserMenu";
 import NotificationCenter from "@/components/NotificationCenter";
 import DashboardPickerDialog from "@/components/DashboardPickerDialog";
 import { useAuthReady } from "@/hooks/useAuthReady";
-import { useUserRole, dashboardPrefKey } from "@/hooks/useUserRole";
+import { useUserRole } from "@/hooks/useUserRole";
+import { useDashboardPref } from "@/hooks/useDashboardPref";
 
 export default function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   const { user } = useAuthReady();
-  const { isDualRole, isLoading } = useUserRole();
+  const { isDualRole, isLoading: isRoleLoading } = useUserRole();
+  const { pref, isLoading: isPrefLoading } = useDashboardPref();
 
-  // Show the picker once per device for dual-role users who haven't chosen yet
+  // Show the picker for dual-role users who haven't saved a default yet
   const needsPicker =
-    !isLoading &&
+    !isRoleLoading &&
+    !isPrefLoading &&
     isDualRole &&
     !!user &&
-    !localStorage.getItem(dashboardPrefKey(user.id));
+    pref === null;
 
   const [pickerDismissed, setPickerDismissed] = useState(false);
 
@@ -40,7 +43,6 @@ export default function AuthenticatedLayout({ children }: { children: React.Reac
 
       <DashboardPickerDialog
         open={needsPicker && !pickerDismissed}
-        userId={user?.id ?? ""}
         onDismiss={() => setPickerDismissed(true)}
       />
     </SidebarProvider>
