@@ -15,6 +15,7 @@ type SearchRequest = {
   careerLevel?: string;
   targetTitles?: string[];
   limit?: number;
+  search_mode?: "quality" | "balanced" | "volume";
   // Polling mode: client sends job_id to check status
   job_id?: string;
 };
