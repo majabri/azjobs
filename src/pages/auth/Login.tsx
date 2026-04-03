@@ -51,6 +51,21 @@ export default function LoginPage() {
     }
   };
 
+  const handleAppleLogin = async () => {
+    setErrorMsg(null);
+    setLoadingApple(true);
+    try {
+      const result = await loginWithApple();
+      if (result.error) {
+        setErrorMsg(result.error);
+        setLoadingApple(false);
+      }
+    } catch (e) {
+      setErrorMsg(normalizeError(e));
+      setLoadingApple(false);
+    }
+  };
+
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim() || !password) return;
