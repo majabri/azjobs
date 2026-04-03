@@ -45,6 +45,13 @@ serve(async (req) => {
       );
     }
 
+    if (!checkRateLimit(`rewrite-resume:${data.user.id}`, 10, 60_000)) {
+      return new Response(
+        JSON.stringify({ error: "Too many requests – please slow down" }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const rawInput = await req.json();
     const parsed = InputSchema.safeParse(rawInput);
     if (!parsed.success) {
