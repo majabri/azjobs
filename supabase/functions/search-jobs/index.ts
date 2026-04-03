@@ -660,7 +660,7 @@ Deno.serve(async (req) => {
     }
 
     // Start background processing using EdgeRuntime.waitUntil
-    const bgParams = { skills, targetTitles, jobTypes, location, query, careerLevel, limit };
+    const bgParams = { skills, targetTitles, jobTypes, location, query, careerLevel, limit, search_mode };
 
     // @ts-ignore - EdgeRuntime.waitUntil is available in Supabase Edge Functions
     if (typeof EdgeRuntime !== "undefined" && EdgeRuntime.waitUntil) {
