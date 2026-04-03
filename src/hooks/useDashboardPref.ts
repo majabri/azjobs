@@ -93,14 +93,29 @@ export function useDashboardPref() {
     async (pref: DashboardPref) => {
       if (!user) return;
 
-      // Optimistic update — immediately reflect the choice in state and cache
+      // Capture previous pref via setState callback so we can revert on failure.
+      // This avoids adding state.pref to the useCallback dependency array.
+      let previousPref: DashboardPref | null = null;
+      setState((s) => {
+        previousPref = s.pref;
+        return { ...s, pref };
+      });
       localStorage.setItem(dashboardPrefKey(user.id), pref);
-      setState((s) => ({ ...s, pref }));
 
-      await supabase
+      const { error } = await supabase
         .from("profiles")
         .update({ default_dashboard: pref })
         .eq("user_id", user.id);
+
+      if (error) {
+        // Revert optimistic update if the DB write failed
+        if (previousPref) {
+          localStorage.setItem(dashboardPrefKey(user.id), previousPref);
+        } else {
+          localStorage.removeItem(dashboardPrefKey(user.id));
+        }
+        setState((s) => ({ ...s, pref: previousPref, error: error.message }));
+      }
     },
     [user],
   );
