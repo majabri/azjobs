@@ -90,6 +90,7 @@ export default function LoginPage() {
         );
         if (rpcError || !resolved) {
           setErrorMsg("Invalid email/username or password.");
+          setLoadingEmail(false);
           return;
         }
         resolvedEmail = resolved;
