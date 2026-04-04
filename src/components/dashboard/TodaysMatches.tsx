@@ -366,32 +366,33 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
   const fetchJobs = async (profile: any, session: any, cacheKey: string, outcomes?: HistoricalOutcomes) => {
     setLoading(true);
     try {
-      const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/search-jobs`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify({
-          skills: profile.skills?.slice(0, 10) || [],
-          jobTypes: profile.preferred_job_types || [],
-          location: profile.location || "",
-          careerLevel: profile.career_level || "",
-          targetTitles: profile.target_job_titles || [],
-          limit: 100,
-        }),
+      // Use the job service with built-in polling support
+      const { jobs: rawResults } = await searchJobsService({
+        skills: profile.skills?.slice(0, 10) || [],
+        jobTypes: profile.preferred_job_types || [],
+        location: profile.location || "",
+        careerLevel: profile.career_level || "",
+        targetTitles: profile.target_job_titles || [],
+        limit: 100,
       });
-      if (!resp.ok) throw new Error("Search failed");
-      const data = await resp.json();
 
-      const vettedJobs = ((data.jobs || []) as JobMatch[])
-        .map((job) => ({
-          ...job,
-          url: normalizeJobUrl(job.url),
-        }))
-        .filter(
-          (job) =>
-            Boolean(job.url) &&
-            !isGenericJobListingUrl(job.url) &&
-            hasSubstantiveJobDescription(job.description),
-        );
+      // Map JobResult to JobMatch format
+      const mappedJobs: JobMatch[] = rawResults.map((jr: JobResult) => ({
+        title: jr.title || "",
+        company: jr.company || "",
+        location: jr.location || "",
+        type: jr.job_type || "full-time",
+        description: jr.description || "",
+        url: normalizeJobUrl(jr.url || jr.job_url),
+        matchReason: (jr.title || "") + " " + (jr.description || ""),
+      }));
+
+      const vettedJobs = mappedJobs.filter(
+        (job) =>
+          Boolean(job.url) &&
+          !isGenericJobListingUrl(job.url) &&
+          hasSubstantiveJobDescription(job.description),
+      );
 
       const uniqueByUrl = new Map<string, JobMatch>();
       for (const job of vettedJobs) {
