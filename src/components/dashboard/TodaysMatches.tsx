@@ -371,9 +371,12 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
         skills: profile.skills?.slice(0, 10) || [],
         jobTypes: profile.preferred_job_types || [],
         location: profile.location || "",
+        query: "",
         careerLevel: profile.career_level || "",
         targetTitles: profile.target_job_titles || [],
-        limit: 100,
+        searchSource: "all",
+        minFitScore: 0,
+        showFlagged: false,
       });
 
       // Map JobResult to JobMatch format
@@ -381,10 +384,10 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
         title: jr.title || "",
         company: jr.company || "",
         location: jr.location || "",
-        type: jr.job_type || "full-time",
+        type: jr.type || "full-time",
         description: jr.description || "",
-        url: normalizeJobUrl(jr.url || jr.job_url),
-        matchReason: (jr.title || "") + " " + (jr.description || ""),
+        url: normalizeJobUrl(jr.url),
+        matchReason: jr.matchReason || (jr.title || "") + " " + (jr.description || ""),
       }));
 
       const vettedJobs = mappedJobs.filter(
