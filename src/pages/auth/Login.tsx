@@ -1,7 +1,11 @@
 /**
  * /auth/login — Primary login page.
  * Supports Google OAuth, Apple OAuth, and email/password sign-in.
- * Role-aware redirect: admins → /admin, regular users → /dashboard.
+ * Role-aware redirect:
+ *   admin → /admin
+ *   job seeker only → /dashboard
+ *   hiring manager only → /hiring-manager
+ *   both → /dashboard + modal to pick default
  */
 
 import { useEffect, useState } from "react";
@@ -11,14 +15,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Target, Loader2 } from "lucide-react";
 import { useAuthReady } from "@/hooks/useAuthReady";
-import { useAdminRole } from "@/hooks/useAdminRole";
+import { usePostLoginRedirect } from "@/hooks/usePostLoginRedirect";
+import DashboardModeDialog from "@/components/DashboardModeDialog";
 import { login, loginWithGoogle, loginWithApple } from "@/services/user/auth";
 import { normalizeError } from "@/lib/normalizeError";
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const { user, isReady } = useAuthReady();
-  const { isAdmin, isLoading: isRoleLoading } = useAdminRole();
+  const { destination, showModePrompt, setShowModePrompt, isResolving } = usePostLoginRedirect();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -27,18 +32,28 @@ export default function LoginPage() {
   const [loadingEmail, setLoadingEmail] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Role-aware redirect after authentication
+  // Role-aware redirect after authentication + role resolution
   useEffect(() => {
-    if (!isReady || !user || isRoleLoading) return;
-    navigate(isAdmin ? "/admin" : "/dashboard", { replace: true });
-  }, [isReady, user, isRoleLoading, isAdmin, navigate]);
+    if (!isReady || !user || isResolving || !destination) return;
+    if (showModePrompt) return; // wait for user to pick
+    navigate(destination, { replace: true });
+  }, [isReady, user, isResolving, destination, showModePrompt, navigate]);
 
-  // Show loading while resolving auth + role
-  if (isReady && user && isRoleLoading) {
+  // Show loading while resolving auth + role + mode
+  if (isReady && user && (isResolving || (!showModePrompt && destination))) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center" role="status" aria-label="Redirecting">
-        <Loader2 className="w-6 h-6 text-muted-foreground animate-spin" />
-      </div>
+      <>
+        <div className="min-h-screen bg-background flex items-center justify-center" role="status" aria-label="Redirecting">
+          <Loader2 className="w-6 h-6 text-muted-foreground animate-spin" />
+        </div>
+        <DashboardModeDialog
+          open={showModePrompt}
+          onSelect={(route) => {
+            setShowModePrompt(false);
+            navigate(route, { replace: true });
+          }}
+        />
+      </>
     );
   }
 

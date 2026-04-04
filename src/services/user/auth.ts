@@ -60,7 +60,7 @@ export async function loginWithGoogle(): Promise<AuthResult> {
 export async function loginWithApple(): Promise<AuthResult> {
   try {
     const result = await lovable.auth.signInWithOAuth("apple", {
-      redirect_uri: `${window.location.origin}/dashboard`,
+      redirect_uri: `${window.location.origin}/auth/login`,
     });
     if (result.error) return { error: normalizeError(result.error) };
     return {};
