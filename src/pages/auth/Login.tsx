@@ -1,6 +1,6 @@
 /**
  * /auth/login — Primary login page.
- * Supports Google OAuth, Apple OAuth, and email/password sign-in.
+ * Supports Google OAuth, Apple OAuth, email/password, and admin username login.
  * Role-aware redirect:
  *   admin → /admin
  *   job seeker only → /dashboard
@@ -13,12 +13,13 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Target, Loader2 } from "lucide-react";
+import { Target, Loader2, Shield } from "lucide-react";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { usePostLoginRedirect } from "@/hooks/usePostLoginRedirect";
 import DashboardModeDialog from "@/components/DashboardModeDialog";
 import { login, loginWithGoogle, loginWithApple } from "@/services/user/auth";
 import { normalizeError } from "@/lib/normalizeError";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -31,6 +32,7 @@ export default function LoginPage() {
   const [loadingApple, setLoadingApple] = useState(false);
   const [loadingEmail, setLoadingEmail] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [adminMode, setAdminMode] = useState(false);
 
   // Role-aware redirect after authentication + role resolution
   useEffect(() => {
@@ -89,12 +91,29 @@ export default function LoginPage() {
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim() || !password) return;
+    const identifier = email.trim();
+    if (!identifier || !password) return;
 
     setErrorMsg(null);
     setLoadingEmail(true);
     try {
-      const result = await login(email.trim(), password);
+      let loginEmail = identifier;
+
+      // If admin mode and identifier doesn't look like email, resolve username
+      if (adminMode && !identifier.includes("@")) {
+        const { data: resolved, error: rpcError } = await supabase.rpc(
+          "resolve_admin_email",
+          { _username: identifier }
+        );
+        if (rpcError || !resolved) {
+          setErrorMsg("Invalid username or password.");
+          setLoadingEmail(false);
+          return;
+        }
+        loginEmail = resolved;
+      }
+
+      const result = await login(loginEmail, password);
       if (result.error) {
         setErrorMsg(result.error);
       }
@@ -158,23 +177,36 @@ export default function LoginPage() {
             <div className="w-full border-t border-border" />
           </div>
           <div className="relative flex justify-center text-xs">
-            <span className="bg-background px-2 text-muted-foreground">or continue with email</span>
+            <span className="bg-background px-2 text-muted-foreground">
+              {adminMode ? "admin sign in" : "or continue with email"}
+            </span>
           </div>
         </div>
 
-        {/* Email/password form */}
+        {/* Admin mode indicator */}
+        {adminMode && (
+          <div className="flex items-center gap-2 justify-center text-xs text-destructive bg-destructive/10 border border-destructive/20 rounded-lg py-2 px-3">
+            <Shield className="w-3.5 h-3.5" />
+            <span>Administrator login — use your admin username or email</span>
+          </div>
+        )}
+
+        {/* Email/username + password form */}
         <form onSubmit={handleEmailLogin} className="space-y-4 text-left">
           <div className="space-y-1">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">{adminMode ? "Username or Email" : "Email"}</Label>
             <Input
               id="email"
-              type="email"
-              autoComplete="email"
-              placeholder="you@example.com"
+              type={adminMode ? "text" : "email"}
+              autoComplete={adminMode ? "username" : "email"}
+              placeholder={adminMode ? "admin username or email" : "you@example.com"}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               disabled={loading}
               required
+              spellCheck={false}
+              autoCapitalize="none"
+              autoCorrect="off"
             />
           </div>
           <div className="space-y-1">
@@ -212,6 +244,20 @@ export default function LoginPage() {
             Sign up
           </a>
         </p>
+
+        {/* Admin toggle */}
+        <button
+          type="button"
+          onClick={() => {
+            setAdminMode(!adminMode);
+            setErrorMsg(null);
+            setEmail("");
+          }}
+          className="text-xs text-muted-foreground/50 hover:text-muted-foreground transition-colors flex items-center gap-1 mx-auto"
+        >
+          <Shield className="w-3 h-3" />
+          {adminMode ? "Switch to regular login" : "Admin login"}
+        </button>
 
         <p className="text-xs text-muted-foreground">
           By signing in, you agree to our terms of service.
