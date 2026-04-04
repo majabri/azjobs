@@ -37,6 +37,8 @@ import {
 } from "@/lib/job-search";
 import { saveJobToApplications } from "@/lib/job-search";
 import { getIgnoredJobs, ignoreJob, isJobIgnored, isJobAlreadySaved, type IgnoredJob } from "@/lib/job-search";
+import { searchJobs as searchJobsService } from "@/services/job/api";
+import type { JobResult } from "@/services/job/types";
 
 interface JobMatch {
   title: string;

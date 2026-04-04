@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { LogOut, User } from "lucide-react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useAdminRole } from "@/hooks/useAdminRole";
@@ -7,6 +8,8 @@ import { useAdminRole } from "@/hooks/useAdminRole";
 export default function UserMenu() {
   const { user } = useAuthReady();
   const { isAdmin } = useAdminRole();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   if (!user) return null;
 
@@ -14,6 +17,16 @@ export default function UserMenu() {
   const name = isAdmin
     ? "Admin"
     : user.user_metadata?.full_name || user.email?.split("@")[0] || "User";
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    // If logging out from admin area, redirect to main page
+    if (location.pathname.startsWith("/admin")) {
+      window.location.href = "https://azjobs.lovable.app";
+    } else {
+      navigate("/", { replace: true });
+    }
+  };
 
   return (
     <div className="flex items-center gap-2">
@@ -31,9 +44,7 @@ export default function UserMenu() {
         variant="ghost"
         size="sm"
         className="text-muted-foreground hover:text-destructive"
-        onClick={async () => {
-          await supabase.auth.signOut();
-        }}
+        onClick={handleLogout}
       >
         <LogOut className="w-4 h-4" />
       </Button>
