@@ -11,6 +11,7 @@ import { Progress } from "@/components/ui/progress";
 import { Slider } from "@/components/ui/slider";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { parseDocument } from "@/lib/api/parseDocument";
 import { extractProfileFromResume } from "@/lib/analysisEngine";
@@ -41,6 +42,28 @@ export const emptyProfile: ProfileData = {
 const JOB_TYPE_OPTIONS = ["full-time", "part-time", "contract", "short-term"];
 const WORK_MODE_OPTIONS = ["remote", "hybrid", "in-office"];
 const CAREER_LEVELS = ["Entry-Level / Junior", "Mid-Level", "Senior", "Manager", "Director", "VP / Senior Leadership", "C-Level / Executive"];
+
+const COUNTRIES = [
+  "United States", "Canada", "United Kingdom", "Germany", "France", "Australia",
+  "India", "Netherlands", "Sweden", "Switzerland", "Ireland", "Singapore",
+  "United Arab Emirates", "Japan", "Brazil", "Mexico", "Spain", "Italy",
+  "South Korea", "New Zealand", "Israel", "Poland", "Portugal", "Belgium",
+  "Denmark", "Norway", "Finland", "Austria", "Czech Republic", "South Africa",
+  "Nigeria", "Kenya", "Egypt", "Saudi Arabia", "Qatar", "China", "Philippines",
+  "Indonesia", "Malaysia", "Thailand", "Vietnam", "Colombia", "Argentina", "Chile",
+];
+
+const STATES_BY_COUNTRY: Record<string, string[]> = {
+  "United States": ["Alabama","Alaska","Arizona","Arkansas","California","Colorado","Connecticut","Delaware","Florida","Georgia","Hawaii","Idaho","Illinois","Indiana","Iowa","Kansas","Kentucky","Louisiana","Maine","Maryland","Massachusetts","Michigan","Minnesota","Mississippi","Missouri","Montana","Nebraska","Nevada","New Hampshire","New Jersey","New Mexico","New York","North Carolina","North Dakota","Ohio","Oklahoma","Oregon","Pennsylvania","Rhode Island","South Carolina","South Dakota","Tennessee","Texas","Utah","Vermont","Virginia","Washington","West Virginia","Wisconsin","Wyoming"],
+  "Canada": ["Alberta","British Columbia","Manitoba","New Brunswick","Newfoundland and Labrador","Nova Scotia","Ontario","Prince Edward Island","Quebec","Saskatchewan"],
+  "United Kingdom": ["England","Scotland","Wales","Northern Ireland"],
+  "Australia": ["New South Wales","Victoria","Queensland","South Australia","Western Australia","Tasmania","ACT","Northern Territory"],
+  "India": ["Andhra Pradesh","Delhi","Gujarat","Karnataka","Maharashtra","Tamil Nadu","Telangana","Uttar Pradesh","West Bengal","Rajasthan","Kerala"],
+  "Germany": ["Bavaria","Berlin","Hamburg","Hesse","North Rhine-Westphalia","Baden-Württemberg","Saxony","Lower Saxony"],
+  "Brazil": ["São Paulo","Rio de Janeiro","Minas Gerais","Bahia","Paraná"],
+  "Mexico": ["Mexico City","Jalisco","Nuevo León","Puebla","Guanajuato"],
+  "United Arab Emirates": ["Abu Dhabi","Dubai","Sharjah","Ajman"],
+};
 
 const MARKET_BENCHMARKS: Record<string, { min: number; max: number }> = {
   "entry": { min: 50000, max: 80000 }, "junior": { min: 60000, max: 90000 },
@@ -424,23 +447,67 @@ export default function ProfileForm({ profile, setProfile, onSave, saving }: Pro
               </div>
             </div>
 
-            {/* Location — structured fields */}
+            {/* Location — cascading Country → State → City */}
             <div>
               <h3 className="text-sm font-semibold text-foreground flex items-center gap-2 mb-2">
                 <MapPin className="w-4 h-4 text-primary" /> Location
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <Label className="text-xs">City</Label>
-                  <Input value={loc.city} onChange={e => setProfile({ ...profile, location: buildLocation(e.target.value, loc.state, loc.country) })} placeholder="e.g. London, Berlin, NYC" />
+                  <Label className="text-xs">Country</Label>
+                  <Select
+                    value={loc.country}
+                    onValueChange={(val) => {
+                      const newCountry = val === "__clear__" ? "" : val;
+                      setProfile({ ...profile, location: buildLocation("", "", newCountry) });
+                    }}
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Select country" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__clear__" className="text-muted-foreground italic">— Clear —</SelectItem>
+                      {COUNTRIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <Label className="text-xs">State / Province</Label>
-                  <Input value={loc.state} onChange={e => setProfile({ ...profile, location: buildLocation(loc.city, e.target.value, loc.country) })} placeholder="e.g. CA, Ontario" />
+                  {loc.country && STATES_BY_COUNTRY[loc.country] ? (
+                    <Select
+                      value={loc.state}
+                      onValueChange={(val) => {
+                        const newState = val === "__clear__" ? "" : val;
+                        setProfile({ ...profile, location: buildLocation(loc.city, newState, loc.country) });
+                      }}
+                    >
+                      <SelectTrigger className="mt-1">
+                        <SelectValue placeholder="Select state / province" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__clear__" className="text-muted-foreground italic">— Clear —</SelectItem>
+                        {STATES_BY_COUNTRY[loc.country].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Input
+                      className="mt-1"
+                      value={loc.state}
+                      onChange={e => setProfile({ ...profile, location: buildLocation(loc.city, e.target.value, loc.country) })}
+                      placeholder={loc.country ? "Type state / province" : "Select country first"}
+                      disabled={!loc.country}
+                    />
+                  )}
                 </div>
                 <div>
-                  <Label className="text-xs">Country</Label>
-                  <Input value={loc.country} onChange={e => setProfile({ ...profile, location: buildLocation(loc.city, loc.state, e.target.value) })} placeholder="e.g. USA, UK, Germany" />
+                  <Label className="text-xs">City</Label>
+                  <Input
+                    className="mt-1"
+                    value={loc.city}
+                    onChange={e => setProfile({ ...profile, location: buildLocation(e.target.value, loc.state, loc.country) })}
+                    placeholder={loc.country ? "e.g. London, Berlin, NYC" : "Select country first"}
+                    disabled={!loc.country}
+                  />
                 </div>
               </div>
             </div>
