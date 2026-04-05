@@ -1,6 +1,6 @@
 /**
  * /auth/login — Primary login page.
- * Supports Google OAuth, Apple OAuth, email/password, and admin username login.
+ * Supports Google OAuth, Apple OAuth, and email-or-username + password.
  * Role-aware redirect:
  *   admin → /admin
  *   job seeker only → /dashboard
@@ -13,7 +13,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Target, Loader2, Shield } from "lucide-react";
+import { Target, Loader2 } from "lucide-react";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { usePostLoginRedirect } from "@/hooks/usePostLoginRedirect";
 import DashboardModeDialog from "@/components/DashboardModeDialog";
@@ -26,18 +26,17 @@ export default function LoginPage() {
   const { user, isReady } = useAuthReady();
   const { destination, showModePrompt, setShowModePrompt, isResolving } = usePostLoginRedirect();
 
-  const [email, setEmail] = useState("");
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [loadingGoogle, setLoadingGoogle] = useState(false);
   const [loadingApple, setLoadingApple] = useState(false);
   const [loadingEmail, setLoadingEmail] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [adminMode, setAdminMode] = useState(false);
 
   // Role-aware redirect after authentication + role resolution
   useEffect(() => {
     if (!isReady || !user || isResolving || !destination) return;
-    if (showModePrompt) return; // wait for user to pick
+    if (showModePrompt) return;
     navigate(destination, { replace: true });
   }, [isReady, user, isResolving, destination, showModePrompt, navigate]);
 
@@ -89,24 +88,24 @@ export default function LoginPage() {
     }
   };
 
-  const handleEmailLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const identifier = email.trim();
-    if (!identifier || !password) return;
+    const id = identifier.trim();
+    if (!id || !password) return;
 
     setErrorMsg(null);
     setLoadingEmail(true);
     try {
-      let loginEmail = identifier;
+      let loginEmail = id;
 
-      // If admin mode and identifier doesn't look like email, resolve username
-      if (adminMode && !identifier.includes("@")) {
+      // If identifier doesn't look like an email, try resolving as admin username
+      if (!id.includes("@")) {
         const { data: resolved, error: rpcError } = await supabase.rpc(
           "resolve_admin_email",
-          { _username: identifier }
+          { _username: id }
         );
         if (rpcError || !resolved) {
-          setErrorMsg("Invalid username or password.");
+          setErrorMsg("Invalid username/email or password.");
           setLoadingEmail(false);
           return;
         }
@@ -178,30 +177,22 @@ export default function LoginPage() {
           </div>
           <div className="relative flex justify-center text-xs">
             <span className="bg-background px-2 text-muted-foreground">
-              {adminMode ? "admin sign in" : "or continue with email"}
+              or continue with email / username
             </span>
           </div>
         </div>
 
-        {/* Admin mode indicator */}
-        {adminMode && (
-          <div className="flex items-center gap-2 justify-center text-xs text-destructive bg-destructive/10 border border-destructive/20 rounded-lg py-2 px-3">
-            <Shield className="w-3.5 h-3.5" />
-            <span>Administrator login — use your admin username or email</span>
-          </div>
-        )}
-
-        {/* Email/username + password form */}
-        <form onSubmit={handleEmailLogin} className="space-y-4 text-left">
+        {/* Unified login form */}
+        <form onSubmit={handleLogin} className="space-y-4 text-left">
           <div className="space-y-1">
-            <Label htmlFor="email">{adminMode ? "Username or Email" : "Email"}</Label>
+            <Label htmlFor="identifier">Email or Username</Label>
             <Input
-              id="email"
-              type={adminMode ? "text" : "email"}
-              autoComplete={adminMode ? "username" : "email"}
-              placeholder={adminMode ? "admin username or email" : "you@example.com"}
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              id="identifier"
+              type="text"
+              autoComplete="username"
+              placeholder="you@example.com or username"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
               disabled={loading}
               required
               spellCheck={false}
@@ -232,7 +223,7 @@ export default function LoginPage() {
           <Button
             type="submit"
             className="w-full"
-            disabled={loading || !email.trim() || !password}
+            disabled={loading || !identifier.trim() || !password}
           >
             {loadingEmail ? "Signing in…" : "Sign in"}
           </Button>
@@ -244,20 +235,6 @@ export default function LoginPage() {
             Sign up
           </a>
         </p>
-
-        {/* Admin toggle */}
-        <button
-          type="button"
-          onClick={() => {
-            setAdminMode(!adminMode);
-            setErrorMsg(null);
-            setEmail("");
-          }}
-          className="text-xs text-muted-foreground/50 hover:text-muted-foreground transition-colors flex items-center gap-1 mx-auto"
-        >
-          <Shield className="w-3 h-3" />
-          {adminMode ? "Switch to regular login" : "Admin login"}
-        </button>
 
         <p className="text-xs text-muted-foreground">
           By signing in, you agree to our terms of service.
