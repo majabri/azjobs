@@ -447,23 +447,67 @@ export default function ProfileForm({ profile, setProfile, onSave, saving }: Pro
               </div>
             </div>
 
-            {/* Location — structured fields */}
+            {/* Location — cascading Country → State → City */}
             <div>
               <h3 className="text-sm font-semibold text-foreground flex items-center gap-2 mb-2">
                 <MapPin className="w-4 h-4 text-primary" /> Location
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <Label className="text-xs">City</Label>
-                  <Input value={loc.city} onChange={e => setProfile({ ...profile, location: buildLocation(e.target.value, loc.state, loc.country) })} placeholder="e.g. London, Berlin, NYC" />
+                  <Label className="text-xs">Country</Label>
+                  <Select
+                    value={loc.country}
+                    onValueChange={(val) => {
+                      const newCountry = val === "__clear__" ? "" : val;
+                      setProfile({ ...profile, location: buildLocation("", "", newCountry) });
+                    }}
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Select country" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__clear__" className="text-muted-foreground italic">— Clear —</SelectItem>
+                      {COUNTRIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <Label className="text-xs">State / Province</Label>
-                  <Input value={loc.state} onChange={e => setProfile({ ...profile, location: buildLocation(loc.city, e.target.value, loc.country) })} placeholder="e.g. CA, Ontario" />
+                  {loc.country && STATES_BY_COUNTRY[loc.country] ? (
+                    <Select
+                      value={loc.state}
+                      onValueChange={(val) => {
+                        const newState = val === "__clear__" ? "" : val;
+                        setProfile({ ...profile, location: buildLocation(loc.city, newState, loc.country) });
+                      }}
+                    >
+                      <SelectTrigger className="mt-1">
+                        <SelectValue placeholder="Select state / province" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="__clear__" className="text-muted-foreground italic">— Clear —</SelectItem>
+                        {STATES_BY_COUNTRY[loc.country].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <Input
+                      className="mt-1"
+                      value={loc.state}
+                      onChange={e => setProfile({ ...profile, location: buildLocation(loc.city, e.target.value, loc.country) })}
+                      placeholder={loc.country ? "Type state / province" : "Select country first"}
+                      disabled={!loc.country}
+                    />
+                  )}
                 </div>
                 <div>
-                  <Label className="text-xs">Country</Label>
-                  <Input value={loc.country} onChange={e => setProfile({ ...profile, location: buildLocation(loc.city, loc.state, e.target.value) })} placeholder="e.g. USA, UK, Germany" />
+                  <Label className="text-xs">City</Label>
+                  <Input
+                    className="mt-1"
+                    value={loc.city}
+                    onChange={e => setProfile({ ...profile, location: buildLocation(e.target.value, loc.state, loc.country) })}
+                    placeholder={loc.country ? "e.g. London, Berlin, NYC" : "Select country first"}
+                    disabled={!loc.country}
+                  />
                 </div>
               </div>
             </div>
