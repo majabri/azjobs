@@ -177,7 +177,7 @@ export default function LoginPage() {
           </div>
           <div className="relative flex justify-center text-xs">
             <span className="bg-background px-2 text-muted-foreground">
-              or continue with email / username
+              or continue with email
             </span>
           </div>
         </div>
@@ -185,12 +185,12 @@ export default function LoginPage() {
         {/* Unified login form */}
         <form onSubmit={handleLogin} className="space-y-4 text-left">
           <div className="space-y-1">
-            <Label htmlFor="identifier">Email or Username</Label>
+            <Label htmlFor="identifier">Email</Label>
             <Input
               id="identifier"
               type="text"
               autoComplete="username"
-              placeholder="you@example.com or username"
+              placeholder="you@example.com"
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
               disabled={loading}
