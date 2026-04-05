@@ -1228,6 +1228,7 @@ export type Database = {
           display_order: number
           id: string
           image_url: string | null
+          is_public: boolean
           item_type: string
           tags: string[] | null
           title: string
@@ -1240,6 +1241,7 @@ export type Database = {
           display_order?: number
           id?: string
           image_url?: string | null
+          is_public?: boolean
           item_type?: string
           tags?: string[] | null
           title?: string
@@ -1252,6 +1254,7 @@ export type Database = {
           display_order?: number
           id?: string
           image_url?: string | null
+          is_public?: boolean
           item_type?: string
           tags?: string[] | null
           title?: string
