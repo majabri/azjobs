@@ -43,6 +43,28 @@ const JOB_TYPE_OPTIONS = ["full-time", "part-time", "contract", "short-term"];
 const WORK_MODE_OPTIONS = ["remote", "hybrid", "in-office"];
 const CAREER_LEVELS = ["Entry-Level / Junior", "Mid-Level", "Senior", "Manager", "Director", "VP / Senior Leadership", "C-Level / Executive"];
 
+const COUNTRIES = [
+  "United States", "Canada", "United Kingdom", "Germany", "France", "Australia",
+  "India", "Netherlands", "Sweden", "Switzerland", "Ireland", "Singapore",
+  "United Arab Emirates", "Japan", "Brazil", "Mexico", "Spain", "Italy",
+  "South Korea", "New Zealand", "Israel", "Poland", "Portugal", "Belgium",
+  "Denmark", "Norway", "Finland", "Austria", "Czech Republic", "South Africa",
+  "Nigeria", "Kenya", "Egypt", "Saudi Arabia", "Qatar", "China", "Philippines",
+  "Indonesia", "Malaysia", "Thailand", "Vietnam", "Colombia", "Argentina", "Chile",
+];
+
+const STATES_BY_COUNTRY: Record<string, string[]> = {
+  "United States": ["Alabama","Alaska","Arizona","Arkansas","California","Colorado","Connecticut","Delaware","Florida","Georgia","Hawaii","Idaho","Illinois","Indiana","Iowa","Kansas","Kentucky","Louisiana","Maine","Maryland","Massachusetts","Michigan","Minnesota","Mississippi","Missouri","Montana","Nebraska","Nevada","New Hampshire","New Jersey","New Mexico","New York","North Carolina","North Dakota","Ohio","Oklahoma","Oregon","Pennsylvania","Rhode Island","South Carolina","South Dakota","Tennessee","Texas","Utah","Vermont","Virginia","Washington","West Virginia","Wisconsin","Wyoming"],
+  "Canada": ["Alberta","British Columbia","Manitoba","New Brunswick","Newfoundland and Labrador","Nova Scotia","Ontario","Prince Edward Island","Quebec","Saskatchewan"],
+  "United Kingdom": ["England","Scotland","Wales","Northern Ireland"],
+  "Australia": ["New South Wales","Victoria","Queensland","South Australia","Western Australia","Tasmania","ACT","Northern Territory"],
+  "India": ["Andhra Pradesh","Delhi","Gujarat","Karnataka","Maharashtra","Tamil Nadu","Telangana","Uttar Pradesh","West Bengal","Rajasthan","Kerala"],
+  "Germany": ["Bavaria","Berlin","Hamburg","Hesse","North Rhine-Westphalia","Baden-Württemberg","Saxony","Lower Saxony"],
+  "Brazil": ["São Paulo","Rio de Janeiro","Minas Gerais","Bahia","Paraná"],
+  "Mexico": ["Mexico City","Jalisco","Nuevo León","Puebla","Guanajuato"],
+  "United Arab Emirates": ["Abu Dhabi","Dubai","Sharjah","Ajman"],
+};
+
 const MARKET_BENCHMARKS: Record<string, { min: number; max: number }> = {
   "entry": { min: 50000, max: 80000 }, "junior": { min: 60000, max: 90000 },
   "mid": { min: 85000, max: 130000 }, "senior": { min: 120000, max: 175000 },
