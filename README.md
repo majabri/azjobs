@@ -1,5 +1,7 @@
 # Welcome to your Lovable project
 
+<!-- CI/CD pipeline test -->
+
 ## Project info
 
 **URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
