@@ -26,15 +26,12 @@ jobs:
 
       - name: Type check
         run: npx tsc --noEmit
-        continue-on-error: true
 
       - name: Lint
         run: npx eslint . --max-warnings=0
-        continue-on-error: true
 
       - name: Build
         run: npm run build
 
       - name: Test
         run: npx vitest run
-        continue-on-error: true
