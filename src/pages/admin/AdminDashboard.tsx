@@ -13,6 +13,8 @@ import {
   Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend,
 } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
+import FeatureFlagsPanel from "@/components/admin/FeatureFlagsPanel";
+import ServiceHealthPanel from "@/components/admin/ServiceHealthPanel";
 
 interface PlatformStats {
   totalUsers: number;
@@ -459,6 +461,12 @@ export default function AdminDashboard() {
             )}
           </CardContent>
         </Card>
+      </div>
+
+      {/* Architecture Controls */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <FeatureFlagsPanel />
+        <ServiceHealthPanel />
       </div>
     </div>
   );

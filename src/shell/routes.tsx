@@ -40,6 +40,7 @@ const HiringRoutes = lazy(() => import("@/services/hiring/routes"));
 const CandidatesDatabase = lazy(() => import("@/services/hiring/pages/CandidatesDatabase"));
 const JobPostings = lazy(() => import("@/services/hiring/pages/JobPostings"));
 const InterviewScheduling = lazy(() => import("@/services/hiring/pages/InterviewScheduling"));
+const GigMarketplace = lazy(() => import("@/services/gig/pages/GigMarketplace"));
 
 // ─── Non-service pages (landing, 404) ────────────────────────────────────────
 const Index = lazy(() => import("@/pages/Index"));
@@ -134,6 +135,9 @@ export default function ShellRoutes() {
         <Route path="/candidates" element={<ProtectedWithLayout><CandidatesDatabase /></ProtectedWithLayout>} />
         <Route path="/job-postings" element={<ProtectedWithLayout><JobPostings /></ProtectedWithLayout>} />
         <Route path="/interview-scheduling" element={<ProtectedWithLayout><InterviewScheduling /></ProtectedWithLayout>} />
+
+        {/* Gig Marketplace */}
+        <Route path="/gigs" element={<ProtectedWithLayout><GigMarketplace /></ProtectedWithLayout>} />
 
         {/* Admin Service — public routes (no auth guard) */}
         <Route path="/admin/login" element={<AdminUsernameLogin />} />

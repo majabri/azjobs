@@ -257,6 +257,226 @@ export type Database = {
         }
         Relationships: []
       }
+      feature_flags: {
+        Row: {
+          created_at: string
+          description: string | null
+          enabled: boolean
+          id: string
+          key: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          enabled?: boolean
+          id?: string
+          key: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          enabled?: boolean
+          id?: string
+          key?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      gig_bids: {
+        Row: {
+          amount: number
+          bidder_id: string
+          created_at: string
+          gig_id: string
+          id: string
+          message: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          bidder_id: string
+          created_at?: string
+          gig_id: string
+          id?: string
+          message?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          bidder_id?: string
+          created_at?: string
+          gig_id?: string
+          id?: string
+          message?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gig_bids_gig_id_fkey"
+            columns: ["gig_id"]
+            isOneToOne: false
+            referencedRelation: "gigs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gig_contracts: {
+        Row: {
+          amount: number
+          bid_id: string | null
+          client_id: string
+          completed_at: string | null
+          created_at: string
+          freelancer_id: string
+          gig_id: string
+          id: string
+          milestones: Json
+          started_at: string
+          status: string
+        }
+        Insert: {
+          amount?: number
+          bid_id?: string | null
+          client_id: string
+          completed_at?: string | null
+          created_at?: string
+          freelancer_id: string
+          gig_id: string
+          id?: string
+          milestones?: Json
+          started_at?: string
+          status?: string
+        }
+        Update: {
+          amount?: number
+          bid_id?: string | null
+          client_id?: string
+          completed_at?: string | null
+          created_at?: string
+          freelancer_id?: string
+          gig_id?: string
+          id?: string
+          milestones?: Json
+          started_at?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gig_contracts_bid_id_fkey"
+            columns: ["bid_id"]
+            isOneToOne: false
+            referencedRelation: "gig_bids"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gig_contracts_gig_id_fkey"
+            columns: ["gig_id"]
+            isOneToOne: false
+            referencedRelation: "gigs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gig_reviews: {
+        Row: {
+          comment: string | null
+          contract_id: string
+          created_at: string
+          id: string
+          rating: number
+          reviewee_id: string
+          reviewer_id: string
+        }
+        Insert: {
+          comment?: string | null
+          contract_id: string
+          created_at?: string
+          id?: string
+          rating?: number
+          reviewee_id: string
+          reviewer_id: string
+        }
+        Update: {
+          comment?: string | null
+          contract_id?: string
+          created_at?: string
+          id?: string
+          rating?: number
+          reviewee_id?: string
+          reviewer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gig_reviews_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "gig_contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gigs: {
+        Row: {
+          applications_count: number
+          budget_max: number | null
+          budget_min: number | null
+          budget_type: string
+          category: string
+          created_at: string
+          description: string
+          id: string
+          is_remote: boolean
+          location: string | null
+          skills_required: string[]
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          applications_count?: number
+          budget_max?: number | null
+          budget_min?: number | null
+          budget_type?: string
+          category?: string
+          created_at?: string
+          description?: string
+          id?: string
+          is_remote?: boolean
+          location?: string | null
+          skills_required?: string[]
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          applications_count?: number
+          budget_max?: number | null
+          budget_min?: number | null
+          budget_type?: string
+          category?: string
+          created_at?: string
+          description?: string
+          id?: string
+          is_remote?: boolean
+          location?: string | null
+          skills_required?: string[]
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       ignored_jobs: {
         Row: {
           company: string
@@ -1102,6 +1322,66 @@ export type Database = {
           id?: string
           name?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      service_events: {
+        Row: {
+          created_at: string
+          emitted_by: string
+          event_name: string
+          id: string
+          payload: Json
+          processed: boolean
+        }
+        Insert: {
+          created_at?: string
+          emitted_by?: string
+          event_name: string
+          id?: string
+          payload?: Json
+          processed?: boolean
+        }
+        Update: {
+          created_at?: string
+          emitted_by?: string
+          event_name?: string
+          id?: string
+          payload?: Json
+          processed?: boolean
+        }
+        Relationships: []
+      }
+      service_health: {
+        Row: {
+          circuit_breaker_open: boolean
+          error_count: number
+          id: string
+          last_check: string
+          last_error: string | null
+          service_name: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          circuit_breaker_open?: boolean
+          error_count?: number
+          id?: string
+          last_check?: string
+          last_error?: string | null
+          service_name: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          circuit_breaker_open?: boolean
+          error_count?: number
+          id?: string
+          last_check?: string
+          last_error?: string | null
+          service_name?: string
+          status?: string
+          updated_at?: string
         }
         Relationships: []
       }
