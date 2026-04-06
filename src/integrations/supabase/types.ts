@@ -257,6 +257,36 @@ export type Database = {
         }
         Relationships: []
       }
+      feature_flags: {
+        Row: {
+          created_at: string
+          description: string | null
+          enabled: boolean
+          id: string
+          key: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          enabled?: boolean
+          id?: string
+          key: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          enabled?: boolean
+          id?: string
+          key?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       ignored_jobs: {
         Row: {
           company: string
@@ -1102,6 +1132,66 @@ export type Database = {
           id?: string
           name?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      service_events: {
+        Row: {
+          created_at: string
+          emitted_by: string
+          event_name: string
+          id: string
+          payload: Json
+          processed: boolean
+        }
+        Insert: {
+          created_at?: string
+          emitted_by?: string
+          event_name: string
+          id?: string
+          payload?: Json
+          processed?: boolean
+        }
+        Update: {
+          created_at?: string
+          emitted_by?: string
+          event_name?: string
+          id?: string
+          payload?: Json
+          processed?: boolean
+        }
+        Relationships: []
+      }
+      service_health: {
+        Row: {
+          circuit_breaker_open: boolean
+          error_count: number
+          id: string
+          last_check: string
+          last_error: string | null
+          service_name: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          circuit_breaker_open?: boolean
+          error_count?: number
+          id?: string
+          last_check?: string
+          last_error?: string | null
+          service_name: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          circuit_breaker_open?: boolean
+          error_count?: number
+          id?: string
+          last_check?: string
+          last_error?: string | null
+          service_name?: string
+          status?: string
+          updated_at?: string
         }
         Relationships: []
       }
