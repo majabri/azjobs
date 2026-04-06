@@ -462,6 +462,12 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Architecture Controls */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <FeatureFlagsPanel />
+        <ServiceHealthPanel />
+      </div>
     </div>
   );
 }
