@@ -1,113 +1,115 @@
 
-Goal: make job search reliably return visible results again, and automatically send admins to the admin area immediately after login.
 
-What I found
-- The live app uses `src/main.tsx` -> `src/shell/App.tsx` -> `src/shell/routes.tsx`. The older `src/App.tsx` is not the active router, so fixes must go into the shell-based flow.
-- `src/pages/auth/Login.tsx` currently redirects every authenticated user to `/dashboard`; it never checks whether the user is an admin.
-- `src/pages/admin/AdminUsernameLogin.tsx` already redirects admins, but only on the dedicated admin login page.
-- Job search is partially working server-side, but the current pipeline is still weak:
-  - Firecrawl is returning results in logs.
-  - Database search is returning `0 rows`.
-  - Search queries are being polluted by bad location values like company text.
-  - Firecrawl requests are timing out/aborting.
-- `JobSearch.tsx` loads `search_mode` from the profile, but never stores or sends it.
-- `JobSearchFilters` does not include `search_mode`, so the edge function always falls back to `"balanced"`.
-- The client applies `minFitScore` after scoring, which can hide all fetched jobs and make the search look broken even when the backend found results.
+## Fix Build Errors + Realistic Architecture Enhancement Plan
 
-Plan
+### Reality Check
 
-1. Fix admin auto-redirect after login
-- Update the main login page to wait for both auth readiness and admin role loading.
-- Redirect admins to `/admin` and regular users to `/dashboard`.
-- Keep the dedicated `/admin/login` page, but make post-login routing consistent with the main login flow.
-- Use a shared post-login route resolver so email/password and OAuth behave the same way.
-- Show a loading state while role data is resolving to avoid redirect races.
+This project runs on **Lovable (React + Supabase)** — a client-side SPA with serverless edge functions. True microservices (independently deployed containers with separate databases, event buses, service meshes) are **not possible** in this environment. However, we can achieve the **spirit** of the architecture using:
 
-Files:
-- `src/pages/auth/Login.tsx`
-- `src/hooks/useAdminRole.ts` or a small new redirect helper
-- `src/pages/admin/AdminUsernameLogin.tsx` if needed for consistency
+- **Edge Functions** as independent service endpoints (already partially done)
+- **Supabase tables** with strict RLS as service-owned data layers
+- **Client-side service modules** with strict import boundaries (already partially done via SOA)
+- **Database-backed event log** for event-driven patterns
+- **Feature flags table** for admin service controls
 
-2. Fix the job search request contract
-- Add `search_mode` to `JobSearchFilters`.
-- Track `search_mode` in `JobSearch.tsx` state and initialize it from the profile.
-- Pass `search_mode` from the page -> job service -> edge function.
-- Align the frontend fit filtering with the selected search mode so “volume” is not canceled by a stricter local threshold.
+### Critical Issue: Build Is Broken
 
-Files:
-- `src/services/job/types.ts`
-- `src/services/job/service.ts`
-- `src/pages/JobSearch.tsx`
+`src/services/job/service.ts` was overwritten and lost the `searchJobs`, `searchDatabaseJobs`, and `searchAIJobs` functions. Only `normalizeJobUrl` remains. The `api.ts` re-exports are broken, causing a cascading build failure.
 
-3. Repair search query construction
-- Sanitize the location input before generating queries.
-- Ignore suspicious “location” values that look like company names or quoted text.
-- Stop appending location twice in Firecrawl queries.
-- Add title normalization for executive/security titles so searches use cleaner ATS-style titles and synonyms.
+---
 
-Files:
-- `supabase/functions/search-jobs/index.ts`
+### Phase 1 — Fix Build (Immediate)
 
-4. Improve result yield and fallback behavior
-- Rework DB search so it contributes useful matches instead of acting like a broad top-300 fetch that currently returns nothing useful.
-- Relax overly strict assumptions around stored job quality where appropriate.
-- Keep backend ranking, but improve client visibility when results are hidden by filters.
-- If jobs were fetched but then filtered out, show a specific message and a quick way to lower the threshold/reset filters.
+**Restore `src/services/job/service.ts`** with the missing functions:
+- `searchJobs(filters)` — calls the `search-jobs` edge function, handles polling, returns `{ jobs, citations }`
+- `searchDatabaseJobs(filters)` — queries `scraped_jobs` table directly
+- `searchAIJobs(filters)` — calls edge function for AI-powered search only
+- Keep existing `normalizeJobUrl`
 
-Files:
-- `supabase/functions/search-jobs/index.ts`
-- `src/pages/JobSearch.tsx`
-- `src/services/matching/service.ts` only if score alignment needs adjustment
+This alone will unbreak the build since all other files import from `api.ts` which re-exports from `service.ts`.
 
-5. Final routing cleanup review
-- Verify the active shell routes handle `/`, `/auth`, `/auth/login`, `/admin/login`, and `/admin/*` correctly.
-- Make sure no legacy route file is masking or duplicating behavior.
-- Keep redirects role-aware and `replace: true` so history stays clean.
+### Phase 2 — Service Architecture Hardening
 
-Files:
-- `src/shell/routes.tsx`
-- `src/main.tsx`
-- `src/shell/App.tsx`
-- review `src/App.tsx` only to avoid confusion
+Enhance the existing 11-service SOA to match the requested architecture:
 
-Technical details
+| Requested Service | Implementation | Status |
+|---|---|---|
+| auth-service | `src/services/user/auth.ts` + Supabase Auth | Exists |
+| profile-service | `src/services/user/service.ts` | Exists |
+| search-service | `src/services/job/service.ts` | Fix in Phase 1 |
+| matching-service | `src/services/matching/service.ts` | Exists |
+| recommendation-service | Merge into matching service | New logic |
+| auto-apply-service | `src/services/career/` + orchestrator | Exists |
+| career-path-service | Edge function `career-path-analysis` | Exists |
+| learning-service | `src/services/learning/service.ts` | Exists |
+| gig-service | New service module + tables | **New** |
+| notification-service | `notifications` table + edge function | Exists |
+| analytics-service | `src/services/analytics/service.ts` | Exists |
+| billing-service | Stripe integration | **New** (Phase 4) |
+| admin-service | `src/services/admin/` | Exists |
+| ai-recovery-service | New edge function | **New** |
+| localization-service | i18n config | **New** (deferred) |
 
-```text
-Current job-search failure chain
-Profile loads search_mode + min_match_score
-  -> only min_match_score is actually used on the page
-  -> search request omits search_mode
-  -> edge function defaults to "balanced"
-  -> client may still filter harder than backend
-  -> user sees too few/no jobs even when backend found some
-```
+### Phase 3 — Feature Flags & Admin Controls
 
-```text
-Current admin-login failure chain
-/auth/login
-  -> auth succeeds
-  -> useEffect sees authenticated user
-  -> always navigate("/dashboard")
-  -> admin never gets auto-sent to /admin
-```
+1. **Migration**: Create `feature_flags` table with columns: `key`, `enabled`, `updated_by`, `updated_at`
+2. **Seed flags**: `auto_apply`, `autopilot_mode`, `career_path`, `learning`, `gig_marketplace`, `notifications`, `analytics`
+3. **Admin UI**: Add feature flags panel to Admin Dashboard
+4. **Client hook**: `useFeatureFlag(key)` that checks the table and gates UI sections
+5. **Edge function guard**: Check flags before executing service logic
 
-Validation checklist
-- Normal user logs in on `/auth/login` -> lands on `/dashboard`.
-- Admin logs in on `/auth/login` -> lands on `/admin` without refresh.
-- Already-authenticated admin visiting `/` or `/auth/login` is redirected correctly.
-- Search works with blank location, remote, and non-US/global locations.
-- Bad profile/location strings no longer pollute Firecrawl queries.
-- “Volume” mode shows more visible results than “quality”.
-- If backend finds jobs but filters hide them, the UI explains why.
+### Phase 4 — Event System (Database-Backed)
 
-Estimated scope
-- Modified: ~5–8 files
-- Created: 0–1 small helper
-- Migrations: 0
+1. **Migration**: Create `service_events` table: `id`, `event_name`, `payload`, `emitted_by`, `created_at`, `processed`
+2. Events like `user.created`, `profile.updated`, `job.fetched`, `match.calculated`, `application.submitted`, `error.detected`
+3. Edge function `event-processor` listens via pg_cron and dispatches to handlers
+4. Self-healing: `error.detected` triggers retry logic in `ai-recovery-service`
 
-Implementation order
-1. Admin redirect fix
-2. Search-mode wiring
-3. Query sanitization and Firecrawl fix
-4. Result visibility / fallback improvements
-5. Route cleanup verification
+### Phase 5 — Failure Isolation & Self-Healing
+
+1. **Fallback responses**: Each service module already has try/catch with graceful degradation (verified in orchestrator and JobSearch page)
+2. **Service health table**: `service_health` with `service_name`, `status`, `last_check`, `error_count`, `circuit_breaker_open`
+3. **ai-recovery edge function**: Listens for `error.detected` events, classifies errors, applies retry/fallback/circuit-breaker
+4. **Admin emergency mode**: Toggle in admin dashboard to instantly disable any service via feature flags
+
+### Phase 6 — Gig Marketplace (New Feature)
+
+1. **Tables**: `gigs`, `gig_bids`, `gig_contracts`, `gig_milestones`, `gig_reviews`
+2. **Pages**: `/gigs` (browse), `/gigs/create`, `/gigs/:id` (detail + bid)
+3. **Service module**: `src/services/gig/`
+4. **RLS**: Owner manages gigs, authenticated users can bid, reviews after contract completion
+
+### What Will NOT Be Built (Out of Scope for Lovable)
+
+- Kubernetes/Docker container orchestration
+- True independent deployments per service
+- Message queues (RabbitMQ, Kafka)
+- Service mesh / API gateway
+- Separate databases per service (Supabase is one DB with RLS isolation)
+
+---
+
+### Technical Details
+
+**Files modified (Phase 1 — build fix):**
+- `src/services/job/service.ts` — restore `searchJobs`, `searchDatabaseJobs`, `searchAIJobs`
+
+**Files created (Phase 3–6):**
+- 1 migration for `feature_flags` + `service_events` + `service_health` tables
+- 1 migration for gig marketplace tables
+- `src/services/gig/` (types, service, api, routes, pages)
+- `src/hooks/useFeatureFlag.ts`
+- `supabase/functions/ai-recovery/index.ts`
+- Admin dashboard additions for feature flags and service health
+
+**Estimated scope:** ~15–20 files modified/created, 2–3 migrations
+
+### Implementation Order
+
+1. **Phase 1** — Fix build (restore job service functions)
+2. **Phase 3** — Feature flags + admin controls
+3. **Phase 4** — Event system
+4. **Phase 5** — Self-healing hooks
+5. **Phase 6** — Gig marketplace
+6. **Phase 2** — Service hardening (ongoing)
+
