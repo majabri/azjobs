@@ -13,6 +13,8 @@ import {
   Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend,
 } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
+import FeatureFlagsPanel from "@/components/admin/FeatureFlagsPanel";
+import ServiceHealthPanel from "@/components/admin/ServiceHealthPanel";
 
 interface PlatformStats {
   totalUsers: number;
