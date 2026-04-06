@@ -136,6 +136,9 @@ export default function ShellRoutes() {
         <Route path="/job-postings" element={<ProtectedWithLayout><JobPostings /></ProtectedWithLayout>} />
         <Route path="/interview-scheduling" element={<ProtectedWithLayout><InterviewScheduling /></ProtectedWithLayout>} />
 
+        {/* Gig Marketplace */}
+        <Route path="/gigs" element={<ProtectedWithLayout><GigMarketplace /></ProtectedWithLayout>} />
+
         {/* Admin Service — public routes (no auth guard) */}
         <Route path="/admin/login" element={<AdminUsernameLogin />} />
         <Route
