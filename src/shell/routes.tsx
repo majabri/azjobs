@@ -40,6 +40,7 @@ const HiringRoutes = lazy(() => import("@/services/hiring/routes"));
 const CandidatesDatabase = lazy(() => import("@/services/hiring/pages/CandidatesDatabase"));
 const JobPostings = lazy(() => import("@/services/hiring/pages/JobPostings"));
 const InterviewScheduling = lazy(() => import("@/services/hiring/pages/InterviewScheduling"));
+const GigMarketplace = lazy(() => import("@/services/gig/pages/GigMarketplace"));
 
 // ─── Non-service pages (landing, 404) ────────────────────────────────────────
 const Index = lazy(() => import("@/pages/Index"));
