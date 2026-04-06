@@ -1,36 +1,30 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
-import { componentTagger } from "lovable-tagger";
 
-const fallbackSupabaseUrl =
-  process.env.VITE_SUPABASE_URL ??
-  process.env.SUPABASE_URL ??
-  "https://gberhsbddthwkjimsqig.supabase.co";
-
-const fallbackSupabasePublishableKey =
-  process.env.VITE_SUPABASE_PUBLISHABLE_KEY ??
-  process.env.SUPABASE_PUBLISHABLE_KEY ??
-  process.env.SUPABASE_ANON_KEY ??
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdiZXJoc2JkZHRod2tqaW1zcWlnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2ODYyMzUsImV4cCI6MjA4NzI2MjIzNX0.t9FE9ku4rgzymhuAJi4Y7qGcwc3IqP0fon3HKAtWC14";
+// Fail loudly if required env vars are missing (Task 1.1 + Task 2.1)
+const supabaseUrl = process.env.VITE_SUPABASE_URL;
+if (!supabaseUrl) throw new Error("VITE_SUPABASE_URL is required");
+const supabaseKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+if (!supabaseKey) throw new Error("VITE_SUPABASE_PUBLISHABLE_KEY is required");
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
-  server: {
-    host: "::",
-    port: 8080,
-    hmr: {
-      overlay: false,
+    server: {
+          host: "::",
+          port: 8080,
+          hmr: {
+                  overlay: false,
+          },
     },
-  },
-  plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
-  define: {
-    "import.meta.env.VITE_SUPABASE_URL": JSON.stringify(fallbackSupabaseUrl),
-    "import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY": JSON.stringify(fallbackSupabasePublishableKey),
-  },
-  resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
+    plugins: [react()],
+    define: {
+          "import.meta.env.VITE_SUPABASE_URL": JSON.stringify(supabaseUrl),
+          "import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY": JSON.stringify(supabaseKey),
     },
-  },
+    resolve: {
+          alias: {
+                  "@": path.resolve(__dirname, "./src"),
+          },
+    },
 }));
