@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { checkRateLimit } from "../_shared/rate-limit.ts";
 import { z } from "https://deno.land/x/zod@v3.23.8/mod.ts";
+import { callAnthropic } from "../_shared/anthropic.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -62,9 +63,6 @@ serve(async (req) => {
       .eq("user_id", authData.user.id)
       .maybeSingle();
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
-
     const typeDescriptions: Record<string, string> = {
       cold_outreach: "a cold LinkedIn/email outreach message to a recruiter or hiring manager",
       warm_intro: "a warm introduction request asking a mutual connection to introduce them",
@@ -92,14 +90,14 @@ RULES:
 - Don't be generic or overly formal
 - Return ONLY the message text, no subject line or formatting`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        Authorization: ,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "claude-sonnet-4-20250514",
         messages: [
           { role: "system", content: "You write concise, effective networking messages. Return only the message text." },
           { role: "user", content: prompt },
