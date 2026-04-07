@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAnthropic } from "../_shared/anthropic.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -203,7 +204,7 @@ async function scrapeLever(company: string) {
 }
 
 // ── AI-powered web crawl for each unique search query ──
-async function aiWebCrawl(searchQuery: string, lovableApiKey: string) {
+async function aiWebCrawl(searchQuery: string, anthropicApiKey: string) {
   try {
     const prompt = `Search the entire internet for REAL, CURRENTLY ACTIVE job postings matching: "${searchQuery}".
 
@@ -223,14 +224,14 @@ Return 15-20 real job listings. For each:
 
 CRITICAL: Only include jobs with REAL, WORKING URLs pointing to SPECIFIC individual job detail pages. No generic career pages, no search result pages, no company homepages.`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${lovableApiKey}`,
+        Authorization: ,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "claude-sonnet-4-20250514",
         messages: [
           { role: "system", content: "You are a job search crawler. Return only valid JSON. No markdown." },
           { role: "user", content: prompt },
@@ -310,8 +311,6 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
     console.log("🔄 Starting daily job refresh...");
 
@@ -412,7 +411,7 @@ Deno.serve(async (req) => {
     for (let i = 0; i < queries.length; i += 3) {
       const batch = queries.slice(i, i + 3);
       const results = await Promise.allSettled(
-        batch.map((q) => aiWebCrawl(q, LOVABLE_API_KEY))
+        batch.map((q) => aiWebCrawl(q, Deno.env.get("ANTHROPIC_API_KEY")))
       );
       for (const r of results) {
         if (r.status === "fulfilled") allJobs = allJobs.concat(r.value);
