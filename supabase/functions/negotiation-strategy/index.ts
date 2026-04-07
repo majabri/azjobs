@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAnthropic } from "../_shared/anthropic.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -10,8 +11,6 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
     const body = await req.json();
     const { action } = body;
@@ -34,16 +33,16 @@ serve(async (req) => {
 
     switch (action) {
       case "benchmark":
-        result = await handleBenchmark(body, LOVABLE_API_KEY);
+        result = await handleBenchmark(body, Deno.env.get("ANTHROPIC_API_KEY"));
         break;
       case "analyze-offer":
-        result = await handleOfferAnalysis(body, LOVABLE_API_KEY);
+        result = await handleOfferAnalysis(body, Deno.env.get("ANTHROPIC_API_KEY"));
         break;
       case "negotiate":
-        result = await handleNegotiation(body, LOVABLE_API_KEY);
+        result = await handleNegotiation(body, Deno.env.get("ANTHROPIC_API_KEY"));
         break;
       case "generate-scripts":
-        result = await handleScriptGeneration(body, LOVABLE_API_KEY);
+        result = await handleScriptGeneration(body, Deno.env.get("ANTHROPIC_API_KEY"));
         break;
       default:
         throw new Error(`Unknown action: ${action}`);
@@ -62,11 +61,11 @@ serve(async (req) => {
 });
 
 async function callAI(apiKey: string, systemPrompt: string, userPrompt: string, toolDef: any) {
-  const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  const resp = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    headers: { Authorization: , "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: "google/gemini-3-flash-preview",
+      model: "claude-sonnet-4-20250514",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
