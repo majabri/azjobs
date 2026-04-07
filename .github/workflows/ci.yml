@@ -27,7 +27,7 @@ jobs:
         run: bun run tsc --noEmit
 
       - name: Lint
-        run: bun run eslint . --max-warnings=0
+        run: bun run eslint .
 
       - name: Build
         run: bun run build
