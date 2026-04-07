@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import ErrorBoundary from "./components/ErrorBoundary";
 import Index from "./pages/Index";
@@ -32,8 +32,9 @@ import AdminUsers from "./pages/admin/AdminUsers";
 import AdminAgents from "./pages/admin/AdminAgents";
 import AdminSystem from "./pages/admin/AdminSystem";
 import AdminSettings from "./pages/admin/AdminSettings";
-import AdminUsernameLogin from "./pages/admin/AdminUsernameLogin";
 import AdminSetPassword from "./pages/admin/AdminSetPassword";
+import AdminTickets from "./pages/admin/AdminTickets";
+import AdminSurveys from "./pages/admin/AdminSurveys";
 import AdminProfile from "./pages/admin/AdminProfile";
 import AdminLogs from "./pages/admin/AdminLogs";
 import AdminAgentRuns from "./pages/admin/AdminAgentRuns";
@@ -92,7 +93,7 @@ const App = () => (
           <Route path="/interview-prep" element={<ProtectedWithLayout><InterviewPrep /></ProtectedWithLayout>} />
           <Route path="/auto-apply" element={<ProtectedWithLayout><AutoApply /></ProtectedWithLayout>} />
           {/* Admin routes */}
-          <Route path="/admin/login" element={<AdminUsernameLogin />} />
+          <Route path="/admin/login" element={<Navigate to="/auth/login" replace />} />
           <Route path="/admin/set-password" element={<AdminProtectedRoute><AdminSetPassword /></AdminProtectedRoute>} />
           <Route path="/admin" element={<AdminProtectedRoute><AdminLayout><AdminDashboard /></AdminLayout></AdminProtectedRoute>} />
           <Route path="/admin/users" element={<AdminProtectedRoute><AdminLayout><AdminUsers /></AdminLayout></AdminProtectedRoute>} />
@@ -105,6 +106,8 @@ const App = () => (
           <Route path="/admin/queue" element={<AdminProtectedRoute><AdminLayout><AdminQueue /></AdminLayout></AdminProtectedRoute>} />
           <Route path="/admin/console" element={<AdminProtectedRoute><AdminLayout><AdminConsole /></AdminLayout></AdminProtectedRoute>} />
           <Route path="/admin/audit" element={<AdminProtectedRoute><AdminLayout><AdminAudit /></AdminLayout></AdminProtectedRoute>} />
+          <Route path="/admin/tickets" element={<AdminProtectedRoute><AdminLayout><AdminTickets /></AdminLayout></AdminProtectedRoute>} />
+          <Route path="/admin/surveys" element={<AdminProtectedRoute><AdminLayout><AdminSurveys /></AdminLayout></AdminProtectedRoute>} />
           <Route path="/admin/agent-runs/:runId" element={<AdminProtectedRoute><AdminLayout><AdminAgentRunDetail /></AdminLayout></AdminProtectedRoute>} />
           {/* Public routes */}
           <Route path="/p/:userId" element={<PublicProfile />} />

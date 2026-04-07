@@ -26,3 +26,8 @@ dist-ssr
 # Secrets – never commit real environment files
 .env
 .env.*
+
+# Lockfile – standardize on bun.lock only
+package-lock.json
+yarn.lock
+pnpm-lock.yaml

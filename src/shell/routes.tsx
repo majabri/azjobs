@@ -16,7 +16,7 @@
  */
 
 import { lazy, Suspense } from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 
 // ─── Lazy-loaded service route components ────────────────────────────────────
@@ -140,7 +140,7 @@ export default function ShellRoutes() {
         <Route path="/gigs" element={<ProtectedWithLayout><GigMarketplace /></ProtectedWithLayout>} />
 
         {/* Admin Service — public routes (no auth guard) */}
-        <Route path="/admin/login" element={<AdminUsernameLogin />} />
+        <Route path="/admin/login" element={<Navigate to="/auth/login" replace />} />
         <Route
           path="/admin/set-password"
           element={<AdminProtectedRoute><AdminSetPassword /></AdminProtectedRoute>}

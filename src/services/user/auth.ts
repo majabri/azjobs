@@ -6,7 +6,6 @@
  */
 
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable/index";
 import { normalizeError } from "@/lib/normalizeError";
 import type { User, Session, AuthChangeEvent } from "@supabase/supabase-js";
 
@@ -43,26 +42,32 @@ export async function login(email: string, password: string): Promise<AuthResult
   }
 }
 
-/** Initiate Google OAuth via Lovable + sync session into Supabase. */
+/** Initiate Google OAuth via Supabase. */
 export async function loginWithGoogle(): Promise<AuthResult> {
   try {
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: `${window.location.origin}/auth/login`,
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth/login`,
+      },
     });
-    if (result.error) return { error: normalizeError(result.error) };
+    if (error) return { error: normalizeError(error) };
     return {};
   } catch (e) {
     return { error: normalizeError(e) };
   }
 }
 
-/** Initiate Apple OAuth via Lovable + sync session into Supabase. */
+/** Initiate Apple OAuth via Supabase. */
 export async function loginWithApple(): Promise<AuthResult> {
   try {
-    const result = await lovable.auth.signInWithOAuth("apple", {
-      redirect_uri: `${window.location.origin}/auth/login`,
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "apple",
+      options: {
+        redirectTo: `${window.location.origin}/auth/login`,
+      },
     });
-    if (result.error) return { error: normalizeError(result.error) };
+    if (error) return { error: normalizeError(error) };
     return {};
   } catch (e) {
     return { error: normalizeError(e) };

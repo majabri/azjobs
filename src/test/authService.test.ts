@@ -26,6 +26,7 @@ vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     auth: {
       signInWithPassword: mockSignInWithPassword,
+      signInWithOAuth: mockSignInWithOAuth,
       getUser: mockGetUser,
       refreshSession: mockRefreshSession,
       signOut: mockSignOut,
@@ -33,14 +34,6 @@ vi.mock("@/integrations/supabase/client", () => ({
   },
 }));
 
-// ─── Mock Lovable integration ────────────────────────────────────────────────
-vi.mock("@/integrations/lovable/index", () => ({
-  lovable: {
-    auth: {
-      signInWithOAuth: mockSignInWithOAuth,
-    },
-  },
-}));
 
 // ─── Import after mocks are registered ──────────────────────────────────────
 import { login, loginWithGoogle, getCurrentUser, refreshToken } from "@/services/user/auth";
@@ -99,14 +92,14 @@ describe("login()", () => {
 
 describe("loginWithGoogle()", () => {
   it("returns empty object on success (redirect handled by SDK)", async () => {
-    mockSignInWithOAuth.mockResolvedValueOnce({ redirected: true });
+    mockSignInWithOAuth.mockResolvedValueOnce({ data: { url: "https://accounts.google.com" }, error: null });
 
     const result = await loginWithGoogle();
     expect(result.error).toBeUndefined();
   });
 
   it("returns a string error when OAuth returns an error object", async () => {
-    mockSignInWithOAuth.mockResolvedValueOnce({ error: new Error("popup closed") });
+    mockSignInWithOAuth.mockResolvedValueOnce({ data: null, error: new Error("popup closed") });
 
     const result = await loginWithGoogle();
     expect(typeof result.error).toBe("string");
@@ -114,7 +107,7 @@ describe("loginWithGoogle()", () => {
   });
 
   it("returns a string error when OAuth returns a plain-object error", async () => {
-    mockSignInWithOAuth.mockResolvedValueOnce({ error: { message: "oauth_error", status: 400 } });
+    mockSignInWithOAuth.mockResolvedValueOnce({ data: null, error: { message: "oauth_error", status: 400 } });
 
     const result = await loginWithGoogle();
     expect(typeof result.error).toBe("string");
