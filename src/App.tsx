@@ -33,6 +33,8 @@ import AdminAgents from "./pages/admin/AdminAgents";
 import AdminSystem from "./pages/admin/AdminSystem";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminSetPassword from "./pages/admin/AdminSetPassword";
+import AdminTickets from "./pages/admin/AdminTickets";
+import AdminSurveys from "./pages/admin/AdminSurveys";
 import AdminProfile from "./pages/admin/AdminProfile";
 import AdminLogs from "./pages/admin/AdminLogs";
 import AdminAgentRuns from "./pages/admin/AdminAgentRuns";
@@ -104,6 +106,8 @@ const App = () => (
           <Route path="/admin/queue" element={<AdminProtectedRoute><AdminLayout><AdminQueue /></AdminLayout></AdminProtectedRoute>} />
           <Route path="/admin/console" element={<AdminProtectedRoute><AdminLayout><AdminConsole /></AdminLayout></AdminProtectedRoute>} />
           <Route path="/admin/audit" element={<AdminProtectedRoute><AdminLayout><AdminAudit /></AdminLayout></AdminProtectedRoute>} />
+          <Route path="/admin/tickets" element={<AdminProtectedRoute><AdminLayout><AdminTickets /></AdminLayout></AdminProtectedRoute>} />
+          <Route path="/admin/surveys" element={<AdminProtectedRoute><AdminLayout><AdminSurveys /></AdminLayout></AdminProtectedRoute>} />
           <Route path="/admin/agent-runs/:runId" element={<AdminProtectedRoute><AdminLayout><AdminAgentRunDetail /></AdminLayout></AdminProtectedRoute>} />
           {/* Public routes */}
           <Route path="/p/:userId" element={<PublicProfile />} />
