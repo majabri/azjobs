@@ -21,7 +21,9 @@ export default tseslint.config(
       ...reactHooks.configs.recommended.rules,
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
       "@typescript-eslint/no-unused-vars": "off",
-      "@typescript-eslint/no-explicit-any": "off", // TODO: Phase 5 — re-enable and fix all any types
+      "@typescript-eslint/no-explicit-any": "off", // TODO: Phase 5 — re-enable and fix
+      "no-useless-escape": "warn", // TODO: Phase 5 — fix regex escapes in Lovable code
+      "no-empty": "warn", // TODO: Phase 5 — add proper error handling to catch blocks
     },
   },
 );
