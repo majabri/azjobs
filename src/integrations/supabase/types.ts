@@ -591,6 +591,35 @@ export type Database = {
         }
         Relationships: []
       }
+      helpful_votes: {
+        Row: {
+          created_at: string
+          id: string
+          review_id: string
+          voter_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          review_id: string
+          voter_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          review_id?: string
+          voter_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "helpful_votes_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "service_reviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ignored_jobs: {
         Row: {
           company: string
@@ -1461,6 +1490,41 @@ export type Database = {
         }
         Relationships: []
       }
+      review_reports: {
+        Row: {
+          comment: string | null
+          created_at: string
+          id: string
+          reason: string
+          reporter_id: string
+          review_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          reason?: string
+          reporter_id: string
+          review_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          reason?: string
+          reporter_id?: string
+          review_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_reports_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "service_reviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       scraped_jobs: {
         Row: {
           company: string
@@ -1760,6 +1824,7 @@ export type Database = {
           rating: number
           reviewer_id: string
           service_id: string
+          title: string | null
         }
         Insert: {
           comment?: string | null
@@ -1769,6 +1834,7 @@ export type Database = {
           rating?: number
           reviewer_id: string
           service_id: string
+          title?: string | null
         }
         Update: {
           comment?: string | null
@@ -1778,6 +1844,7 @@ export type Database = {
           rating?: number
           reviewer_id?: string
           service_id?: string
+          title?: string | null
         }
         Relationships: [
           {

@@ -1,0 +1,157 @@
+import { useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { toast } from "sonner";
+import { ThumbsUp, Flag, Loader2 } from "lucide-react";
+import StarRating from "./StarRating";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import type { ServiceReview } from "@/services/marketplace/types";
+
+interface ReviewWithMeta extends ServiceReview {
+  helpful_count: number;
+  user_voted: boolean;
+  user_reported: boolean;
+  reviewer_name?: string;
+}
+
+interface Props {
+  review: ReviewWithMeta;
+  onVoteChanged: () => void;
+}
+
+export default function ReviewCard({ review, onVoteChanged }: Props) {
+  const { user } = useAuth();
+  const [expanded, setExpanded] = useState(false);
+  const [voting, setVoting] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportReason, setReportReason] = useState("spam");
+  const [reportComment, setReportComment] = useState("");
+  const [reporting, setReporting] = useState(false);
+  const [reported, setReported] = useState(review.user_reported);
+
+  const truncated = review.comment.length > 200;
+  const displayText = expanded ? review.comment : review.comment.slice(0, 200);
+
+  const handleVote = async () => {
+    if (!user || voting) return;
+    setVoting(true);
+    try {
+      if (review.user_voted) {
+        await supabase.from("helpful_votes" as any).delete().eq("review_id", review.id).eq("voter_id", user.id);
+      } else {
+        await supabase.from("helpful_votes" as any).insert({ review_id: review.id, voter_id: user.id } as any);
+      }
+      onVoteChanged();
+    } catch {
+      toast.error("Failed to update vote");
+    }
+    setVoting(false);
+  };
+
+  const handleReport = async () => {
+    if (!user) return;
+    setReporting(true);
+    try {
+      const { error } = await supabase.from("review_reports" as any).insert({
+        review_id: review.id,
+        reporter_id: user.id,
+        reason: reportReason,
+        comment: reportComment.trim(),
+      } as any);
+      if (error) throw error;
+      toast.success("Review reported");
+      setReported(true);
+      setReportOpen(false);
+    } catch (e: any) {
+      if (e.code === "23505") {
+        toast.error("You already reported this review");
+        setReported(true);
+      } else {
+        toast.error("Failed to submit report");
+      }
+    }
+    setReporting(false);
+  };
+
+  return (
+    <>
+      <Card>
+        <CardContent className="p-4 space-y-3">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <span className="font-medium text-sm">{review.reviewer_name || "Anonymous"}</span>
+              {reported && <Badge variant="destructive" className="text-[10px]">Reported</Badge>}
+            </div>
+            <span className="text-xs text-muted-foreground">{new Date(review.created_at).toLocaleDateString()}</span>
+          </div>
+
+          <StarRating value={review.rating} readonly size="sm" />
+
+          {review.title && <h4 className="font-semibold text-sm">{review.title}</h4>}
+
+          <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+            {displayText}
+            {truncated && !expanded && "…"}
+          </p>
+          {truncated && (
+            <button className="text-xs text-primary hover:underline" onClick={() => setExpanded(!expanded)}>
+              {expanded ? "Show less" : "Read more"}
+            </button>
+          )}
+
+          <div className="flex items-center gap-3 pt-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              className={`text-xs gap-1 ${review.user_voted ? "text-primary" : ""}`}
+              onClick={handleVote}
+              disabled={voting || !user}
+            >
+              {voting ? <Loader2 className="w-3 h-3 animate-spin" /> : <ThumbsUp className="w-3 h-3" />}
+              Helpful ({review.helpful_count})
+            </Button>
+            {user && !reported && (
+              <Button variant="ghost" size="sm" className="text-xs gap-1 text-muted-foreground" onClick={() => setReportOpen(true)}>
+                <Flag className="w-3 h-3" /> Report
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Dialog open={reportOpen} onOpenChange={setReportOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Report Review</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Reason</label>
+              <Select value={reportReason} onValueChange={setReportReason}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="spam">Spam</SelectItem>
+                  <SelectItem value="inappropriate">Inappropriate</SelectItem>
+                  <SelectItem value="unhelpful">Unhelpful</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-sm font-medium">Comment (optional)</label>
+              <Textarea value={reportComment} onChange={(e) => setReportComment(e.target.value)} placeholder="Additional details..." rows={3} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReportOpen(false)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleReport} disabled={reporting}>
+              {reporting ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null} Submit Report
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
