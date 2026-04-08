@@ -16,15 +16,14 @@ export async function publishEvent({ eventType, payload, sourceService }: Publis
 
   const { error } = await supabase
     .from('service_events')
-    .insert({
+    .insert([{
       event_name: eventType,
-      payload,
+      payload: payload as any,
       emitted_by: sourceService,
       processed: false,
-    });
+    }]);
 
   if (error) {
     console.error(`[EventBus] Failed to publish ${eventType}:`, error);
-    // Don't throw — event publishing should not break the caller
   }
 }
