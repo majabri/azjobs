@@ -34,6 +34,7 @@ export const jobSeekerNav: NavItem[] = [
 export const hiringManagerNav: NavItem[] = [
   { title: "Home", url: "/hiring-manager", icon: LayoutDashboard },
   { title: "Candidates", url: "/candidates", icon: Database },
+  { title: "Talent Search", url: "/talent-search", icon: Search },
   { title: "Jobs", url: "/job-postings", icon: FileText },
   { title: "Interviews", url: "/interview-scheduling", icon: Calendar },
   { title: "Settings", url: "/settings", icon: Settings },
@@ -46,7 +47,7 @@ export const modes = [
 
 export type AppMode = typeof modes[number]["value"];
 
-export const hiringPaths = ["/hiring-manager", "/candidates", "/job-postings", "/interview-scheduling"];
+export const hiringPaths = ["/hiring-manager", "/candidates", "/job-postings", "/interview-scheduling", "/talent-search"];
 
 export function detectMode(pathname: string): AppMode {
   return hiringPaths.some(p => pathname.startsWith(p)) ? "hiring" : "seeker";
