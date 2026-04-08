@@ -1,0 +1,82 @@
+{
+  "common": {
+    "loading": "Chargement...",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "create": "Créer",
+    "submit": "Soumettre",
+    "search": "Rechercher",
+    "filter": "Filtrer",
+    "back": "Retour",
+    "next": "Suivant",
+    "close": "Fermer",
+    "confirm": "Confirmer",
+    "yes": "Oui",
+    "no": "Non",
+    "or": "ou",
+    "and": "et",
+    "noResults": "Aucun résultat trouvé",
+    "error": "Une erreur est survenue",
+    "success": "Succès",
+    "required": "Obligatoire"
+  },
+  "nav": {
+    "dashboard": "Tableau de bord",
+    "analyzeJob": "Analyser un emploi",
+    "findJobs": "Trouver des emplois",
+    "applications": "Candidatures",
+    "offers": "Offres",
+    "career": "Carrière",
+    "interviewPrep": "Prép. entretien",
+    "autoApply": "Auto-candidature",
+    "gigMarketplace": "Marché Gig",
+    "services": "Services",
+    "profile": "Profil",
+    "settings": "Paramètres",
+    "support": "Support",
+    "home": "Accueil",
+    "candidates": "Candidats",
+    "talentSearch": "Recherche de talents",
+    "jobs": "Emplois",
+    "interviews": "Entretiens"
+  },
+  "auth": {
+    "login": "Se connecter",
+    "signup": "S'inscrire",
+    "logout": "Se déconnecter",
+    "email": "E-mail",
+    "password": "Mot de passe",
+    "forgotPassword": "Mot de passe oublié ?",
+    "noAccount": "Pas de compte ?",
+    "hasAccount": "Vous avez déjà un compte ?"
+  },
+  "language": {
+    "label": "Langue",
+    "en": "Anglais",
+    "es": "Espagnol",
+    "fr": "Français",
+    "de": "Allemand"
+  },
+  "marketplace": {
+    "browse": "Parcourir",
+    "selling": "Ventes",
+    "buying": "Achats",
+    "createService": "Créer un service",
+    "orderPlaced": "Commande passée avec succès !",
+    "reviewSubmitted": "Avis soumis !",
+    "writeReview": "Écrire un avis",
+    "noReviews": "Pas encore d'avis",
+    "helpful": "Utile",
+    "report": "Signaler",
+    "packages": "Forfaits"
+  },
+  "settings": {
+    "title": "Paramètres",
+    "account": "Compte",
+    "preferences": "Préférences",
+    "languagePreference": "Préférence de langue",
+    "languageDescription": "Choisissez votre langue préférée pour l'interface"
+  }
+}

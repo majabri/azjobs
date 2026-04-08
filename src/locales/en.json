@@ -1,0 +1,82 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "submit": "Submit",
+    "search": "Search",
+    "filter": "Filter",
+    "back": "Back",
+    "next": "Next",
+    "close": "Close",
+    "confirm": "Confirm",
+    "yes": "Yes",
+    "no": "No",
+    "or": "or",
+    "and": "and",
+    "noResults": "No results found",
+    "error": "Something went wrong",
+    "success": "Success",
+    "required": "Required"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "analyzeJob": "Analyze Job",
+    "findJobs": "Find Jobs",
+    "applications": "Applications",
+    "offers": "Offers",
+    "career": "Career",
+    "interviewPrep": "Interview Prep",
+    "autoApply": "Auto Apply",
+    "gigMarketplace": "Gig Marketplace",
+    "services": "Services",
+    "profile": "Profile",
+    "settings": "Settings",
+    "support": "Support",
+    "home": "Home",
+    "candidates": "Candidates",
+    "talentSearch": "Talent Search",
+    "jobs": "Jobs",
+    "interviews": "Interviews"
+  },
+  "auth": {
+    "login": "Log In",
+    "signup": "Sign Up",
+    "logout": "Log Out",
+    "email": "Email",
+    "password": "Password",
+    "forgotPassword": "Forgot password?",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?"
+  },
+  "language": {
+    "label": "Language",
+    "en": "English",
+    "es": "Spanish",
+    "fr": "French",
+    "de": "German"
+  },
+  "marketplace": {
+    "browse": "Browse",
+    "selling": "Selling",
+    "buying": "Buying",
+    "createService": "Create Service",
+    "orderPlaced": "Order placed successfully!",
+    "reviewSubmitted": "Review submitted!",
+    "writeReview": "Write a Review",
+    "noReviews": "No reviews yet",
+    "helpful": "Helpful",
+    "report": "Report",
+    "packages": "Packages"
+  },
+  "settings": {
+    "title": "Settings",
+    "account": "Account",
+    "preferences": "Preferences",
+    "languagePreference": "Language Preference",
+    "languageDescription": "Choose your preferred language for the interface"
+  }
+}
