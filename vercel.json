@@ -1,8 +1,11 @@
 {
-  "framework": "vite",
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist",
-  "installCommand": "npm ci",
-  "devCommand": "npm run dev",
-  "regions": ["iad1"]
+      "framework": "vite",
+      "buildCommand": "bun run build",
+      "outputDirectory": "dist",
+      "installCommand": "bun install",
+      "devCommand": "bun run dev",
+      "regions": ["iad1"],
+      "rewrites": [
+              { "source": "/(.*)", "destination": "/index.html" }
+      ]
 }
