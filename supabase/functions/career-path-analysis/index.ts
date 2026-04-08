@@ -71,37 +71,11 @@ Provide a JSON response with this EXACT structure:
 
 Include 3-4 next roles sorted by attainability, 4-5 skills to learn sorted by impact, 2-3 industry trends, and 3-4 roadmap stages showing progression from current to target role. For each skill, provide a SPECIFIC actionStep (not generic), a resourceType, and a concrete resourceSuggestion. Be specific and actionable.`;
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        Authorization: ,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        messages: [
-          { role: "system", content: "You are a career strategy advisor. Return only valid JSON. No markdown." },
-          { role: "user", content: prompt },
-        ],
-        temperature: 0.3,
-      }),
-    });
-
-    if (!response.ok) {
-      const t = await response.text();
-      console.error("AI error:", response.status, t);
-      throw new Error("AI service error");
-    }
-
-    const aiData = await response.json();
-    const content = aiData.choices?.[0]?.message?.content || "{}";
-
     let result;
     try {
-      result = JSON.parse(content);
+      result = JSON.parse(await callAnthropic(prompt, "You are a career strategy advisor. Return only valid JSON. No markdown."));
     } catch {
-      const match = content.match(/\{[\s\S]*\}/);
-      result = match ? JSON.parse(match[0]) : { currentLevel: "Unknown", nextRoles: [], skillsToLearn: [], industryTrends: [], advice: content };
+      result = { currentLevel: "Unknown", nextRoles: [], skillsToLearn: [], industryTrends: [], advice: "Unable to parse response" };
     }
 
     return new Response(JSON.stringify(result), {
