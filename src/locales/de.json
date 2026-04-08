@@ -1,0 +1,82 @@
+{
+  "common": {
+    "loading": "Laden...",
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "delete": "Löschen",
+    "edit": "Bearbeiten",
+    "create": "Erstellen",
+    "submit": "Absenden",
+    "search": "Suchen",
+    "filter": "Filtern",
+    "back": "Zurück",
+    "next": "Weiter",
+    "close": "Schließen",
+    "confirm": "Bestätigen",
+    "yes": "Ja",
+    "no": "Nein",
+    "or": "oder",
+    "and": "und",
+    "noResults": "Keine Ergebnisse gefunden",
+    "error": "Etwas ist schiefgelaufen",
+    "success": "Erfolg",
+    "required": "Erforderlich"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "analyzeJob": "Job analysieren",
+    "findJobs": "Jobs finden",
+    "applications": "Bewerbungen",
+    "offers": "Angebote",
+    "career": "Karriere",
+    "interviewPrep": "Interview-Vorbereitung",
+    "autoApply": "Auto-Bewerben",
+    "gigMarketplace": "Gig-Marktplatz",
+    "services": "Dienstleistungen",
+    "profile": "Profil",
+    "settings": "Einstellungen",
+    "support": "Support",
+    "home": "Startseite",
+    "candidates": "Kandidaten",
+    "talentSearch": "Talentsuche",
+    "jobs": "Stellen",
+    "interviews": "Interviews"
+  },
+  "auth": {
+    "login": "Anmelden",
+    "signup": "Registrieren",
+    "logout": "Abmelden",
+    "email": "E-Mail",
+    "password": "Passwort",
+    "forgotPassword": "Passwort vergessen?",
+    "noAccount": "Kein Konto?",
+    "hasAccount": "Bereits ein Konto?"
+  },
+  "language": {
+    "label": "Sprache",
+    "en": "Englisch",
+    "es": "Spanisch",
+    "fr": "Französisch",
+    "de": "Deutsch"
+  },
+  "marketplace": {
+    "browse": "Durchsuchen",
+    "selling": "Verkaufen",
+    "buying": "Kaufen",
+    "createService": "Service erstellen",
+    "orderPlaced": "Bestellung erfolgreich aufgegeben!",
+    "reviewSubmitted": "Bewertung eingereicht!",
+    "writeReview": "Bewertung schreiben",
+    "noReviews": "Noch keine Bewertungen",
+    "helpful": "Hilfreich",
+    "report": "Melden",
+    "packages": "Pakete"
+  },
+  "settings": {
+    "title": "Einstellungen",
+    "account": "Konto",
+    "preferences": "Einstellungen",
+    "languagePreference": "Spracheinstellung",
+    "languageDescription": "Wählen Sie Ihre bevorzugte Sprache für die Benutzeroberfläche"
+  }
+}
