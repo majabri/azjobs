@@ -200,6 +200,63 @@ export type Database = {
         }
         Relationships: []
       }
+      catalog_orders: {
+        Row: {
+          buyer_id: string
+          created_at: string
+          delivery_deadline: string | null
+          id: string
+          notes: string | null
+          package_id: string
+          price: number
+          seller_id: string
+          service_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          buyer_id: string
+          created_at?: string
+          delivery_deadline?: string | null
+          id?: string
+          notes?: string | null
+          package_id: string
+          price?: number
+          seller_id: string
+          service_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          buyer_id?: string
+          created_at?: string
+          delivery_deadline?: string | null
+          id?: string
+          notes?: string | null
+          package_id?: string
+          price?: number
+          seller_id?: string
+          service_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalog_orders_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "service_packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_orders_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "service_catalog"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contracts: {
         Row: {
           agreed_price: number
@@ -1536,6 +1593,57 @@ export type Database = {
         }
         Relationships: []
       }
+      service_catalog: {
+        Row: {
+          category: string
+          created_at: string
+          description: string
+          headline: string
+          id: string
+          image_url: string | null
+          orders_count: number
+          rating_avg: number
+          rating_count: number
+          seller_id: string
+          status: string
+          title: string
+          turnaround_days: number
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string
+          headline?: string
+          id?: string
+          image_url?: string | null
+          orders_count?: number
+          rating_avg?: number
+          rating_count?: number
+          seller_id: string
+          status?: string
+          title?: string
+          turnaround_days?: number
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string
+          headline?: string
+          id?: string
+          image_url?: string | null
+          orders_count?: number
+          rating_avg?: number
+          rating_count?: number
+          seller_id?: string
+          status?: string
+          title?: string
+          turnaround_days?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       service_events: {
         Row: {
           created_at: string
@@ -1595,6 +1703,98 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      service_packages: {
+        Row: {
+          created_at: string
+          delivery_days: number
+          description: string
+          features: string[]
+          id: string
+          name: string
+          price: number
+          service_id: string
+          tier: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          delivery_days?: number
+          description?: string
+          features?: string[]
+          id?: string
+          name?: string
+          price?: number
+          service_id: string
+          tier?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          delivery_days?: number
+          description?: string
+          features?: string[]
+          id?: string
+          name?: string
+          price?: number
+          service_id?: string
+          tier?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_packages_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "service_catalog"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_reviews: {
+        Row: {
+          comment: string | null
+          created_at: string
+          id: string
+          order_id: string
+          rating: number
+          reviewer_id: string
+          service_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          order_id: string
+          rating?: number
+          reviewer_id: string
+          service_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          order_id?: string
+          rating?: number
+          reviewer_id?: string
+          service_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_reviews_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_reviews_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "service_catalog"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       support_faq: {
         Row: {
