@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_alerts: {
+        Row: {
+          alert_type: string
+          created_at: string
+          id: string
+          message: string
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+          status: string
+        }
+        Insert: {
+          alert_type?: string
+          created_at?: string
+          id?: string
+          message?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          status?: string
+        }
+        Update: {
+          alert_type?: string
+          created_at?: string
+          id?: string
+          message?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          status?: string
+        }
+        Relationships: []
+      }
       admin_command_log: {
         Row: {
           admin_id: string
@@ -1742,6 +1775,7 @@ export type Database = {
           id: string
           last_check: string
           last_error: string | null
+          response_time_ms: number | null
           service_name: string
           status: string
           updated_at: string
@@ -1752,6 +1786,7 @@ export type Database = {
           id?: string
           last_check?: string
           last_error?: string | null
+          response_time_ms?: number | null
           service_name: string
           status?: string
           updated_at?: string
@@ -1762,6 +1797,7 @@ export type Database = {
           id?: string
           last_check?: string
           last_error?: string | null
+          response_time_ms?: number | null
           service_name?: string
           status?: string
           updated_at?: string
