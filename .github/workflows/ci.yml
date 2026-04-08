@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [dev]
+    branches: [dev, main]
   pull_request:
-    branches: [main]
+    branches: [dev, main]
 
 jobs:
   build-and-test:
@@ -27,16 +27,19 @@ jobs:
         run: bun run tsc --noEmit
 
       - name: Lint
-        run: bun run eslint .
+        run: bun run lint
 
-      - name: Build
-        run: bun run build
+      - name: SOA boundary check
+        run: bun run check:soa
+
+      - name: Run tests
+        run: bun run test
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
-      - name: Test
-        run: bun run vitest run
+      - name: Build application
+        run: bun run build
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
