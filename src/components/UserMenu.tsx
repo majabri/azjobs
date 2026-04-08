@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useAdminRole } from "@/hooks/useAdminRole";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 export default function UserMenu() {
   const { user } = useAuthReady();
@@ -30,6 +31,7 @@ export default function UserMenu() {
 
   return (
     <div className="flex items-center gap-2">
+      <LanguageSwitcher />
       {avatar ? (
         <img src={avatar} alt={name} className="w-7 h-7 rounded-full border border-border" />
       ) : (
