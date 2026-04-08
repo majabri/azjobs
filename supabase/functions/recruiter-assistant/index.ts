@@ -59,32 +59,13 @@ RULES:
 - Do NOT include subject lines
 - Output ONLY the email body text`;
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        Authorization: ,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: `Recruiter's message:\n\n${recruiterMessage}\n\nDraft a ${replyType.replace("_", " ")} reply.` },
-        ],
-        stream: true,
-      }),
+    const result = await callAnthropic({
+      system: systemPrompt,
+      userMessage: `Recruiter's message:\n\n${recruiterMessage}\n\nDraft a ${replyType.replace("_", " ")} reply.`,
     });
 
-    if (!response.ok) {
-      const t = await response.text();
-      console.error("AI error:", response.status, t);
-      return new Response(JSON.stringify({ error: "AI service error" }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    return new Response(response.body, {
-      headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+    return new Response(JSON.stringify({ content: result.content }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
     console.error("recruiter-assistant error:", e);

@@ -90,33 +90,13 @@ RULES:
 - Don't be generic or overly formal
 - Return ONLY the message text, no subject line or formatting`;
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        Authorization: ,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        messages: [
-          { role: "system", content: "You write concise, effective networking messages. Return only the message text." },
-          { role: "user", content: prompt },
-        ],
-        temperature: 0.7,
-      }),
+    const result = await callAnthropic({
+      system: "You write concise, effective networking messages. Return only the message text.",
+      userMessage: prompt,
+      temperature: 0.7,
     });
 
-    if (!response.ok) {
-      if (response.status === 429) return new Response(JSON.stringify({ error: "Rate limit exceeded." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      if (response.status === 402) return new Response(JSON.stringify({ error: "AI credits exhausted." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      console.error("AI gateway error:", response.status);
-      return new Response(JSON.stringify({ error: "AI service temporarily unavailable." }), { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
-
-    const aiData = await response.json();
-    const message = aiData.choices?.[0]?.message?.content || "";
-
-    return new Response(JSON.stringify({ message }), {
+    return new Response(JSON.stringify({ message: result.content }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
