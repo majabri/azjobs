@@ -50,6 +50,7 @@ export interface ServiceReview {
   service_id: string;
   reviewer_id: string;
   rating: number;
+  title: string;
   comment: string;
   created_at: string;
 }
