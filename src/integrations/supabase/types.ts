@@ -691,57 +691,69 @@ export type Database = {
       }
       job_postings: {
         Row: {
+          benefits: string[] | null
           candidates_matched: number | null
           company: string
           created_at: string
           department: string | null
           description: string
+          experience_level: string | null
           id: string
           is_remote: boolean | null
           job_type: string | null
           location: string | null
           nice_to_haves: string | null
+          remote_type: string | null
           requirements: string | null
           salary_max: number | null
           salary_min: number | null
+          skills: string[] | null
           status: string
           title: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          benefits?: string[] | null
           candidates_matched?: number | null
           company?: string
           created_at?: string
           department?: string | null
           description?: string
+          experience_level?: string | null
           id?: string
           is_remote?: boolean | null
           job_type?: string | null
           location?: string | null
           nice_to_haves?: string | null
+          remote_type?: string | null
           requirements?: string | null
           salary_max?: number | null
           salary_min?: number | null
+          skills?: string[] | null
           status?: string
           title?: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          benefits?: string[] | null
           candidates_matched?: number | null
           company?: string
           created_at?: string
           department?: string | null
           description?: string
+          experience_level?: string | null
           id?: string
           is_remote?: boolean | null
           job_type?: string | null
           location?: string | null
           nice_to_haves?: string | null
+          remote_type?: string | null
           requirements?: string | null
           salary_max?: number | null
           salary_min?: number | null
+          skills?: string[] | null
           status?: string
           title?: string
           updated_at?: string
