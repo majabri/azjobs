@@ -22,9 +22,10 @@ export function useLanguagePreference() {
           .eq("preference_key", "language")
           .maybeSingle();
 
-        if (data?.preference_value && data.preference_value !== i18n.language) {
-          await i18n.changeLanguage(data.preference_value as string);
-          localStorage.setItem("fitcheck_language", data.preference_value as string);
+        const row = data as any;
+        if (row?.preference_value && row.preference_value !== i18n.language) {
+          await i18n.changeLanguage(row.preference_value);
+          localStorage.setItem("fitcheck_language", row.preference_value);
         }
       } catch {
         // silent — localStorage fallback is already active
