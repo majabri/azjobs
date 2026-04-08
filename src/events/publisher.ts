@@ -15,12 +15,12 @@ export async function publishEvent({ eventType, payload, sourceService }: Publis
   }
 
   const { error } = await supabase
-    .from('platform_events')
+    .from('service_events')
     .insert({
-      event_type: eventType,
+      event_name: eventType,
       payload,
-      source_service: sourceService,
-      status: 'pending',
+      emitted_by: sourceService,
+      processed: false,
     });
 
   if (error) {
