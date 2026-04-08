@@ -1478,6 +1478,53 @@ export type Database = {
         }
         Relationships: []
       }
+      talent_invites: {
+        Row: {
+          created_at: string
+          employer_id: string
+          id: string
+          job_id: string
+          message: string | null
+          responded_at: string | null
+          sent_at: string
+          status: string
+          talent_id: string
+          viewed_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          employer_id: string
+          id?: string
+          job_id: string
+          message?: string | null
+          responded_at?: string | null
+          sent_at?: string
+          status?: string
+          talent_id: string
+          viewed_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          employer_id?: string
+          id?: string
+          job_id?: string
+          message?: string | null
+          responded_at?: string | null
+          sent_at?: string
+          status?: string
+          talent_id?: string
+          viewed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "talent_invites_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "job_postings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ticket_responses: {
         Row: {
           author_id: string
