@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { callAnthropic } from "../_shared/anthropic.ts";
 
 const corsHeaders = {
@@ -13,10 +13,8 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
     const supabase = createClient(supabaseUrl, serviceKey);
 
-    // Get users who want weekly insights
     const { data: prefs } = await supabase
       .from("email_preferences")
       .select("user_id")
@@ -39,7 +37,6 @@ serve(async (req) => {
 
       if (!profile?.email || !profile.skills?.length) continue;
 
-      // Get recent analysis scores
       const { data: history } = await supabase
         .from("analysis_history")
         .select("overall_score, gaps, created_at")
@@ -47,43 +44,15 @@ serve(async (req) => {
         .order("created_at", { ascending: false })
         .limit(5);
 
-      // Generate insights using AI
-      const aiResp = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          Authorization: ,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          messages: [
-            { role: "system", content: "Generate 3 brief, actionable career improvement tips. Return JSON array of strings." },
-            {
-              role: "user",
-              content: `Profile: ${profile.career_level || "Unknown"} level, skills: ${profile.skills.slice(0, 10).join(", ")}. Recent scores: ${(history || []).map(h => h.overall_score).join(", ") || "No analyses yet"}. Common gaps: ${(history || []).flatMap(h => (h.gaps as string[]) || []).slice(0, 5).join(", ") || "None"}`,
-            },
-          ],
-          tools: [{
-            type: "function",
-            function: {
-              name: "weekly_tips",
-              description: "Return weekly improvement tips",
-              parameters: {
-                type: "object",
-                properties: {
-                  tips: { type: "array", items: { type: "string" }, description: "3 actionable tips" },
-                },
-                required: ["tips"],
-              },
-            },
-          }],
-          tool_choice: { type: "function", function: { name: "weekly_tips" } },
-        }),
-      });
-
-      if (aiResp.ok) {
-        // Tips generated successfully - in production would send email
+      try {
+        await callAnthropic({
+          system: "Generate 3 brief, actionable career improvement tips. Return JSON array of strings.",
+          userMessage: `Profile: ${profile.career_level || "Unknown"} level, skills: ${(profile.skills as string[]).slice(0, 10).join(", ")}. Recent scores: ${(history || []).map(h => h.overall_score).join(", ") || "No analyses yet"}. Common gaps: ${(history || []).flatMap(h => (h.gaps as string[]) || []).slice(0, 5).join(", ") || "None"}`,
+          temperature: 0.5,
+        });
         processed++;
+      } catch (e) {
+        console.error(`Weekly insights AI failed for user ${pref.user_id}:`, e);
       }
     }
 
@@ -93,8 +62,7 @@ serve(async (req) => {
   } catch (e) {
     console.error("send-weekly-insights error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });

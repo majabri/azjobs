@@ -11,11 +11,9 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-
     const body = await req.json();
     const { action } = body;
 
-    // Auth
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const authHeader = req.headers.get("Authorization") || "";
@@ -33,16 +31,16 @@ serve(async (req) => {
 
     switch (action) {
       case "benchmark":
-        result = await handleBenchmark(body, Deno.env.get("ANTHROPIC_API_KEY"));
+        result = await handleBenchmark(body);
         break;
       case "analyze-offer":
-        result = await handleOfferAnalysis(body, Deno.env.get("ANTHROPIC_API_KEY"));
+        result = await handleOfferAnalysis(body);
         break;
       case "negotiate":
-        result = await handleNegotiation(body, Deno.env.get("ANTHROPIC_API_KEY"));
+        result = await handleNegotiation(body);
         break;
       case "generate-scripts":
-        result = await handleScriptGeneration(body, Deno.env.get("ANTHROPIC_API_KEY"));
+        result = await handleScriptGeneration(body);
         break;
       default:
         throw new Error(`Unknown action: ${action}`);
@@ -60,185 +58,68 @@ serve(async (req) => {
   }
 });
 
-async function callAI(apiKey: string, systemPrompt: string, userPrompt: string, toolDef: any) {
-  const resp = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: { Authorization: , "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-      tools: [{ type: "function", function: toolDef }],
-      tool_choice: { type: "function", function: { name: toolDef.name } },
-    }),
-  });
-
-  if (!resp.ok) {
-    if (resp.status === 429) throw new Error("429: Rate limited");
-    if (resp.status === 402) throw new Error("402: Credits exhausted");
-    throw new Error(`AI error: ${resp.status}`);
+async function callAI(systemPrompt: string, userPrompt: string) {
+  const result = await callAnthropic({ system: systemPrompt, userMessage: userPrompt, temperature: 0.5 });
+  try {
+    return JSON.parse(result.content);
+  } catch {
+    const match = result.content.match(/\{[\s\S]*\}/);
+    return match ? JSON.parse(match[0]) : {};
   }
-
-  const data = await resp.json();
-  const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
-  if (!toolCall) throw new Error("No tool call in response");
-  return JSON.parse(toolCall.function.arguments);
 }
 
-// ─── Action Handlers ────────────────────────────────────────────────────────
-
-async function handleBenchmark(body: any, apiKey: string) {
+async function handleBenchmark(body: any) {
   const { jobTitle, location, experienceLevel, skills } = body;
-
-  return callAI(apiKey,
-    "You are a compensation analyst with deep US market salary data knowledge. Return realistic salary benchmarks.",
+  return callAI(
+    "You are a compensation analyst with deep US market salary data knowledge. Return realistic salary benchmarks as JSON.",
     `Provide salary benchmarks for:
 - Role: ${jobTitle || "Software Engineer"}
 - Location: ${location || "US National Average"}
 - Experience: ${experienceLevel || "Mid-level"}
 - Key Skills: ${(skills || []).join(", ")}
 
-Provide market salary ranges, percentile breakdowns, and a classification.`,
-    {
-      name: "salary_benchmark",
-      description: "Return salary benchmark data",
-      parameters: {
-        type: "object",
-        properties: {
-          marketLow: { type: "number", description: "25th percentile salary" },
-          marketMedian: { type: "number", description: "50th percentile salary" },
-          marketHigh: { type: "number", description: "75th percentile salary" },
-          top10Percent: { type: "number", description: "90th percentile salary" },
-          classification: { type: "string", enum: ["underpaid", "fair", "overpaid", "unknown"] },
-          targetRange: { type: "string", description: "Recommended target range e.g. '$120k–$145k'" },
-          insights: { type: "array", items: { type: "string" }, description: "3-4 market insights" },
-          topPayingCompanies: { type: "array", items: { type: "string" }, description: "Top 5 companies paying most for this role" },
-          demandTrend: { type: "string", enum: ["rising", "stable", "declining"], description: "Market demand trend" },
-        },
-        required: ["marketLow", "marketMedian", "marketHigh", "top10Percent", "classification", "targetRange", "insights", "topPayingCompanies", "demandTrend"],
-      },
-    }
+Return JSON with: marketLow, marketMedian, marketHigh, top10Percent (numbers), classification (underpaid/fair/overpaid), targetRange (string), insights (array of strings), topPayingCompanies (array), demandTrend (rising/stable/declining).`
   );
 }
 
-async function handleOfferAnalysis(body: any, apiKey: string) {
+async function handleOfferAnalysis(body: any) {
   const { baseSalary, bonus, equity, jobTitle, company, location, experienceLevel } = body;
   const totalComp = (baseSalary || 0) + (bonus || 0) + (equity || 0);
-
-  return callAI(apiKey,
-    "You are a compensation expert. Analyze job offers and identify how they compare to market rates. Be specific about dollar amounts left on the table.",
+  return callAI(
+    "You are a compensation expert. Analyze job offers against market rates. Return JSON.",
     `Analyze this offer:
 - Role: ${jobTitle} at ${company}
 - Location: ${location || "US"}
 - Experience: ${experienceLevel || "Mid-level"}
-- Base: $${baseSalary || 0}
-- Bonus: $${bonus || 0}
-- Equity: $${equity || 0}
-- Total: $${totalComp}
+- Base: $${baseSalary || 0}, Bonus: $${bonus || 0}, Equity: $${equity || 0}, Total: $${totalComp}
 
-Compare to market and identify negotiation opportunities.`,
-    {
-      name: "offer_analysis",
-      description: "Analyze a job offer against market data",
-      parameters: {
-        type: "object",
-        properties: {
-          marketComparison: { type: "string", description: "e.g. '12% below market median'" },
-          moneyLeftOnTable: { type: "number", description: "Estimated $ amount that could be negotiated" },
-          overallRating: { type: "string", enum: ["poor", "below_market", "fair", "good", "excellent"] },
-          breakdownAnalysis: {
-            type: "object",
-            properties: {
-              baseVerdict: { type: "string" },
-              bonusVerdict: { type: "string" },
-              equityVerdict: { type: "string" },
-            },
-            required: ["baseVerdict", "bonusVerdict", "equityVerdict"],
-          },
-          riskFactors: { type: "array", items: { type: "string" }, description: "2-3 risk factors to consider" },
-          strengths: { type: "array", items: { type: "string" }, description: "Positive aspects of the offer" },
-          recommendation: { type: "string", description: "Overall recommendation" },
-        },
-        required: ["marketComparison", "moneyLeftOnTable", "overallRating", "breakdownAnalysis", "riskFactors", "strengths", "recommendation"],
-      },
-    }
+Return JSON with: marketComparison (string), moneyLeftOnTable (number), overallRating (poor/below_market/fair/good/excellent), breakdownAnalysis ({baseVerdict, bonusVerdict, equityVerdict}), riskFactors (array), strengths (array), recommendation (string).`
   );
 }
 
-async function handleNegotiation(body: any, apiKey: string) {
+async function handleNegotiation(body: any) {
   const { baseSalary, bonus, equity, jobTitle, company, skills, experience, marketData } = body;
-
-  return callAI(apiKey,
-    "You are an expert salary negotiation coach. Generate specific, actionable negotiation strategies with exact numbers and justifications.",
+  return callAI(
+    "You are an expert salary negotiation coach. Generate specific, actionable negotiation strategies. Return JSON.",
     `Create a negotiation strategy for:
 - Offer: $${baseSalary} base + $${bonus || 0} bonus + $${equity || 0} equity at ${company} for ${jobTitle}
 - Skills: ${(skills || []).join(", ")}
 - Experience: ${JSON.stringify(experience || []).slice(0, 500)}
 - Market context: ${JSON.stringify(marketData || {}).slice(0, 300)}
 
-Generate a complete negotiation plan.`,
-    {
-      name: "negotiation_strategy",
-      description: "Generate a negotiation strategy",
-      parameters: {
-        type: "object",
-        properties: {
-          targetSalary: { type: "number", description: "Recommended counter-offer salary" },
-          walkAwayPoint: { type: "number", description: "Minimum acceptable salary" },
-          anchorPoint: { type: "number", description: "Initial ask (slightly above target)" },
-          justificationPoints: { type: "array", items: { type: "string" }, description: "4-5 data-backed justification points" },
-          tacticalAdvice: { type: "array", items: { type: "string" }, description: "3-4 tactical negotiation tips" },
-          timing: { type: "string", description: "Best timing advice for the negotiation" },
-          leveragePoints: { type: "array", items: { type: "string" }, description: "Leverage points the candidate has" },
-          concessions: { type: "array", items: { type: "string" }, description: "Things to concede strategically" },
-        },
-        required: ["targetSalary", "walkAwayPoint", "anchorPoint", "justificationPoints", "tacticalAdvice", "timing", "leveragePoints", "concessions"],
-      },
-    }
+Return JSON with: targetSalary, walkAwayPoint, anchorPoint (numbers), justificationPoints, tacticalAdvice, leveragePoints, concessions (arrays of strings), timing (string).`
   );
 }
 
-async function handleScriptGeneration(body: any, apiKey: string) {
+async function handleScriptGeneration(body: any) {
   const { baseSalary, targetSalary, jobTitle, company, justificationPoints } = body;
-
-  return callAI(apiKey,
-    "You are a professional communication expert. Write confident, professional, data-backed negotiation scripts. Keep the tone respectful but assertive.",
+  return callAI(
+    "You are a professional communication expert. Write confident negotiation scripts. Return JSON.",
     `Generate negotiation scripts for:
 - Current offer: $${baseSalary} for ${jobTitle} at ${company}
 - Target: $${targetSalary}
 - Justifications: ${(justificationPoints || []).join("; ")}
 
-Generate both an email and a phone call script.`,
-    {
-      name: "negotiation_scripts",
-      description: "Generate negotiation email and call scripts",
-      parameters: {
-        type: "object",
-        properties: {
-          emailSubject: { type: "string" },
-          emailBody: { type: "string", description: "Full professional negotiation email" },
-          callScript: {
-            type: "object",
-            properties: {
-              opening: { type: "string" },
-              counterOffer: { type: "string" },
-              objectionHandling: { type: "array", items: {
-                type: "object",
-                properties: {
-                  objection: { type: "string" },
-                  response: { type: "string" },
-                },
-                required: ["objection", "response"],
-              }},
-              closing: { type: "string" },
-            },
-            required: ["opening", "counterOffer", "objectionHandling", "closing"],
-          },
-        },
-        required: ["emailSubject", "emailBody", "callScript"],
-      },
-    }
+Return JSON with: emailSubject (string), emailBody (string), callScript ({opening, counterOffer, objectionHandling: [{objection, response}], closing}).`
   );
 }
