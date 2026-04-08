@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAnthropic } from "../_shared/anthropic.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -33,9 +34,6 @@ serve(async (req) => {
 
     const { jobTitle, company, resume, emailType = "follow-up", context = "" } = await req.json();
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
-
     const typeInstructions: Record<string, string> = {
       "follow-up": "Write a professional follow-up email after submitting a job application. Be polite, reiterate interest, and reference specific qualifications.",
       "thank-you": "Write a thank-you email after a job interview. Reference specific discussion points, reiterate fit, and express enthusiasm.",
@@ -66,14 +64,14 @@ ${resume.slice(0, 3000)}
 
 Write the ${emailType} email.`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        Authorization: ,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "claude-sonnet-4-20250514",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },

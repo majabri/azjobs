@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAnthropic } from "../_shared/anthropic.ts";
 
 // ─── CORS ───────────────────────────────────────────────────────────────────
 const corsHeaders = {
@@ -92,11 +93,11 @@ async function runMatching(ctx: AgentContext): Promise<AgentResult> {
 
   if (!jobs?.length) return { name: "matching", success: true, metrics: { jobs_matched: 0 } };
 
-  const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  const resp = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: { Authorization: `Bearer ${ctx.apiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: "google/gemini-2.5-flash-lite",
+      model: "claude-sonnet-4-20250514",
       messages: [{
         role: "user",
         content: `Score jobs for candidate. Return JSON via tool call.
@@ -277,7 +278,7 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const apiKey = Deno.env.get("LOVABLE_API_KEY");
+    const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
 
     // Auth
     const authHeader = req.headers.get("Authorization") || "";

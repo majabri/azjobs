@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { callAnthropic } from "../_shared/anthropic.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -10,9 +11,6 @@ serve(async (req) => {
 
   try {
     const { skills, careerLevel, salaryMin, salaryMax, salaryTarget, targetTitles, experience } = await req.json();
-
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
     const prompt = `Based on this professional profile, generate realistic salary projections for 1, 3, and 5 years.
 
@@ -26,14 +24,14 @@ Profile:
 
 Return projections as JSON with this structure. Use realistic US market data. All salary values should be numbers (no commas/symbols).`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        Authorization: ,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "claude-sonnet-4-20250514",
         messages: [
           { role: "system", content: "You are a career salary analyst. Return ONLY valid JSON, no markdown." },
           { role: "user", content: prompt },

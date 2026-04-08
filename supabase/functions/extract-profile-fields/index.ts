@@ -1,4 +1,5 @@
 // Edge function: extract profile fields from resume text using AI
+import { callAnthropic } from "../_shared/anthropic.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -19,23 +20,20 @@ Deno.serve(async (req) => {
       });
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      console.error("LOVABLE_API_KEY not configured, falling back to regex");
       return new Response(JSON.stringify({ profile: regexFallback(resumeText) }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     // Use AI with tool calling for structured extraction
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        ,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "claude-sonnet-4-20250514",
         messages: [
           {
             role: "system",

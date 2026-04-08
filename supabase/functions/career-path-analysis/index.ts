@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAnthropic } from "../_shared/anthropic.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -33,9 +34,6 @@ serve(async (req) => {
     }
 
     const body = await req.json();
-
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
     const prompt = `Analyze this professional's career and provide strategic recommendations.
 
@@ -73,14 +71,14 @@ Provide a JSON response with this EXACT structure:
 
 Include 3-4 next roles sorted by attainability, 4-5 skills to learn sorted by impact, 2-3 industry trends, and 3-4 roadmap stages showing progression from current to target role. For each skill, provide a SPECIFIC actionStep (not generic), a resourceType, and a concrete resourceSuggestion. Be specific and actionable.`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        Authorization: ,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "claude-sonnet-4-20250514",
         messages: [
           { role: "system", content: "You are a career strategy advisor. Return only valid JSON. No markdown." },
           { role: "user", content: prompt },

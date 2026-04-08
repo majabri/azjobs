@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAnthropic } from "../_shared/anthropic.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -50,9 +51,6 @@ serve(async (req) => {
       .order("created_at", { ascending: false })
       .limit(20);
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
-
     const prompt = `Analyze this job seeker's application history and analysis scores to find actionable patterns.
 
 APPLICATIONS (${(applications || []).length} total):
@@ -86,14 +84,14 @@ Focus on:
 - Industry/role success rates
 Be specific with numbers when possible.`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        Authorization: ,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "claude-sonnet-4-20250514",
         messages: [
           { role: "system", content: "You analyze career data patterns. Return only valid JSON array. No markdown." },
           { role: "user", content: prompt },

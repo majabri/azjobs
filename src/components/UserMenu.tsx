@@ -22,7 +22,7 @@ export default function UserMenu() {
     await supabase.auth.signOut();
     // If logging out from admin area, redirect to main page
     if (location.pathname.startsWith("/admin")) {
-      window.location.href = "https://azjobs.lovable.app";
+      window.location.href = "/";
     } else {
       navigate("/", { replace: true });
     }
