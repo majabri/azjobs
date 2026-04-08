@@ -32,10 +32,11 @@ export const jobSeekerNav: NavItem[] = [
 ];
 
 export const hiringManagerNav: NavItem[] = [
-  { title: "Candidate Screener", url: "/hiring-manager", icon: Users },
-  { title: "Candidates Database", url: "/candidates", icon: Database },
-  { title: "Job Postings", url: "/job-postings", icon: FileText },
-  { title: "Interview Scheduling", url: "/interview-scheduling", icon: Calendar },
+  { title: "Home", url: "/hiring-manager", icon: LayoutDashboard },
+  { title: "Candidates", url: "/candidates", icon: Database },
+  { title: "Jobs", url: "/job-postings", icon: FileText },
+  { title: "Interviews", url: "/interview-scheduling", icon: Calendar },
+  { title: "Settings", url: "/settings", icon: Settings },
 ];
 
 export const modes = [

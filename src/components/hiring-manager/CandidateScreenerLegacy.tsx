@@ -105,7 +105,7 @@ const recommendationConfig = {
   },
 };
 
-export default function HiringManagerPage() {
+export default function CandidateScreenerLegacy() {
   const navigate = useNavigate();
   const [jobDesc, setJobDesc] = useState("");
   const [jobUrl, setJobUrl] = useState("");
