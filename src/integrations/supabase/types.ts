@@ -200,6 +200,63 @@ export type Database = {
         }
         Relationships: []
       }
+      contracts: {
+        Row: {
+          agreed_price: number
+          agreed_timeline_days: number | null
+          completed_at: string | null
+          created_at: string
+          employer_id: string
+          id: string
+          project_id: string
+          proposal_id: string
+          started_at: string
+          status: string
+          talent_id: string
+        }
+        Insert: {
+          agreed_price?: number
+          agreed_timeline_days?: number | null
+          completed_at?: string | null
+          created_at?: string
+          employer_id: string
+          id?: string
+          project_id: string
+          proposal_id: string
+          started_at?: string
+          status?: string
+          talent_id: string
+        }
+        Update: {
+          agreed_price?: number
+          agreed_timeline_days?: number | null
+          completed_at?: string | null
+          created_at?: string
+          employer_id?: string
+          id?: string
+          project_id?: string
+          proposal_id?: string
+          started_at?: string
+          status?: string
+          talent_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contracts_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "project_proposals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       customer_surveys: {
         Row: {
           answers: Json
@@ -941,6 +998,53 @@ export type Database = {
           },
         ]
       }
+      milestones: {
+        Row: {
+          amount: number | null
+          completed_at: string | null
+          contract_id: string
+          created_at: string
+          description: string | null
+          due_date: string | null
+          id: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number | null
+          completed_at?: string | null
+          contract_id: string
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number | null
+          completed_at?: string | null
+          contract_id?: string
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "milestones_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           action_url: string | null
@@ -1139,6 +1243,101 @@ export type Database = {
           updated_at?: string
           user_id?: string
           username?: string | null
+        }
+        Relationships: []
+      }
+      project_proposals: {
+        Row: {
+          cover_message: string | null
+          created_at: string
+          id: string
+          portfolio_links: string[] | null
+          price: number
+          project_id: string
+          status: string
+          talent_id: string
+          timeline_days: number | null
+          updated_at: string
+        }
+        Insert: {
+          cover_message?: string | null
+          created_at?: string
+          id?: string
+          portfolio_links?: string[] | null
+          price?: number
+          project_id: string
+          status?: string
+          talent_id: string
+          timeline_days?: number | null
+          updated_at?: string
+        }
+        Update: {
+          cover_message?: string | null
+          created_at?: string
+          id?: string
+          portfolio_links?: string[] | null
+          price?: number
+          project_id?: string
+          status?: string
+          talent_id?: string
+          timeline_days?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_proposals_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          budget_max: number | null
+          budget_min: number | null
+          created_at: string
+          deliverables: string[] | null
+          description: string
+          employer_id: string
+          id: string
+          proposals_count: number
+          skills_required: string[] | null
+          status: string
+          timeline_days: number | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          budget_max?: number | null
+          budget_min?: number | null
+          created_at?: string
+          deliverables?: string[] | null
+          description?: string
+          employer_id: string
+          id?: string
+          proposals_count?: number
+          skills_required?: string[] | null
+          status?: string
+          timeline_days?: number | null
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          budget_max?: number | null
+          budget_min?: number | null
+          created_at?: string
+          deliverables?: string[] | null
+          description?: string
+          employer_id?: string
+          id?: string
+          proposals_count?: number
+          skills_required?: string[] | null
+          status?: string
+          timeline_days?: number | null
+          title?: string
+          updated_at?: string
         }
         Relationships: []
       }
