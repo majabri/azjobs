@@ -15,6 +15,7 @@ const HiringManager = lazy(() => import("./pages/HiringManager"));
 export const CandidatesDatabase = lazy(() => import("./pages/CandidatesDatabase"));
 export const JobPostings = lazy(() => import("./pages/JobPostings"));
 export const InterviewScheduling = lazy(() => import("./pages/InterviewScheduling"));
+export const TalentSearch = lazy(() => import("./pages/TalentSearch"));
 
 function Loading() {
   return (
@@ -32,6 +33,7 @@ export default function HiringRoutes() {
         <Route path="candidates" element={<CandidatesDatabase />} />
         <Route path="job-postings" element={<JobPostings />} />
         <Route path="interview-scheduling" element={<InterviewScheduling />} />
+        <Route path="talent-search" element={<TalentSearch />} />
       </Routes>
     </Suspense>
   );
