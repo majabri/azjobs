@@ -26,6 +26,7 @@ export const jobSeekerNav: NavItem[] = [
   { title: "Interview Prep", url: "/interview-prep", icon: Mic },
   { title: "Auto Apply", url: "/auto-apply", icon: Zap },
   { title: "Gig Marketplace", url: "/gigs", icon: Briefcase },
+  { title: "Services", url: "/services", icon: Briefcase },
   { title: "Profile", url: "/profile", icon: UserCircle },
   { title: "Settings", url: "/settings", icon: Settings },
   { title: "Support", url: "/support", icon: HelpCircle },
