@@ -84,36 +84,17 @@ Focus on:
 - Industry/role success rates
 Be specific with numbers when possible.`;
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        Authorization: ,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        messages: [
-          { role: "system", content: "You analyze career data patterns. Return only valid JSON array. No markdown." },
-          { role: "user", content: prompt },
-        ],
-        temperature: 0.3,
-      }),
+    const result = await callAnthropic({
+      system: "You analyze career data patterns. Return only valid JSON array. No markdown.",
+      userMessage: prompt,
+      temperature: 0.3,
     });
-
-    if (!response.ok) {
-      if (response.status === 429) return new Response(JSON.stringify({ error: "Rate limit exceeded." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      if (response.status === 402) return new Response(JSON.stringify({ error: "AI credits exhausted." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      throw new Error("AI service error");
-    }
-
-    const aiData = await response.json();
-    const content = aiData.choices?.[0]?.message?.content || "[]";
 
     let insights;
     try {
-      insights = JSON.parse(content);
+      insights = JSON.parse(result.content);
     } catch {
-      const match = content.match(/\[[\s\S]*\]/);
+      const match = result.content.match(/\[[\s\S]*\]/);
       insights = match ? JSON.parse(match[0]) : [];
     }
 

@@ -30,31 +30,16 @@ Evaluate their answer. Return JSON with:
 
 Be honest but constructive. Return only valid JSON.`;
 
-      const evalResp = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: { Authorization: , "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          messages: [
-            { role: "system", content: "You evaluate interview answers. Return only valid JSON." },
-            { role: "user", content: evalPrompt },
-          ],
-          temperature: 0.3,
-        }),
+      const evalResult = await callAnthropic({
+        system: "You evaluate interview answers. Return only valid JSON.",
+        userMessage: evalPrompt,
+        temperature: 0.3,
       });
 
-      if (!evalResp.ok) {
-        if (evalResp.status === 429) return new Response(JSON.stringify({ error: "Rate limit exceeded." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-        if (evalResp.status === 402) return new Response(JSON.stringify({ error: "AI credits exhausted." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-        throw new Error("AI error");
-      }
+      let parsed;
+      try { parsed = JSON.parse(evalResult.content); } catch { const m = evalResult.content.match(/\{[\s\S]*\}/); parsed = m ? JSON.parse(m[0]) : { score: 50, feedback: evalResult.content }; }
 
-      const evalData = await evalResp.json();
-      const evalContent = evalData.choices?.[0]?.message?.content || "{}";
-      let evalResult;
-      try { evalResult = JSON.parse(evalContent); } catch { const m = evalContent.match(/\{[\s\S]*\}/); evalResult = m ? JSON.parse(m[0]) : { score: 50, feedback: evalContent }; }
-
-      return new Response(JSON.stringify(evalResult), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify(parsed), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     // Predict mode: generate interview questions
@@ -80,39 +65,19 @@ Return a JSON object with this EXACT structure:
   ]
 }
 
-Generate 6-8 questions. For each:
-- weakAnswerWarning: Be specific about WHY this candidate might struggle (reference actual resume gaps)
-- suggestedAnswer: Use the candidate's REAL experience from the resume to craft a compelling answer
-- confidenceScore: Lower for questions targeting resume gaps, higher for questions matching experience
-- Sort by confidenceScore ascending (hardest first)
-
+Generate 6-8 questions. Sort by confidenceScore ascending (hardest first).
 Return only valid JSON.`;
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { Authorization: , "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        messages: [
-          { role: "system", content: "You are an expert interview predictor. Return only valid JSON." },
-          { role: "user", content: prompt },
-        ],
-        temperature: 0.3,
-      }),
+    const result = await callAnthropic({
+      system: "You are an expert interview predictor. Return only valid JSON.",
+      userMessage: prompt,
+      temperature: 0.3,
     });
 
-    if (!response.ok) {
-      if (response.status === 429) return new Response(JSON.stringify({ error: "Rate limit exceeded." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      if (response.status === 402) return new Response(JSON.stringify({ error: "AI credits exhausted." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      throw new Error("AI error");
-    }
+    let parsed;
+    try { parsed = JSON.parse(result.content); } catch { const m = result.content.match(/\{[\s\S]*\}/); parsed = m ? JSON.parse(m[0]) : { questions: [] }; }
 
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content || "{}";
-    let result;
-    try { result = JSON.parse(content); } catch { const m = content.match(/\{[\s\S]*\}/); result = m ? JSON.parse(m[0]) : { questions: [] }; }
-
-    return new Response(JSON.stringify(result), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify(parsed), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     console.error("interview-predictor error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
