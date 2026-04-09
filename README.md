@@ -1,8 +1,8 @@
-# FitCheck - Intelligent Career Operating System
+# iCareerOS (iCOS) - Intelligent Career Operating System
 
 Your Career. On Autopilot.
 
-FitCheck's AI finds the right jobs, applies automatically, and grows your income.
+iCareerOS finds the right jobs, applies automatically, and grows your income.
 
 **Production URL**: https://icareeros.com
 
