@@ -8,7 +8,7 @@
  * This page just needs to wait for that exchange to complete, then redirect.
  */
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { useAuthReady } from "@/hooks/useAuthReady";
@@ -21,6 +21,9 @@ export default function AuthCallbackPage() {
   const { destination, showModePrompt, setShowModePrompt, isResolving } =
     usePostLoginRedirect();
 
+  // Tracks whether we've already navigated away due to an OAuth error
+  const hasError = useRef(false);
+
   // Forward any OAuth provider errors back to the login page
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -28,8 +31,10 @@ export default function AuthCallbackPage() {
     const errorDescription = params.get("error_description");
 
     if (errorParam) {
+      hasError.current = true;
       const msg = errorDescription || errorParam;
       navigate(`/auth/login?error=${encodeURIComponent(msg)}`, { replace: true });
+      return;
     }
   }, [navigate]);
 
@@ -37,6 +42,7 @@ export default function AuthCallbackPage() {
   // The Supabase client exchanges the PKCE code automatically (detectSessionInUrl: true),
   // which triggers onAuthStateChange → useAuthReady updates user state.
   useEffect(() => {
+    if (hasError.current) return;
     if (!isReady || !user || isResolving || !destination) return;
     if (showModePrompt) return;
     navigate(destination, { replace: true });
