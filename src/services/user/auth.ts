@@ -48,7 +48,7 @@ export async function loginWithGoogle(): Promise<AuthResult> {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/login`,
+        redirectTo: `${window.location.origin}/auth/callback`,
       },
     });
     if (error) return { error: normalizeError(error) };
@@ -64,7 +64,7 @@ export async function loginWithApple(): Promise<AuthResult> {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "apple",
       options: {
-        redirectTo: `${window.location.origin}/auth/login`,
+        redirectTo: `${window.location.origin}/auth/callback`,
       },
     });
     if (error) return { error: normalizeError(error) };

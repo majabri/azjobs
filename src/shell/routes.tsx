@@ -49,6 +49,7 @@ const Index = lazy(() => import("@/pages/Index"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 const LoginPage = lazy(() => import("@/pages/auth/Login"));
 const SignupPage = lazy(() => import("@/pages/auth/Signup"));
+const AuthCallbackPage = lazy(() => import("@/pages/auth/Callback"));
 const AccountSettings = lazy(() => import("@/pages/AccountSettings"));
 
 // ─── Layout wrappers ─────────────────────────────────────────────────────────
@@ -91,6 +92,7 @@ export default function ShellRoutes() {
         {/* Auth pages */}
         <Route path="/auth/login" element={<LoginPage />} />
         <Route path="/auth/signup" element={<SignupPage />} />
+        <Route path="/auth/callback" element={<AuthCallbackPage />} />
         <Route path="/auth" element={<UserAuth />} />
 
         {/* Account Settings (protected) */}

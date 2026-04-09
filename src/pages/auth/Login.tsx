@@ -9,7 +9,7 @@
  */
 
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,6 +23,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, isReady } = useAuthReady();
   const { destination, showModePrompt, setShowModePrompt, isResolving } = usePostLoginRedirect();
 
@@ -31,7 +32,9 @@ export default function LoginPage() {
   const [loadingGoogle, setLoadingGoogle] = useState(false);
   const [loadingApple, setLoadingApple] = useState(false);
   const [loadingEmail, setLoadingEmail] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(
+    searchParams.get("error") ?? null
+  );
 
   // Role-aware redirect after authentication + role resolution
   useEffect(() => {
