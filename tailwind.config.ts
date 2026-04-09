@@ -82,12 +82,13 @@ export default {
           700: "hsl(172 70% 28%)",
         },
         brand: {
-          navy: "#1B2A4A",
+          navy: "#0F1B2D",
           teal: "#2DD4BF",
+          coral: "#FF6B6B",
           gold: "#F59E0B",
           green: "#10B981",
           gray: "#64748B",
-          light: "#F8FAFC",
+          bg: "#FAFBFF",
         },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
