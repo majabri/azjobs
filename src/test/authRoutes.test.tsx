@@ -2,15 +2,14 @@
  * Regression tests for auth navigation paths.
  *
  * Ensures:
- *   (a) /auth redirects to /auth/login (backward-compat redirect)
- *   (b) The landing-page "Sign In" button navigates to /auth/login
- *   (c) The route constants module exports the correct values
+ * (a) /auth redirects to /auth/login (backward-compat redirect)
+ * (b) The landing-page "Sign In" link navigates to /auth/login
+ * (c) The route constants module exports the correct values
  *
  * These tests guard against accidental drift where the navigation target
  * diverges from the canonical /auth/login route, which previously caused
  * React error #306 in production.
  */
-
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { MemoryRouter, Routes, Route, useLocation } from "react-router-dom";
@@ -55,14 +54,18 @@ describe("/auth redirect", () => {
   });
 });
 
-// ─── Landing page "Sign In" button ───────────────────────────────────────────
+// ─── Landing page "Sign In" link ────────────────────────────────────────────
 
 // Minimal mocks so Index.tsx can render in jsdom without real Supabase/assets
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
     auth: {
       getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
-      onAuthStateChange: vi.fn().mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } }),
+      onAuthStateChange: vi
+        .fn()
+        .mockReturnValue({
+          data: { subscription: { unsubscribe: vi.fn() } },
+        }),
       signOut: vi.fn(),
     },
     from: vi.fn().mockReturnValue({
@@ -86,7 +89,7 @@ vi.mock("@/lib/analysisEngine", () => ({
 // so jsdom doesn't throw on static import resolution.
 vi.mock("@/assets/hero-bg.jpg", () => ({ default: "" }));
 
-describe("landing page Sign In button", () => {
+describe("landing page Sign In link", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -103,10 +106,11 @@ describe("landing page Sign In button", () => {
       </MemoryRouter>
     );
 
-    // Find the header "Sign In" button (not authenticated path)
-    const signInButtons = screen.getAllByRole("button", { name: /sign in/i });
-    // Click the first one (header navigation button)
-    fireEvent.click(signInButtons[0]);
+    // The new landing page renders Sign In as a <Link> (anchor), not a button
+    const signInLinks = screen.getAllByRole("link", { name: /sign in/i });
+
+    // Click the first one (header navigation link)
+    fireEvent.click(signInLinks[0]);
 
     expect(screen.getByTestId("location").textContent).toBe(AUTH_LOGIN);
   });
