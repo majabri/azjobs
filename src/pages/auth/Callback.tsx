@@ -2,12 +2,15 @@
  * /auth/callback — OAuth callback handler.
  * Handles the PKCE code exchange for Google and Apple OAuth flows.
  * Supabase redirects here after the provider authenticates the user.
+ *
+ * The Supabase client (detectSessionInUrl: true by default) automatically
+ * exchanges the ?code= parameter for a session on initialization.
+ * This page just needs to wait for that exchange to complete, then redirect.
  */
 
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { usePostLoginRedirect } from "@/hooks/usePostLoginRedirect";
 import DashboardModeDialog from "@/components/DashboardModeDialog";
@@ -18,32 +21,21 @@ export default function AuthCallbackPage() {
   const { destination, showModePrompt, setShowModePrompt, isResolving } =
     usePostLoginRedirect();
 
-  // Exchange the PKCE code for a session on initial load
+  // Forward any OAuth provider errors back to the login page
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const code = params.get("code");
     const errorParam = params.get("error");
     const errorDescription = params.get("error_description");
 
     if (errorParam) {
       const msg = errorDescription || errorParam;
       navigate(`/auth/login?error=${encodeURIComponent(msg)}`, { replace: true });
-      return;
     }
+  }, [navigate]);
 
-    if (!code) {
-      // No code and no error — unexpected URL, send back to login
-      navigate("/auth/login", { replace: true });
-      return;
-    }
-
-    supabase.auth.exchangeCodeForSession(code).catch((err: unknown) => {
-      const msg = err instanceof Error ? err.message : "Authentication failed. Please try again.";
-      navigate(`/auth/login?error=${encodeURIComponent(msg)}`, { replace: true });
-    });
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Redirect once the session is established and the role is resolved
+  // Redirect once the session is established and the role is resolved.
+  // The Supabase client exchanges the PKCE code automatically (detectSessionInUrl: true),
+  // which triggers onAuthStateChange → useAuthReady updates user state.
   useEffect(() => {
     if (!isReady || !user || isResolving || !destination) return;
     if (showModePrompt) return;
