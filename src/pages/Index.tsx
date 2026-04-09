@@ -46,14 +46,14 @@ const sampleCapabilities = [
 ];
 
 const comparisonRows = [
-  { feature: "AI-Powered Job Matching", fitcheck: true, indeed: false, zip: false },
-  { feature: "Resume Optimization for Each Job", fitcheck: true, indeed: false, zip: false },
-  { feature: "Interview Probability Score", fitcheck: true, indeed: false, zip: false },
-  { feature: "Auto-Generated Cover Letters", fitcheck: true, indeed: false, zip: false },
-  { feature: "Application Package Generator", fitcheck: true, indeed: false, zip: false },
-  { feature: "Skill Gap Action Plan", fitcheck: true, indeed: false, zip: false },
-  { feature: "Fake Job Detection", fitcheck: true, indeed: false, zip: false },
-  { feature: "Built-in Application Tracker", fitcheck: true, indeed: true, zip: true },
+  { feature: "AI-Powered Job Matching", icareeros: true, indeed: false, zip: false },
+  { feature: "Resume Optimization for Each Job", icareeros: true, indeed: false, zip: false },
+  { feature: "Interview Probability Score", icareeros: true, indeed: false, zip: false },
+  { feature: "Auto-Generated Cover Letters", icareeros: true, indeed: false, zip: false },
+  { feature: "Application Package Generator", icareeros: true, indeed: false, zip: false },
+  { feature: "Skill Gap Action Plan", icareeros: true, indeed: false, zip: false },
+  { feature: "Fake Job Detection", icareeros: true, indeed: false, zip: false },
+  { feature: "Built-in Application Tracker", icareeros: true, indeed: true, zip: true },
 ];
 
 export default function Index() {
@@ -122,7 +122,7 @@ export default function Index() {
           <div className="w-8 h-8 gradient-teal rounded-lg flex items-center justify-center shadow-teal">
             <Target className="w-4 h-4 text-white" />
           </div>
-          <span className="font-display text-lg font-bold text-primary-foreground">FitCheck</span>
+          <span className="font-display text-lg font-bold text-primary-foreground">iCareerOS</span>
         </div>
         <nav className="flex items-center gap-1">
           {user ? (
@@ -182,7 +182,7 @@ export default function Index() {
           </h1>
 
           <p className="text-xl md:text-2xl text-white/70 max-w-3xl mx-auto mb-12 animate-fade-up leading-relaxed" style={{ animationDelay: "0.2s" }}>
-            FitCheck finds, optimizes, and applies to jobs automatically — while you focus on interviews.
+            iCareerOS finds, optimizes, and applies to jobs automatically — while you focus on interviews.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-up" style={{ animationDelay: "0.3s" }}>
@@ -295,7 +295,7 @@ export default function Index() {
               disabled={demoLoading || !demoJobDesc.trim()}
               onClick={handleDemoAnalyze}
             >
-              {demoLoading ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Analyzing...</> : <><Zap className="w-4 h-4 mr-2" /> Instant Fit Check</>}
+              {demoLoading ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Analyzing...</> : <><Zap className="w-4 h-4 mr-2" /> Instant Fit Score</>}
             </Button>
 
             {demoResult && (
@@ -341,7 +341,7 @@ export default function Index() {
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-display font-bold text-primary mb-4">
-              What <span className="text-gradient-teal">FitCheck Does For You</span>
+              What <span className="text-gradient-teal">iCareerOS Does For You</span>
             </h2>
             <p className="text-muted-foreground text-lg">Your entire job search — automated and intelligent.</p>
           </div>
@@ -445,7 +445,7 @@ export default function Index() {
               <div className="p-4 border-b border-border text-center">
                 <div className="inline-flex items-center gap-1.5">
                   <div className="w-5 h-5 gradient-teal rounded flex items-center justify-center"><Target className="w-3 h-3 text-white" /></div>
-                  <span className="font-display font-bold text-primary text-sm">FitCheck</span>
+                  <span className="font-display font-bold text-primary text-sm">iCareerOS</span>
                 </div>
               </div>
               <div className="p-4 border-b border-border text-center font-semibold text-sm text-muted-foreground">Indeed</div>
@@ -455,7 +455,7 @@ export default function Index() {
                 <div key={row.feature} className="contents">
                   <div className={`p-4 text-sm text-foreground ${i < comparisonRows.length - 1 ? "border-b border-border" : ""}`}>{row.feature}</div>
                   <div className={`p-4 text-center ${i < comparisonRows.length - 1 ? "border-b border-border" : ""}`}>
-                    {row.fitcheck ? <Check className="w-5 h-5 text-success mx-auto" /> : <X className="w-5 h-5 text-destructive/40 mx-auto" />}
+                    {row.icareeros ? <Check className="w-5 h-5 text-success mx-auto" /> : <X className="w-5 h-5 text-destructive/40 mx-auto" />}
                   </div>
                   <div className={`p-4 text-center ${i < comparisonRows.length - 1 ? "border-b border-border" : ""}`}>
                     {row.indeed ? <Check className="w-5 h-5 text-success mx-auto" /> : <X className="w-5 h-5 text-destructive/40 mx-auto" />}
@@ -484,7 +484,7 @@ export default function Index() {
               Everything to <span className="text-gradient-teal">get you hired faster</span>
             </h2>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              From discovering opportunities to landing offers — FitCheck automates your entire job search.
+              From discovering opportunities to landing offers — iCareerOS automates your entire job search.
             </p>
           </div>
 
@@ -550,14 +550,14 @@ export default function Index() {
           <div className="max-w-3xl mx-auto text-center">
             <Gift className="w-10 h-10 text-accent mx-auto mb-4" />
             <h2 className="text-3xl font-display font-bold text-primary mb-3">Invite Friends & Unlock More</h2>
-            <p className="text-muted-foreground mb-6">Share FitCheck with 3 friends to unlock premium features like unlimited auto-apply and priority job alerts.</p>
+            <p className="text-muted-foreground mb-6">Share iCareerOS with 3 friends to unlock premium features like unlimited auto-apply and priority job alerts.</p>
             <div className="flex justify-center gap-3">
               <Button className="gradient-teal text-white shadow-teal hover:opacity-90" onClick={handleCopyReferral}>
                 <Share2 className="w-4 h-4 mr-2" /> Copy Referral Link
               </Button>
               <Button variant="outline" onClick={() => {
                 const url = `${window.location.origin}?ref=${user?.id?.slice(0, 8) || "friend"}`;
-                window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent("I use FitCheck to get 3x more interview callbacks. Try it free: " + url)}`, "_blank");
+                window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent("I use iCareerOS to get 3x more interview callbacks. Try it free: " + url)}`, "_blank");
               }}>
                 <MessageSquare className="w-4 h-4 mr-2" /> Share on X
               </Button>
@@ -629,7 +629,7 @@ export default function Index() {
               <div className="w-6 h-6 gradient-teal rounded-md flex items-center justify-center">
                 <Target className="w-3 h-3 text-white" />
               </div>
-              <span className="font-display font-bold text-primary-foreground">FitCheck</span>
+              <span className="font-display font-bold text-primary-foreground">iCareerOS</span>
             </div>
             <div className="flex flex-wrap gap-4 text-primary-foreground/50 text-sm">
               <button className="hover:text-primary-foreground transition-colors" onClick={() => navigate("/job-seeker")}>Get Interviews</button>
