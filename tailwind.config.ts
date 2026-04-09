@@ -83,9 +83,9 @@ export default {
         },
         brand: {
           navy: "#0F1B2D",
-          teal: "#2DD4BF",
+          teal: "#00B8A9",
           coral: "#FF6B6B",
-          gold: "#F59E0B",
+          gold: "#F5A623",
           green: "#10B981",
           gray: "#64748B",
           bg: "#FAFBFF",
