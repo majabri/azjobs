@@ -17,14 +17,14 @@ export interface NavItem {
 }
 
 export const jobSeekerNav: NavItem[] = [
-  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
-  { title: "Analyze Job", url: "/job-seeker", icon: Target },
-  { title: "Find Jobs", url: "/job-search", icon: Search },
+  { title: "Mission Control", url: "/dashboard", icon: LayoutDashboard },
+  { title: "Job Analysis", url: "/job-seeker", icon: Target },
+  { title: "Opportunity Radar", url: "/job-search", icon: Search },
   { title: "Applications", url: "/applications", icon: ClipboardList },
   { title: "Offers", url: "/offers", icon: DollarSign },
   { title: "Career", url: "/career", icon: Compass },
   { title: "Interview Prep", url: "/interview-prep", icon: Mic },
-  { title: "Auto Apply", url: "/auto-apply", icon: Zap },
+  { title: "Autopilot Mode", url: "/auto-apply", icon: Zap },
   { title: "Gig Marketplace", url: "/gigs", icon: Briefcase },
   { title: "Services", url: "/services", icon: Briefcase },
   { title: "Profile", url: "/profile", icon: UserCircle },
