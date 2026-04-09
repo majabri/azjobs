@@ -13,7 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { Shield, Smartphone, Mail, MessageSquare, Key, Trash2, Loader2, Link2, Unlink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
-import { enrollTOTP, verifyTOTP, unenrollFactor, listFactors, loginWithGoogle, loginWithApple } from "@/services/user/auth";
+import { enrollTOTP, verifyTOTP, unenrollFactor, listFactors, linkWithProvider } from "@/services/user/auth";
 import { normalizeError } from "@/lib/normalizeError";
 import { toast } from "sonner";
 
@@ -135,8 +135,7 @@ export default function AccountSettings() {
   const handleLinkProvider = async (provider: "google" | "apple") => {
     setLinkLoading(provider);
     try {
-      const fn = provider === "google" ? loginWithGoogle : loginWithApple;
-      const result = await fn();
+      const result = await linkWithProvider(provider);
       if (result.error) {
         toast.error(result.error);
       } else {
