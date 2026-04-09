@@ -35,7 +35,7 @@ export function AppSidebar() {
             <Target className="w-4 h-4 text-white" />
           </div>
           {!collapsed && (
-            <span className="font-display text-lg font-bold text-sidebar-foreground">FitCheck</span>
+            <span className="font-display text-lg font-bold text-sidebar-foreground">iCareerOS</span>
           )}
         </div>
 
@@ -110,7 +110,7 @@ export function AppSidebar() {
         )}
         {!collapsed && (
           <div className="px-4 py-3 text-[10px] text-sidebar-foreground/40">
-            FitCheck AI Career OS
+            iCareerOS — Intelligent Career Operating System
           </div>
         )}
       </SidebarFooter>
