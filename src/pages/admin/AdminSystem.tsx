@@ -3,10 +3,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  Shield, CheckCircle2, XCircle, AlertTriangle, Clock, Activity,
-  Database, Bot, BarChart3, Briefcase,
+  Shield,
+  CheckCircle2,
+  XCircle,
+  AlertTriangle,
+  Clock,
+  Activity,
+  Database,
+  Bot,
+  BarChart3,
+  Briefcase,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface SystemCheck {
   name: string;
@@ -27,24 +36,37 @@ export default function AdminSystem() {
   const [errorLogs, setErrorLogs] = useState<ErrorLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [counts, setCounts] = useState({
-    users: 0, analyses: 0, applications: 0, agentRuns: 0,
+    users: 0,
+    analyses: 0,
+    applications: 0,
+    agentRuns: 0,
   });
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+  }, []);
 
   const load = async () => {
     setLoading(true);
     try {
-      const [profilesRes, analysesRes, applicationsRes, agentRunsRes, queueRes] = await Promise.all([
-        supabase.from("job_seeker_profiles").select("user_id", { count: "exact", head: true }),
-        supabase.from("analysis_history" as any).select("id", { count: "exact", head: true }),
-        supabase.from("job_applications").select("id", { count: "exact", head: true }),
-        supabase.from("agent_runs" as any)
-          .select("id, user_id, status, errors, started_at")
-          .order("started_at", { ascending: false })
-          .limit(100) as any,
-        (supabase as any).from("job_queue").select("id, status"),
-      ]);
+      const [profilesRes, analysesRes, applicationsRes, agentRunsRes, queueRes] =
+        await Promise.all([
+          supabase
+            .from("job_seeker_profiles")
+            .select("user_id", { count: "exact", head: true }),
+          supabase
+            .from("analysis_history" as any)
+            .select("id", { count: "exact", head: true }),
+          supabase
+            .from("job_applications")
+            .select("id", { count: "exact", head: true }),
+          supabase
+            .from("agent_runs" as any)
+            .select("id, user_id, status, errors, started_at")
+            .order("started_at", { ascending: false })
+            .limit(100) as any,
+          (supabase as any).from("job_queue").select("id, status"),
+        ]);
 
       const allRuns: ErrorLogEntry[] = (agentRunsRes.data || []) as ErrorLogEntry[];
       const failedRuns = allRuns.filter(
@@ -52,8 +74,10 @@ export default function AdminSystem() {
       );
       const recentFailed = allRuns.filter((r) => {
         const hourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-        return (r.status === "failed" || r.status === "completed_with_errors") &&
-          r.started_at > hourAgo;
+        return (
+          (r.status === "failed" || r.status === "completed_with_errors") &&
+          r.started_at > hourAgo
+        );
       });
 
       setCounts({
@@ -67,36 +91,64 @@ export default function AdminSystem() {
         {
           name: "Database: job_seeker_profiles",
           status: profilesRes.error ? "error" : "ok",
-          detail: profilesRes.error ? profilesRes.error.message : `${profilesRes.count ?? 0} records`,
+          detail: profilesRes.error
+            ? profilesRes.error.message
+            : `${profilesRes.count ?? 0} records`,
         },
         {
           name: "Database: analysis_history",
           status: (analysesRes as any).error ? "error" : "ok",
-          detail: (analysesRes as any).error ? (analysesRes as any).error.message : `${(analysesRes as any).count ?? 0} records`,
+          detail: (analysesRes as any).error
+            ? (analysesRes as any).error.message
+            : `${(analysesRes as any).count ?? 0} records`,
         },
         {
           name: "Database: job_applications",
           status: applicationsRes.error ? "error" : "ok",
-          detail: applicationsRes.error ? applicationsRes.error.message : `${applicationsRes.count ?? 0} records`,
+          detail: applicationsRes.error
+            ? applicationsRes.error.message
+            : `${applicationsRes.count ?? 0} records`,
         },
         {
           name: "Agent System",
-          status: agentRunsRes.error ? "error" : recentFailed.length > 5 ? "warn" : "ok",
+          status: agentRunsRes.error
+            ? "error"
+            : recentFailed.length > 5
+            ? "warn"
+            : "ok",
           detail: agentRunsRes.error
             ? agentRunsRes.error.message
             : `${recentFailed.length} failures in last 1h`,
         },
         {
           name: "Error Rate (recent 100 runs)",
-          status: failedRuns.length === 0 ? "ok" : failedRuns.length < 10 ? "warn" : "error",
-          detail: `${failedRuns.length} failed out of ${allRuns.length} runs (${allRuns.length > 0 ? Math.round((failedRuns.length / allRuns.length) * 100) : 0}%)`,
+          status:
+            failedRuns.length === 0
+              ? "ok"
+              : failedRuns.length < 10
+              ? "warn"
+              : "error",
+          detail: `${failedRuns.length} failed out of ${allRuns.length} runs (${
+            allRuns.length > 0
+              ? Math.round((failedRuns.length / allRuns.length) * 100)
+              : 0
+          }%)`,
         },
         {
           name: "Queue Health",
           status: queueRes.error ? "error" : "ok",
           detail: queueRes.error
             ? queueRes.error.message
-            : `${(queueRes.data || []).filter((j: any) => j.status === "pending").length} pending, ${(queueRes.data || []).filter((j: any) => j.status === "running").length} running, ${(queueRes.data || []).filter((j: any) => j.status === "failed").length} failed`,
+            : `${
+                (queueRes.data || []).filter((j: any) => j.status === "pending")
+                  .length
+              } pending, ${
+                (queueRes.data || []).filter((j: any) => j.status === "running")
+                  .length
+              } running, ${
+                (queueRes.data || []).filter((j: any) => j.status === "failed")
+                  .length
+              } failed`,
         },
         {
           name: "API Status",
@@ -106,15 +158,17 @@ export default function AdminSystem() {
         {
           name: "Last Error Timestamp",
           status: failedRuns.length === 0 ? "ok" : "warn",
-          detail: failedRuns.length > 0
-            ? `Last failure: ${new Date(failedRuns[0].started_at).toLocaleString()}`
-            : "No recent failures",
+          detail:
+            failedRuns.length > 0
+              ? `Last failure: ${new Date(failedRuns[0].started_at).toLocaleString()}`
+              : "No recent failures",
         },
       ]);
 
       setErrorLogs(failedRuns.slice(0, 20));
     } catch (e) {
       console.error(e);
+      toast.error("Failed to load system health data");
     } finally {
       setLoading(false);
     }
@@ -138,10 +192,16 @@ export default function AdminSystem() {
     <div className="max-w-6xl mx-auto px-6 py-8 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-display text-2xl font-bold text-foreground">System Health</h1>
-          <p className="text-muted-foreground text-sm mt-1">Database status, error logs, and platform diagnostics</p>
+          <h1 className="font-display text-2xl font-bold text-foreground">
+            System Health
+          </h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            Database status, error logs, and platform diagnostics
+          </p>
         </div>
-        <Button variant="outline" onClick={load} size="sm">Refresh</Button>
+        <Button variant="outline" onClick={load} size="sm">
+          Refresh
+        </Button>
       </div>
 
       {/* Overall Status Banner */}
@@ -177,17 +237,34 @@ export default function AdminSystem() {
 
       {/* DB Record Counts */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <CountCard icon={<Activity className="w-4 h-4" />} label="Users" value={counts.users} />
-        <CountCard icon={<BarChart3 className="w-4 h-4" />} label="Analyses" value={counts.analyses} />
-        <CountCard icon={<Briefcase className="w-4 h-4" />} label="Applications" value={counts.applications} />
-        <CountCard icon={<Bot className="w-4 h-4" />} label="Agent Runs" value={counts.agentRuns} />
+        <CountCard
+          icon={<Activity className="w-4 h-4" />}
+          label="Users"
+          value={counts.users}
+        />
+        <CountCard
+          icon={<BarChart3 className="w-4 h-4" />}
+          label="Analyses"
+          value={counts.analyses}
+        />
+        <CountCard
+          icon={<Briefcase className="w-4 h-4" />}
+          label="Applications"
+          value={counts.applications}
+        />
+        <CountCard
+          icon={<Bot className="w-4 h-4" />}
+          label="Agent Runs"
+          value={counts.agentRuns}
+        />
       </div>
 
       {/* System Checks */}
       <Card className="border-border">
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
-            <Database className="w-4 h-4 text-accent" /> System Checks
+            <Database className="w-4 h-4 text-accent" />
+            System Checks
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -206,8 +283,12 @@ export default function AdminSystem() {
                     <XCircle className="w-4 h-4 text-destructive flex-shrink-0" />
                   )}
                   <div>
-                    <p className="text-sm font-medium text-foreground">{check.name}</p>
-                    <p className="text-xs text-muted-foreground">{check.detail}</p>
+                    <p className="text-sm font-medium text-foreground">
+                      {check.name}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {check.detail}
+                    </p>
                   </div>
                 </div>
                 <Badge
@@ -232,7 +313,8 @@ export default function AdminSystem() {
       <Card className="border-border">
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
-            <Shield className="w-4 h-4 text-destructive" /> Error Log (Failed Agent Runs)
+            <Shield className="w-4 h-4 text-destructive" />
+            Error Log (Failed Agent Runs)
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -262,7 +344,10 @@ export default function AdminSystem() {
                   {(log.errors as string[])?.length > 0 && (
                     <div className="mt-1 space-y-0.5">
                       {(log.errors as string[]).map((err, i) => (
-                        <p key={i} className="text-[10px] text-destructive font-mono bg-destructive/5 px-2 py-0.5 rounded">
+                        <p
+                          key={i}
+                          className="text-[10px] text-destructive font-mono bg-destructive/5 px-2 py-0.5 rounded"
+                        >
                           {err}
                         </p>
                       ))}
@@ -279,14 +364,23 @@ export default function AdminSystem() {
 }
 
 function CountCard({
-  label, value, icon,
-}: { label: string; value: number; icon: React.ReactNode }) {
+  label,
+  value,
+  icon,
+}: {
+  label: string;
+  value: number;
+  icon: React.ReactNode;
+}) {
   return (
     <div className="bg-card rounded-xl p-4 border border-border shadow-sm">
       <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
-        {icon} {label}
+        {icon}
+        {label}
       </div>
-      <div className="text-2xl font-display font-bold text-foreground">{value.toLocaleString()}</div>
+      <div className="text-2xl font-display font-bold text-foreground">
+        {value.toLocaleString()}
+      </div>
     </div>
   );
 }
