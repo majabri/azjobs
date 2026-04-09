@@ -12,8 +12,14 @@ import { BrowserRouter } from "react-router-dom";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ShellRoutes from "./routes";
+import { useLanguagePreference } from "@/hooks/useLanguagePreference";
 
 const queryClient = new QueryClient();
+
+function AppInner() {
+  useLanguagePreference();
+  return <ShellRoutes />;
+}
 
 const App = () => (
   <ErrorBoundary>
@@ -23,7 +29,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <AuthProvider>
-            <ShellRoutes />
+            <AppInner />
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>

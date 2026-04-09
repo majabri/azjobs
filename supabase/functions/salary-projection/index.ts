@@ -22,88 +22,29 @@ Profile:
 - Target Roles: ${(targetTitles || []).join(", ")}
 - Experience: ${JSON.stringify(experience || []).slice(0, 500)}
 
-Return projections as JSON with this structure. Use realistic US market data. All salary values should be numbers (no commas/symbols).`;
+Return JSON with: currentEstimate (number), projections (array of {year, low, mid, high, label}), insights (array of strings), topPayingSkills (array of strings). All salary values should be numbers.`;
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        Authorization: ,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        messages: [
-          { role: "system", content: "You are a career salary analyst. Return ONLY valid JSON, no markdown." },
-          { role: "user", content: prompt },
-        ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "salary_projection",
-              description: "Return salary projections for 1, 3, and 5 years",
-              parameters: {
-                type: "object",
-                properties: {
-                  currentEstimate: { type: "number", description: "Estimated current market salary" },
-                  projections: {
-                    type: "array",
-                    items: {
-                      type: "object",
-                      properties: {
-                        year: { type: "number" },
-                        low: { type: "number" },
-                        mid: { type: "number" },
-                        high: { type: "number" },
-                        label: { type: "string" },
-                      },
-                      required: ["year", "low", "mid", "high", "label"],
-                    },
-                  },
-                  insights: {
-                    type: "array",
-                    items: { type: "string" },
-                    description: "3-4 actionable insights about salary growth",
-                  },
-                  topPayingSkills: {
-                    type: "array",
-                    items: { type: "string" },
-                    description: "Top 3-5 skills that would increase salary the most",
-                  },
-                },
-                required: ["currentEstimate", "projections", "insights", "topPayingSkills"],
-              },
-            },
-          },
-        ],
-        tool_choice: { type: "function", function: { name: "salary_projection" } },
-      }),
+    const result = await callAnthropic({
+      system: "You are a career salary analyst. Return ONLY valid JSON, no markdown.",
+      userMessage: prompt,
+      temperature: 0.5,
     });
 
-    if (!response.ok) {
-      if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limited, please try again later." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-      }
-      throw new Error(`AI gateway error: ${response.status}`);
+    let parsed;
+    try {
+      parsed = JSON.parse(result.content);
+    } catch {
+      const match = result.content.match(/\{[\s\S]*\}/);
+      parsed = match ? JSON.parse(match[0]) : { currentEstimate: 0, projections: [], insights: [], topPayingSkills: [] };
     }
 
-    const data = await response.json();
-    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
-    if (!toolCall) throw new Error("No tool call in response");
-
-    const result = JSON.parse(toolCall.function.arguments);
-
-    return new Response(JSON.stringify(result), {
+    return new Response(JSON.stringify(parsed), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e: any) {
     console.error("salary-projection error:", e);
     return new Response(JSON.stringify({ error: e?.message ?? "Unknown error" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });

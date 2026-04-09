@@ -12,7 +12,7 @@ serve(async (req) => {
   try {
     const { title, company, department, requirements, tone, feedback } = await req.json();
 
-    const systemPrompt = `You are an expert HR recruiter and job description writer. Generate professional, inclusive, and compelling job postings. Return a JSON object with these fields: title, description, requirements (string with bullet points), nice_to_haves (string with bullet points), salary_suggestion_min (number), salary_suggestion_max (number).`;
+    const systemPrompt = `You are an expert HR recruiter and job description writer. Generate professional, inclusive, and compelling job postings. Return a JSON object with these fields: title, description, requirements (string with bullet points), nice_to_haves (string with bullet points), salary_suggestion_min (number), salary_suggestion_max (number). Return ONLY valid JSON.`;
 
     let userPrompt = `Create a job posting for the role: "${title}"`;
     if (company) userPrompt += ` at ${company}`;
@@ -21,64 +21,17 @@ serve(async (req) => {
     if (tone) userPrompt += `.\n\nTone/style: ${tone}`;
     if (feedback) userPrompt += `.\n\nAdditional feedback/refinement:\n${feedback}`;
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        Authorization: ,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        tools: [{
-          type: "function",
-          function: {
-            name: "create_job_posting",
-            description: "Create a structured job posting",
-            parameters: {
-              type: "object",
-              properties: {
-                title: { type: "string" },
-                description: { type: "string", description: "Full job description in markdown" },
-                requirements: { type: "string", description: "Required qualifications as bullet points" },
-                nice_to_haves: { type: "string", description: "Nice to have qualifications as bullet points" },
-                salary_suggestion_min: { type: "number" },
-                salary_suggestion_max: { type: "number" },
-              },
-              required: ["title", "description", "requirements"],
-              additionalProperties: false,
-            },
-          },
-        }],
-        tool_choice: { type: "function", function: { name: "create_job_posting" } },
-      }),
-    });
+    const result = await callAnthropic({ system: systemPrompt, userMessage: userPrompt, temperature: 0.7 });
 
-    if (!response.ok) {
-      if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limited, please try again later." }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "Credits exhausted. Please add funds." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      const t = await response.text();
-      console.error("AI gateway error:", response.status, t);
-      throw new Error("AI gateway error");
+    let parsed;
+    try {
+      parsed = JSON.parse(result.content);
+    } catch {
+      const match = result.content.match(/\{[\s\S]*\}/);
+      parsed = match ? JSON.parse(match[0]) : { title, description: result.content, requirements: "" };
     }
 
-    const data = await response.json();
-    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
-    if (!toolCall) throw new Error("No tool call in response");
-
-    const result = JSON.parse(toolCall.function.arguments);
-    return new Response(JSON.stringify(result), {
+    return new Response(JSON.stringify(parsed), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {

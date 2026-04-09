@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_alerts: {
+        Row: {
+          alert_type: string
+          created_at: string
+          id: string
+          message: string
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+          status: string
+        }
+        Insert: {
+          alert_type?: string
+          created_at?: string
+          id?: string
+          message?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          status?: string
+        }
+        Update: {
+          alert_type?: string
+          created_at?: string
+          id?: string
+          message?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          status?: string
+        }
+        Relationships: []
+      }
       admin_command_log: {
         Row: {
           admin_id: string
@@ -199,6 +232,120 @@ export type Database = {
           label?: string
         }
         Relationships: []
+      }
+      catalog_orders: {
+        Row: {
+          buyer_id: string
+          created_at: string
+          delivery_deadline: string | null
+          id: string
+          notes: string | null
+          package_id: string
+          price: number
+          seller_id: string
+          service_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          buyer_id: string
+          created_at?: string
+          delivery_deadline?: string | null
+          id?: string
+          notes?: string | null
+          package_id: string
+          price?: number
+          seller_id: string
+          service_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          buyer_id?: string
+          created_at?: string
+          delivery_deadline?: string | null
+          id?: string
+          notes?: string | null
+          package_id?: string
+          price?: number
+          seller_id?: string
+          service_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalog_orders_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "service_packages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_orders_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "service_catalog"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      contracts: {
+        Row: {
+          agreed_price: number
+          agreed_timeline_days: number | null
+          completed_at: string | null
+          created_at: string
+          employer_id: string
+          id: string
+          project_id: string
+          proposal_id: string
+          started_at: string
+          status: string
+          talent_id: string
+        }
+        Insert: {
+          agreed_price?: number
+          agreed_timeline_days?: number | null
+          completed_at?: string | null
+          created_at?: string
+          employer_id: string
+          id?: string
+          project_id: string
+          proposal_id: string
+          started_at?: string
+          status?: string
+          talent_id: string
+        }
+        Update: {
+          agreed_price?: number
+          agreed_timeline_days?: number | null
+          completed_at?: string | null
+          created_at?: string
+          employer_id?: string
+          id?: string
+          project_id?: string
+          proposal_id?: string
+          started_at?: string
+          status?: string
+          talent_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contracts_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contracts_proposal_id_fkey"
+            columns: ["proposal_id"]
+            isOneToOne: false
+            referencedRelation: "project_proposals"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       customer_surveys: {
         Row: {
@@ -477,6 +624,35 @@ export type Database = {
         }
         Relationships: []
       }
+      helpful_votes: {
+        Row: {
+          created_at: string
+          id: string
+          review_id: string
+          voter_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          review_id: string
+          voter_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          review_id?: string
+          voter_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "helpful_votes_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "service_reviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ignored_jobs: {
         Row: {
           company: string
@@ -691,57 +867,69 @@ export type Database = {
       }
       job_postings: {
         Row: {
+          benefits: string[] | null
           candidates_matched: number | null
           company: string
           created_at: string
           department: string | null
           description: string
+          experience_level: string | null
           id: string
           is_remote: boolean | null
           job_type: string | null
           location: string | null
           nice_to_haves: string | null
+          remote_type: string | null
           requirements: string | null
           salary_max: number | null
           salary_min: number | null
+          skills: string[] | null
           status: string
           title: string
           updated_at: string
           user_id: string
         }
         Insert: {
+          benefits?: string[] | null
           candidates_matched?: number | null
           company?: string
           created_at?: string
           department?: string | null
           description?: string
+          experience_level?: string | null
           id?: string
           is_remote?: boolean | null
           job_type?: string | null
           location?: string | null
           nice_to_haves?: string | null
+          remote_type?: string | null
           requirements?: string | null
           salary_max?: number | null
           salary_min?: number | null
+          skills?: string[] | null
           status?: string
           title?: string
           updated_at?: string
           user_id: string
         }
         Update: {
+          benefits?: string[] | null
           candidates_matched?: number | null
           company?: string
           created_at?: string
           department?: string | null
           description?: string
+          experience_level?: string | null
           id?: string
           is_remote?: boolean | null
           job_type?: string | null
           location?: string | null
           nice_to_haves?: string | null
+          remote_type?: string | null
           requirements?: string | null
           salary_max?: number | null
           salary_min?: number | null
+          skills?: string[] | null
           status?: string
           title?: string
           updated_at?: string
@@ -925,6 +1113,53 @@ export type Database = {
             columns: ["job_id"]
             isOneToOne: false
             referencedRelation: "scraped_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      milestones: {
+        Row: {
+          amount: number | null
+          completed_at: string | null
+          contract_id: string
+          created_at: string
+          description: string | null
+          due_date: string | null
+          id: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number | null
+          completed_at?: string | null
+          contract_id: string
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number | null
+          completed_at?: string | null
+          contract_id?: string
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "milestones_contract_id_fkey"
+            columns: ["contract_id"]
+            isOneToOne: false
+            referencedRelation: "contracts"
             referencedColumns: ["id"]
           },
         ]
@@ -1130,6 +1365,101 @@ export type Database = {
         }
         Relationships: []
       }
+      project_proposals: {
+        Row: {
+          cover_message: string | null
+          created_at: string
+          id: string
+          portfolio_links: string[] | null
+          price: number
+          project_id: string
+          status: string
+          talent_id: string
+          timeline_days: number | null
+          updated_at: string
+        }
+        Insert: {
+          cover_message?: string | null
+          created_at?: string
+          id?: string
+          portfolio_links?: string[] | null
+          price?: number
+          project_id: string
+          status?: string
+          talent_id: string
+          timeline_days?: number | null
+          updated_at?: string
+        }
+        Update: {
+          cover_message?: string | null
+          created_at?: string
+          id?: string
+          portfolio_links?: string[] | null
+          price?: number
+          project_id?: string
+          status?: string
+          talent_id?: string
+          timeline_days?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_proposals_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          budget_max: number | null
+          budget_min: number | null
+          created_at: string
+          deliverables: string[] | null
+          description: string
+          employer_id: string
+          id: string
+          proposals_count: number
+          skills_required: string[] | null
+          status: string
+          timeline_days: number | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          budget_max?: number | null
+          budget_min?: number | null
+          created_at?: string
+          deliverables?: string[] | null
+          description?: string
+          employer_id: string
+          id?: string
+          proposals_count?: number
+          skills_required?: string[] | null
+          status?: string
+          timeline_days?: number | null
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          budget_max?: number | null
+          budget_min?: number | null
+          created_at?: string
+          deliverables?: string[] | null
+          description?: string
+          employer_id?: string
+          id?: string
+          proposals_count?: number
+          skills_required?: string[] | null
+          status?: string
+          timeline_days?: number | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       referrals: {
         Row: {
           converted_at: string | null
@@ -1192,6 +1522,41 @@ export type Database = {
           version_name?: string
         }
         Relationships: []
+      }
+      review_reports: {
+        Row: {
+          comment: string | null
+          created_at: string
+          id: string
+          reason: string
+          reporter_id: string
+          review_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          reason?: string
+          reporter_id: string
+          review_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          reason?: string
+          reporter_id?: string
+          review_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_reports_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "service_reviews"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       scraped_jobs: {
         Row: {
@@ -1325,6 +1690,57 @@ export type Database = {
         }
         Relationships: []
       }
+      service_catalog: {
+        Row: {
+          category: string
+          created_at: string
+          description: string
+          headline: string
+          id: string
+          image_url: string | null
+          orders_count: number
+          rating_avg: number
+          rating_count: number
+          seller_id: string
+          status: string
+          title: string
+          turnaround_days: number
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          description?: string
+          headline?: string
+          id?: string
+          image_url?: string | null
+          orders_count?: number
+          rating_avg?: number
+          rating_count?: number
+          seller_id: string
+          status?: string
+          title?: string
+          turnaround_days?: number
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string
+          headline?: string
+          id?: string
+          image_url?: string | null
+          orders_count?: number
+          rating_avg?: number
+          rating_count?: number
+          seller_id?: string
+          status?: string
+          title?: string
+          turnaround_days?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       service_events: {
         Row: {
           created_at: string
@@ -1359,6 +1775,7 @@ export type Database = {
           id: string
           last_check: string
           last_error: string | null
+          response_time_ms: number | null
           service_name: string
           status: string
           updated_at: string
@@ -1369,6 +1786,7 @@ export type Database = {
           id?: string
           last_check?: string
           last_error?: string | null
+          response_time_ms?: number | null
           service_name: string
           status?: string
           updated_at?: string
@@ -1379,11 +1797,107 @@ export type Database = {
           id?: string
           last_check?: string
           last_error?: string | null
+          response_time_ms?: number | null
           service_name?: string
           status?: string
           updated_at?: string
         }
         Relationships: []
+      }
+      service_packages: {
+        Row: {
+          created_at: string
+          delivery_days: number
+          description: string
+          features: string[]
+          id: string
+          name: string
+          price: number
+          service_id: string
+          tier: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          delivery_days?: number
+          description?: string
+          features?: string[]
+          id?: string
+          name?: string
+          price?: number
+          service_id: string
+          tier?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          delivery_days?: number
+          description?: string
+          features?: string[]
+          id?: string
+          name?: string
+          price?: number
+          service_id?: string
+          tier?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_packages_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "service_catalog"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_reviews: {
+        Row: {
+          comment: string | null
+          created_at: string
+          id: string
+          order_id: string
+          rating: number
+          reviewer_id: string
+          service_id: string
+          title: string | null
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          order_id: string
+          rating?: number
+          reviewer_id: string
+          service_id: string
+          title?: string | null
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          id?: string
+          order_id?: string
+          rating?: number
+          reviewer_id?: string
+          service_id?: string
+          title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_reviews_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_reviews_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "service_catalog"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       support_faq: {
         Row: {
@@ -1466,6 +1980,53 @@ export type Database = {
         }
         Relationships: []
       }
+      talent_invites: {
+        Row: {
+          created_at: string
+          employer_id: string
+          id: string
+          job_id: string
+          message: string | null
+          responded_at: string | null
+          sent_at: string
+          status: string
+          talent_id: string
+          viewed_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          employer_id: string
+          id?: string
+          job_id: string
+          message?: string | null
+          responded_at?: string | null
+          sent_at?: string
+          status?: string
+          talent_id: string
+          viewed_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          employer_id?: string
+          id?: string
+          job_id?: string
+          message?: string | null
+          responded_at?: string | null
+          sent_at?: string
+          status?: string
+          talent_id?: string
+          viewed_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "talent_invites_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "job_postings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ticket_responses: {
         Row: {
           author_id: string
@@ -1539,6 +2100,33 @@ export type Database = {
           tags?: string[] | null
           title?: string
           url?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_preferences: {
+        Row: {
+          created_at: string
+          id: string
+          preference_key: string
+          preference_value: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          preference_key: string
+          preference_value?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          preference_key?: string
+          preference_value?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: []

@@ -15,6 +15,9 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import FeatureFlagsPanel from "@/components/admin/FeatureFlagsPanel";
 import ServiceHealthPanel from "@/components/admin/ServiceHealthPanel";
+import AdminAlertsPanel from "@/components/admin/AdminAlertsPanel";
+import EnhancedServiceHealthPanel from "@/components/admin/EnhancedServiceHealthPanel";
+import UserRoleManagementPanel from "@/components/admin/UserRoleManagementPanel";
 
 interface PlatformStats {
   totalUsers: number;
@@ -463,10 +466,21 @@ export default function AdminDashboard() {
         </Card>
       </div>
 
+      {/* Admin Alerts + Service Health */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <AdminAlertsPanel />
+        <ServiceHealthPanel />
+      </div>
+
+      {/* Enhanced Service Health Monitoring */}
+      <EnhancedServiceHealthPanel />
+
+      {/* User Role Management */}
+      <UserRoleManagementPanel />
+
       {/* Architecture Controls */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <FeatureFlagsPanel />
-        <ServiceHealthPanel />
       </div>
     </div>
   );

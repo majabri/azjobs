@@ -26,16 +26,19 @@ export const jobSeekerNav: NavItem[] = [
   { title: "Interview Prep", url: "/interview-prep", icon: Mic },
   { title: "Auto Apply", url: "/auto-apply", icon: Zap },
   { title: "Gig Marketplace", url: "/gigs", icon: Briefcase },
+  { title: "Services", url: "/services", icon: Briefcase },
   { title: "Profile", url: "/profile", icon: UserCircle },
   { title: "Settings", url: "/settings", icon: Settings },
   { title: "Support", url: "/support", icon: HelpCircle },
 ];
 
 export const hiringManagerNav: NavItem[] = [
-  { title: "Candidate Screener", url: "/hiring-manager", icon: Users },
-  { title: "Candidates Database", url: "/candidates", icon: Database },
-  { title: "Job Postings", url: "/job-postings", icon: FileText },
-  { title: "Interview Scheduling", url: "/interview-scheduling", icon: Calendar },
+  { title: "Home", url: "/hiring-manager", icon: LayoutDashboard },
+  { title: "Candidates", url: "/candidates", icon: Database },
+  { title: "Talent Search", url: "/talent-search", icon: Search },
+  { title: "Jobs", url: "/job-postings", icon: FileText },
+  { title: "Interviews", url: "/interview-scheduling", icon: Calendar },
+  { title: "Settings", url: "/settings", icon: Settings },
 ];
 
 export const modes = [
@@ -45,7 +48,7 @@ export const modes = [
 
 export type AppMode = typeof modes[number]["value"];
 
-export const hiringPaths = ["/hiring-manager", "/candidates", "/job-postings", "/interview-scheduling"];
+export const hiringPaths = ["/hiring-manager", "/candidates", "/job-postings", "/interview-scheduling", "/talent-search"];
 
 export function detectMode(pathname: string): AppMode {
   return hiringPaths.some(p => pathname.startsWith(p)) ? "hiring" : "seeker";

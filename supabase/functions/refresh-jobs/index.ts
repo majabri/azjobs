@@ -224,10 +224,12 @@ Return 15-20 real job listings. For each:
 
 CRITICAL: Only include jobs with REAL, WORKING URLs pointing to SPECIFIC individual job detail pages. No generic career pages, no search result pages, no company homepages.`;
 
+    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY") || "";
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
-        Authorization: ,
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
