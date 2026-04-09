@@ -31,3 +31,7 @@ dist-ssr
 package-lock.json
 yarn.lock
 pnpm-lock.yaml
+
+
+# Archived Lovable config
+.lovable-archive/
