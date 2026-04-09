@@ -74,6 +74,26 @@ export async function loginWithApple(): Promise<AuthResult> {
   }
 }
 
+/**
+ * Link a Google or Apple identity to the currently authenticated user.
+ * Uses `linkIdentity` (not `signInWithOAuth`) so Supabase attaches the
+ * new provider to the existing account instead of starting a fresh session.
+ */
+export async function linkWithProvider(provider: "google" | "apple"): Promise<AuthResult> {
+  try {
+    const { error } = await supabase.auth.linkIdentity({
+      provider,
+      options: {
+        redirectTo: `${window.location.origin}/account-settings`,
+      },
+    });
+    if (error) return { error: normalizeError(error) };
+    return {};
+  } catch (e) {
+    return { error: normalizeError(e) };
+  }
+}
+
 /** Sign out the current user. */
 export async function logout(): Promise<void> {
   try {
