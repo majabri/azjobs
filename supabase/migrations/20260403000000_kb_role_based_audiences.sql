@@ -51,8 +51,8 @@ INSERT INTO public.support_faq (category, question, answer, display_order, audie
 -- ALL USERS
 -- ══════════════════════════════════════════════════════════════════════════
 
-  ('getting_started', 'What is AZJobs?',
-   'AZJobs is an AI-powered career platform that helps job seekers find, apply, and prepare for jobs — and helps hiring managers source, screen, and interview candidates. Use the sidebar to navigate between features.',
+  ('getting_started', 'What is iCareerOS?',
+   'iCareerOS is an AI-powered career platform that helps job seekers find, apply, and prepare for jobs — and helps hiring managers source, screen, and interview candidates. Use the sidebar to navigate between features.',
    10, 'all'),
 
   ('getting_started', 'How do I switch between Job Seeker and Hiring Manager modes?',
@@ -123,7 +123,7 @@ INSERT INTO public.support_faq (category, question, answer, display_order, audie
    'Open an application card and use the Status dropdown to change it. You can also add notes and expected follow-up dates to stay organised.',
    131, 'job_seeker'),
 
-  ('seeker_applications', 'Can I add applications I submitted outside of AZJobs?',
+  ('seeker_applications', 'Can I add applications I submitted outside of iCareerOS?',
    'Yes. Click "Add Application" in the Applications page, enter the job title, company, and any details you want to track.',
    132, 'job_seeker'),
 
@@ -150,7 +150,7 @@ INSERT INTO public.support_faq (category, question, answer, display_order, audie
    152, 'job_seeker'),
 
   -- Interview Prep
-  ('seeker_interview_prep', 'How do I prepare for an interview using AZJobs?',
+  ('seeker_interview_prep', 'How do I prepare for an interview using iCareerOS?',
    'Go to "Interview Prep" and select the job you are interviewing for. The AI generates likely interview questions based on the job description and your profile, plus model answers and coaching tips.',
    160, 'job_seeker'),
 
