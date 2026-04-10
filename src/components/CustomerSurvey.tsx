@@ -107,7 +107,7 @@ export default function CustomerSurvey() {
         </div>
         <CardTitle className="text-2xl font-display">Help Us Build the Perfect Tool</CardTitle>
         <CardDescription className="text-base">
-          Tell us about your experience — your feedback shapes FitCheck's future.
+          Tell us about your experience — your feedback shapes iCareerOS's future.
         </CardDescription>
       </CardHeader>
 

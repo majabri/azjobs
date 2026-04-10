@@ -133,7 +133,7 @@ export default function LoginPage() {
           <div className="w-14 h-14 gradient-teal rounded-2xl flex items-center justify-center shadow-teal">
             <Target className="w-7 h-7 text-white" />
           </div>
-          <h1 className="font-display text-3xl font-bold text-primary">FitCheck</h1>
+          <h1 className="font-display text-3xl font-bold text-primary">iCareerOS</h1>
           <p className="text-muted-foreground text-sm">
             Sign in to save your analyses and track your progress
           </p>

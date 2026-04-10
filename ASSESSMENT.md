@@ -1,4 +1,4 @@
-# FitCheck Production Readiness Assessment
+# iCareerOS Production Readiness Assessment
 
 **Date:** April 6, 2026
 **Repo:** https://github.com/majabri/azjobs

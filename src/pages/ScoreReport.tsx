@@ -23,8 +23,8 @@ export default function ScoreReport() {
   useEffect(() => {
     // Dynamic OG meta tags for sharing
     if (report) {
-      const title = `FitCheck: ${report.overall_score}% Match${report.job_title ? ` — ${report.job_title}` : ""}`;
-      const desc = report.summary || `Scored ${report.overall_score}% on FitCheck career analysis`;
+      const title = `iCareerOS: ${report.overall_score}% Match${report.job_title ? ` — ${report.job_title}` : ""}`;
+      const desc = report.summary || `Scored ${report.overall_score}% on iCareerOS career analysis`;
       document.title = title;
 
       const setMeta = (prop: string, content: string) => {
@@ -71,8 +71,8 @@ export default function ScoreReport() {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: `FitCheck: ${report.overall_score}% Match`,
-          text: report.summary || `I scored ${report.overall_score}% on FitCheck`,
+          title: `iCareerOS: ${report.overall_score}% Match`,
+          text: report.summary || `I scored ${report.overall_score}% on iCareerOS`,
           url: window.location.href,
         });
       } catch { /* user cancelled */ }
@@ -118,7 +118,7 @@ export default function ScoreReport() {
               <p className="text-[10px] text-muted-foreground">FIT SCORE</p>
             </div>
           </div>
-          <h1 className="font-display text-2xl font-bold text-primary">FitCheck Career Report Card</h1>
+          <h1 className="font-display text-2xl font-bold text-primary">iCareerOS Career Report Card</h1>
           {(report.job_title || report.company) && (
             <p className="text-muted-foreground mt-1">{report.job_title}{report.company ? ` at ${report.company}` : ""}</p>
           )}
@@ -251,7 +251,7 @@ export default function ScoreReport() {
         </Card>
 
         <div className="text-center pt-6 border-t border-border">
-          <p className="text-xs text-muted-foreground">Powered by FitCheck — AI Career Intelligence</p>
+          <p className="text-xs text-muted-foreground">Powered by iCareerOS — AI Career Intelligence</p>
         </div>
       </div>
     </div>

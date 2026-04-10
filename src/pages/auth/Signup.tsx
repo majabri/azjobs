@@ -78,7 +78,7 @@ export default function SignupPage() {
           </div>
           <h1 className="font-display text-3xl font-bold text-primary">Create Account</h1>
           <p className="text-muted-foreground text-sm">
-            Join FitCheck to optimize your job search
+            Join iCareerOS to optimize your job search
           </p>
         </div>
 

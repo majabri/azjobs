@@ -57,8 +57,8 @@ export default function PublicProfilePage() {
   useEffect(() => {
     if (!profile) return;
     const name = profile.full_name || "Professional";
-    const title = `${name} — FitCheck Career Profile`;
-    const desc = profile.summary?.slice(0, 155) || `${name}'s professional profile on FitCheck`;
+    const title = `${name} — iCareerOS Career Profile`;
+    const desc = profile.summary?.slice(0, 155) || `${name}'s professional profile on iCareerOS`;
     document.title = title;
     const setMeta = (prop: string, content: string) => {
       let el = document.querySelector(`meta[property="${prop}"]`) || document.querySelector(`meta[name="${prop}"]`);
@@ -220,7 +220,7 @@ export default function PublicProfilePage() {
 
         {/* Footer */}
         <div className="text-center pt-8 border-t border-border">
-          <p className="text-xs text-muted-foreground">Powered by FitCheck</p>
+          <p className="text-xs text-muted-foreground">Powered by iCareerOS</p>
         </div>
       </div>
     </div>

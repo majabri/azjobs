@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import SkillsTagInput from "./SkillsTagInput";
 import JobPostingPreview from "./JobPostingPreview";
 
-const DRAFT_KEY = "fitcheck_job_posting_draft";
+const DRAFT_KEY = "icareeros_job_posting_draft";
 
 const BENEFITS_OPTIONS = [
   "Health Insurance", "Dental Insurance", "Vision Insurance",

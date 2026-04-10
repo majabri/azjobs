@@ -270,7 +270,7 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
     setHasProfile(true);
     setHistoricalOutcomes(outcomes);
 
-    const cacheKey = `fitcheck_daily_jobs_v2_${session.user.id}`;
+    const cacheKey = `icareeros_daily_jobs_v2_${session.user.id}`;
     const cached = localStorage.getItem(cacheKey);
     if (cached) {
       try {
@@ -427,7 +427,7 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
       .eq("user_id", session.user.id)
       .maybeSingle();
     if (!profile) return;
-    const cacheKey = `fitcheck_daily_jobs_v2_${session.user.id}`;
+    const cacheKey = `icareeros_daily_jobs_v2_${session.user.id}`;
     localStorage.removeItem(cacheKey);
     fetchJobs(profile, session, cacheKey, historicalOutcomes);
   };

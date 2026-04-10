@@ -16,7 +16,7 @@ import { useAuthReady } from "@/hooks/useAuthReady";
 
 export type DashboardMode = "seeker" | "hiring" | "both";
 
-const PREF_KEY = "fitcheck_default_dashboard";
+const PREF_KEY = "icareeros_default_dashboard";
 
 function getStoredPref(): string | null {
   try { return localStorage.getItem(PREF_KEY); } catch { return null; }

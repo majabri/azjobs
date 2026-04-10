@@ -50,7 +50,7 @@ import {
 } from "./services/scoringService";
 
 /**
- * Main FitCheck analysis — composes all services.
+ * Main iCareerOS analysis — composes all services.
  * Each service is called independently; a bug in one won't crash others.
  */
 export function analyzeJobFit(jobDescription: string, resumeText: string): FitAnalysis {

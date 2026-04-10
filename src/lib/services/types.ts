@@ -1,5 +1,5 @@
 /**
- * Shared types for the FitCheck analysis platform.
+ * Shared types for the iCareerOS analysis platform.
  * This is the data contract layer — all services depend on types, never on each other.
  */
 
