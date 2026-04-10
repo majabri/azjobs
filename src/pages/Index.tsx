@@ -14,7 +14,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { analyzeJobFit } from "@/lib/analysisEngine";
 import { AUTH_LOGIN } from "@/lib/routes";
-import CustomerSurvey from "@/components/CustomerSurvey";
+
+/* ────────────────────── DATA ────────────────────── */
 
 const stats = [
   { value: "AI-Powered", label: "resume optimization for every application" },
@@ -22,27 +23,70 @@ const stats = [
   { value: "24/7", label: "your AI agent works while you sleep" },
 ];
 
-const features = [
-  { icon: Search, title: "AI Job Discovery", desc: "Jobs found for you automatically based on your skills, career level, and preferences.", link: "/job-search" },
-  { icon: UserCircle, title: "Smart Profile & Resume Vault", desc: "Store your profile, skills, certifications, and multiple resume versions.", link: "/profile" },
-  { icon: TrendingUp, title: "Fit Score & Interview Probability", desc: "See your match score, interview probability, and the top actions to improve your chances.", link: "/job-seeker" },
-  { icon: FileText, title: "AI Resume Optimization", desc: "One click rewrites your resume with ATS-friendly keywords tailored to each role.", link: "/job-seeker" },
-  { icon: Briefcase, title: "Application Package Generator", desc: "Get a tailored resume, cover letter, and pre-filled answers — ready to copy and submit.", link: "/job-seeker" },
-  { icon: ClipboardList, title: "Application Tracker", desc: "Track every application with status updates, follow-up reminders, and outcome logging.", link: "/applications" },
-  { icon: Bot, title: "Auto-Apply Agent", desc: "Set preferences and let AI find jobs, generate materials, and queue applications for your review.", link: "/auto-apply" },
-];
-
 const howItWorks = [
-  { step: "1", icon: Upload, title: "Upload Your Resume", desc: "Upload a PDF or Word doc. We extract your skills, experience, and career level automatically." },
-  { step: "2", icon: Bot, title: "Your AI Works While You Sleep", desc: "AI finds matching jobs, optimizes your resume for each, generates cover letters, and queues applications." },
-  { step: "3", icon: Rocket, title: "You Get Interviews", desc: "Wake up to interview invitations. Review what your AI applied to and prep with mock interviews." },
+  {
+    step: "1",
+    icon: Upload,
+    title: "Upload Your Resume",
+    desc: "Drop a PDF or Word doc. We extract your skills, experience, and career level in seconds.",
+  },
+  {
+    step: "2",
+    icon: Bot,
+    title: "AI Works While You Sleep",
+    desc: "AI matches you to open roles, tailors your resume for each one, writes cover letters, and queues applications.",
+  },
+  {
+    step: "3",
+    icon: Rocket,
+    title: "Wake Up to Interviews",
+    desc: "Review what your agent applied to, track progress, and prep for interviews with AI coaching.",
+  },
 ];
 
-const sampleCapabilities = [
-  { title: "Personalized Job Matching", desc: "AI finds roles that fit your skills, experience level, and salary preferences.", icon: Search, score: "Smart" },
-  { title: "Resume Gap Analysis", desc: "Instantly see which keywords and skills you're missing for any role.", icon: Target, score: "Fast" },
-  { title: "ATS-Optimized Resumes", desc: "One-click resume rewrite with the exact keywords each employer's ATS looks for.", icon: FileText, score: "Auto" },
-  { title: "Application Tracking", desc: "Track every application, follow-up date, and interview stage in one place.", icon: ClipboardList, score: "Easy" },
+const features = [
+  {
+    icon: Search,
+    title: "AI Job Discovery",
+    desc: "Matched to roles automatically based on your skills, level, and preferences — no more scrolling.",
+    link: "/job-search",
+  },
+  {
+    icon: UserCircle,
+    title: "Smart Profile & Resume Vault",
+    desc: "One profile, multiple resume versions — all synced and ready for any application.",
+    link: "/profile",
+  },
+  {
+    icon: TrendingUp,
+    title: "Fit Score & Interview Probability",
+    desc: "Instant match score, interview odds, and a prioritized action plan to improve your chances.",
+    link: "/job-seeker",
+  },
+  {
+    icon: FileText,
+    title: "AI Resume Optimization",
+    desc: "One-click rewrite with ATS-friendly keywords tailored to each specific role.",
+    link: "/job-seeker",
+  },
+  {
+    icon: Briefcase,
+    title: "Application Package Generator",
+    desc: "Tailored resume, cover letter, and pre-filled answers — ready to copy and submit.",
+    link: "/job-seeker",
+  },
+  {
+    icon: ClipboardList,
+    title: "Application Tracker",
+    desc: "Track every application with status updates, follow-up reminders, and outcome logging.",
+    link: "/applications",
+  },
+  {
+    icon: Bot,
+    title: "Auto-Apply Agent",
+    desc: "Set it and forget it. AI finds jobs, generates materials, and queues applications for your review.",
+    link: "/auto-apply",
+  },
 ];
 
 const comparisonRows = [
@@ -56,32 +100,51 @@ const comparisonRows = [
   { feature: "Built-in Application Tracker", icareeros: true, indeed: true, zip: true },
 ];
 
+/* ────────────────────── COMPONENT ────────────────────── */
+
 export default function Index() {
   const navigate = useNavigate();
   const { user } = useAuthReady();
-  const [matchedJobCount, setMatchedJobCount] = useState(0);
+
   const [totalJobCount, setTotalJobCount] = useState(0);
+  const [matchedJobCount, setMatchedJobCount] = useState(0);
 
   // Interactive demo state
   const [demoJobDesc, setDemoJobDesc] = useState("");
-  const [demoResult, setDemoResult] = useState<{ score: number; improvements: string[]; probability: number } | null>(null);
+  const [demoResult, setDemoResult] = useState<{
+    score: number;
+    improvements: string[];
+    probability: number;
+  } | null>(null);
   const [demoLoading, setDemoLoading] = useState(false);
 
   // Load live job counts
   useEffect(() => {
     const loadCounts = async () => {
-      const { count } = await supabase.from("scraped_jobs").select("*", { count: "exact", head: true });
+      const { count } = await supabase
+        .from("scraped_jobs")
+        .select("*", { count: "exact", head: true });
       setTotalJobCount(count || 0);
+
       if (user) {
         const { data: profile } = await supabase
           .from("job_seeker_profiles")
           .select("skills, target_job_titles")
           .eq("user_id", user.id)
           .maybeSingle();
-        if (profile?.target_job_titles && (profile.target_job_titles as string[]).length > 0) {
+
+        if (
+          profile?.target_job_titles &&
+          (profile.target_job_titles as string[]).length > 0
+        ) {
           const titles = profile.target_job_titles as string[];
-          const titleFilter = titles.map(t => `title.ilike.%${t}%`).join(",");
-          const { count: matched } = await supabase.from("scraped_jobs").select("*", { count: "exact", head: true }).or(titleFilter);
+          const titleFilter = titles
+            .map((t) => `title.ilike.%${t}%`)
+            .join(",");
+          const { count: matched } = await supabase
+            .from("scraped_jobs")
+            .select("*", { count: "exact", head: true })
+            .or(titleFilter);
           setMatchedJobCount(matched || 0);
         }
       }
@@ -94,8 +157,8 @@ export default function Index() {
     setDemoLoading(true);
     setDemoResult(null);
     try {
-      // Use a sample resume for the demo
-      const sampleResume = "Experienced professional with skills in project management, communication, data analysis, and problem solving. 5+ years of experience in technology roles.";
+      const sampleResume =
+        "Experienced professional with skills in project management, communication, data analysis, and problem solving. 5+ years of experience in technology roles.";
       const result = analyzeJobFit(sampleResume, demoJobDesc);
       setDemoResult({
         score: result.overallScore,
@@ -103,27 +166,32 @@ export default function Index() {
         probability: result.interviewProbability,
       });
     } catch {
-      setDemoResult({ score: 0, improvements: ["Could not analyze. Try a more detailed description."], probability: 0 });
+      setDemoResult({
+        score: 0,
+        improvements: ["Could not analyze. Try a more detailed description."],
+        probability: 0,
+      });
     } finally {
       setDemoLoading(false);
     }
   };
 
-  const handleCopyReferral = () => {
-    const url = `${window.location.origin}?ref=${user?.id?.slice(0, 8) || "friend"}`;
-    navigator.clipboard.writeText(url);
-  };
-
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Nav */}
+      {/* ═══════════════ NAV ═══════════════ */}
       <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-3 bg-primary/95 backdrop-blur-sm border-b border-white/10">
-        <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate("/")}>
+        <div
+          className="flex items-center gap-2 cursor-pointer"
+          onClick={() => navigate("/")}
+        >
           <div className="w-8 h-8 gradient-teal rounded-lg flex items-center justify-center shadow-teal">
             <Target className="w-4 h-4 text-white" />
           </div>
-          <span className="font-display text-lg font-bold text-primary-foreground">iCareerOS</span>
+          <span className="font-display text-lg font-bold text-primary-foreground">
+            iCareerOS
+          </span>
         </div>
+
         <nav className="flex items-center gap-1">
           {user ? (
             <>
@@ -143,10 +211,18 @@ export default function Index() {
             </>
           ) : (
             <>
-              <Button variant="ghost" className="text-primary-foreground/80 hover:text-primary-foreground hover:bg-white/10 text-sm" onClick={() => navigate("/job-seeker?demo=true")}>
+              <Button
+                variant="ghost"
+                className="text-primary-foreground/80 hover:text-primary-foreground hover:bg-white/10 text-sm"
+                onClick={() => navigate("/job-seeker?demo=true")}
+              >
                 Try Demo
               </Button>
-              <Button size="sm" className="gradient-teal text-white font-semibold shadow-teal hover:opacity-90 ml-2" onClick={() => navigate(AUTH_LOGIN)}>
+              <Button
+                size="sm"
+                className="gradient-teal text-white font-semibold shadow-teal hover:opacity-90 ml-2"
+                onClick={() => navigate(AUTH_LOGIN)}
+              >
                 Sign In
               </Button>
             </>
@@ -156,11 +232,14 @@ export default function Index() {
 
       {/* ═══════════════ HERO ═══════════════ */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16">
-        <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${heroBg})` }} />
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: `url(${heroBg})` }}
+        />
         <div className="absolute inset-0 bg-gradient-to-b from-navy-900/90 via-navy-800/80 to-navy-900/95" />
 
         <div className="relative z-10 max-w-5xl mx-auto px-6 text-center">
-          {/* Personalized welcome for logged-in users */}
+          {/* Personalized welcome */}
           {user && matchedJobCount > 0 && (
             <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-accent/20 border border-accent/40 text-accent text-sm font-semibold mb-6 animate-fade-up">
               <Sparkles className="w-4 h-4" />
@@ -171,21 +250,31 @@ export default function Index() {
           {!user && (
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass border border-teal-500/30 text-teal-400 text-sm font-medium mb-8 animate-fade-up">
               <Rocket className="w-3.5 h-3.5" />
-              Smarter Than Any Job Board
+              Your Intelligent Career Operating System
             </div>
           )}
 
-          <h1 className="text-5xl md:text-7xl font-display font-bold text-white mb-6 animate-fade-up leading-tight" style={{ animationDelay: "0.1s" }}>
+          <h1
+            className="text-5xl md:text-7xl font-display font-bold text-white mb-6 animate-fade-up leading-tight"
+            style={{ animationDelay: "0.1s" }}
+          >
             Stop Applying to Jobs.
             <br />
             <span className="text-gradient-teal">Your AI Does It For You.</span>
           </h1>
 
-          <p className="text-xl md:text-2xl text-white/70 max-w-3xl mx-auto mb-12 animate-fade-up leading-relaxed" style={{ animationDelay: "0.2s" }}>
-            iCareerOS finds, optimizes, and applies to jobs automatically — while you focus on interviews.
+          <p
+            className="text-xl md:text-2xl text-white/70 max-w-3xl mx-auto mb-10 animate-fade-up leading-relaxed"
+            style={{ animationDelay: "0.2s" }}
+          >
+            iCareerOS finds matching jobs, optimizes your resume for each one,
+            writes cover letters, and applies — all while you sleep.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-up" style={{ animationDelay: "0.3s" }}>
+          <div
+            className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-up"
+            style={{ animationDelay: "0.3s" }}
+          >
             <Button
               size="lg"
               className="gradient-teal text-white font-semibold text-lg px-8 py-6 rounded-xl shadow-teal hover:opacity-90 transition-opacity animate-pulse-glow"
@@ -198,35 +287,39 @@ export default function Index() {
               size="lg"
               variant="outline"
               className="border-white/30 text-white bg-white/10 hover:bg-white/20 text-lg px-8 py-6 rounded-xl backdrop-blur-sm"
-              onClick={() => navigate(user ? "/job-seeker" : AUTH_LOGIN)}
+              onClick={() => navigate("/job-seeker?demo=true")}
             >
-              <Target className="mr-2 w-5 h-5" />
-              {user ? "Analyze a Job" : "Get Started Free"}
+              <Play className="mr-2 w-5 h-5" />
+              Try Demo — No Sign Up
             </Button>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-3 justify-center mt-4 animate-fade-up" style={{ animationDelay: "0.35s" }}>
-            <Button variant="ghost" className="text-white/60 hover:text-white hover:bg-white/10 text-sm" onClick={() => navigate("/job-seeker?demo=true")}>
-              <Play className="mr-2 w-4 h-4" /> Try Demo — No Sign Up
-            </Button>
-            <Button variant="ghost" className="text-white/60 hover:text-white hover:bg-white/10 text-sm" onClick={() => navigate(user ? "/job-search" : AUTH_LOGIN)}>
-              <Search className="mr-2 w-4 h-4" /> Find Jobs For Me
-            </Button>
-          </div>
-
-          {/* Stats with social proof */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-16 animate-fade-up" style={{ animationDelay: "0.4s" }}>
+          {/* Stats row */}
+          <div
+            className="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-16 animate-fade-up"
+            style={{ animationDelay: "0.4s" }}
+          >
             {stats.map((stat) => (
-              <div key={stat.value} className="glass rounded-2xl p-6 border border-white/10">
-                <div className="text-3xl font-display font-bold text-teal-400 mb-2">{stat.value}</div>
-                <div className="text-white/60 text-sm leading-snug">{stat.label}</div>
+              <div
+                key={stat.value}
+                className="glass rounded-2xl p-6 border border-white/10"
+              >
+                <div className="text-3xl font-display font-bold text-teal-400 mb-2">
+                  {stat.value}
+                </div>
+                <div className="text-white/60 text-sm leading-snug">
+                  {stat.label}
+                </div>
               </div>
             ))}
           </div>
 
           {/* Live job count */}
           {totalJobCount > 0 && (
-            <div className="mt-6 text-white/40 text-sm animate-fade-up" style={{ animationDelay: "0.5s" }}>
+            <div
+              className="mt-6 text-white/40 text-sm animate-fade-up"
+              style={{ animationDelay: "0.5s" }}
+            >
               <Globe className="w-3.5 h-3.5 inline mr-1" />
               {totalJobCount.toLocaleString()} jobs in database · Updated daily
             </div>
@@ -244,9 +337,12 @@ export default function Index() {
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-display font-bold text-primary mb-4">
-              Your AI Works While <span className="text-gradient-teal">You Sleep</span>
+              Three Steps to{" "}
+              <span className="text-gradient-teal">Your Next Interview</span>
             </h2>
-            <p className="text-muted-foreground text-lg">Three steps to your next interview — zero manual effort.</p>
+            <p className="text-muted-foreground text-lg">
+              Zero manual effort. Your AI agent handles everything.
+            </p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
@@ -258,16 +354,27 @@ export default function Index() {
                 <div className="absolute -top-2 -right-2 md:right-4 w-8 h-8 rounded-full bg-primary text-primary-foreground text-sm font-bold flex items-center justify-center">
                   {step.step}
                 </div>
-                <h3 className="font-display text-xl font-bold text-primary mb-2">{step.title}</h3>
-                <p className="text-muted-foreground text-sm leading-relaxed">{step.desc}</p>
-                {i < 2 && <ChevronRight className="hidden md:block absolute top-8 -right-5 w-6 h-6 text-accent/40" />}
+                <h3 className="font-display text-xl font-bold text-primary mb-2">
+                  {step.title}
+                </h3>
+                <p className="text-muted-foreground text-sm leading-relaxed">
+                  {step.desc}
+                </p>
+                {i < 2 && (
+                  <ChevronRight className="hidden md:block absolute top-8 -right-5 w-6 h-6 text-accent/40" />
+                )}
               </div>
             ))}
           </div>
 
           <div className="text-center mt-12">
-            <Button size="lg" className="gradient-teal text-white font-semibold shadow-teal hover:opacity-90 px-8 py-6 text-lg" onClick={() => navigate(user ? "/job-seeker" : AUTH_LOGIN)}>
-              <Upload className="mr-2 w-5 h-5" /> Upload Resume Now
+            <Button
+              size="lg"
+              className="gradient-teal text-white font-semibold shadow-teal hover:opacity-90 px-8 py-6 text-lg"
+              onClick={() => navigate(user ? "/job-seeker" : AUTH_LOGIN)}
+            >
+              <Upload className="mr-2 w-5 h-5" />
+              Upload Resume Now
             </Button>
           </div>
         </div>
@@ -280,13 +387,16 @@ export default function Index() {
             <h2 className="text-4xl font-display font-bold text-primary mb-4">
               Try It <span className="text-gradient-teal">Right Now</span>
             </h2>
-            <p className="text-muted-foreground text-lg">Paste any job description and instantly see your fit score and resume improvements.</p>
+            <p className="text-muted-foreground text-lg">
+              Paste any job description and instantly see your fit score and
+              resume improvements.
+            </p>
           </div>
 
           <div className="bg-background rounded-2xl p-6 border border-border shadow-card space-y-4">
             <Textarea
               value={demoJobDesc}
-              onChange={e => setDemoJobDesc(e.target.value)}
+              onChange={(e) => setDemoJobDesc(e.target.value)}
               placeholder="Paste a job description here to see your fit score instantly..."
               className="min-h-[120px] resize-none"
             />
@@ -295,31 +405,65 @@ export default function Index() {
               disabled={demoLoading || !demoJobDesc.trim()}
               onClick={handleDemoAnalyze}
             >
-              {demoLoading ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Analyzing...</> : <><Zap className="w-4 h-4 mr-2" /> Instant Fit Score</>}
+              {demoLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  Analyzing...
+                </>
+              ) : (
+                <>
+                  <Zap className="w-4 h-4 mr-2" />
+                  Instant Fit Score
+                </>
+              )}
             </Button>
 
             {demoResult && (
               <div className="bg-card rounded-xl p-5 border border-border space-y-4 animate-fade-in">
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="text-sm text-muted-foreground">Your Fit Score</div>
-                    <div className={`text-4xl font-display font-bold ${demoResult.score >= 70 ? "text-success" : demoResult.score >= 45 ? "text-warning" : "text-destructive"}`}>
+                    <div className="text-sm text-muted-foreground">
+                      Your Fit Score
+                    </div>
+                    <div
+                      className={`text-4xl font-display font-bold ${
+                        demoResult.score >= 70
+                          ? "text-success"
+                          : demoResult.score >= 45
+                          ? "text-warning"
+                          : "text-destructive"
+                      }`}
+                    >
                       {demoResult.score}%
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-sm text-muted-foreground">Interview Probability</div>
-                    <div className={`text-2xl font-display font-bold ${demoResult.probability >= 50 ? "text-success" : "text-warning"}`}>
+                    <div className="text-sm text-muted-foreground">
+                      Interview Probability
+                    </div>
+                    <div
+                      className={`text-2xl font-display font-bold ${
+                        demoResult.probability >= 50
+                          ? "text-success"
+                          : "text-warning"
+                      }`}
+                    >
                       {demoResult.probability}%
                     </div>
                   </div>
                 </div>
+
                 {demoResult.improvements.length > 0 && (
                   <div>
-                    <div className="text-sm font-semibold text-primary mb-2">Top Improvements</div>
+                    <div className="text-sm font-semibold text-primary mb-2">
+                      Top Improvements
+                    </div>
                     <ul className="space-y-1.5">
                       {demoResult.improvements.map((imp, i) => (
-                        <li key={i} className="text-sm text-muted-foreground flex items-start gap-2">
+                        <li
+                          key={i}
+                          className="text-sm text-muted-foreground flex items-start gap-2"
+                        >
                           <TrendingUp className="w-3.5 h-3.5 text-accent mt-0.5 flex-shrink-0" />
                           {imp}
                         </li>
@@ -327,8 +471,13 @@ export default function Index() {
                     </ul>
                   </div>
                 )}
-                <Button className="gradient-teal text-white shadow-teal hover:opacity-90 w-full" onClick={() => navigate(user ? "/job-seeker" : AUTH_LOGIN)}>
-                  <Sparkles className="w-4 h-4 mr-2" /> Get Full Analysis & Optimized Resume
+
+                <Button
+                  className="gradient-teal text-white shadow-teal hover:opacity-90 w-full"
+                  onClick={() => navigate(user ? "/job-seeker" : AUTH_LOGIN)}
+                >
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Get Full Analysis & Optimized Resume
                 </Button>
               </div>
             )}
@@ -336,61 +485,32 @@ export default function Index() {
         </div>
       </section>
 
-      {/* ═══════════════ WHAT YOU GET ═══════════════ */}
+      {/* ═══════════════ BEFORE VS AFTER ═══════════════ */}
       <section className="bg-background py-24 px-6">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-display font-bold text-primary mb-4">
-              What <span className="text-gradient-teal">iCareerOS Does For You</span>
+              See the <span className="text-gradient-teal">AI Difference</span>
             </h2>
-            <p className="text-muted-foreground text-lg">Your entire job search — automated and intelligent.</p>
-          </div>
-
-          <div className="grid sm:grid-cols-2 gap-4 max-w-3xl mx-auto">
-            {sampleCapabilities.map((cap) => (
-              <div key={cap.title} className="bg-card rounded-2xl p-5 border border-border shadow-card hover:shadow-elevated transition-shadow group cursor-pointer" onClick={() => navigate(user ? "/job-search" : AUTH_LOGIN)}>
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-start gap-3">
-                    <div className="w-9 h-9 gradient-teal rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <cap.icon className="w-4 h-4 text-white" />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-foreground">{cap.title}</h4>
-                      <p className="text-sm text-muted-foreground mt-1">{cap.desc}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="text-center mt-8">
-            <Button variant="outline" size="lg" className="border-accent/30 text-accent hover:bg-accent/10" onClick={() => navigate(user ? "/job-search" : AUTH_LOGIN)}>
-              <Search className="mr-2 w-4 h-4" /> Get Started
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      {/* ═══════════════ BEFORE VS AFTER ═══════════════ */}
-      <section className="bg-card py-24 px-6 border-y border-border">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-display font-bold text-primary mb-4">
-              Before vs After <span className="text-gradient-teal">Resume Optimization</span>
-            </h2>
-            <p className="text-muted-foreground text-lg">See how AI transforms your resume for each specific job.</p>
+            <p className="text-muted-foreground text-lg">
+              One click transforms your resume from generic to interview-ready.
+            </p>
           </div>
 
           <div className="grid md:grid-cols-2 gap-6">
-            <div className="bg-background rounded-2xl p-6 border border-destructive/20 shadow-card">
+            {/* Before */}
+            <div className="bg-card rounded-2xl p-6 border border-destructive/20 shadow-card">
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-8 h-8 rounded-lg bg-destructive/10 flex items-center justify-center">
                   <X className="w-4 h-4 text-destructive" />
                 </div>
                 <div>
-                  <h3 className="font-display font-bold text-destructive">Before</h3>
-                  <p className="text-xs text-muted-foreground">Generic resume — 42% match</p>
+                  <h3 className="font-display font-bold text-destructive">
+                    Before
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    Generic resume — 42% match
+                  </p>
                 </div>
               </div>
               <div className="bg-muted/30 rounded-xl p-4 border border-border text-sm space-y-2 font-mono text-muted-foreground">
@@ -398,79 +518,60 @@ export default function Index() {
                 <p>• Responsible for security compliance</p>
                 <p>• Worked with cloud platforms</p>
                 <p>• Handled incident response</p>
-                <p className="text-destructive/60 text-xs mt-3">❌ Missing keywords: SIEM, Zero Trust, NIST, SOC 2</p>
+                <p className="text-destructive/60 text-xs mt-3">
+                  Missing keywords: SIEM, Zero Trust, NIST, SOC 2
+                </p>
               </div>
             </div>
 
-            <div className="bg-background rounded-2xl p-6 border border-success/20 shadow-card">
+            {/* After */}
+            <div className="bg-card rounded-2xl p-6 border border-success/20 shadow-card">
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-8 h-8 rounded-lg bg-success/10 flex items-center justify-center">
                   <Check className="w-4 h-4 text-success" />
                 </div>
                 <div>
-                  <h3 className="font-display font-bold text-success">After</h3>
-                  <p className="text-xs text-muted-foreground">ATS-optimized — 87% match</p>
+                  <h3 className="font-display font-bold text-success">
+                    After
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    ATS-optimized — 87% match
+                  </p>
                 </div>
               </div>
               <div className="bg-muted/30 rounded-xl p-4 border border-border text-sm space-y-2 font-mono text-foreground">
-                <p>• Architected <span className="text-accent font-semibold">Zero Trust</span> security framework across hybrid cloud infrastructure</p>
-                <p>• Led <span className="text-accent font-semibold">NIST 800-53</span> compliance achieving <span className="text-accent font-semibold">SOC 2</span> Type II certification</p>
-                <p>• Deployed <span className="text-accent font-semibold">SIEM</span> solution reducing incident response time by 65%</p>
-                <p className="text-success/80 text-xs mt-3">✅ ATS keywords aligned · Interview probability: 72%</p>
+                <p>
+                  • Architected{" "}
+                  <span className="text-accent font-semibold">Zero Trust</span>{" "}
+                  security framework across hybrid cloud infrastructure
+                </p>
+                <p>
+                  • Led{" "}
+                  <span className="text-accent font-semibold">NIST 800-53</span>{" "}
+                  compliance achieving{" "}
+                  <span className="text-accent font-semibold">SOC 2</span> Type
+                  II certification
+                </p>
+                <p>
+                  • Deployed{" "}
+                  <span className="text-accent font-semibold">SIEM</span>{" "}
+                  solution reducing incident response time by 65%
+                </p>
+                <p className="text-success/80 text-xs mt-3">
+                  ATS keywords aligned · Interview probability: 72%
+                </p>
               </div>
             </div>
           </div>
 
           <div className="text-center mt-10">
-            <Button size="lg" className="gradient-teal text-white font-semibold shadow-teal hover:opacity-90 px-8 py-6 text-lg" onClick={() => navigate(user ? "/job-seeker" : AUTH_LOGIN)}>
-              <Sparkles className="mr-2 w-5 h-5" /> Optimize My Resume
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      {/* ═══════════════ COMPARISON TABLE ═══════════════ */}
-      <section className="bg-background py-24 px-6">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-display font-bold text-primary mb-4">
-              Why We're <span className="text-gradient-teal">Better Than Job Boards</span>
-            </h2>
-            <p className="text-muted-foreground text-lg">Job boards show listings. We help you <strong>get hired</strong>.</p>
-          </div>
-
-          <div className="bg-card rounded-2xl border border-border shadow-card overflow-hidden">
-            <div className="grid grid-cols-4 gap-0">
-              <div className="p-4 border-b border-border font-semibold text-sm text-muted-foreground">Feature</div>
-              <div className="p-4 border-b border-border text-center">
-                <div className="inline-flex items-center gap-1.5">
-                  <div className="w-5 h-5 gradient-teal rounded flex items-center justify-center"><Target className="w-3 h-3 text-white" /></div>
-                  <span className="font-display font-bold text-primary text-sm">iCareerOS</span>
-                </div>
-              </div>
-              <div className="p-4 border-b border-border text-center font-semibold text-sm text-muted-foreground">Indeed</div>
-              <div className="p-4 border-b border-border text-center font-semibold text-sm text-muted-foreground">ZipRecruiter</div>
-
-              {comparisonRows.map((row, i) => (
-                <div key={row.feature} className="contents">
-                  <div className={`p-4 text-sm text-foreground ${i < comparisonRows.length - 1 ? "border-b border-border" : ""}`}>{row.feature}</div>
-                  <div className={`p-4 text-center ${i < comparisonRows.length - 1 ? "border-b border-border" : ""}`}>
-                    {row.icareeros ? <Check className="w-5 h-5 text-success mx-auto" /> : <X className="w-5 h-5 text-destructive/40 mx-auto" />}
-                  </div>
-                  <div className={`p-4 text-center ${i < comparisonRows.length - 1 ? "border-b border-border" : ""}`}>
-                    {row.indeed ? <Check className="w-5 h-5 text-success mx-auto" /> : <X className="w-5 h-5 text-destructive/40 mx-auto" />}
-                  </div>
-                  <div className={`p-4 text-center ${i < comparisonRows.length - 1 ? "border-b border-border" : ""}`}>
-                    {row.zip ? <Check className="w-5 h-5 text-success mx-auto" /> : <X className="w-5 h-5 text-destructive/40 mx-auto" />}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="text-center mt-10">
-            <Button size="lg" className="gradient-teal text-white font-semibold shadow-teal hover:opacity-90 px-8 py-6 text-lg" onClick={() => navigate(user ? "/job-seeker" : AUTH_LOGIN)}>
-              {user ? "Go to Dashboard" : "Get Started Free"} <ArrowRight className="ml-2 w-5 h-5" />
+            <Button
+              size="lg"
+              className="gradient-teal text-white font-semibold shadow-teal hover:opacity-90 px-8 py-6 text-lg"
+              onClick={() => navigate(user ? "/job-seeker" : AUTH_LOGIN)}
+            >
+              <Sparkles className="mr-2 w-5 h-5" />
+              Optimize My Resume
             </Button>
           </div>
         </div>
@@ -481,14 +582,16 @@ export default function Index() {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-display font-bold text-primary mb-4">
-              Everything to <span className="text-gradient-teal">get you hired faster</span>
+              Everything to{" "}
+              <span className="text-gradient-teal">Get You Hired Faster</span>
             </h2>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              From discovering opportunities to landing offers — iCareerOS automates your entire job search.
+              From discovering opportunities to landing offers — iCareerOS
+              automates your entire job search.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-20">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {features.map((f, i) => (
               <div
                 key={f.title}
@@ -499,129 +602,178 @@ export default function Index() {
                 <div className="w-11 h-11 gradient-teal rounded-xl flex items-center justify-center mb-5 shadow-teal group-hover:scale-110 transition-transform">
                   <f.icon className="w-5 h-5 text-white" />
                 </div>
-                <h3 className="font-display text-lg font-bold text-primary mb-2">{f.title}</h3>
-                <p className="text-muted-foreground text-sm leading-relaxed">{f.desc}</p>
+                <h3 className="font-display text-lg font-bold text-primary mb-2">
+                  {f.title}
+                </h3>
+                <p className="text-muted-foreground text-sm leading-relaxed">
+                  {f.desc}
+                </p>
                 <div className="flex items-center gap-1 text-accent text-sm font-medium mt-4 opacity-0 group-hover:opacity-100 transition-opacity">
                   Try it <ArrowRight className="w-3.5 h-3.5" />
                 </div>
               </div>
             ))}
           </div>
-
-          {/* Dual CTA */}
-          <div className="grid md:grid-cols-2 gap-8">
-            <div
-              className="relative overflow-hidden rounded-3xl p-10 cursor-pointer group"
-              style={{ background: "var(--gradient-hero)" }}
-              onClick={() => navigate("/job-seeker")}
-            >
-              <div className="absolute top-0 right-0 w-48 h-48 bg-teal-500/10 rounded-full -translate-y-12 translate-x-12 group-hover:scale-125 transition-transform duration-500" />
-              <Target className="w-10 h-10 text-teal-400 mb-6" />
-              <h3 className="font-display text-2xl font-bold text-white mb-3">Get Interviews Automatically</h3>
-              <p className="text-white/70 mb-8 leading-relaxed">
-                Upload your resume, get matched jobs, optimize materials, and apply — all automated with AI.
-              </p>
-              <div className="flex items-center gap-2 text-teal-400 font-semibold">
-                Start now <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </div>
-            </div>
-
-            <div
-              className="relative overflow-hidden bg-background rounded-3xl p-10 cursor-pointer group border border-border hover:shadow-elevated transition-shadow"
-              onClick={() => navigate(user ? "/profile" : AUTH_LOGIN)}
-            >
-              <div className="absolute top-0 right-0 w-48 h-48 bg-accent/5 rounded-full -translate-y-12 translate-x-12 group-hover:scale-125 transition-transform duration-500" />
-              <UserCircle className="w-10 h-10 text-accent mb-6" />
-              <h3 className="font-display text-2xl font-bold text-primary mb-3">Build Your Profile</h3>
-              <p className="text-muted-foreground mb-8 leading-relaxed">
-                Upload your resume and let AI extract your skills, experience, and certifications into a smart profile.
-              </p>
-              <div className="flex items-center gap-2 text-accent font-semibold">
-                Get started <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-              </div>
-            </div>
-          </div>
         </div>
       </section>
 
-      {/* ═══════════════ REFERRAL / SHARE ═══════════════ */}
-      {user && (
-        <section className="bg-background py-16 px-6">
-          <div className="max-w-3xl mx-auto text-center">
-            <Gift className="w-10 h-10 text-accent mx-auto mb-4" />
-            <h2 className="text-3xl font-display font-bold text-primary mb-3">Invite Friends & Unlock More</h2>
-            <p className="text-muted-foreground mb-6">Share iCareerOS with 3 friends to unlock premium features like unlimited auto-apply and priority job alerts.</p>
-            <div className="flex justify-center gap-3">
-              <Button className="gradient-teal text-white shadow-teal hover:opacity-90" onClick={handleCopyReferral}>
-                <Share2 className="w-4 h-4 mr-2" /> Copy Referral Link
-              </Button>
-              <Button variant="outline" onClick={() => {
-                const url = `${window.location.origin}?ref=${user?.id?.slice(0, 8) || "friend"}`;
-                window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent("I use iCareerOS to get 3x more interview callbacks. Try it free: " + url)}`, "_blank");
-              }}>
-                <MessageSquare className="w-4 h-4 mr-2" /> Share on X
-              </Button>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ═══════════════ ONBOARDING FUNNEL (LOGGED OUT) ═══════════════ */}
-      {!user && (
-        <section className="py-24 px-6" style={{ background: "var(--gradient-hero)" }}>
-          <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-4xl font-display font-bold text-white mb-6">
-              See Your Match Score in <span className="text-gradient-teal">30 Seconds</span>
+      {/* ═══════════════ COMPARISON TABLE ═══════════════ */}
+      <section className="bg-background py-24 px-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-display font-bold text-primary mb-4">
+              Why We're{" "}
+              <span className="text-gradient-teal">
+                Better Than Job Boards
+              </span>
             </h2>
-            <div className="grid sm:grid-cols-3 gap-6 mb-10">
-              {[
-                { step: "1", title: "Upload Resume", icon: Upload },
-                { step: "2", title: "See Match Score", icon: Target },
-                { step: "3", title: "Get Matched Jobs", icon: Search },
-              ].map((s) => (
-                <div key={s.step} className="glass rounded-2xl p-6 border border-white/10 text-center">
-                  <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center mx-auto mb-3">
-                    <s.icon className="w-5 h-5 text-teal-400" />
+            <p className="text-muted-foreground text-lg">
+              Job boards show listings. We help you{" "}
+              <strong>get hired</strong>.
+            </p>
+          </div>
+
+          <div className="bg-card rounded-2xl border border-border shadow-card overflow-hidden">
+            <div className="grid grid-cols-4 gap-0">
+              {/* Header row */}
+              <div className="p-4 border-b border-border font-semibold text-sm text-muted-foreground">
+                Feature
+              </div>
+              <div className="p-4 border-b border-border text-center">
+                <div className="inline-flex items-center gap-1.5">
+                  <div className="w-5 h-5 gradient-teal rounded flex items-center justify-center">
+                    <Target className="w-3 h-3 text-white" />
                   </div>
-                  <div className="text-white font-semibold">{s.title}</div>
+                  <span className="font-display font-bold text-primary text-sm">
+                    iCareerOS
+                  </span>
+                </div>
+              </div>
+              <div className="p-4 border-b border-border text-center font-semibold text-sm text-muted-foreground">
+                Indeed
+              </div>
+              <div className="p-4 border-b border-border text-center font-semibold text-sm text-muted-foreground">
+                ZipRecruiter
+              </div>
+
+              {/* Data rows */}
+              {comparisonRows.map((row, i) => (
+                <div key={row.feature} className="contents">
+                  <div
+                    className={`p-4 text-sm text-foreground ${
+                      i < comparisonRows.length - 1
+                        ? "border-b border-border"
+                        : ""
+                    }`}
+                  >
+                    {row.feature}
+                  </div>
+                  <div
+                    className={`p-4 text-center ${
+                      i < comparisonRows.length - 1
+                        ? "border-b border-border"
+                        : ""
+                    }`}
+                  >
+                    {row.icareeros ? (
+                      <Check className="w-5 h-5 text-success mx-auto" />
+                    ) : (
+                      <X className="w-5 h-5 text-destructive/40 mx-auto" />
+                    )}
+                  </div>
+                  <div
+                    className={`p-4 text-center ${
+                      i < comparisonRows.length - 1
+                        ? "border-b border-border"
+                        : ""
+                    }`}
+                  >
+                    {row.indeed ? (
+                      <Check className="w-5 h-5 text-success mx-auto" />
+                    ) : (
+                      <X className="w-5 h-5 text-destructive/40 mx-auto" />
+                    )}
+                  </div>
+                  <div
+                    className={`p-4 text-center ${
+                      i < comparisonRows.length - 1
+                        ? "border-b border-border"
+                        : ""
+                    }`}
+                  >
+                    {row.zip ? (
+                      <Check className="w-5 h-5 text-success mx-auto" />
+                    ) : (
+                      <X className="w-5 h-5 text-destructive/40 mx-auto" />
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
-            <Button size="lg" className="gradient-teal text-white font-semibold text-lg px-10 py-6 rounded-xl shadow-teal hover:opacity-90 animate-pulse-glow" onClick={() => navigate(AUTH_LOGIN)}>
-              Get Started Free <ArrowRight className="ml-2 w-5 h-5" />
-            </Button>
-            <p className="text-white/40 text-sm mt-4">No credit card required. Free forever for basic features.</p>
           </div>
-        </section>
-      )}
-
-      {/* ═══════════════ STICKY CTA BAR ═══════════════ */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-primary/95 backdrop-blur-sm border-t border-white/10 px-4 py-3 flex items-center justify-center gap-3 sm:hidden">
-        <Button size="sm" className="gradient-teal text-white font-semibold shadow-teal text-xs flex-1" onClick={() => navigate(user ? "/job-seeker" : AUTH_LOGIN)}>
-          <Upload className="w-3.5 h-3.5 mr-1" /> Upload Resume
-        </Button>
-        <Button size="sm" variant="outline" className="border-white/30 text-white bg-white/10 text-xs flex-1" onClick={() => navigate(user ? "/job-search" : AUTH_LOGIN)}>
-          <Search className="w-3.5 h-3.5 mr-1" /> Find Jobs
-        </Button>
-        <Button size="sm" variant="outline" className="border-white/30 text-white bg-white/10 text-xs flex-1" onClick={() => navigate(user ? "/dashboard" : AUTH_LOGIN)}>
-          <Bot className="w-3.5 h-3.5 mr-1" /> Dashboard
-        </Button>
-      </div>
-
-      {/* ═══════════════ CUSTOMER SURVEY ═══════════════ */}
-      <section className="bg-background py-24 px-6">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-10">
-            <h2 className="text-4xl font-display font-bold text-primary mb-4">
-              We Want to <span className="text-gradient-teal">Hear From You</span>
-            </h2>
-            <p className="text-muted-foreground text-lg">Help us understand your experience and build the features you need most.</p>
-          </div>
-          <CustomerSurvey />
         </div>
       </section>
 
-      {/* Footer */}
+      {/* ═══════════════ FINAL CTA ═══════════════ */}
+      <section className="py-24 px-6" style={{ background: "var(--gradient-hero)" }}>
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-4xl md:text-5xl font-display font-bold text-white mb-6">
+            Ready to Let AI{" "}
+            <span className="text-gradient-teal">Land Your Next Job?</span>
+          </h2>
+          <p className="text-xl text-white/60 mb-10 max-w-2xl mx-auto">
+            Upload your resume once. Wake up to interview invitations. It's that simple.
+          </p>
+
+          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-6">
+            <Button
+              size="lg"
+              className="gradient-teal text-white font-semibold text-lg px-10 py-6 rounded-xl shadow-teal hover:opacity-90 animate-pulse-glow"
+              onClick={() => navigate(user ? "/dashboard" : AUTH_LOGIN)}
+            >
+              <Bot className="mr-2 w-5 h-5" />
+              {user ? "Go to Dashboard" : "Get Started Free"}
+              <ArrowRight className="ml-2 w-5 h-5" />
+            </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              className="border-white/30 text-white bg-white/10 hover:bg-white/20 text-lg px-8 py-6 rounded-xl backdrop-blur-sm"
+              onClick={() => navigate("/job-seeker?demo=true")}
+            >
+              <Play className="mr-2 w-5 h-5" />
+              Try Demo First
+            </Button>
+          </div>
+
+          <p className="text-white/40 text-sm">
+            No credit card required. Free forever for basic features.
+          </p>
+        </div>
+      </section>
+
+      {/* ═══════════════ MOBILE STICKY CTA ═══════════════ */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-primary/95 backdrop-blur-sm border-t border-white/10 px-4 py-3 flex items-center justify-center gap-3 sm:hidden">
+        <Button
+          size="sm"
+          className="gradient-teal text-white font-semibold shadow-teal text-xs flex-1"
+          onClick={() => navigate(user ? "/job-seeker" : AUTH_LOGIN)}
+        >
+          <Upload className="w-3.5 h-3.5 mr-1" />
+          Upload Resume
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="border-white/30 text-white bg-white/10 text-xs flex-1"
+          onClick={() => navigate(user ? "/job-search" : AUTH_LOGIN)}
+        >
+          <Search className="w-3.5 h-3.5 mr-1" />
+          Find Jobs
+        </Button>
+      </div>
+
+      {/* ═══════════════ FOOTER ═══════════════ */}
       <footer className="bg-primary py-10 px-6 sm:pb-10 pb-20">
         <div className="max-w-5xl mx-auto">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
@@ -629,17 +781,42 @@ export default function Index() {
               <div className="w-6 h-6 gradient-teal rounded-md flex items-center justify-center">
                 <Target className="w-3 h-3 text-white" />
               </div>
-              <span className="font-display font-bold text-primary-foreground">iCareerOS</span>
+              <span className="font-display font-bold text-primary-foreground">
+                iCareerOS
+              </span>
             </div>
             <div className="flex flex-wrap gap-4 text-primary-foreground/50 text-sm">
-              <button className="hover:text-primary-foreground transition-colors" onClick={() => navigate("/job-seeker")}>Get Interviews</button>
-              <button className="hover:text-primary-foreground transition-colors" onClick={() => navigate("/job-search")}>Find Jobs</button>
-              <button className="hover:text-primary-foreground transition-colors" onClick={() => navigate("/applications")}>Track</button>
-              <button className="hover:text-primary-foreground transition-colors" onClick={() => navigate("/dashboard")}>Dashboard</button>
+              <button
+                className="hover:text-primary-foreground transition-colors"
+                onClick={() => navigate("/job-seeker")}
+              >
+                Get Interviews
+              </button>
+              <button
+                className="hover:text-primary-foreground transition-colors"
+                onClick={() => navigate("/job-search")}
+              >
+                Find Jobs
+              </button>
+              <button
+                className="hover:text-primary-foreground transition-colors"
+                onClick={() => navigate("/applications")}
+              >
+                Track
+              </button>
+              <button
+                className="hover:text-primary-foreground transition-colors"
+                onClick={() => navigate("/dashboard")}
+              >
+                Dashboard
+              </button>
             </div>
           </div>
           <div className="border-t border-white/10 pt-4 text-center">
-            <p className="text-primary-foreground/40 text-sm">We help you get interviews automatically. Built by Amir Jabri.</p>
+            <p className="text-primary-foreground/40 text-sm">
+              iCareerOS — Intelligent Career Operating System. Built by Amir
+              Jabri.
+            </p>
           </div>
         </div>
       </footer>
@@ -647,7 +824,17 @@ export default function Index() {
   );
 }
 
-function NavBtn({ icon, label, onClick }: { icon: React.ReactNode; label: string; onClick: () => void }) {
+/* ────────────────────── SUB-COMPONENTS ────────────────────── */
+
+function NavBtn({
+  icon,
+  label,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+}) {
   return (
     <Button
       size="sm"
