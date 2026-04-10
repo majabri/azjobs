@@ -1,1 +1,44 @@
-{"navigation":{"dashboard":"Armaturenbrett","projects":"Projekte","proposals":"Vorschläge","contracts":"Verträge","services":"Dienstleistungen","orders":"Bestellungen","profile":"Profil","settings":"Einstellungen","employer":"Für Arbeitgeber","talent":"Für Talente","browse":"Durchsuchen"},"tabs":{"overview":"Übersicht","active":"Aktiv","completed":"Abgeschlossen","archived":"Archiviert","all":"Alle"}}
+{
+  "navigation": {
+    "missionControl": "Kommandozentrale",
+    "opportunityRadar": "Chancen-Radar",
+    "matchScoreLab": "Kompatibilitaetslabor",
+    "pipeline": "Pipeline",
+    "offerDesk": "Angebotstisch",
+    "flightPlan": "Flugplan",
+    "interviewSimulator": "Interview-Simulator",
+    "autopilotMode": "Autopilot-Modus",
+    "openMarket": "Offener Markt",
+    "skillStore": "Kompetenz-Shop",
+    "careerProfile": "Karriereprofil",
+    "skillRadar": "Kompetenz-Radar",
+    "networkTracker": "Netzwerk-Tracker",
+    "careerXP": "Karriere-Erfahrung",
+    "settings": "Einstellungen",
+    "supportInbox": "Support-Postfach",
+    "commandCenter": "Kontrollzentrum",
+    "theCrewStatus": "Team-Status",
+    "eventLog": "Ereignisprotokoll",
+    "featureControl": "Funktionssteuerung",
+    "systemMonitor": "Systemueberwachung",
+    "jobPostings": "Stellenangebote",
+    "talentSearch": "Talentsuche",
+    "companyProfile": "Unternehmensprofil"
+  },
+  "tabs": {
+    "overview": "Uebersicht",
+    "active": "Aktiv",
+    "completed": "Abgeschlossen",
+    "pending": "Ausstehend",
+    "saved": "Gespeichert",
+    "applied": "Beworben",
+    "interview": "Vorstellungsgespraech",
+    "offer": "Angebot",
+    "rejected": "Abgelehnt"
+  },
+  "modes": {
+    "jobSeeker": "Arbeitssuchender",
+    "employer": "Arbeitgeber",
+    "admin": "Administrator"
+  }
+}
