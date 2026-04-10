@@ -1,1430 +1,849 @@
-import { useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import {
-  Search,
-  Sparkles,
-  Zap,
-  ArrowRight,
-  TrendingUp,
-  CheckCircle,
-  X,
-  Minus,
-  Globe,
-  Briefcase,
-  BarChart3,
-  Shield,
-  Target,
-  FileText,
-  Bot,
-} from 'lucide-react';
+  ArrowRight, Target, Users, CheckCircle, TrendingUp, Zap, LogOut, Play,
+  BarChart3, Search, FileText, Briefcase, ClipboardList, UserCircle, Shield,
+  Upload, Sparkles, Bot, Star, ChevronRight, Check, X, Share2, Gift,
+  MessageSquare, Globe, Mail, Clock, Award, Rocket, Loader2
+} from "lucide-react";
+import heroBg from "@/assets/hero-bg.jpg";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuthReady } from "@/hooks/useAuthReady";
+import { analyzeJobFit } from "@/lib/analysisEngine";
+import { AUTH_LOGIN } from "@/lib/routes";
+
+/* ────────────────────── DATA ────────────────────── */
+
+const stats = [
+  { value: "AI-Powered", label: "resume optimization for every application" },
+  { value: "Instant", label: "fit score and gap analysis in seconds" },
+  { value: "24/7", label: "your AI agent works while you sleep" },
+];
+
+const howItWorks = [
+  {
+    step: "1",
+    icon: Upload,
+    title: "Upload Your Resume",
+    desc: "Drop a PDF or Word doc. We extract your skills, experience, and career level in seconds.",
+  },
+  {
+    step: "2",
+    icon: Bot,
+    title: "AI Works While You Sleep",
+    desc: "AI matches you to open roles, tailors your resume for each one, writes cover letters, and queues applications.",
+  },
+  {
+    step: "3",
+    icon: Rocket,
+    title: "Wake Up to Interviews",
+    desc: "Review what your agent applied to, track progress, and prep for interviews with AI coaching.",
+  },
+];
+
+const features = [
+  {
+    icon: Search,
+    title: "AI Job Discovery",
+    desc: "Matched to roles automatically based on your skills, level, and preferences — no more scrolling.",
+    link: "/job-search",
+  },
+  {
+    icon: UserCircle,
+    title: "Smart Profile & Resume Vault",
+    desc: "One profile, multiple resume versions — all synced and ready for any application.",
+    link: "/profile",
+  },
+  {
+    icon: TrendingUp,
+    title: "Fit Score & Interview Probability",
+    desc: "Instant match score, interview odds, and a prioritized action plan to improve your chances.",
+    link: "/job-seeker",
+  },
+  {
+    icon: FileText,
+    title: "AI Resume Optimization",
+    desc: "One-click rewrite with ATS-friendly keywords tailored to each specific role.",
+    link: "/job-seeker",
+  },
+  {
+    icon: Briefcase,
+    title: "Application Package Generator",
+    desc: "Tailored resume, cover letter, and pre-filled answers — ready to copy and submit.",
+    link: "/job-seeker",
+  },
+  {
+    icon: ClipboardList,
+    title: "Application Tracker",
+    desc: "Track every application with status updates, follow-up reminders, and outcome logging.",
+    link: "/applications",
+  },
+  {
+    icon: Bot,
+    title: "Auto-Apply Agent",
+    desc: "Set it and forget it. AI finds jobs, generates materials, and queues applications for your review.",
+    link: "/auto-apply",
+  },
+];
+
+const comparisonRows = [
+  { feature: "AI-Powered Job Matching", icareeros: true, indeed: false, zip: false },
+  { feature: "Resume Optimization for Each Job", icareeros: true, indeed: false, zip: false },
+  { feature: "Interview Probability Score", icareeros: true, indeed: false, zip: false },
+  { feature: "Auto-Generated Cover Letters", icareeros: true, indeed: false, zip: false },
+  { feature: "Application Package Generator", icareeros: true, indeed: false, zip: false },
+  { feature: "Skill Gap Action Plan", icareeros: true, indeed: false, zip: false },
+  { feature: "Fake Job Detection", icareeros: true, indeed: false, zip: false },
+  { feature: "Built-in Application Tracker", icareeros: true, indeed: true, zip: true },
+];
+
+/* ────────────────────── COMPONENT ────────────────────── */
 
 export default function Index() {
+  const navigate = useNavigate();
+  const { user } = useAuthReady();
+
+  const [totalJobCount, setTotalJobCount] = useState(0);
+  const [matchedJobCount, setMatchedJobCount] = useState(0);
+
+  // Interactive demo state
+  const [demoJobDesc, setDemoJobDesc] = useState("");
+  const [demoResult, setDemoResult] = useState<{
+    score: number;
+    improvements: string[];
+    probability: number;
+  } | null>(null);
+  const [demoLoading, setDemoLoading] = useState(false);
+
+  // Load live job counts
   useEffect(() => {
-    document.documentElement.style.scrollBehavior = 'smooth';
-  }, []);
+    const loadCounts = async () => {
+      const { count } = await supabase
+        .from("scraped_jobs")
+        .select("*", { count: "exact", head: true });
+      setTotalJobCount(count || 0);
+
+      if (user) {
+        const { data: profile } = await supabase
+          .from("job_seeker_profiles")
+          .select("skills, target_job_titles")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        if (
+          profile?.target_job_titles &&
+          (profile.target_job_titles as string[]).length > 0
+        ) {
+          const titles = profile.target_job_titles as string[];
+          const titleFilter = titles
+            .map((t) => `title.ilike.%${t}%`)
+            .join(",");
+          const { count: matched } = await supabase
+            .from("scraped_jobs")
+            .select("*", { count: "exact", head: true })
+            .or(titleFilter);
+          setMatchedJobCount(matched || 0);
+        }
+      }
+    };
+    loadCounts();
+  }, [user]);
+
+  const handleDemoAnalyze = async () => {
+    if (!demoJobDesc.trim()) return;
+    setDemoLoading(true);
+    setDemoResult(null);
+    try {
+      const sampleResume =
+        "Experienced professional with skills in project management, communication, data analysis, and problem solving. 5+ years of experience in technology roles.";
+      const result = analyzeJobFit(sampleResume, demoJobDesc);
+      setDemoResult({
+        score: result.overallScore,
+        improvements: result.topActions.slice(0, 3),
+        probability: result.interviewProbability,
+      });
+    } catch {
+      setDemoResult({
+        score: 0,
+        improvements: ["Could not analyze. Try a more detailed description."],
+        probability: 0,
+      });
+    } finally {
+      setDemoLoading(false);
+    }
+  };
 
   return (
-    <div className="bg-brand-bg text-gray-900" style={{ backgroundColor: '#FAFBFF' }}>
-      {/* NAVIGATION */}
-      <nav
-        className="sticky top-0 z-50 h-15"
-        style={{
-          backdropFilter: 'blur(12px)',
-          backgroundColor: 'rgba(250, 251, 255, 0.92)',
-          borderBottom: '1px solid rgba(0, 0, 0, 0.06)',
-          height: '60px',
-        }}
-      >
-        <div className="max-w-7xl mx-auto px-6 h-full flex items-center justify-between">
-          {/* Logo */}
-          <div style={{ fontSize: '17px', fontWeight: 800, letterSpacing: '-0.01em' }}>
-            i<span style={{ color: '#00B8A9' }}>Career</span>
-            <span style={{ color: '#0A1628' }}>OS</span>
+    <div className="min-h-screen flex flex-col">
+      {/* ═══════════════ NAV ═══════════════ */}
+      <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-3 bg-primary/95 backdrop-blur-sm border-b border-white/10">
+        <div
+          className="flex items-center gap-2 cursor-pointer"
+          onClick={() => navigate("/")}
+        >
+          <div className="w-8 h-8 gradient-teal rounded-lg flex items-center justify-center shadow-teal">
+            <Target className="w-4 h-4 text-white" />
           </div>
-
-          {/* Center Links */}
-          <div className="hidden md:flex gap-8">
-            <a href="#" className="text-sm font-medium hover:text-brand-teal transition">
-              Platform
-            </a>
-            <a href="#" className="text-sm font-medium hover:text-brand-teal transition">
-              Features
-            </a>
-            <a href="#" className="text-sm font-medium hover:text-brand-teal transition">
-              Pricing
-            </a>
-            <a href="#" className="text-sm font-medium hover:text-brand-teal transition">
-              About
-            </a>
-          </div>
-
-          {/* Right Buttons */}
-          <div className="flex gap-3">
-            <Link
-              to="/auth/login"
-              className="px-5 py-2 text-sm font-medium border border-gray-200 rounded-lg hover:border-gray-300 transition"
-              style={{
-                backgroundColor: 'white',
-                color: '#0A1628',
-                borderColor: 'rgba(0, 0, 0, 0.07)',
-              }}
-            >
-              Sign in
-            </Link>
-            <Link
-              to="/auth/signup"
-              className="px-5 py-2 text-sm font-medium text-white rounded-lg transition"
-              style={{
-                backgroundColor: '#00B8A9',
-                boxShadow: '0 2px 10px rgba(0, 184, 169, 0.3)',
-                padding: '9px 18px',
-                fontSize: '13px',
-              }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#00a598')}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#00B8A9')}
-            >
-              Get started free
-            </Link>
-          </div>
+          <span className="font-display text-lg font-bold text-primary-foreground">
+            iCareerOS
+          </span>
         </div>
-      </nav>
 
-      {/* SECTION 1: HERO */}
-      <section
-        style={{
-          backgroundImage: 'linear-gradient(175deg, #f0fdf9 0%, #fafbff 60%, #fafbff 100%)',
-          paddingTop: '80px',
-          paddingBottom: '80px',
-        }}
-      >
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            {/* Left Column */}
-            <div>
-              {/* Eyebrow Chip */}
-              <div
-                className="inline-block mb-6 px-3 py-1 rounded-full text-center"
-                style={{
-                  backgroundColor: 'rgba(0, 184, 169, 0.1)',
-                  fontSize: '11px',
-                  fontWeight: 700,
-                  letterSpacing: '0.1em',
-                  textTransform: 'uppercase',
-                  color: '#00B8A9',
-                }}
+        <nav className="flex items-center gap-1">
+          {user ? (
+            <>
+              <NavBtn icon={<BarChart3 className="w-4 h-4" />} label="Dashboard" onClick={() => navigate("/dashboard")} />
+              <NavBtn icon={<Search className="w-4 h-4" />} label="Find Jobs" onClick={() => navigate("/job-search")} />
+              <NavBtn icon={<ClipboardList className="w-4 h-4" />} label="Applications" onClick={() => navigate("/applications")} />
+              <NavBtn icon={<UserCircle className="w-4 h-4" />} label="Profile" onClick={() => navigate("/profile")} />
+              <div className="w-px h-6 bg-white/20 mx-1" />
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-primary-foreground/60 hover:text-primary-foreground hover:bg-white/10 text-xs"
+                onClick={async () => { await supabase.auth.signOut(); }}
               >
-                Career Operating System
-              </div>
-
-              {/* H1 */}
-              <h1
-                className="mb-6 font-bold"
-                style={{
-                  fontSize: '52px',
-                  letterSpacing: '-0.03em',
-                  lineHeight: 1.1,
-                  color: '#0A1628',
-                }}
+                <LogOut className="w-3.5 h-3.5" />
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button
+                variant="ghost"
+                className="text-primary-foreground/80 hover:text-primary-foreground hover:bg-white/10 text-sm"
+                onClick={() => navigate("/job-seeker?demo=true")}
               >
-                Run your entire career on{' '}
-                <span style={{ color: '#00B8A9' }}>autopilot.</span>
-              </h1>
-
-              {/* Body Text */}
-              <p
-                className="mb-4"
-                style={{
-                  fontSize: '17px',
-                  lineHeight: 1.78,
-                  color: '#111827',
-                }}
+                Try Demo
+              </Button>
+              <Button
+                size="sm"
+                className="gradient-teal text-white font-semibold shadow-teal hover:opacity-90 ml-2"
+                onClick={() => navigate(AUTH_LOGIN)}
               >
-                icareereos discovers opportunities, scores your fit, optimizes your profile,
-                and applies for you â across jobs, gigs, and projects.
-              </p>
+                Sign In
+              </Button>
+            </>
+          )}
+        </nav>
+      </header>
 
-              {/* Supporting Text */}
-              <p
-                className="mb-8"
-                style={{
-                  fontSize: '13px',
-                  lineHeight: 1.6,
-                  color: '#9CA3AF',
-                }}
-              >
-                We organize and execute career opportunities so you don't have to.
-              </p>
+      {/* ═══════════════ HERO ═══════════════ */}
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16">
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: `url(${heroBg})` }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-navy-900/90 via-navy-800/80 to-navy-900/95" />
 
-              {/* Buttons */}
-              <div className="flex gap-4 mb-6">
-                <Link
-                  to="/auth/signup"
-                  className="px-8 py-4 font-medium text-white rounded-lg transition"
-                  style={{
-                    fontSize: '15px',
-                    backgroundColor: '#00B8A9',
-                    boxShadow: '0 2px 10px rgba(0, 184, 169, 0.3)',
-                    padding: '14px 30px',
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#00a598')}
-                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#00B8A9')}
-                >
-                  Get started free
-                </Link>
-                <button
-                  className="px-8 py-4 font-medium rounded-lg transition border"
-                  style={{
-                    fontSize: '15px',
-                    backgroundColor: 'white',
-                    color: '#0A1628',
-                    borderColor: 'rgba(0, 0, 0, 0.07)',
-                    padding: '14px 24px',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = '#f9fafb';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'white';
-                  }}
-                >
-                  See how it works
-                </button>
-              </div>
-
-              {/* Fine Print */}
-              <p
-                style={{
-                  fontSize: '12px',
-                  color: '#9CA3AF',
-                  lineHeight: 1.5,
-                }}
-              >
-                No credit card required Â· Takes 2 minutes to set up
-              </p>
+        <div className="relative z-10 max-w-5xl mx-auto px-6 text-center">
+          {/* Personalized welcome */}
+          {user && matchedJobCount > 0 && (
+            <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-accent/20 border border-accent/40 text-accent text-sm font-semibold mb-6 animate-fade-up">
+              <Sparkles className="w-4 h-4" />
+              Welcome back — {matchedJobCount} new jobs matched to you today
             </div>
+          )}
 
-            {/* Right Column: Dashboard Preview */}
-            <div
-              className="rounded-3xl p-6 space-y-4"
-              style={{
-                backgroundColor: 'white',
-                border: '1px solid rgba(0, 0, 0, 0.05)',
-                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.06), 0 10px 30px rgba(0, 0, 0, 0.08)',
-                borderRadius: '18px',
-                maxWidth: '380px',
-                marginLeft: 'auto',
-              }}
-            >
-              {/* Header */}
-              <div className="flex items-center justify-between pb-4 border-b border-gray-100">
-                <h3
-                  style={{
-                    fontSize: '13px',
-                    fontWeight: 700,
-                    color: '#0A1628',
-                  }}
-                >
-                  Mission Control
-                </h3>
-                <div
-                  className="px-2 py-1 rounded text-xs font-semibold"
-                  style={{
-                    backgroundColor: 'rgba(0, 184, 169, 0.1)',
-                    color: '#00B8A9',
-                  }}
-                >
-                  5 agents live
-                </div>
-              </div>
-
-              {/* Job Item 1 */}
-              <div className="space-y-2 pb-4 border-b border-gray-100">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p
-                      style={{
-                        fontSize: '14px',
-                        fontWeight: 600,
-                        color: '#0A1628',
-                        marginBottom: '2px',
-                      }}
-                    >
-                      Senior Product Manager
-                    </p>
-                    <p
-                      style={{
-                        fontSize: '12px',
-                        color: '#4B5563',
-                      }}
-                    >
-                      Stripe Â· Remote
-                    </p>
-                  </div>
-                  <div
-                    className="px-2 py-1 rounded text-xs font-semibold whitespace-nowrap"
-                    style={{
-                      backgroundColor: '#d1fae5',
-                      color: '#065f46',
-                      marginLeft: '8px',
-                    }}
-                  >
-                    Auto-applied
-                  </div>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden mt-2">
-                  <div
-                    style={{
-                      width: '85%',
-                      height: '100%',
-                      backgroundColor: '#00B8A9',
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* Job Item 2 */}
-              <div className="space-y-2 pb-4 border-b border-gray-100">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p
-                      style={{
-                        fontSize: '14px',
-                        fontWeight: 600,
-                        color: '#0A1628',
-                        marginBottom: '2px',
-                      }}
-                    >
-                      UX Research Lead
-                    </p>
-                    <p
-                      style={{
-                        fontSize: '12px',
-                        color: '#4B5563',
-                      }}
-                    >
-                      Notion Â· Hybrid
-                    </p>
-                  </div>
-                  <div
-                    className="px-2 py-1 rounded text-xs font-semibold whitespace-nowrap"
-                    style={{
-                      backgroundColor: '#d1fae5',
-                      color: '#065f46',
-                      marginLeft: '8px',
-                    }}
-                  >
-                    Auto-applied
-                  </div>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden mt-2">
-                  <div
-                    style={{
-                      width: '72%',
-                      height: '100%',
-                      backgroundColor: '#00B8A9',
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* Gig Item 3 */}
-              <div
-                className="p-3 rounded-lg space-y-2 mb-4"
-                style={{
-                  backgroundColor: '#fffdf0',
-                  border: '1px solid rgba(217, 119, 6, 0.2)',
-                }}
-              >
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p
-                      style={{
-                        fontSize: '14px',
-                        fontWeight: 600,
-                        color: '#0A1628',
-                        marginBottom: '2px',
-                      }}
-                    >
-                      Product Strategy Gig
-                    </p>
-                    <p
-                      style={{
-                        fontSize: '12px',
-                        color: '#4B5563',
-                      }}
-                    >
-                      Open Market Â· $4,200
-                    </p>
-                  </div>
-                  <div
-                    className="px-2 py-1 rounded text-xs font-semibold whitespace-nowrap"
-                    style={{
-                      backgroundColor: '#fef3c7',
-                      color: '#92400e',
-                      marginLeft: '8px',
-                    }}
-                  >
-                    Proposal sent
-                  </div>
-                </div>
-              </div>
-
-              {/* Resume Optimizer */}
-              <div
-                className="p-3 rounded-lg"
-                style={{
-                  backgroundColor: '#EEF1F8',
-                }}
-              >
-                <p
-                  style={{
-                    fontSize: '10px',
-                    fontWeight: 700,
-                    letterSpacing: '0.1em',
-                    textTransform: 'uppercase',
-                    color: '#4B5563',
-                    marginBottom: '4px',
-                  }}
-                >
-                  Resume Optimizer
-                </p>
-                <p
-                  style={{
-                    fontSize: '12px',
-                    color: '#0A1628',
-                    lineHeight: 1.4,
-                  }}
-                >
-                  Added 'stakeholder alignment' Â· ATS score +12pts
-                </p>
-              </div>
+          {!user && (
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass border border-teal-500/30 text-teal-400 text-sm font-medium mb-8 animate-fade-up">
+              <Rocket className="w-3.5 h-3.5" />
+              Your Intelligent Career Operating System
             </div>
-          </div>
-        </div>
-      </section>
+          )}
 
-      {/* SECTION 2: PROBLEM */}
-      <section style={{ backgroundColor: '#F4F6FB', paddingTop: '80px', paddingBottom: '80px' }}>
-        <div className="max-w-7xl mx-auto px-6">
-          {/* Eyebrow */}
-          <div
-            className="inline-block mb-4 px-3 py-1 rounded-full"
-            style={{
-              backgroundColor: 'rgba(0, 184, 169, 0.1)',
-              fontSize: '11px',
-              fontWeight: 700,
-              letterSpacing: '0.1em',
-              textTransform: 'uppercase',
-              color: '#00B8A9',
-            }}
+          <h1
+            className="text-5xl md:text-7xl font-display font-bold text-white mb-6 animate-fade-up leading-tight"
+            style={{ animationDelay: "0.1s" }}
           >
-            The problem
-          </div>
+            Stop Applying to Jobs.
+            <br />
+            <span className="text-gradient-teal">Your AI Does It For You.</span>
+          </h1>
 
-          {/* H2 */}
-          <h2
-            className="mb-4 font-bold"
-            style={{
-              fontSize: '36px',
-              letterSpacing: '-0.02em',
-              lineHeight: 1.2,
-              color: '#0A1628',
-            }}
-          >
-            Your career is scattered across too many platforms
-          </h2>
-
-          {/* Sub */}
           <p
-            className="mb-12 max-w-2xl"
-            style={{
-              fontSize: '15px',
-              lineHeight: 1.78,
-              color: '#4B5563',
-            }}
+            className="text-xl md:text-2xl text-white/70 max-w-3xl mx-auto mb-10 animate-fade-up leading-relaxed"
+            style={{ animationDelay: "0.2s" }}
           >
-            From job boards to gig platforms to spreadsheets, managing your career means
-            juggling dozens of tools and losing track of opportunities.
+            iCareerOS finds matching jobs, optimizes your resume for each one,
+            writes cover letters, and applies — all while you sleep.
           </p>
 
-          {/* 2x2 Grid */}
-          <div className="grid md:grid-cols-2 gap-6">
-            {[
-              {
-                title: 'Searching manually',
-                desc: 'You waste hours scrolling job boards and platforms to find roles that match your skills.',
-              },
-              {
-                title: 'Managing gigs separately',
-                desc: 'Freelance and gig opportunities live in different systems, making it hard to track pipeline.',
-              },
-              {
-                title: 'Rewriting resumes repeatedly',
-                desc: 'Each application requires tweaking your resume for ATS compliance and keyword matching.',
-              },
-              {
-                title: 'Tracking everything manually',
-                desc: 'Spreadsheets and notes fall out of sync, causing missed deadlines and lost opportunities.',
-              },
-            ].map((item, idx) => (
+          <div
+            className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-up"
+            style={{ animationDelay: "0.3s" }}
+          >
+            <Button
+              size="lg"
+              className="gradient-teal text-white font-semibold text-lg px-8 py-6 rounded-xl shadow-teal hover:opacity-90 transition-opacity animate-pulse-glow"
+              onClick={() => navigate(user ? "/dashboard" : AUTH_LOGIN)}
+            >
+              <Bot className="mr-2 w-5 h-5" />
+              {user ? "Go to Dashboard" : "Activate My Job Agent"}
+            </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              className="border-white/30 text-white bg-white/10 hover:bg-white/20 text-lg px-8 py-6 rounded-xl backdrop-blur-sm"
+              onClick={() => navigate("/job-seeker?demo=true")}
+            >
+              <Play className="mr-2 w-5 h-5" />
+              Try Demo — No Sign Up
+            </Button>
+          </div>
+
+          {/* Stats row */}
+          <div
+            className="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-16 animate-fade-up"
+            style={{ animationDelay: "0.4s" }}
+          >
+            {stats.map((stat) => (
               <div
-                key={idx}
-                className="p-6 rounded-2xl"
-                style={{
-                  backgroundColor: 'white',
-                  border: '1px solid rgba(0, 0, 0, 0.05)',
-                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.06), 0 6px 20px rgba(0, 0, 0, 0.05)',
-                }}
+                key={stat.value}
+                className="glass rounded-2xl p-6 border border-white/10"
               >
-                <div
-                  className="w-3 h-3 rounded-full mb-4"
-                  style={{ backgroundColor: '#ef4444' }}
-                />
-                <h3
-                  className="mb-2 font-semibold"
-                  style={{
-                    fontSize: '16px',
-                    color: '#0A1628',
-                  }}
-                >
-                  {item.title}
-                </h3>
-                <p
-                  style={{
-                    fontSize: '15px',
-                    lineHeight: 1.6,
-                    color: '#4B5563',
-                  }}
-                >
-                  {item.desc}
-                </p>
+                <div className="text-3xl font-display font-bold text-teal-400 mb-2">
+                  {stat.value}
+                </div>
+                <div className="text-white/60 text-sm leading-snug">
+                  {stat.label}
+                </div>
               </div>
             ))}
           </div>
+
+          {/* Live job count */}
+          {totalJobCount > 0 && (
+            <div
+              className="mt-6 text-white/40 text-sm animate-fade-up"
+              style={{ animationDelay: "0.5s" }}
+            >
+              <Globe className="w-3.5 h-3.5 inline mr-1" />
+              {totalJobCount.toLocaleString()} jobs in database · Updated daily
+            </div>
+          )}
+        </div>
+
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-white/40 text-xs animate-bounce">
+          <div className="w-px h-8 bg-gradient-to-b from-transparent to-white/30" />
+          scroll
         </div>
       </section>
 
-      {/* SECTION 3: SOLUTION */}
-      <section style={{ backgroundColor: 'white', paddingTop: '80px', paddingBottom: '80px' }}>
-        <div className="max-w-7xl mx-auto px-6">
-          {/* Eyebrow */}
-          <div
-            className="inline-block mb-4 px-3 py-1 rounded-full"
-            style={{
-              backgroundColor: 'rgba(0, 184, 169, 0.1)',
-              fontSize: '11px',
-              fontWeight: 700,
-              letterSpacing: '0.1em',
-              textTransform: 'uppercase',
-              color: '#00B8A9',
-            }}
-          >
-            The solution
+      {/* ═══════════════ HOW IT WORKS ═══════════════ */}
+      <section className="bg-background py-24 px-6">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-display font-bold text-primary mb-4">
+              Three Steps to{" "}
+              <span className="text-gradient-teal">Your Next Interview</span>
+            </h2>
+            <p className="text-muted-foreground text-lg">
+              Zero manual effort. Your AI agent handles everything.
+            </p>
           </div>
 
-          {/* H2 */}
-          <h2
-            className="mb-4 font-bold"
-            style={{
-              fontSize: '36px',
-              letterSpacing: '-0.02em',
-              lineHeight: 1.2,
-              color: '#0A1628',
-            }}
-          >
-            One system to run your entire career
-          </h2>
-
-          {/* Body + Supporting */}
-          <p
-            className="mb-2 max-w-2xl"
-            style={{
-              fontSize: '15px',
-              lineHeight: 1.78,
-              color: '#4B5563',
-            }}
-          >
-            iCareerOS centralizes opportunities and automates your career growth with AI agents
-            that work 24/7.
-          </p>
-          <div
-            className="mb-12 pb-4 border-b-2"
-            style={{
-              borderColor: '#00B8A9',
-              color: '#00B8A9',
-            }}
-          >
-            <span
-              style={{
-                fontSize: '15px',
-                fontWeight: 500,
-              }}
-            >
-              From discovery to execution in one place
-            </span>
-          </div>
-
-          {/* Pipeline Flow */}
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-2">
-            {[
-              { icon: Search, label: 'Discover', sub: 'Find opportunities' },
-              { icon: Sparkles, label: 'Analyze', sub: 'Score your fit' },
-              { icon: Zap, label: 'Optimize', sub: 'Enhance profile' },
-              { icon: ArrowRight, label: 'Execute', sub: 'Auto-apply' },
-              { icon: TrendingUp, label: 'Grow', sub: 'Track progress' },
-            ].map((step, idx) => (
-              <div key={idx} className="flex-1 flex flex-col md:flex-row items-center gap-4">
-                <div className="flex flex-col items-center md:items-start gap-2 w-full">
-                  <div
-                    className="flex items-center justify-center rounded-lg"
-                    style={{
-                      width: '44px',
-                      height: '44px',
-                      backgroundColor: '#00B8A9',
-                      color: 'white',
-                    }}
-                  >
-                    <step.icon size={20} />
-                  </div>
-                  <h4
-                    className="font-bold text-center md:text-left"
-                    style={{
-                      fontSize: '14px',
-                      color: '#0A1628',
-                    }}
-                  >
-                    {step.label}
-                  </h4>
-                  <p
-                    className="text-center md:text-left"
-                    style={{
-                      fontSize: '12px',
-                      color: '#9CA3AF',
-                    }}
-                  >
-                    {step.sub}
-                  </p>
+          <div className="grid md:grid-cols-3 gap-8">
+            {howItWorks.map((step, i) => (
+              <div key={i} className="relative text-center group">
+                <div className="w-16 h-16 gradient-teal rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-teal group-hover:scale-110 transition-transform">
+                  <step.icon className="w-7 h-7 text-white" />
                 </div>
-                {idx < 4 && (
-                  <div
-                    className="hidden md:block"
-                    style={{
-                      width: '16px',
-                      height: '1px',
-                      backgroundColor: '#E5E7EB',
-                      marginLeft: '8px',
-                    }}
-                  />
+                <div className="absolute -top-2 -right-2 md:right-4 w-8 h-8 rounded-full bg-primary text-primary-foreground text-sm font-bold flex items-center justify-center">
+                  {step.step}
+                </div>
+                <h3 className="font-display text-xl font-bold text-primary mb-2">
+                  {step.title}
+                </h3>
+                <p className="text-muted-foreground text-sm leading-relaxed">
+                  {step.desc}
+                </p>
+                {i < 2 && (
+                  <ChevronRight className="hidden md:block absolute top-8 -right-5 w-6 h-6 text-accent/40" />
                 )}
               </div>
             ))}
           </div>
-        </div>
-      </section>
 
-      {/* SECTION 4: HOW IT WORKS */}
-      <section style={{ backgroundColor: '#F4F6FB', paddingTop: '80px', paddingBottom: '80px' }}>
-        <div className="max-w-7xl mx-auto px-6">
-          {/* Eyebrow */}
-          <div
-            className="inline-block mb-4 px-3 py-1 rounded-full"
-            style={{
-              backgroundColor: 'rgba(0, 184, 169, 0.1)',
-              fontSize: '11px',
-              fontWeight: 700,
-              letterSpacing: '0.1em',
-              textTransform: 'uppercase',
-              color: '#00B8A9',
-            }}
-          >
-            How it works
-          </div>
-
-          {/* H2 */}
-          <h2
-            className="mb-4 font-bold"
-            style={{
-              fontSize: '36px',
-              letterSpacing: '-0.02em',
-              lineHeight: 1.2,
-              color: '#0A1628',
-            }}
-          >
-            Your career, powered by AI agents
-          </h2>
-
-          {/* Sub */}
-          <p
-            className="mb-12 max-w-2xl"
-            style={{
-              fontSize: '15px',
-              lineHeight: 1.78,
-              color: '#4B5563',
-            }}
-          >
-            Each step of your career journey is optimized by dedicated AI agents working in
-            perfect sync.
-          </p>
-
-          {/* Vertical Spine List */}
-          <div
-            className="mx-auto"
-            style={{
-              maxWidth: '580px',
-            }}
-          >
-            {[
-              {
-                title: 'Profile Setup',
-                desc: 'Connect your resume, skills, and preferences. Our system learns what matters to you.',
-              },
-              {
-                title: 'Opportunity Discovery',
-                desc: 'Agents scan 100+ job boards and gig platforms for roles aligned with your goals.',
-              },
-              {
-                title: 'Intelligent Matching',
-                desc: 'Each opportunity is scored on culture fit, growth potential, and compensation match.',
-              },
-              {
-                title: 'Profile Optimization',
-                desc: 'Your resume and LinkedIn are auto-tailored with relevant keywords and achievements.',
-              },
-              {
-                title: 'Automated Application',
-                desc: 'One-click applications or automated submission with personalized cover letters.',
-              },
-            ].map((step, idx) => (
-              <div
-                key={idx}
-                style={{
-                  paddingBottom: '32px',
-                  borderBottom: idx < 4 ? '1px solid #E5E7EB' : 'none',
-                }}
-              >
-                <div className="flex gap-4">
-                  <div
-                    className="flex items-center justify-center flex-shrink-0 rounded-lg text-white font-bold"
-                    style={{
-                      width: '34px',
-                      height: '34px',
-                      backgroundColor: '#00B8A9',
-                      fontSize: '14px',
-                    }}
-                  >
-                    {idx + 1}
-                  </div>
-                  <div>
-                    <h4
-                      className="mb-2 font-semibold"
-                      style={{
-                        fontSize: '16px',
-                        color: '#0A1628',
-                      }}
-                    >
-                      {step.title}
-                    </h4>
-                    <p
-                      style={{
-                        fontSize: '15px',
-                        lineHeight: 1.6,
-                        color: '#4B5563',
-                      }}
-                    >
-                      {step.desc}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* SECTION 5: FEATURES */}
-      <section style={{ backgroundColor: 'white', paddingTop: '80px', paddingBottom: '80px' }}>
-        <div className="max-w-7xl mx-auto px-6">
-          {/* Eyebrow */}
-          <div
-            className="inline-block mb-4 px-3 py-1 rounded-full"
-            style={{
-              backgroundColor: 'rgba(0, 184, 169, 0.1)',
-              fontSize: '11px',
-              fontWeight: 700,
-              letterSpacing: '0.1em',
-              textTransform: 'uppercase',
-              color: '#00B8A9',
-            }}
-          >
-            Features
-          </div>
-
-          {/* H2 */}
-          <h2
-            className="mb-4 font-bold"
-            style={{
-              fontSize: '36px',
-              letterSpacing: '-0.02em',
-              lineHeight: 1.2,
-              color: '#0A1628',
-            }}
-          >
-            Built for modern careers
-          </h2>
-
-          {/* Sub */}
-          <p
-            className="mb-12 max-w-2xl"
-            style={{
-              fontSize: '15px',
-              lineHeight: 1.78,
-              color: '#4B5563',
-            }}
-          >
-            Everything you need to manage jobs, gigs, and projects in one unified platform.
-          </p>
-
-          {/* 3x2 Grid */}
-          <div className="grid md:grid-cols-3 gap-6">
-            {[
-              {
-                icon: Target,
-                title: 'Smart Matching',
-                desc: 'AI scores every opportunity based on your unique fit and preferences.',
-                color: '#00B8A9',
-              },
-              {
-                icon: Bot,
-                title: 'Opportunity Pipeline',
-                desc: 'Centralized view of all applications, proposals, and progress across platforms.',
-                color: '#00B8A9',
-              },
-              {
-                icon: BarChart3,
-                title: 'Career Analytics',
-                desc: 'Track your growth with detailed metrics on applications, offers, and earnings.',
-                color: '#00B8A9',
-              },
-              {
-                icon: Globe,
-                title: 'Profile Optimization',
-                desc: 'Auto-tailor your resume and profiles with high-impact keywords and achievements.',
-                color: '#F5A623',
-              },
-              {
-                icon: Shield,              title: 'Intelligent Negotiation',
-                desc: 'Get real-time insights on market rates and negotiation tips for every offer.',
-                color: '#F5A623',
-              },
-              {
-                icon: Briefcase,
-                title: 'Multi-Portfolio Support',
-                desc: 'Manage multiple career profiles and scenarios simultaneously.',
-                color: '#8B5CF6',
-              },
-            ].map((feature, idx) => (
-              <div
-                key={idx}
-                className="p-6 rounded-2xl transition hover:shadow-xl"
-                style={{
-                  backgroundColor: 'white',
-                  border: '1px solid rgba(0, 0, 0, 0.05)',
-                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.06), 0 6px 20px rgba(0, 0, 0, 0.05)',
-                  cursor: 'pointer',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.boxShadow =
-                    '0 1px 3px rgba(0, 0, 0, 0.06), 0 20px 40px rgba(0, 0, 0, 0.1)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.boxShadow =
-                    '0 1px 3px rgba(0, 0, 0, 0.06), 0 6px 20px rgba(0, 0, 0, 0.05)';
-                }}
-              >
-                <div
-                  className="flex items-center justify-center rounded-lg mb-4"
-                  style={{
-                    width: '38px',
-                    height: '38px',
-                    backgroundColor: `${feature.color}20`,
-                    color: feature.color,
-                  }}
-                >
-                  <feature.icon size={18} />
-                </div>
-                <h3
-                  className="mb-2 font-semibold"
-                  style={{
-                    fontSize: '16px',
-                    color: '#0A1628',
-                  }}
-                >
-                  {feature.title}
-                </h3>
-                <p
-                  style={{
-                    fontSize: '14px',
-                    lineHeight: 1.6,
-                    color: '#4B5563',
-                  }}
-                >
-                  {feature.desc}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* SECTION 6: COMPARISON TABLE */}
-      <section style={{ backgroundColor: '#F4F6FB', paddingTop: '80px', paddingBottom: '80px' }}>
-        <div className="max-w-7xl mx-auto px-6">
-          {/* Eyebrow */}
-          <div
-            className="inline-block mb-4 px-3 py-1 rounded-full"
-            style={{
-              backgroundColor: 'rgba(0, 184, 169, 0.1)',
-              fontSize: '11px',
-              fontWeight: 700,
-              letterSpacing: '0.1em',
-              textTransform: 'uppercase',
-              color: '#00B8A9',
-            }}
-          >
-            Why iCareerOS
-          </div>
-
-          {/* H2 */}
-          <h2
-            className="mb-4 font-bold"
-            style={{
-              fontSize: '36px',
-              letterSpacing: '-0.02em',
-              lineHeight: 1.2,
-              color: '#0A1628',
-            }}
-          >
-            How we compare
-          </h2>
-
-          {/* Sub */}
-          <p
-            className="mb-12 max-w-2xl"
-            style={{
-              fontSize: '15px',
-              lineHeight: 1.78,
-              color: '#4B5563',
-            }}
-          >
-            A comprehensive comparison of career management tools.
-          </p>
-
-          {/* Table */}
-          <div className="overflow-x-auto">
-            <table
-              style={{
-                width: '100%',
-                borderCollapse: 'collapse',
-              }}
+          <div className="text-center mt-12">
+            <Button
+              size="lg"
+              className="gradient-teal text-white font-semibold shadow-teal hover:opacity-90 px-8 py-6 text-lg"
+              onClick={() => navigate(user ? "/job-seeker" : AUTH_LOGIN)}
             >
-              <thead>
-                <tr style={{ borderBottom: '1px solid #E5E7EB' }}>
-                  <th
-                    style={{
-                      padding: '16px',
-                      textAlign: 'left',
-                      fontSize: '14px',
-                      fontWeight: 600,
-                      color: '#0A1628',
-                    }}
-                  >
-                    Capability
-                  </th>
-                  <th
-                    style={{
-                      padding: '16px',
-                      textAlign: 'center',
-                      fontSize: '14px',
-                      fontWeight: 600,
-                      color: '#0A1628',
-                    }}
-                  >
-                    Job Boards
-                  </th>
-                  <th
-                    style={{
-                      padding: '16px',
-                      textAlign: 'center',
-                      fontSize: '14px',
-                      fontWeight: 600,
-                      color: '#0A1628',
-                    }}
-                  >
-                    Gig Platforms
-                  </th>
-                  <th
-                    style={{
-                      padding: '16px',
-                      textAlign: 'center',
-                      fontSize: '14px',
-                      fontWeight: 600,
-                      color: 'white',
-                      backgroundColor: 'rgba(0, 184, 169, 0.1)',
-                    }}
-                  >
-                    iCareerOS
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {[
-                  { name: 'AI Opportunity Discovery', job: false, gig: false, ice: true },
-                  { name: 'Profile Optimization', job: false, gig: false, ice: true },
-                  { name: 'Automated Applications', job: false, gig: false, ice: true },
-                  { name: 'Unified Dashboard', job: false, gig: false, ice: true },
-                  { name: 'Match Scoring', job: false, gig: 'partial', ice: true },
-                  { name: 'Multi-Channel Tracking', job: false, gig: false, ice: true },
-                ].map((row, idx) => (
-                  <tr key={idx} style={{ borderBottom: '1px solid #E5E7EB' }}>
-                    <td
-                      style={{
-                        padding: '16px',
-                        fontSize: '14px',
-                        color: '#0A1628',
-                        fontWeight: 500,
-                      }}
-                    >
-                      {row.name}
-                    </td>
-                    <td style={{ padding: '16px', textAlign: 'center' }}>
-                      {row.job ? (
-                        <CheckCircle size={18} color="#10b981" />
-                      ) : (
-                        <X size={18} color="#ef4444" />
-                      )}
-                    </td>
-                    <td style={{ padding: '16px', textAlign: 'center' }}>
-                      {row.gig === true ? (
-                        <CheckCircle size={18} color="#10b981" />
-                      ) : row.gig === 'partial' ? (
-                        <Minus size={18} color="#f59e0b" />
-                      ) : (
-                        <X size={18} color="#ef4444" />
-                      )}
-                    </td>
-                    <td
-                      style={{
-                        padding: '16px',
-                        textAlign: 'center',
-                        backgroundColor: 'rgba(0, 184, 169, 0.05)',
-                      }}
-                    >
-                      {row.ice && <CheckCircle size={18} color="#00B8A9" />}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+              <Upload className="mr-2 w-5 h-5" />
+              Upload Resume Now
+            </Button>
           </div>
         </div>
       </section>
 
-      {/* SECTION 7: SOCIAL PROOF */}
-      <section style={{ backgroundColor: 'white', paddingTop: '80px', paddingBottom: '80px' }}>
-        <div className="max-w-7xl mx-auto px-6">
-          {/* Eyebrow */}
-          <div
-            className="inline-block mb-4 px-3 py-1 rounded-full"
-            style={{
-              backgroundColor: 'rgba(0, 184, 169, 0.1)',
-              fontSize: '11px',
-              fontWeight: 700,
-              letterSpacing: '0.1em',
-              textTransform: 'uppercase',
-              color: '#00B8A9',
-            }}
-          >
-            Social Proof
-          </div>
-
-          {/* H2 */}
-          <h2
-            className="mb-12 font-bold"
-            style={{
-              fontSize: '36px',
-              letterSpacing: '-0.02em',
-              lineHeight: 1.2,
-              color: '#0A1628',
-            }}
-          >
-            Trusted by career-focused professionals
-          </h2>
-
-          {/* Stats Bar */}
-          <div className="grid md:grid-cols-3 gap-8 mb-12 pb-12 border-b border-gray-200">
-            {[
-              { stat: '44+', label: 'Job Boards Integrated' },
-              { stat: '100%', label: 'Opportunity Coverage' },
-              { stat: '5', label: 'AI Agents Working' },
-            ].map((item, idx) => (
-              <div key={idx} className="text-center">
-                <p
-                  className="mb-2 font-bold"
-                  style={{
-                    fontSize: '32px',
-                    color: '#0A1628',
-                  }}
-                >
-                  {item.stat}
-                </p>
-                <p
-                  style={{
-                    fontSize: '14px',
-                    color: '#4B5563',
-                  }}
-                >
-                  {item.label}
-                </p>
-              </div>
-            ))}
-          </div>
-
-          {/* Testimonials */}
-          <div className="grid md:grid-cols-3 gap-6">
-            {[
-              {
-                quote:
-                  "iCareerOS saved me hundreds of hours applying to jobs. I went from 2 interviews a month to 8 qualified leads.",
-                name: 'Alex Chen',
-                title: 'Product Manager',
-              },
-              {
-                quote:
-                  "The AI profile optimizer got my resume in front of more hiring managers in 2 weeks than LinkedIn did in 6 months.",
-                name: 'Sarah Williams',
-                title: 'UX Designer',
-              },
-              {
-                quote:
-                  "Managing freelance gigs alongside full-time job search was impossible until iCareerOS unified everything.",
-                name: 'Marcus Johnson',
-                title: 'Full-Stack Developer',
-              },
-            ].map((testimonial, idx) => (
-              <div
-                key={idx}
-                className="p-6 rounded-2xl"
-                style={{
-                  backgroundColor: 'white',
-                  border: '1px solid rgba(0, 0, 0, 0.05)',
-                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.06), 0 6px 20px rgba(0, 0, 0, 0.05)',
-                }}
-              >
-                <p
-                  className="mb-4 italic"
-                  style={{
-                    fontSize: '15px',
-                    lineHeight: 1.6,
-                    color: '#4B5563',
-                  }}
-                >
-                  "{testimonial.quote}"
-                </p>
-                <p
-                  className="font-semibold"
-                  style={{
-                    fontSize: '14px',
-                    color: '#0A1628',
-                    marginBottom: '2px',
-                  }}
-                >
-                  {testimonial.name}
-                </p>
-                <p
-                  style={{
-                    fontSize: '13px',
-                    color: '#9CA3AF',
-                  }}
-                >
-                  {testimonial.title}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* SECTION 8: VISION (Dark) */}
-      <section style={{ backgroundColor: '#0A1628', paddingTop: '80px', paddingBottom: '80px' }}>
-        <div className="max-w-7xl mx-auto px-6">
-          {/* Eyebrow */}
-          <div
-            className="inline-block mb-4 px-3 py-1 rounded-full"
-            style={{
-              backgroundColor: 'rgba(0, 184, 169, 0.15)',
-              fontSize: '11px',
-              fontWeight: 700,
-              letterSpacing: '0.1em',
-              textTransform: 'uppercase',
-              color: '#00B8A9',
-            }}
-          >
-            The Future
-          </div>
-
-          {/* H2 */}
-          <h2
-            className="mb-12 font-bold"
-            style={{
-              fontSize: '36px',
-              letterSpacing: '-0.02em',
-              lineHeight: 1.2,
-              color: 'white',
-            }}
-          >
-            Your complete career operating system
-          </h2>
-
-          {/* 4-Column Grid */}
-          <div className="grid md:grid-cols-4 gap-6">
-            {[
-              {
-                title: 'AI-Powered Discovery',
-                desc: 'Agents continuously scan global markets for opportunities aligned with your aspirations.',
-              },
-              {
-                title: 'Real-Time Intelligence',
-                desc: 'Get market insights, salary data, and competitive analysis for every opportunity.',
-              },
-              {
-                title: 'Automated Execution',
-                desc: 'From application to negotiation, AI handles the operational tasks so you focus on growth.',
-              },
-              {
-                title: 'Lifetime Growth Tracking',
-                desc: 'Build a comprehensive career history with analytics on every opportunity and outcome.',
-              },
-            ].map((card, idx) => (
-              <div
-                key={idx}
-                className="p-6 rounded-2xl"
-                style={{
-                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                }}
-              >
-                <h3
-                  className="mb-3 font-semibold"
-                  style={{
-                    fontSize: '16px',
-                    color: 'white',
-                  }}
-                >
-                  {card.title}
-                </h3>
-                <p
-                  style={{
-                    fontSize: '14px',
-                    lineHeight: 1.6,
-                    color: 'rgba(255, 255, 255, 0.6)',
-                  }}
-                >
-                  {card.desc}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* SECTION 9: FINAL CTA */}
-      <section style={{ backgroundColor: 'white', paddingTop: '80px', paddingBottom: '80px' }}>
-        <div className="max-w-4xl mx-auto px-6 text-center">
-          {/* Chip */}
-          <div
-            className="inline-block mb-4 px-3 py-1 rounded-full"
-            style={{
-              backgroundColor: 'rgba(0, 184, 169, 0.1)',
-              fontSize: '11px',
-              fontWeight: 700,
-              letterSpacing: '0.1em',
-              textTransform: 'uppercase',
-              color: '#00B8A9',
-            }}
-          >
-            Get Started
-          </div>
-
-          {/* H2 */}
-          <h2
-            className="mb-4 font-bold"
-            style={{
-              fontSize: '36px',
-              letterSpacing: '-0.02em',
-              lineHeight: 1.2,
-              color: '#0A1628',
-            }}
-          >
-            Ready to automate your career?
-          </h2>
-
-          {/* Teal Line */}
-          <div
-            className="mx-auto mb-6"
-            style={{
-              width: '60px',
-              height: '3px',
-              backgroundColor: '#00B8A9',
-            }}
-          />
-
-          {/* Body */}
-          <p
-            className="mb-8"
-            style={{
-              fontSize: '15px',
-              lineHeight: 1.78,
-              color: '#4B5563',
-            }}
-          >
-            Join hundreds of professionals leveraging AI to manage their entire career across
-            jobs, gigs, and projects.
-          </p>
-
-          {/* Button */}
-          <Link
-            to="/auth/signup"
-            className="inline-block px-8 py-4 font-medium text-white rounded-lg transition"
-            style={{
-              fontSize: '15px',
-              backgroundColor: '#00B8A9',
-              boxShadow: '0 2px 10px rgba(0, 184, 169, 0.3)',
-              padding: '14px 30px',
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#00a598')}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#00B8A9')}
-          >
-            Get started free
-          </Link>
-
-          {/* Fine Print */}
-          <p
-            className="mt-6"
-            style={{
-              fontSize: '12px',
-              color: '#9CA3AF',
-              lineHeight: 1.5,
-            }}
-          >
-            No credit card required Â· Takes 2 minutes to set up
-          </p>
-        </div>
-      </section>
-
-      {/* SECTION 10: FOOTER */}
-      <footer
-        style={{
-          backgroundColor: '#F4F6FB',
-          borderTop: '1px solid rgba(0,0,0,0.07)',
-          paddingTop: '60px',
-          paddingBottom: '0',
-        }}
-      >
-        <div className="max-w-7xl mx-auto px-6">
-          <div
-            className="grid md:grid-cols-4 gap-8 pb-12"
-            style={{ maxWidth: '900px', margin: '0 auto' }}
-          >
-            {/* Column 1: Logo + tagline */}
-            <div className="md:col-span-1">
-              <div style={{ fontSize: '17px', fontWeight: 800, color: '#0A1628', marginBottom: '12px' }}>
-                i<span style={{ color: '#00B8A9' }}>Career</span>OS
-              </div>
-              <p style={{ fontSize: '13px', color: '#4B5563', lineHeight: 1.6, marginBottom: '12px' }}>
-                The operating system for your career. Runs continuously. Gets smarter over time.
-              </p>
-              <p style={{ fontSize: '12px', color: '#9CA3AF' }}>icareeros.com</p>
-            </div>
-
-            {/* Column 2: Product */}
-            <div>
-              <h4 className="mb-4 font-semibold" style={{ fontSize: '14px', color: '#0A1628' }}>
-                Product
-              </h4>
-              <ul className="space-y-2">
-                {['Features', 'How it works', 'Pricing', 'Chrome Extension'].map((link, i) => (
-                  <li key={i}>
-                    <a
-                      href="#"
-                      style={{ fontSize: '14px', color: '#4B5563', textDecoration: 'none' }}
-                      onMouseEnter={(e) => { e.currentTarget.style.color = '#00B8A9'; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.color = '#4B5563'; }}
-                    >
-                      {link}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Column 3: Company */}
-            <div>
-              <h4 className="mb-4 font-semibold" style={{ fontSize: '14px', color: '#0A1628' }}>
-                Company
-              </h4>
-              <ul className="space-y-2">
-                {['About', 'Mission', 'Careers', 'Contact'].map((link, i) => (
-                  <li key={i}>
-                    <a
-                      href="#"
-                      style={{ fontSize: '14px', color: '#4B5563', textDecoration: 'none' }}
-                      onMouseEnter={(e) => { e.currentTarget.style.color = '#00B8A9'; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.color = '#4B5563'; }}
-                    >
-                      {link}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Column 4: Legal */}
-            <div>
-              <h4 className="mb-4 font-semibold" style={{ fontSize: '14px', color: '#0A1628' }}>
-                Legal
-              </h4>
-              <ul className="space-y-2">
-                {['Privacy Policy', 'Terms of Use', 'Cookies', 'Security'].map((link, i) => (
-                  <li key={i}>
-                    <a
-                      href="#"
-                      style={{ fontSize: '14px', color: '#4B5563', textDecoration: 'none' }}
-                      onMouseEnter={(e) => { e.currentTarget.style.color = '#00B8A9'; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.color = '#4B5563'; }}
-                    >
-                      {link}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        {/* Bottom Bar */}
-        <div
-          style={{ borderTop: '1px solid rgba(0,0,0,0.07)' }}
-        >
-          <div
-            className="max-w-7xl mx-auto px-6 py-6 flex flex-col md:flex-row justify-between items-center gap-4"
-          >
-            <p style={{ fontSize: '12px', color: '#9CA3AF' }}>
-              &copy; 2026 iCareerOS &middot; Intelligent Career Operating System
+      {/* ═══════════════ INTERACTIVE DEMO ═══════════════ */}
+      <section className="bg-card py-24 px-6 border-y border-border">
+        <div className="max-w-3xl mx-auto">
+          <div className="text-center mb-10">
+            <h2 className="text-4xl font-display font-bold text-primary mb-4">
+              Try It <span className="text-gradient-teal">Right Now</span>
+            </h2>
+            <p className="text-muted-foreground text-lg">
+              Paste any job description and instantly see your fit score and
+              resume improvements.
             </p>
-            <p style={{ fontSize: '12px', color: '#9CA3AF' }}>icareeros.com</p>
+          </div>
+
+          <div className="bg-background rounded-2xl p-6 border border-border shadow-card space-y-4">
+            <Textarea
+              value={demoJobDesc}
+              onChange={(e) => setDemoJobDesc(e.target.value)}
+              placeholder="Paste a job description here to see your fit score instantly..."
+              className="min-h-[120px] resize-none"
+            />
+            <Button
+              className="gradient-teal text-white shadow-teal hover:opacity-90 w-full"
+              disabled={demoLoading || !demoJobDesc.trim()}
+              onClick={handleDemoAnalyze}
+            >
+              {demoLoading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  Analyzing...
+                </>
+              ) : (
+                <>
+                  <Zap className="w-4 h-4 mr-2" />
+                  Instant Fit Score
+                </>
+              )}
+            </Button>
+
+            {demoResult && (
+              <div className="bg-card rounded-xl p-5 border border-border space-y-4 animate-fade-in">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm text-muted-foreground">
+                      Your Fit Score
+                    </div>
+                    <div
+                      className={`text-4xl font-display font-bold ${
+                        demoResult.score >= 70
+                          ? "text-success"
+                          : demoResult.score >= 45
+                          ? "text-warning"
+                          : "text-destructive"
+                      }`}
+                    >
+                      {demoResult.score}%
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm text-muted-foreground">
+                      Interview Probability
+                    </div>
+                    <div
+                      className={`text-2xl font-display font-bold ${
+                        demoResult.probability >= 50
+                          ? "text-success"
+                          : "text-warning"
+                      }`}
+                    >
+                      {demoResult.probability}%
+                    </div>
+                  </div>
+                </div>
+
+                {demoResult.improvements.length > 0 && (
+                  <div>
+                    <div className="text-sm font-semibold text-primary mb-2">
+                      Top Improvements
+                    </div>
+                    <ul className="space-y-1.5">
+                      {demoResult.improvements.map((imp, i) => (
+                        <li
+                          key={i}
+                          className="text-sm text-muted-foreground flex items-start gap-2"
+                        >
+                          <TrendingUp className="w-3.5 h-3.5 text-accent mt-0.5 flex-shrink-0" />
+                          {imp}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                <Button
+                  className="gradient-teal text-white shadow-teal hover:opacity-90 w-full"
+                  onClick={() => navigate(user ? "/job-seeker" : AUTH_LOGIN)}
+                >
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Get Full Analysis & Optimized Resume
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════ BEFORE VS AFTER ═══════════════ */}
+      <section className="bg-background py-24 px-6">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-display font-bold text-primary mb-4">
+              See the <span className="text-gradient-teal">AI Difference</span>
+            </h2>
+            <p className="text-muted-foreground text-lg">
+              One click transforms your resume from generic to interview-ready.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* Before */}
+            <div className="bg-card rounded-2xl p-6 border border-destructive/20 shadow-card">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-8 h-8 rounded-lg bg-destructive/10 flex items-center justify-center">
+                  <X className="w-4 h-4 text-destructive" />
+                </div>
+                <div>
+                  <h3 className="font-display font-bold text-destructive">
+                    Before
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    Generic resume — 42% match
+                  </p>
+                </div>
+              </div>
+              <div className="bg-muted/30 rounded-xl p-4 border border-border text-sm space-y-2 font-mono text-muted-foreground">
+                <p>• Managed IT systems and networks</p>
+                <p>• Responsible for security compliance</p>
+                <p>• Worked with cloud platforms</p>
+                <p>• Handled incident response</p>
+                <p className="text-destructive/60 text-xs mt-3">
+                  Missing keywords: SIEM, Zero Trust, NIST, SOC 2
+                </p>
+              </div>
+            </div>
+
+            {/* After */}
+            <div className="bg-card rounded-2xl p-6 border border-success/20 shadow-card">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-8 h-8 rounded-lg bg-success/10 flex items-center justify-center">
+                  <Check className="w-4 h-4 text-success" />
+                </div>
+                <div>
+                  <h3 className="font-display font-bold text-success">
+                    After
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    ATS-optimized — 87% match
+                  </p>
+                </div>
+              </div>
+              <div className="bg-muted/30 rounded-xl p-4 border border-border text-sm space-y-2 font-mono text-foreground">
+                <p>
+                  • Architected{" "}
+                  <span className="text-accent font-semibold">Zero Trust</span>{" "}
+                  security framework across hybrid cloud infrastructure
+                </p>
+                <p>
+                  • Led{" "}
+                  <span className="text-accent font-semibold">NIST 800-53</span>{" "}
+                  compliance achieving{" "}
+                  <span className="text-accent font-semibold">SOC 2</span> Type
+                  II certification
+                </p>
+                <p>
+                  • Deployed{" "}
+                  <span className="text-accent font-semibold">SIEM</span>{" "}
+                  solution reducing incident response time by 65%
+                </p>
+                <p className="text-success/80 text-xs mt-3">
+                  ATS keywords aligned · Interview probability: 72%
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="text-center mt-10">
+            <Button
+              size="lg"
+              className="gradient-teal text-white font-semibold shadow-teal hover:opacity-90 px-8 py-6 text-lg"
+              onClick={() => navigate(user ? "/job-seeker" : AUTH_LOGIN)}
+            >
+              <Sparkles className="mr-2 w-5 h-5" />
+              Optimize My Resume
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════ ALL FEATURES ═══════════════ */}
+      <section className="bg-card py-24 px-6 border-y border-border">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-display font-bold text-primary mb-4">
+              Everything to{" "}
+              <span className="text-gradient-teal">Get You Hired Faster</span>
+            </h2>
+            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+              From discovering opportunities to landing offers — iCareerOS
+              automates your entire job search.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {features.map((f, i) => (
+              <div
+                key={f.title}
+                className="bg-background rounded-2xl p-7 shadow-card border border-border hover:shadow-elevated hover:border-accent/30 transition-all cursor-pointer group"
+                style={{ animationDelay: `${i * 0.1}s` }}
+                onClick={() => navigate(user ? f.link : AUTH_LOGIN)}
+              >
+                <div className="w-11 h-11 gradient-teal rounded-xl flex items-center justify-center mb-5 shadow-teal group-hover:scale-110 transition-transform">
+                  <f.icon className="w-5 h-5 text-white" />
+                </div>
+                <h3 className="font-display text-lg font-bold text-primary mb-2">
+                  {f.title}
+                </h3>
+                <p className="text-muted-foreground text-sm leading-relaxed">
+                  {f.desc}
+                </p>
+                <div className="flex items-center gap-1 text-accent text-sm font-medium mt-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                  Try it <ArrowRight className="w-3.5 h-3.5" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════ COMPARISON TABLE ═══════════════ */}
+      <section className="bg-background py-24 px-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-4xl font-display font-bold text-primary mb-4">
+              Why We're{" "}
+              <span className="text-gradient-teal">
+                Better Than Job Boards
+              </span>
+            </h2>
+            <p className="text-muted-foreground text-lg">
+              Job boards show listings. We help you{" "}
+              <strong>get hired</strong>.
+            </p>
+          </div>
+
+          <div className="bg-card rounded-2xl border border-border shadow-card overflow-hidden">
+            <div className="grid grid-cols-4 gap-0">
+              {/* Header row */}
+              <div className="p-4 border-b border-border font-semibold text-sm text-muted-foreground">
+                Feature
+              </div>
+              <div className="p-4 border-b border-border text-center">
+                <div className="inline-flex items-center gap-1.5">
+                  <div className="w-5 h-5 gradient-teal rounded flex items-center justify-center">
+                    <Target className="w-3 h-3 text-white" />
+                  </div>
+                  <span className="font-display font-bold text-primary text-sm">
+                    iCareerOS
+                  </span>
+                </div>
+              </div>
+              <div className="p-4 border-b border-border text-center font-semibold text-sm text-muted-foreground">
+                Indeed
+              </div>
+              <div className="p-4 border-b border-border text-center font-semibold text-sm text-muted-foreground">
+                ZipRecruiter
+              </div>
+
+              {/* Data rows */}
+              {comparisonRows.map((row, i) => (
+                <div key={row.feature} className="contents">
+                  <div
+                    className={`p-4 text-sm text-foreground ${
+                      i < comparisonRows.length - 1
+                        ? "border-b border-border"
+                        : ""
+                    }`}
+                  >
+                    {row.feature}
+                  </div>
+                  <div
+                    className={`p-4 text-center ${
+                      i < comparisonRows.length - 1
+                        ? "border-b border-border"
+                        : ""
+                    }`}
+                  >
+                    {row.icareeros ? (
+                      <Check className="w-5 h-5 text-success mx-auto" />
+                    ) : (
+                      <X className="w-5 h-5 text-destructive/40 mx-auto" />
+                    )}
+                  </div>
+                  <div
+                    className={`p-4 text-center ${
+                      i < comparisonRows.length - 1
+                        ? "border-b border-border"
+                        : ""
+                    }`}
+                  >
+                    {row.indeed ? (
+                      <Check className="w-5 h-5 text-success mx-auto" />
+                    ) : (
+                      <X className="w-5 h-5 text-destructive/40 mx-auto" />
+                    )}
+                  </div>
+                  <div
+                    className={`p-4 text-center ${
+                      i < comparisonRows.length - 1
+                        ? "border-b border-border"
+                        : ""
+                    }`}
+                  >
+                    {row.zip ? (
+                      <Check className="w-5 h-5 text-success mx-auto" />
+                    ) : (
+                      <X className="w-5 h-5 text-destructive/40 mx-auto" />
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════ FINAL CTA ═══════════════ */}
+      <section className="py-24 px-6" style={{ background: "var(--gradient-hero)" }}>
+        <div className="max-w-4xl mx-auto text-center">
+          <h2 className="text-4xl md:text-5xl font-display font-bold text-white mb-6">
+            Ready to Let AI{" "}
+            <span className="text-gradient-teal">Land Your Next Job?</span>
+          </h2>
+          <p className="text-xl text-white/60 mb-10 max-w-2xl mx-auto">
+            Upload your resume once. Wake up to interview invitations. It's that simple.
+          </p>
+
+          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-6">
+            <Button
+              size="lg"
+              className="gradient-teal text-white font-semibold text-lg px-10 py-6 rounded-xl shadow-teal hover:opacity-90 animate-pulse-glow"
+              onClick={() => navigate(user ? "/dashboard" : AUTH_LOGIN)}
+            >
+              <Bot className="mr-2 w-5 h-5" />
+              {user ? "Go to Dashboard" : "Get Started Free"}
+              <ArrowRight className="ml-2 w-5 h-5" />
+            </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              className="border-white/30 text-white bg-white/10 hover:bg-white/20 text-lg px-8 py-6 rounded-xl backdrop-blur-sm"
+              onClick={() => navigate("/job-seeker?demo=true")}
+            >
+              <Play className="mr-2 w-5 h-5" />
+              Try Demo First
+            </Button>
+          </div>
+
+          <p className="text-white/40 text-sm">
+            No credit card required. Free forever for basic features.
+          </p>
+        </div>
+      </section>
+
+      {/* ═══════════════ MOBILE STICKY CTA ═══════════════ */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-primary/95 backdrop-blur-sm border-t border-white/10 px-4 py-3 flex items-center justify-center gap-3 sm:hidden">
+        <Button
+          size="sm"
+          className="gradient-teal text-white font-semibold shadow-teal text-xs flex-1"
+          onClick={() => navigate(user ? "/job-seeker" : AUTH_LOGIN)}
+        >
+          <Upload className="w-3.5 h-3.5 mr-1" />
+          Upload Resume
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="border-white/30 text-white bg-white/10 text-xs flex-1"
+          onClick={() => navigate(user ? "/job-search" : AUTH_LOGIN)}
+        >
+          <Search className="w-3.5 h-3.5 mr-1" />
+          Find Jobs
+        </Button>
+      </div>
+
+      {/* ═══════════════ FOOTER ═══════════════ */}
+      <footer className="bg-primary py-10 px-6 sm:pb-10 pb-20">
+        <div className="max-w-5xl mx-auto">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 gradient-teal rounded-md flex items-center justify-center">
+                <Target className="w-3 h-3 text-white" />
+              </div>
+              <span className="font-display font-bold text-primary-foreground">
+                iCareerOS
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-4 text-primary-foreground/50 text-sm">
+              <button
+                className="hover:text-primary-foreground transition-colors"
+                onClick={() => navigate("/job-seeker")}
+              >
+                Get Interviews
+              </button>
+              <button
+                className="hover:text-primary-foreground transition-colors"
+                onClick={() => navigate("/job-search")}
+              >
+                Find Jobs
+              </button>
+              <button
+                className="hover:text-primary-foreground transition-colors"
+                onClick={() => navigate("/applications")}
+              >
+                Track
+              </button>
+              <button
+                className="hover:text-primary-foreground transition-colors"
+                onClick={() => navigate("/dashboard")}
+              >
+                Dashboard
+              </button>
+            </div>
+          </div>
+          <div className="border-t border-white/10 pt-4 text-center">
+            <p className="text-primary-foreground/40 text-sm">
+              iCareerOS — Intelligent Career Operating System. Built by Amir
+              Jabri.
+            </p>
           </div>
         </div>
       </footer>
     </div>
+  );
+}
+
+/* ────────────────────── SUB-COMPONENTS ────────────────────── */
+
+function NavBtn({
+  icon,
+  label,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <Button
+      size="sm"
+      variant="ghost"
+      className="text-primary-foreground/70 hover:text-primary-foreground hover:bg-white/10 text-xs gap-1 px-2.5"
+      onClick={onClick}
+    >
+      {icon}
+      <span className="hidden lg:inline">{label}</span>
+    </Button>
   );
 }
