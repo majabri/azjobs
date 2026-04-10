@@ -1,1 +1,44 @@
-{"navigation":{"dashboard":"Tableau de bord","projects":"Projets","proposals":"Propositions","contracts":"Contrats","services":"Services","orders":"Commandes","profile":"Profil","settings":"Paramètres","employer":"Pour les employeurs","talent":"Pour les talents","browse":"Parcourir"},"tabs":{"overview":"Aperçu","active":"Actifs","completed":"Terminés","archived":"Archivés","all":"Tous"}}
+{
+  "navigation": {
+    "missionControl": "Centre de Commande",
+    "opportunityRadar": "Radar d'Opportunites",
+    "matchScoreLab": "Laboratoire de Compatibilite",
+    "pipeline": "Pipeline",
+    "offerDesk": "Bureau des Offres",
+    "flightPlan": "Plan de Vol",
+    "interviewSimulator": "Simulateur d'Entretiens",
+    "autopilotMode": "Mode Autopilote",
+    "openMarket": "Marche Ouvert",
+    "skillStore": "Boutique de Competences",
+    "careerProfile": "Profil de Carriere",
+    "skillRadar": "Radar de Competences",
+    "networkTracker": "Suivi du Reseau",
+    "careerXP": "Experience de Carriere",
+    "settings": "Parametres",
+    "supportInbox": "Boite de Support",
+    "commandCenter": "Centre de Controle",
+    "theCrewStatus": "Statut de l'Equipe",
+    "eventLog": "Journal des Evenements",
+    "featureControl": "Controle des Fonctions",
+    "systemMonitor": "Moniteur Systeme",
+    "jobPostings": "Offres d'Emploi",
+    "talentSearch": "Recherche de Talents",
+    "companyProfile": "Profil d'Entreprise"
+  },
+  "tabs": {
+    "overview": "Apercu",
+    "active": "Actif",
+    "completed": "Termine",
+    "pending": "En attente",
+    "saved": "Sauvegarde",
+    "applied": "Postule",
+    "interview": "Entretien",
+    "offer": "Offre",
+    "rejected": "Refuse"
+  },
+  "modes": {
+    "jobSeeker": "Chercheur d'Emploi",
+    "employer": "Employeur",
+    "admin": "Administrateur"
+  }
+}

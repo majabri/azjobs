@@ -4,20 +4,24 @@
  * No cross-service route imports. No business logic.
  *
  * Top-level service route prefixes:
- *   /dashboard/*       → analytics service
- *   /job-search/*      → job service
- *   /applications/*    → application service
- *   /profile/*         → user service
- *   /admin/*           → admin service
- *   /career/*          → career service
- *   /report/*          → matching service
- *   /support/*         → support service
- *   /hiring-manager/*  → hiring service
+ *   /dashboard/*        → analytics service
+ *   /job-search/*       → job service
+ *   /applications/*     → application service
+ *   /profile/*          → user service
+ *   /admin/*            → admin service
+ *   /career/*           → career service
+ *   /report/*           → matching service
+ *   /support/*          → support service
+ *   /hiring-manager/*   → hiring service
  */
 
 import { lazy, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
+
+// ─── Lazy-loaded auth pages ──────────────────────────────────────────────────
+const ForgotPasswordPage = lazy(() => import("@/pages/auth/ForgotPassword"));
+const ResetPasswordPage = lazy(() => import("@/pages/auth/ResetPassword"));
 
 // ─── Lazy-loaded service route components ────────────────────────────────────
 const AnalyticsRoutes = lazy(() => import("@/services/analytics/routes"));
@@ -27,22 +31,44 @@ const ApplicationRoutes = lazy(() => import("@/services/application/routes"));
 const Offers = lazy(() => import("@/services/application/pages/Offers"));
 const UserRoutes = lazy(() => import("@/services/user/routes"));
 const UserAuth = lazy(() => import("@/services/user/pages/Auth"));
-const UserPublicProfile = lazy(() => import("@/services/user/pages/PublicProfile"));
+const UserPublicProfile = lazy(
+  () => import("@/services/user/pages/PublicProfile")
+);
 const AdminRoutes = lazy(() => import("@/services/admin/routes"));
-const AdminUsernameLogin = lazy(() => import("@/services/admin/pages/AdminUsernameLogin"));
-const AdminSetPassword = lazy(() => import("@/services/admin/pages/AdminSetPassword"));
+const AdminUsernameLogin = lazy(
+  () => import("@/services/admin/pages/AdminUsernameLogin")
+);
+const AdminSetPassword = lazy(
+  () => import("@/services/admin/pages/AdminSetPassword")
+);
 const CareerRoutes = lazy(() => import("@/services/career/routes"));
-const InterviewPrep = lazy(() => import("@/services/career/pages/InterviewPrep"));
+const InterviewPrep = lazy(
+  () => import("@/services/career/pages/InterviewPrep")
+);
 const AutoApply = lazy(() => import("@/services/career/pages/AutoApply"));
-const ScoreReport = lazy(() => import("@/services/matching/pages/ScoreReport"));
+const ScoreReport = lazy(
+  () => import("@/services/matching/pages/ScoreReport")
+);
 const SupportRoutes = lazy(() => import("@/services/support/routes"));
 const HiringRoutes = lazy(() => import("@/services/hiring/routes"));
-const CandidatesDatabase = lazy(() => import("@/services/hiring/pages/CandidatesDatabase"));
-const JobPostings = lazy(() => import("@/services/hiring/pages/JobPostings"));
-const InterviewScheduling = lazy(() => import("@/services/hiring/pages/InterviewScheduling"));
-const TalentSearch = lazy(() => import("@/services/hiring/pages/TalentSearch"));
-const GigMarketplace = lazy(() => import("@/services/gig/pages/GigMarketplace"));
-const MarketplaceRoutes = lazy(() => import("@/services/marketplace/routes"));
+const CandidatesDatabase = lazy(
+  () => import("@/services/hiring/pages/CandidatesDatabase")
+);
+const JobPostings = lazy(
+  () => import("@/services/hiring/pages/JobPostings")
+);
+const InterviewScheduling = lazy(
+  () => import("@/services/hiring/pages/InterviewScheduling")
+);
+const TalentSearch = lazy(
+  () => import("@/services/hiring/pages/TalentSearch")
+);
+const GigMarketplace = lazy(
+  () => import("@/services/gig/pages/GigMarketplace")
+);
+const MarketplaceRoutes = lazy(
+  () => import("@/services/marketplace/routes")
+);
 
 // ─── Non-service pages (landing, 404) ────────────────────────────────────────
 const Index = lazy(() => import("@/pages/Index"));
@@ -60,8 +86,15 @@ import { useAuthReady } from "@/hooks/useAuthReady";
 
 function LoadingFallback() {
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center" role="status" aria-label="Loading">
-      <Loader2 className="w-6 h-6 text-muted-foreground animate-spin" aria-hidden="true" />
+    <div
+      className="min-h-screen bg-background flex items-center justify-center"
+      role="status"
+      aria-label="Loading"
+    >
+      <Loader2
+        className="w-6 h-6 text-muted-foreground animate-spin"
+        aria-hidden="true"
+      />
     </div>
   );
 }
@@ -91,68 +124,199 @@ export default function ShellRoutes() {
         {/* Auth pages */}
         <Route path="/auth/login" element={<LoginPage />} />
         <Route path="/auth/signup" element={<SignupPage />} />
+        <Route path="/auth/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
         <Route path="/auth" element={<UserAuth />} />
 
         {/* Account Settings (protected) */}
-        <Route path="/settings" element={<ProtectedWithLayout><AccountSettings /></ProtectedWithLayout>} />
-
-        {/* Analytics Service → /dashboard/* */}
-        <Route path="/dashboard/*" element={<ProtectedWithLayout><AnalyticsRoutes /></ProtectedWithLayout>} />
-
-        {/* Job Service → /job-search/* */}
-        <Route path="/job-search/*" element={<ProtectedWithLayout><JobRoutes /></ProtectedWithLayout>} />
-
-        {/* Job Seeker (public job analysis tool — kept for backward compatibility) */}
-        <Route path="/job-seeker" element={<OptionalLayout><JobSeeker /></OptionalLayout>} />
-
-        {/* Application Service → /applications/* */}
-        <Route path="/applications/*" element={<ProtectedWithLayout><ApplicationRoutes /></ProtectedWithLayout>} />
-
-        {/* /offers backward-compat alias → application service */}
-        <Route path="/offers" element={<ProtectedWithLayout><Offers /></ProtectedWithLayout>} />
-
-        {/* User Service → /profile/* */}
-        <Route path="/profile/*" element={<ProtectedWithLayout><UserRoutes /></ProtectedWithLayout>} />
-
-        {/* Public profile (no auth required) */}
-        <Route path="/p/:userId" element={<UserPublicProfile />} />
-
-        {/* Career Service → /career/* */}
-        <Route path="/career/*" element={<ProtectedWithLayout><CareerRoutes /></ProtectedWithLayout>} />
-
-        {/* Career flat-URL backward-compat aliases */}
-        <Route path="/interview-prep" element={<ProtectedWithLayout><InterviewPrep /></ProtectedWithLayout>} />
-        <Route path="/auto-apply" element={<ProtectedWithLayout><AutoApply /></ProtectedWithLayout>} />
-
-        {/* Matching Service → /report/* */}
-        <Route path="/report/:analysisId" element={<ScoreReport />} />
-
-        {/* Support Service → /support/* */}
-        <Route path="/support/*" element={<ProtectedWithLayout><SupportRoutes /></ProtectedWithLayout>} />
-
-        {/* Hiring Manager Service → /hiring-manager/* */}
-        <Route path="/hiring-manager/*" element={<ProtectedWithLayout><HiringRoutes /></ProtectedWithLayout>} />
-
-        {/* Hiring flat-URL backward-compat aliases */}
-        <Route path="/candidates" element={<ProtectedWithLayout><CandidatesDatabase /></ProtectedWithLayout>} />
-        <Route path="/job-postings" element={<ProtectedWithLayout><JobPostings /></ProtectedWithLayout>} />
-        <Route path="/interview-scheduling" element={<ProtectedWithLayout><InterviewScheduling /></ProtectedWithLayout>} />
-        <Route path="/talent-search" element={<ProtectedWithLayout><TalentSearch /></ProtectedWithLayout>} />
-
-        {/* Gig Marketplace */}
-        <Route path="/gigs" element={<ProtectedWithLayout><GigMarketplace /></ProtectedWithLayout>} />
-
-        {/* Service Marketplace */}
-        <Route path="/services/*" element={<ProtectedWithLayout><MarketplaceRoutes /></ProtectedWithLayout>} />
-
-        {/* Admin Service — public routes (no auth guard) */}
-        <Route path="/admin/login" element={<Navigate to="/auth/login" replace />} />
         <Route
-          path="/admin/set-password"
-          element={<AdminProtectedRoute><AdminSetPassword /></AdminProtectedRoute>}
+          path="/settings"
+          element={
+            <ProtectedWithLayout>
+              <AccountSettings />
+            </ProtectedWithLayout>
+          }
         />
 
-        {/* Admin Service — protected routes → /admin/* */}
+        {/* Analytics Service */}
+        <Route
+          path="/dashboard/*"
+          element={
+            <ProtectedWithLayout>
+              <AnalyticsRoutes />
+            </ProtectedWithLayout>
+          }
+        />
+
+        {/* Job Service */}
+        <Route
+          path="/job-search/*"
+          element={
+            <ProtectedWithLayout>
+              <JobRoutes />
+            </ProtectedWithLayout>
+          }
+        />
+
+        {/* Job Seeker */}
+        <Route
+          path="/job-seeker"
+          element={
+            <OptionalLayout>
+              <JobSeeker />
+            </OptionalLayout>
+          }
+        />
+
+        {/* Application Service */}
+        <Route
+          path="/applications/*"
+          element={
+            <ProtectedWithLayout>
+              <ApplicationRoutes />
+            </ProtectedWithLayout>
+          }
+        />
+
+        <Route
+          path="/offers"
+          element={
+            <ProtectedWithLayout>
+              <Offers />
+            </ProtectedWithLayout>
+          }
+        />
+
+        {/* User Service */}
+        <Route
+          path="/profile/*"
+          element={
+            <ProtectedWithLayout>
+              <UserRoutes />
+            </ProtectedWithLayout>
+          }
+        />
+
+        <Route path="/p/:userId" element={<UserPublicProfile />} />
+
+        {/* Career Service */}
+        <Route
+          path="/career/*"
+          element={
+            <ProtectedWithLayout>
+              <CareerRoutes />
+            </ProtectedWithLayout>
+          }
+        />
+
+        <Route
+          path="/interview-prep"
+          element={
+            <ProtectedWithLayout>
+              <InterviewPrep />
+            </ProtectedWithLayout>
+          }
+        />
+        <Route
+          path="/auto-apply"
+          element={
+            <ProtectedWithLayout>
+              <AutoApply />
+            </ProtectedWithLayout>
+          }
+        />
+
+        {/* Matching Service */}
+        <Route path="/report/:analysisId" element={<ScoreReport />} />
+
+        {/* Support Service */}
+        <Route
+          path="/support/*"
+          element={
+            <ProtectedWithLayout>
+              <SupportRoutes />
+            </ProtectedWithLayout>
+          }
+        />
+
+        {/* Hiring Manager Service */}
+        <Route
+          path="/hiring-manager/*"
+          element={
+            <ProtectedWithLayout>
+              <HiringRoutes />
+            </ProtectedWithLayout>
+          }
+        />
+
+        <Route
+          path="/candidates"
+          element={
+            <ProtectedWithLayout>
+              <CandidatesDatabase />
+            </ProtectedWithLayout>
+          }
+        />
+        <Route
+          path="/job-postings"
+          element={
+            <ProtectedWithLayout>
+              <JobPostings />
+            </ProtectedWithLayout>
+          }
+        />
+        <Route
+          path="/interview-scheduling"
+          element={
+            <ProtectedWithLayout>
+              <InterviewScheduling />
+            </ProtectedWithLayout>
+          }
+        />
+        <Route
+          path="/talent-search"
+          element={
+            <ProtectedWithLayout>
+              <TalentSearch />
+            </ProtectedWithLayout>
+          }
+        />
+
+        {/* Gig Marketplace */}
+        <Route
+          path="/gigs"
+          element={
+            <ProtectedWithLayout>
+              <GigMarketplace />
+            </ProtectedWithLayout>
+          }
+        />
+
+        {/* Service Marketplace */}
+        <Route
+          path="/services/*"
+          element={
+            <ProtectedWithLayout>
+              <MarketplaceRoutes />
+            </ProtectedWithLayout>
+          }
+        />
+
+        {/* Admin Service — public routes */}
+        <Route
+          path="/admin/login"
+          element={<Navigate to="/auth/login" replace />}
+        />
+        <Route
+          path="/admin/set-password"
+          element={
+            <AdminProtectedRoute>
+              <AdminSetPassword />
+            </AdminProtectedRoute>
+          }
+        />
+
+        {/* Admin Service — protected routes */}
         <Route
           path="/admin/*"
           element={

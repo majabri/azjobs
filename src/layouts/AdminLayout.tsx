@@ -14,16 +14,16 @@ import {
 } from "lucide-react";
 
 const adminNav = [
-  { title: "Dashboard", url: "/admin", icon: LayoutDashboard },
+  { title: "Command Center", url: "/admin", icon: LayoutDashboard },
   { title: "Users", url: "/admin/users", icon: Users },
-  { title: "Agents", url: "/admin/agents", icon: Bot },
+  { title: "The Crew Status", url: "/admin/agents", icon: Bot },
   { title: "Agent Runs", url: "/admin/agent-runs", icon: Bot },
-  { title: "Logs", url: "/admin/logs", icon: ScrollText },
+  { title: "Event Log", url: "/admin/logs", icon: ScrollText },
   { title: "Queue", url: "/admin/queue", icon: Layers },
   { title: "Console", url: "/admin/console", icon: Terminal },
   { title: "Audit Log", url: "/admin/audit", icon: ClipboardList },
-  { title: "System Health", url: "/admin/system", icon: Shield },
-  { title: "Support Tickets", url: "/admin/tickets", icon: LifeBuoy },
+  { title: "System Monitor", url: "/admin/system", icon: Shield },
+  { title: "Support Inbox", url: "/admin/tickets", icon: LifeBuoy },
   { title: "Customer Surveys", url: "/admin/surveys", icon: MessageSquare },
   { title: "Settings", url: "/admin/settings", icon: Settings },
   { title: "My Profile", url: "/admin/profile", icon: UserCircle },
@@ -50,7 +50,7 @@ function AdminSidebar() {
         </div>
 
         <SidebarGroup>
-          <SidebarGroupLabel>Control Center</SidebarGroupLabel>
+          <SidebarGroupLabel>Command Center</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {adminNav.map((item) => (
