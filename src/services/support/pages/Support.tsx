@@ -196,7 +196,7 @@ export default function SupportPage() {
         <div>
           <h1 className="text-2xl md:text-3xl font-bold text-foreground">Support Center</h1>
           <p className="text-muted-foreground mt-1">
-            Get help, report issues, or share feedback to improve AZJobs.
+            Get help, report issues, or share feedback to improve iCareerOS.
           </p>
         </div>
 
