@@ -1,1 +1,44 @@
-{"navigation":{"dashboard":"Panel de control","projects":"Proyectos","proposals":"Propuestas","contracts":"Contratos","services":"Servicios","orders":"Pedidos","profile":"Perfil","settings":"Configuración","employer":"Para empleadores","talent":"Para talentos","browse":"Explorar"},"tabs":{"overview":"Descripción general","active":"Activos","completed":"Completados","archived":"Archivados","all":"Todos"}}
+{
+  "navigation": {
+    "missionControl": "Centro de Mando",
+    "opportunityRadar": "Radar de Oportunidades",
+    "matchScoreLab": "Laboratorio de Compatibilidad",
+    "pipeline": "Pipeline",
+    "offerDesk": "Mesa de Ofertas",
+    "flightPlan": "Plan de Vuelo",
+    "interviewSimulator": "Simulador de Entrevistas",
+    "autopilotMode": "Modo Autopiloto",
+    "openMarket": "Mercado Abierto",
+    "skillStore": "Tienda de Habilidades",
+    "careerProfile": "Perfil Profesional",
+    "skillRadar": "Radar de Habilidades",
+    "networkTracker": "Rastreador de Red",
+    "careerXP": "Experiencia Profesional",
+    "settings": "Configuracion",
+    "supportInbox": "Bandeja de Soporte",
+    "commandCenter": "Centro de Comando",
+    "theCrewStatus": "Estado del Equipo",
+    "eventLog": "Registro de Eventos",
+    "featureControl": "Control de Funciones",
+    "systemMonitor": "Monitor del Sistema",
+    "jobPostings": "Publicaciones de Empleo",
+    "talentSearch": "Busqueda de Talento",
+    "companyProfile": "Perfil de Empresa"
+  },
+  "tabs": {
+    "overview": "Resumen",
+    "active": "Activo",
+    "completed": "Completado",
+    "pending": "Pendiente",
+    "saved": "Guardado",
+    "applied": "Aplicado",
+    "interview": "Entrevista",
+    "offer": "Oferta",
+    "rejected": "Rechazado"
+  },
+  "modes": {
+    "jobSeeker": "Buscador de Empleo",
+    "employer": "Empleador",
+    "admin": "Administrador"
+  }
+}
