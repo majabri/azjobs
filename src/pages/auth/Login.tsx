@@ -196,7 +196,7 @@ export default function LoginPage() {
               id="identifier"
               type="email"
               autoComplete="off"
-              placeholder="you@example.com"
+              placeholder=""
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
               disabled={loading}
