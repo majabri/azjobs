@@ -15,6 +15,7 @@ import { normalizeError } from "@/lib/normalizeError";
 export default function SignupPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -37,7 +38,7 @@ export default function SignupPage() {
     setErrorMsg(null);
     setLoading(true);
     try {
-      const result = await signup(email.trim(), password);
+      const result = await signup(email.trim(), password, username.trim() || undefined);
       if (result.error) {
         setErrorMsg(result.error);
       } else {
@@ -78,7 +79,7 @@ export default function SignupPage() {
           </div>
           <h1 className="font-display text-3xl font-bold text-primary">Create Account</h1>
           <p className="text-muted-foreground text-sm">
-            Join FitCheck to optimize your job search
+            Join iCareerOS to optimize your job search
           </p>
         </div>
 
@@ -90,6 +91,16 @@ export default function SignupPage() {
               placeholder="you@example.com"
               value={email} onChange={(e) => setEmail(e.target.value)}
               disabled={loading} required
+            />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="username">Username <span className="text-muted-foreground font-normal">(optional)</span></Label>
+            <Input
+              id="username" type="text" autoComplete="username"
+              placeholder="e.g. johndoe"
+              value={username} onChange={(e) => setUsername(e.target.value)}
+              disabled={loading}
+              spellCheck={false} autoCapitalize="none" autoCorrect="off"
             />
           </div>
           <div className="space-y-1">
@@ -116,7 +127,7 @@ export default function SignupPage() {
           )}
 
           <Button type="submit" className="w-full" disabled={loading || !email.trim() || !password || !confirmPassword}>
-            {loading ? "Creating account…" : "Create Account"}
+            {loading ? "Creating account\u2026" : "Create Account"}
           </Button>
         </form>
 
