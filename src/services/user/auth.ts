@@ -6,6 +6,7 @@
  */
 
 import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable/index";
 import { normalizeError } from "@/lib/normalizeError";
 import type { User, Session, AuthChangeEvent } from "@supabase/supabase-js";
 
@@ -16,15 +17,34 @@ export interface AuthResult {
   error?: string;
 }
 
-/** Sign up with email + password. Email verification required. */
-export async function signup(email: string, password: string): Promise<AuthResult> {
+/** Sign up with email + password. Email verification required.
+ *  Optionally stores a username in the user's metadata for later use. */
+export async function signup(
+  email: string,
+  password: string,
+  username?: string,
+): Promise<AuthResult> {
   try {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: `${window.location.origin}/dashboard` },
+      options: {
+        emailRedirectTo: `${window.location.origin}/dashboard`,
+        ...(username ? { data: { username } } : {}),
+      },
     });
     if (error) return { error: normalizeError(error) };
+
+    // If a username was provided and signup succeeded, store it in admin_usernames
+    if (username && data.user) {
+      await supabase
+        .from("admin_usernames")
+        .upsert(
+          { user_id: data.user.id, username },
+          { onConflict: "user_id" },
+        );
+    }
+
     return { user: data.user, session: data.session };
   } catch (e) {
     return { error: normalizeError(e) };
@@ -42,32 +62,26 @@ export async function login(email: string, password: string): Promise<AuthResult
   }
 }
 
-/** Initiate Google OAuth via Supabase. */
+/** Initiate Google OAuth via Lovable + sync session into Supabase. */
 export async function loginWithGoogle(): Promise<AuthResult> {
   try {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/auth/login`,
-      },
+    const result = await lovable.auth.signInWithOAuth("google", {
+      redirect_uri: `${window.location.origin}/auth/login`,
     });
-    if (error) return { error: normalizeError(error) };
+    if (result.error) return { error: normalizeError(result.error) };
     return {};
   } catch (e) {
     return { error: normalizeError(e) };
   }
 }
 
-/** Initiate Apple OAuth via Supabase. */
+/** Initiate Apple OAuth via Lovable + sync session into Supabase. */
 export async function loginWithApple(): Promise<AuthResult> {
   try {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "apple",
-      options: {
-        redirectTo: `${window.location.origin}/auth/login`,
-      },
+    const result = await lovable.auth.signInWithOAuth("apple", {
+      redirect_uri: `${window.location.origin}/auth/login`,
     });
-    if (error) return { error: normalizeError(error) };
+    if (result.error) return { error: normalizeError(result.error) };
     return {};
   } catch (e) {
     return { error: normalizeError(e) };
@@ -113,7 +127,37 @@ export function onAuthStateChange(
   return subscription;
 }
 
-// ─── MFA (TOTP) ──────────────────────────────────────────────────────────────
+// ─── Password Reset ─────────────────────────────────────────────────────────────────
+
+/** Send a password-reset magic link to the given email.
+ *  Supabase emails a link that redirects to `redirectTo` with a recovery token. */
+export async function sendPasswordResetEmail(
+  email: string,
+  redirectTo?: string,
+): Promise<{ error?: string }> {
+  try {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: redirectTo ?? `${window.location.origin}/auth/reset-password`,
+    });
+    if (error) return { error: normalizeError(error) };
+    return {};
+  } catch (e) {
+    return { error: normalizeError(e) };
+  }
+}
+
+/** Update the current user's password (called after they click the magic link). */
+export async function updatePassword(newPassword: string): Promise<{ error?: string }> {
+  try {
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) return { error: normalizeError(error) };
+    return {};
+  } catch (e) {
+    return { error: normalizeError(e) };
+  }
+}
+
+// ─── MFA (TOTP) ────────────────────────────────────────────────────────────────────
 
 export interface MfaEnrollResult {
   factorId?: string;
