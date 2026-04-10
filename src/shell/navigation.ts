@@ -18,25 +18,25 @@ export interface NavItem {
 
 export const jobSeekerNav: NavItem[] = [
   { title: "Mission Control", url: "/dashboard", icon: LayoutDashboard },
-  { title: "Job Analysis", url: "/job-seeker", icon: Target },
+  { title: "Match Score Lab", url: "/job-seeker", icon: Target },
   { title: "Opportunity Radar", url: "/job-search", icon: Search },
-  { title: "Applications", url: "/applications", icon: ClipboardList },
-  { title: "Offers", url: "/offers", icon: DollarSign },
-  { title: "Career", url: "/career", icon: Compass },
-  { title: "Interview Prep", url: "/interview-prep", icon: Mic },
+  { title: "Pipeline", url: "/applications", icon: ClipboardList },
+  { title: "Offer Desk", url: "/offers", icon: DollarSign },
+  { title: "Flight Plan", url: "/career", icon: Compass },
+  { title: "Interview Simulator", url: "/interview-prep", icon: Mic },
   { title: "Autopilot Mode", url: "/auto-apply", icon: Zap },
-  { title: "Gig Marketplace", url: "/gigs", icon: Briefcase },
-  { title: "Services", url: "/services", icon: Briefcase },
-  { title: "Profile", url: "/profile", icon: UserCircle },
+  { title: "Open Market", url: "/gigs", icon: Briefcase },
+  { title: "Skill Store", url: "/services", icon: Briefcase },
+  { title: "Career Profile", url: "/profile", icon: UserCircle },
   { title: "Settings", url: "/settings", icon: Settings },
-  { title: "Support", url: "/support", icon: HelpCircle },
+  { title: "Support Inbox", url: "/support", icon: HelpCircle },
 ];
 
 export const hiringManagerNav: NavItem[] = [
-  { title: "Home", url: "/hiring-manager", icon: LayoutDashboard },
+  { title: "Mission Control", url: "/hiring-manager", icon: LayoutDashboard },
   { title: "Candidates", url: "/candidates", icon: Database },
   { title: "Talent Search", url: "/talent-search", icon: Search },
-  { title: "Jobs", url: "/job-postings", icon: FileText },
+  { title: "Job Postings", url: "/job-postings", icon: FileText },
   { title: "Interviews", url: "/interview-scheduling", icon: Calendar },
   { title: "Settings", url: "/settings", icon: Settings },
 ];
