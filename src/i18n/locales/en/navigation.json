@@ -1,1 +1,44 @@
-{"navigation":{"dashboard":"Dashboard","projects":"Projects","proposals":"Proposals","contracts":"Contracts","services":"Services","orders":"Orders","profile":"Profile","settings":"Settings","employer":"For Employers","talent":"For Talent","browse":"Browse"},"tabs":{"overview":"Overview","active":"Active","completed":"Completed","archived":"Archived","all":"All"}}
+{
+  "navigation": {
+    "missionControl": "Mission Control",
+    "opportunityRadar": "Opportunity Radar",
+    "matchScoreLab": "Match Score Lab",
+    "pipeline": "Pipeline",
+    "offerDesk": "Offer Desk",
+    "flightPlan": "Flight Plan",
+    "interviewSimulator": "Interview Simulator",
+    "autopilotMode": "Autopilot Mode",
+    "openMarket": "Open Market",
+    "skillStore": "Skill Store",
+    "careerProfile": "Career Profile",
+    "skillRadar": "Skill Radar",
+    "networkTracker": "Network Tracker",
+    "careerXP": "Career XP",
+    "settings": "Settings",
+    "supportInbox": "Support Inbox",
+    "commandCenter": "Command Center",
+    "theCrewStatus": "The Crew Status",
+    "eventLog": "Event Log",
+    "featureControl": "Feature Control",
+    "systemMonitor": "System Monitor",
+    "jobPostings": "Job Postings",
+    "talentSearch": "Talent Search",
+    "companyProfile": "Company Profile"
+  },
+  "tabs": {
+    "overview": "Overview",
+    "active": "Active",
+    "completed": "Completed",
+    "pending": "Pending",
+    "saved": "Saved",
+    "applied": "Applied",
+    "interview": "Interview",
+    "offer": "Offer",
+    "rejected": "Rejected"
+  },
+  "modes": {
+    "jobSeeker": "Job Seeker",
+    "employer": "Employer",
+    "admin": "Admin"
+  }
+}
