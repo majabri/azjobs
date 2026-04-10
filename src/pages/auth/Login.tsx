@@ -194,7 +194,7 @@ export default function LoginPage() {
             <Label htmlFor="identifier">Email</Label>
             <Input
               id="identifier"
-              type="email"
+              type="text"
               autoComplete="off"
               placeholder=""
               value={identifier}
