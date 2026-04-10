@@ -95,7 +95,7 @@ function AdminSidebar() {
         {!collapsed && (
           <div className="flex items-center gap-2 px-4 py-2">
             <Target className="w-3.5 h-3.5 text-muted-foreground" />
-            <span className="text-[10px] text-sidebar-foreground/40">FitCheck Admin</span>
+            <span className="text-[10px] text-sidebar-foreground/40">iCareerOS Admin</span>
           </div>
         )}
       </SidebarFooter>

@@ -20,7 +20,7 @@ interface HistoryEntry {
 
 const WELCOME_TEXT = `
 ╔══════════════════════════════════════════════════╗
-║        FitCheck Admin Command Console v1.0       ║
+║        iCareerOS Admin Command Console v1.0       ║
 ║  Type "help" for available commands              ║
 ╚══════════════════════════════════════════════════╝
 

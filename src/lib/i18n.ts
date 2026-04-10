@@ -78,7 +78,7 @@ i18n
     interpolation: { escapeValue: false },
     detection: {
       order: ["localStorage", "navigator"],
-      lookupLocalStorage: "fitcheck_language",
+      lookupLocalStorage: "icareeros_language",
       caches: ["localStorage"],
     },
   });

@@ -254,7 +254,7 @@ export default function AnalysisForm({ onAnalyze, isAnalyzing, isDemo, prefillJo
       <div className="text-center mb-8">
         <h1 className="font-display text-3xl font-bold text-foreground mb-2">
           {isDemo ? (
-            <>See how <span className="text-accent">FitCheck</span> works</>
+            <>See how <span className="text-accent">iCareerOS</span> works</>
           ) : (
             <>Analyze Your <span className="text-accent">Job Fit</span></>
           )}

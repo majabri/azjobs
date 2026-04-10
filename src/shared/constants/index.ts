@@ -3,9 +3,8 @@
  * No feature-specific logic. Only values.
  */
 
-export const APP_NAME = "FitCheck";
-export const APP_TAGLINE = "AI Career Intelligence Platform";
-
+export const APP_NAME = "iCareerOS";
+export const APP_TAGLINE = "Intelligent Career Operating System";
 export const STATUS_COLORS = {
   success: "text-success",
   warning: "text-warning",

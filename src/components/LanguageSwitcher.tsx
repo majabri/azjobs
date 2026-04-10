@@ -26,7 +26,7 @@ export default function LanguageSwitcher() {
   const changeLanguage = useCallback(
     async (code: string) => {
       await i18n.changeLanguage(code);
-      localStorage.setItem("fitcheck_language", code);
+      localStorage.setItem("icareeros_language", code);
 
       // Persist to DB if logged in
       if (user) {

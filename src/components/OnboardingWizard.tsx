@@ -177,7 +177,7 @@ export default function OnboardingWizard() {
       {/* Step: Welcome */}
       {step === "welcome" && (
         <div className="text-center py-4">
-          <h2 className="font-display text-2xl font-bold text-foreground mb-2">Welcome to FitCheck!</h2>
+          <h2 className="font-display text-2xl font-bold text-foreground mb-2">Welcome to iCareerOS!</h2>
           <p className="text-muted-foreground mb-6 max-w-md mx-auto">
             Let's set up your profile in under 2 minutes. Upload your resume and we'll do the rest.
           </p>

@@ -79,7 +79,7 @@ CREATE POLICY "Service role can manage FAQs"
 -- Seed initial FAQ entries
 INSERT INTO public.support_faq (category, question, answer, display_order) VALUES
   ('getting_started', 'How do I create my profile?', 'Navigate to the Profile section from the sidebar and fill in your professional details including work experience, skills, and career preferences.', 1),
-  ('getting_started', 'How does the FitCheck analysis work?', 'Paste a job description and your resume on the Analyze Job page. Our AI compares them and provides a fit score with actionable improvement suggestions.', 2),
+  ('getting_started', 'How does the iCareerOS analysis work?', 'Paste a job description and your resume on the Analyze Job page. Our AI compares them and provides a fit score with actionable improvement suggestions.', 2),
   ('job_search', 'How do I search for jobs?', 'Go to Find Jobs, enter your desired job title and location, then click Search. Results are matched against your profile for relevance.', 3),
   ('job_search', 'Can I save jobs for later?', 'Yes! Click the save button on any job listing to add it to your Applications tracker.', 4),
   ('account', 'How do I update my email preferences?', 'Visit your Profile page and scroll to the Email Preferences section to manage notifications and alerts.', 5),
