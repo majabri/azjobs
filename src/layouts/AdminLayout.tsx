@@ -13,20 +13,56 @@ import {
   ScrollText, Layers, Terminal, ClipboardList, LifeBuoy, MessageSquare,
 } from "lucide-react";
 
-const adminNav = [
-  { title: "Command Center", url: "/admin", icon: LayoutDashboard },
-  { title: "Users", url: "/admin/users", icon: Users },
-  { title: "The Crew Status", url: "/admin/agents", icon: Bot },
-  { title: "Agent Runs", url: "/admin/agent-runs", icon: Bot },
-  { title: "Event Log", url: "/admin/logs", icon: ScrollText },
-  { title: "Queue", url: "/admin/queue", icon: Layers },
-  { title: "Console", url: "/admin/console", icon: Terminal },
-  { title: "Audit Log", url: "/admin/audit", icon: ClipboardList },
-  { title: "System Monitor", url: "/admin/system", icon: Shield },
-  { title: "Support Inbox", url: "/admin/tickets", icon: LifeBuoy },
-  { title: "Customer Surveys", url: "/admin/surveys", icon: MessageSquare },
-  { title: "Settings", url: "/admin/settings", icon: Settings },
-  { title: "My Profile", url: "/admin/profile", icon: UserCircle },
+interface AdminNavItem {
+  title: string;
+  url: string;
+  icon: typeof LayoutDashboard;
+}
+
+interface AdminNavGroup {
+  label: string;
+  items: AdminNavItem[];
+}
+
+const adminNavGroups: AdminNavGroup[] = [
+  {
+    label: "Overview",
+    items: [
+      { title: "Command Center", url: "/admin", icon: LayoutDashboard },
+    ],
+  },
+  {
+    label: "User Management",
+    items: [
+      { title: "Users", url: "/admin/users", icon: Users },
+      { title: "Support Inbox", url: "/admin/tickets", icon: LifeBuoy },
+      { title: "Customer Surveys", url: "/admin/surveys", icon: MessageSquare },
+    ],
+  },
+  {
+    label: "AI & Automation",
+    items: [
+      { title: "The Crew Status", url: "/admin/agents", icon: Bot },
+      { title: "Agent Runs", url: "/admin/agent-runs", icon: Bot },
+      { title: "Queue", url: "/admin/queue", icon: Layers },
+    ],
+  },
+  {
+    label: "System & Monitoring",
+    items: [
+      { title: "System Monitor", url: "/admin/system", icon: Shield },
+      { title: "Console", url: "/admin/console", icon: Terminal },
+      { title: "Event Log", url: "/admin/logs", icon: ScrollText },
+      { title: "Audit Log", url: "/admin/audit", icon: ClipboardList },
+    ],
+  },
+  {
+    label: "Account",
+    items: [
+      { title: "Settings", url: "/admin/settings", icon: Settings },
+      { title: "My Profile", url: "/admin/profile", icon: UserCircle },
+    ],
+  },
 ];
 
 function AdminSidebar() {
@@ -34,6 +70,7 @@ function AdminSidebar() {
   const collapsed = state === "collapsed";
   const location = useLocation();
   const navigate = useNavigate();
+
   const isActive = (path: string) =>
     path === "/admin" ? location.pathname === path : location.pathname.startsWith(path);
 
@@ -49,28 +86,30 @@ function AdminSidebar() {
           )}
         </div>
 
-        <SidebarGroup>
-          <SidebarGroupLabel>Command Center</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {adminNav.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={isActive(item.url)}>
-                    <NavLink
-                      to={item.url}
-                      end={item.url === "/admin"}
-                      className="hover:bg-sidebar-accent/50"
-                      activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
-                    >
-                      <item.icon className="mr-2 h-4 w-4" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {adminNavGroups.map((group) => (
+          <SidebarGroup key={group.label}>
+            <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {group.items.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild isActive={isActive(item.url)}>
+                      <NavLink
+                        to={item.url}
+                        end={item.url === "/admin"}
+                        className="hover:bg-sidebar-accent/50"
+                        activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+                      >
+                        <item.icon className="mr-2 h-4 w-4" />
+                        {!collapsed && <span>{item.title}</span>}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        ))}
 
         <SidebarGroup>
           <SidebarGroupContent>
