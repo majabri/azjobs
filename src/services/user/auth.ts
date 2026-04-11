@@ -8,7 +8,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { normalizeError } from "@/lib/normalizeError";
 import type { User, Session, AuthChangeEvent } from "@supabase/supabase-js";
-
 export interface AuthResult {
   user?: User | null;
   session?: Session | null;

@@ -1,0 +1,315 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Loader2, Eye, Edit2, BarChart3 } from 'lucide-react';
+
+interface JobPosting {
+  id: string;
+  title: string;
+  description: string;
+  location: string;
+  salary_min: number;
+  salary_max: number;
+  job_type: string;
+  status: 'active' | 'paused' | 'closed';
+  created_at: string;
+  application_count?: number;
+}
+
+interface EmployerProfile {
+  id: string;
+  company_name: string;
+  company_logo_url: string;
+  description: string;
+  website: string;
+  total_jobs_posted: number;
+}
+
+export default function EmployerDashboard() {
+  const [profile, setProfile] = useState<EmployerProfile | null>(null);
+  const [jobPostings, setJobPostings] = useState<JobPosting[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchEmployerData();
+  }, []);
+
+  const fetchEmployerData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setError('Please sign in to view your dashboard');
+        return;
+      }
+
+      // Fetch employer profile
+      const { data: profileData, error: profileError } = await supabase
+        .from('employer_profiles')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (profileError && profileError.code !== 'PGRST116') {
+        throw profileError;
+      }
+
+      if (profileData) {
+        setProfile(profileData);
+      }
+
+      // Fetch job postings with application count
+      const { data: jobsData, error: jobsError } = await supabase
+        .from('job_postings')
+        .select(`
+          id,
+          title,
+          description,
+          location,
+          salary_min,
+          salary_max,
+          job_type,
+          status,
+          created_at,
+          job_applications(count)
+        `)
+        .eq('employer_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (jobsError) throw jobsError;
+
+      const formattedJobs = (jobsData || []).map(job => ({
+        ...job,
+        application_count: job.job_applications?.[0]?.count || 0
+      })) as JobPosting[];
+
+      setJobPostings(formattedJobs);
+    } catch (err) {
+      console.error('Error fetching employer data:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load dashboard');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'active':
+        return 'bg-green-900/30 text-green-300 border-green-700';
+      case 'paused':
+        return 'bg-yellow-900/30 text-yellow-300 border-yellow-700';
+      case 'closed':
+        return 'bg-red-900/30 text-red-300 border-red-700';
+      default:
+        return 'bg-gray-700 text-gray-300';
+    }
+  };
+
+  const formatSalary = (min: number, max: number) => {
+    const format = (n: number) => `$${(n / 1000).toFixed(0)}k`;
+    return `${format(min)} - ${format(max)}`;
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-900">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 text-teal-500 animate-spin mx-auto mb-4" />
+          <p className="text-gray-300">Loading your dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-900">
+      <div className="max-w-7xl mx-auto px-4 py-12">
+        {error && (
+          <div className="mb-6 p-4 bg-red-900/30 border border-red-700 rounded-lg text-red-300">
+            {error}
+          </div>
+        )}
+
+        {/* Profile Section */}
+        {profile && (
+          <Card className="mb-8 bg-gray-800 border-gray-700">
+            <div className="p-6">
+              <div className="flex items-start gap-6">
+                {profile.company_logo_url && (
+                  <img
+                    src={profile.company_logo_url}
+                    alt={profile.company_name}
+                    className="w-24 h-24 rounded-lg bg-gray-700 object-cover"
+                  />
+                )}
+                <div className="flex-1">
+                  <h1 className="text-3xl font-bold text-white mb-2">
+                    {profile.company_name}
+                  </h1>
+                  <p className="text-gray-400 mb-4">{profile.description}</p>
+                  <div className="flex gap-4">
+                    {profile.website && (
+                      <a
+                        href={profile.website}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-teal-400 hover:text-teal-300"
+                      >
+                        Visit Website
+                      </a>
+                    )}
+                    <span className="text-gray-400">
+                      {profile.total_jobs_posted} jobs posted
+                    </span>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  className="border-teal-500 text-teal-400 hover:bg-teal-500/10"
+                >
+                  Edit Profile
+                </Button>
+              </div>
+            </div>
+          </Card>
+        )}
+
+        {/* Stats Section */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          <Card className="bg-gray-800 border-gray-700 p-6">
+            <div className="text-gray-400 text-sm mb-2">Active Postings</div>
+            <div className="text-3xl font-bold text-white">
+              {jobPostings.filter(j => j.status === 'active').length}
+            </div>
+          </Card>
+          <Card className="bg-gray-800 border-gray-700 p-6">
+            <div className="text-gray-400 text-sm mb-2">Total Applications</div>
+            <div className="text-3xl font-bold text-white">
+              {jobPostings.reduce((sum, j) => sum + (j.application_count || 0), 0)}
+            </div>
+          </Card>
+          <Card className="bg-gray-800 border-gray-700 p-6">
+            <div className="text-gray-400 text-sm mb-2">Total Postings</div>
+            <div className="text-3xl font-bold text-white">
+              {jobPostings.length}
+            </div>
+          </Card>
+        </div>
+
+        {/* Job Postings Section */}
+        <div>
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold text-white">Your Job Postings</h2>
+            <Button
+              className="bg-teal-600 hover:bg-teal-700 text-white"
+              onClick={() => window.location.href = '/post-job'}
+            >
+              Post New Job
+            </Button>
+          </div>
+
+          {jobPostings.length === 0 ? (
+            <Card className="bg-gray-800 border-gray-700 p-12 text-center">
+              <p className="text-gray-400 mb-4">You haven't posted any jobs yet</p>
+              <Button
+                className="bg-teal-600 hover:bg-teal-700 text-white"
+                onClick={() => window.location.href = '/post-job'}
+              >
+                Create Your First Job Posting
+              </Button>
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 gap-4">
+              {jobPostings.map(job => (
+                <Card
+                  key={job.id}
+                  className="bg-gray-800 border-gray-700 hover:border-teal-500/50 transition-colors"
+                >
+                  <div className="p-6">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <h3 className="text-xl font-semibold text-white mb-2">
+                          {job.title}
+                        </h3>
+                        <div className="flex flex-wrap gap-2 mb-3">
+                          <Badge
+                            variant="outline"
+                            className={`border ${getStatusColor(job.status)}`}
+                          >
+                            {job.status}
+                          </Badge>
+                          <Badge
+                            variant="outline"
+                            className="border-gray-600 text-gray-300"
+                          >
+                            {job.job_type}
+                          </Badge>
+                          <Badge
+                            variant="outline"
+                            className="border-gray-600 text-gray-300"
+                          >
+                            {job.location}
+                          </Badge>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-2xl font-bold text-teal-400 mb-1">
+                          {job.application_count || 0}
+                        </div>
+                        <div className="text-xs text-gray-400">applications</div>
+                      </div>
+                    </div>
+
+                    <p className="text-gray-400 text-sm mb-4 line-clamp-2">
+                      {job.description}
+                    </p>
+
+                    <div className="flex items-center justify-between">
+                      <div className="text-sm text-gray-400">
+                        {formatSalary(job.salary_min, job.salary_max)}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-gray-400 hover:text-teal-400"
+                        >
+                          <Eye className="w-4 h-4 mr-2" />
+                          View
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-gray-400 hover:text-teal-400"
+                        >
+                          <Edit2 className="w-4 h-4 mr-2" />
+                          Edit
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-gray-400 hover:text-teal-400"
+                        >
+                          <BarChart3 className="w-4 h-4 mr-2" />
+                          Analytics
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
