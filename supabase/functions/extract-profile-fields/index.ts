@@ -231,7 +231,9 @@ CRITICAL INSTRUCTIONS:
         ? profile.education
         : [];
       profile.certifications = Array.isArray(profile.certifications)
-        ? profile.certifications
+        ? profile.certifications.map((c: any) =>
+            typeof c === "string" ? c : c.name || String(c)
+          )
         : [];
       profile.skills = Array.isArray(profile.skills) ? profile.skills : [];
 
