@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import ErrorBoundary from "./components/ErrorBoundary";
+import { initAnalytics } from "./lib/analytics";
 import Index from "./pages/Index";
 import JobSeeker from "./pages/JobSeeker";
 import CandidatesDatabase from "./pages/CandidatesDatabase";
@@ -52,6 +53,9 @@ const Marketplace = lazy(() => import("./services/marketplace/pages/Marketplace"
 const Support = lazy(() => import("./services/support/pages/Support"));
 
 const queryClient = new QueryClient();
+
+// Initialize analytics
+initAnalytics({ enabled: true });
 
 function ProtectedWithLayout({ children }: { children: React.ReactNode }) {
   return (
