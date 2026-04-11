@@ -5,9 +5,22 @@
  */
 
 import {
-  LayoutDashboard, Search, ClipboardList, UserCircle, Target,
-  DollarSign, Compass, Mic, Zap, HelpCircle, Settings,
-  Users, Database, FileText, Calendar, Briefcase,
+  LayoutDashboard,
+  Search,
+  ClipboardList,
+  UserCircle,
+  Target,
+  DollarSign,
+  Compass,
+  Mic,
+  Zap,
+  HelpCircle,
+  Settings,
+  Users,
+  Database,
+  FileText,
+  Calendar,
+  Briefcase,
 } from "lucide-react";
 
 export interface NavItem {
@@ -17,27 +30,43 @@ export interface NavItem {
 }
 
 export const jobSeekerNav: NavItem[] = [
+  // ── Overview ──
   { title: "Mission Control", url: "/dashboard", icon: LayoutDashboard },
-  { title: "Match Score Lab", url: "/job-seeker", icon: Target },
-  { title: "Opportunity Radar", url: "/job-search", icon: Search },
-  { title: "Pipeline", url: "/applications", icon: ClipboardList },
-  { title: "Offer Desk", url: "/offers", icon: DollarSign },
-  { title: "Flight Plan", url: "/career", icon: Compass },
-  { title: "Interview Simulator", url: "/interview-prep", icon: Mic },
-  { title: "Autopilot Mode", url: "/auto-apply", icon: Zap },
-  { title: "Open Market", url: "/gigs", icon: Briefcase },
-  { title: "Skill Store", url: "/services", icon: Briefcase },
+
+  // ── Profile & Preparation ──
   { title: "Career Profile", url: "/profile", icon: UserCircle },
+  { title: "Match Score Lab", url: "/job-seeker", icon: Target },
+
+  // ── Job Search & Applications ──
+  { title: "Opportunity Radar", url: "/job-search", icon: Search },
+  { title: "Autopilot Mode", url: "/auto-apply", icon: Zap },
+  { title: "Pipeline", url: "/applications", icon: ClipboardList },
+
+  // ── Interview & Offers ──
+  { title: "Interview Simulator", url: "/interview-prep", icon: Mic },
+  { title: "Offer Desk", url: "/offers", icon: DollarSign },
+
+  // ── Career Growth ──
+  { title: "Flight Plan", url: "/career", icon: Compass },
+  { title: "Open Market", url: "/gigs", icon: Briefcase },
+  { title: "Skill Store", url: "/services", icon: FileText },
+
+  // ── Account ──
   { title: "Settings", url: "/settings", icon: Settings },
   { title: "Support Inbox", url: "/support", icon: HelpCircle },
 ];
 
 export const hiringManagerNav: NavItem[] = [
+  // ── Overview ──
   { title: "Mission Control", url: "/hiring-manager", icon: LayoutDashboard },
-  { title: "Candidates", url: "/candidates", icon: Database },
-  { title: "Talent Search", url: "/talent-search", icon: Search },
+
+  // ── Recruitment Pipeline ──
   { title: "Job Postings", url: "/job-postings", icon: FileText },
+  { title: "Talent Search", url: "/talent-search", icon: Search },
+  { title: "Candidates", url: "/candidates", icon: Database },
   { title: "Interviews", url: "/interview-scheduling", icon: Calendar },
+
+  // ── Account ──
   { title: "Settings", url: "/settings", icon: Settings },
 ];
 
