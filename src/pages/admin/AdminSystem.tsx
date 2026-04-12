@@ -49,29 +49,43 @@ export default function AdminSystem() {
   const load = async () => {
     setLoading(true);
     try {
-      const [profilesRes, analysesRes, applicationsRes, agentRunsRes, queueRes] =
-        await Promise.all([
-          supabase
-            .from("job_seeker_profiles")
-            .select("user_id", { count: "exact", head: true }),
-          supabase
-            .from("analysis_history" as any)
-            .select("id", { count: "exact", head: true }),
-          supabase
-            .from("job_applications")
-            .select("id", { count: "exact", head: true }),
-          supabase
-            .from("agent_runs" as any)
-            .select("id, user_id, status, errors, started_at")
-            .order("started_at", { ascending: false })
-            .limit(100) as any,
-          (supabase as any).from("job_queue").select("id, status"),
-        ]);
+      // ââ Parallel fetch all data sources ââ
+      const [
+        profilesRes,
+        analysesRes,
+        applicationsRes,
+        agentRunsRes,
+        queueRes,
+        featureFlagsRes,
+        serviceHealthRes,
+        notificationsRes,
+      ] = await Promise.all([
+        supabase
+          .from("job_seeker_profiles")
+          .select("user_id", { count: "exact", head: true }),
+        supabase
+          .from("analysis_history" as any)
+          .select("id", { count: "exact", head: true }),
+        supabase
+          .from("job_applications")
+          .select("id", { count: "exact", head: true }),
+        supabase
+          .from("agent_runs" as any)
+          .select("id, user_id, status, errors, started_at")
+          .order("started_at", { ascending: false })
+          .limit(100) as any,
+        (supabase as any).from("job_queue").select("id, status"),
+        // FIX 3.10.3: Additional service checks
+        supabase.from("feature_flags" as any).select("key", { count: "exact", head: true }),
+        supabase.from("service_health").select("service_name, status").order("service_name"),
+        supabase.from("notifications" as any).select("id", { count: "exact", head: true }),
+      ]);
 
       const allRuns: ErrorLogEntry[] = (agentRunsRes.data || []) as ErrorLogEntry[];
       const failedRuns = allRuns.filter(
         (r) => r.status === "failed" || r.status === "completed_with_errors"
       );
+
       const recentFailed = allRuns.filter((r) => {
         const hourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
         return (
@@ -86,6 +100,12 @@ export default function AdminSystem() {
         applications: applicationsRes.count ?? 0,
         agentRuns: allRuns.length,
       });
+
+      // ââ Count healthy services from service_health table ââ
+      const healthyServices = (serviceHealthRes.data || []).filter(
+        (s: any) => s.status === "healthy"
+      ).length;
+      const totalServices = (serviceHealthRes.data || []).length;
 
       setChecks([
         {
@@ -114,8 +134,8 @@ export default function AdminSystem() {
           status: agentRunsRes.error
             ? "error"
             : recentFailed.length > 5
-            ? "warn"
-            : "ok",
+              ? "warn"
+              : "ok",
           detail: agentRunsRes.error
             ? agentRunsRes.error.message
             : `${recentFailed.length} failures in last 1h`,
@@ -126,8 +146,8 @@ export default function AdminSystem() {
             failedRuns.length === 0
               ? "ok"
               : failedRuns.length < 10
-              ? "warn"
-              : "error",
+                ? "warn"
+                : "error",
           detail: `${failedRuns.length} failed out of ${allRuns.length} runs (${
             allRuns.length > 0
               ? Math.round((failedRuns.length / allRuns.length) * 100)
@@ -150,10 +170,36 @@ export default function AdminSystem() {
                   .length
               } failed`,
         },
+        // ââ FIX 3.10.3: Three additional service checks to reach 11+ ââ
+        {
+          name: "Feature Flags",
+          status: (featureFlagsRes as any).error ? "error" : "ok",
+          detail: (featureFlagsRes as any).error
+            ? (featureFlagsRes as any).error.message
+            : `${(featureFlagsRes as any).count ?? 0} flags configured`,
+        },
+        {
+          name: "Service Health Registry",
+          status: serviceHealthRes.error
+            ? "error"
+            : healthyServices < totalServices
+              ? "warn"
+              : "ok",
+          detail: serviceHealthRes.error
+            ? serviceHealthRes.error.message
+            : `${healthyServices}/${totalServices} services healthy`,
+        },
+        {
+          name: "Notification Service",
+          status: (notificationsRes as any).error ? "error" : "ok",
+          detail: (notificationsRes as any).error
+            ? (notificationsRes as any).error.message
+            : `${(notificationsRes as any).count ?? 0} notifications delivered`,
+        },
         {
           name: "API Status",
           status: "ok",
-          detail: `Operational · ${new Date().toLocaleTimeString()}`,
+          detail: `Operational Â· ${new Date().toLocaleTimeString()}`,
         },
         {
           name: "Last Error Timestamp",
@@ -177,8 +223,8 @@ export default function AdminSystem() {
   const overallStatus = checks.some((c) => c.status === "error")
     ? "error"
     : checks.some((c) => c.status === "warn")
-    ? "warn"
-    : "ok";
+      ? "warn"
+      : "ok";
 
   if (loading) {
     return (
@@ -210,8 +256,8 @@ export default function AdminSystem() {
           overallStatus === "ok"
             ? "bg-success/5 border-success/20"
             : overallStatus === "warn"
-            ? "bg-warning/5 border-warning/20"
-            : "bg-destructive/5 border-destructive/20"
+              ? "bg-warning/5 border-warning/20"
+              : "bg-destructive/5 border-destructive/20"
         }`}
       >
         {overallStatus === "ok" ? (
@@ -226,8 +272,8 @@ export default function AdminSystem() {
             {overallStatus === "ok"
               ? "All Systems Operational"
               : overallStatus === "warn"
-              ? "Some Warnings Detected"
-              : "System Issues Detected"}
+                ? "Some Warnings Detected"
+                : "System Issues Detected"}
           </p>
           <p className="text-xs text-muted-foreground">
             Last checked: {new Date().toLocaleTimeString()}
@@ -297,8 +343,8 @@ export default function AdminSystem() {
                     check.status === "ok"
                       ? "text-success border-success/30"
                       : check.status === "warn"
-                      ? "text-warning border-warning/30"
-                      : "text-destructive border-destructive/30"
+                        ? "text-warning border-warning/30"
+                        : "text-destructive border-destructive/30"
                   }
                 >
                   {check.status}
@@ -321,7 +367,7 @@ export default function AdminSystem() {
           {errorLogs.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <CheckCircle2 className="w-8 h-8 mx-auto mb-2 text-success opacity-60" />
-              <p className="text-sm">No errors found — all good!</p>
+              <p className="text-sm">No errors found â all good!</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -334,7 +380,7 @@ export default function AdminSystem() {
                     <div className="flex items-center gap-2">
                       <XCircle className="w-3.5 h-3.5 text-destructive" />
                       <span className="text-xs font-medium text-foreground">
-                        Run failed · user: {log.user_id.slice(0, 8)}…
+                        Run failed Â· user: {log.user_id.slice(0, 8)}â¦
                       </span>
                     </div>
                     <span className="text-[10px] text-muted-foreground">

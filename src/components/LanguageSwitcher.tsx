@@ -12,11 +12,18 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
 const languages = [
-  { code: "en", label: "English", flag: "🇺🇸" },
-  { code: "es", label: "Español", flag: "🇪🇸" },
-  { code: "fr", label: "Français", flag: "🇫🇷" },
-  { code: "de", label: "Deutsch", flag: "🇩🇪" },
+  { code: "en", label: "English", flag: "\u{1F1FA}\u{1F1F8}" },
+  { code: "es", label: "Espa\u00f1ol", flag: "\u{1F1EA}\u{1F1F8}" },
+  { code: "fr", label: "Fran\u00e7ais", flag: "\u{1F1EB}\u{1F1F7}" },
+  { code: "de", label: "Deutsch", flag: "\u{1F1E9}\u{1F1EA}" },
 ] as const;
+
+/**
+ * FIX: Track whether the user_preferences table is available.
+ * Shared with useLanguagePreference â if either detects the table
+ * is missing, both stop trying.
+ */
+let tableUnavailable = false;
 
 export default function LanguageSwitcher() {
   const { i18n } = useTranslation();
@@ -28,10 +35,10 @@ export default function LanguageSwitcher() {
       await i18n.changeLanguage(code);
       localStorage.setItem("icareeros_language", code);
 
-      // Persist to DB if logged in
-      if (user) {
+      // Persist to DB if logged in and table is available
+      if (user && !tableUnavailable) {
         try {
-          await supabase.from("user_preferences" as any).upsert(
+          const { error } = await supabase.from("user_preferences" as any).upsert(
             {
               user_id: user.id,
               preference_key: "language",
@@ -40,8 +47,24 @@ export default function LanguageSwitcher() {
             } as any,
             { onConflict: "user_id,preference_key" }
           );
+
+          if (error) {
+            const msg = (error.message ?? "").toLowerCase();
+            const errCode = (error as any)?.code ?? "";
+            if (
+              msg.includes("does not exist") ||
+              msg.includes("relation") ||
+              errCode === "42P01" ||
+              errCode === "PGRST204"
+            ) {
+              tableUnavailable = true;
+              console.debug(
+                "[LanguageSwitcher] user_preferences table unavailable â using localStorage only"
+              );
+            }
+          }
         } catch {
-          // silent — localStorage is the fallback
+          // silent â localStorage is the fallback
         }
       }
     },
