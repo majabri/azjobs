@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { UserCircle, Save, Clock } from "lucide-react";
+import { UserCircle, Save, Clock, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuthReady } from "@/hooks/useAuthReady";
@@ -38,7 +38,9 @@ export default function AdminProfile() {
         .select("full_name, email, phone, username")
         .eq("user_id", user!.id)
         .single();
+
       if (error) throw error;
+
       const row = data as any;
       setProfile({
         full_name: row?.full_name ?? "",
@@ -67,7 +69,9 @@ export default function AdminProfile() {
           updated_at: new Date().toISOString(),
         } as any)
         .eq("user_id", user.id);
+
       if (error) throw error;
+
       toast.success("Profile updated");
     } catch (e) {
       console.error(e);
@@ -77,8 +81,9 @@ export default function AdminProfile() {
     }
   };
 
-  const handleFieldChange = (field: keyof ProfileData) => (e: React.ChangeEvent<HTMLInputElement>) =>
-    setProfile((prev) => ({ ...prev, [field]: e.target.value }));
+  const handleFieldChange =
+    (field: keyof ProfileData) => (e: React.ChangeEvent<HTMLInputElement>) =>
+      setProfile((prev) => ({ ...prev, [field]: e.target.value }));
 
   if (loading) {
     return (
@@ -92,7 +97,9 @@ export default function AdminProfile() {
     <div className="max-w-2xl mx-auto px-6 py-8 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-display text-2xl font-bold text-foreground">My Profile</h1>
+          <h1 className="font-display text-2xl font-bold text-foreground">
+            My Profile
+          </h1>
           <p className="text-muted-foreground text-sm mt-1">
             Manage your admin account details
           </p>
@@ -104,14 +111,41 @@ export default function AdminProfile() {
           disabled={saving}
         >
           <Save className="w-3.5 h-3.5 mr-1.5" />
-          {saving ? "Saving…" : "Save Changes"}
+          {saving ? "Saving..." : "Save Changes"}
         </Button>
       </div>
+
+      {/* FIX 3.15.2: Auth / Login Email card â read-only, sourced from Supabase Auth */}
+      <Card className="border-accent/20 bg-accent/5">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-accent" />
+            Login Credentials
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-2">
+            <Label htmlFor="auth_email">Login Email (Supabase Auth)</Label>
+            <Input
+              id="auth_email"
+              type="email"
+              value={user?.email ?? ""}
+              disabled
+              className="bg-muted text-muted-foreground cursor-not-allowed"
+            />
+            <p className="text-xs text-muted-foreground">
+              This is the email used to sign in. It cannot be changed from this
+              page.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card className="border-border">
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
-            <UserCircle className="w-4 h-4 text-accent" /> Account Information
+            <UserCircle className="w-4 h-4 text-accent" />
+            Account Information
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-5">
@@ -126,7 +160,7 @@ export default function AdminProfile() {
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="email">Email Address</Label>
+            <Label htmlFor="email">Contact Email</Label>
             <Input
               id="email"
               type="email"
@@ -135,7 +169,8 @@ export default function AdminProfile() {
               placeholder="admin@example.com"
             />
             <p className="text-xs text-muted-foreground">
-              This is the contact email stored in your profile.
+              This is the contact email stored in your profile. It may differ
+              from your login email.
             </p>
           </div>
 
@@ -159,7 +194,8 @@ export default function AdminProfile() {
               className="bg-muted text-muted-foreground cursor-not-allowed"
             />
             <p className="text-xs text-muted-foreground">
-              Username cannot be changed here. Contact the system owner to update it.
+              Username cannot be changed here. Contact the system owner to
+              update it.
             </p>
           </div>
         </CardContent>
