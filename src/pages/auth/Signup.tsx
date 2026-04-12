@@ -24,7 +24,7 @@ export default function SignupPage() {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim() || !password || !confirmPassword) return;
+    if (!email.trim() || !password || !confirmPassword) { setErrorMsg("All fields are required."); return; }
 
     if (password !== confirmPassword) {
       setErrorMsg("Passwords do not match.");

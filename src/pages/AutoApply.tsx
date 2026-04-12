@@ -113,6 +113,19 @@ export default function AutoApplyPage() {
     }
   };
 
+  // Persist minMatchScore to DB on change (debounced)
+  useEffect(() => {
+    if (!profileLoaded) return;
+    const timer = setTimeout(async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+        await supabase.from("job_seeker_profiles").update({ min_match_score: prefs.minMatchScore } as any).eq("user_id", session.user.id);
+      } catch (e) { console.error("Failed to save match score:", e); }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [prefs.minMatchScore, profileLoaded]);
+
   const addTitle = () => {
     const t = titleInput.trim();
     if (t && !prefs.jobTitles.includes(t)) {

@@ -118,7 +118,7 @@ export default function AccountSettings() {
       );
       if (!resp.ok) throw new Error("Failed to delete account");
       await supabase.auth.signOut();
-      navigate("/");
+      navigate("/auth/login");
     } catch (e) {
       toast.error(normalizeError(e));
     } finally { setDeleteLoading(false); }
