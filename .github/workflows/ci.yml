@@ -2,38 +2,39 @@ name: CI
 
 on:
   push:
-    branches: [dev]
-  pull_request:
-    branches: [main]
+      branches: [dev]
+        pull_request:
+            branches: [main]
 
-jobs:
-  build-and-test:
-    name: Build & Test
-    runs-on: ubuntu-latest
+            jobs:
+              build-and-test:
+                  name: Build & Test
+                      runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+                          steps:
+                                - name: Checkout code
+                                        uses: actions/checkout@v4
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
+                                              - name: Setup Node.js
+                                                      uses: actions/setup-node@v4
+                                                              with:
+                                                                        node-version: '20'
+                                                                                  cache: 'npm'
 
-      - name: Install dependencies
-        run: bun install
+                                                                                        - name: Install dependencies
+                                                                                                run: npm ci
 
-      - name: Type check
-        run: bunx tsc --noEmit
-        continue-on-error: true
-
-      - name: Lint
-        run: bunx eslint . --max-warnings=0
-        continue-on-error: true
-
-      - name: Build
-        run: bun run build
-
-      - name: Run tests
-        run: bunx vitest run
-        continue-on-error: true
+                                                                                                      - name: Type check
+                                                                                                              run: npx tsc --noEmit
+                                                                                                                      continue-on-error: true
+                                                                                                                      
+                                                                                                                            - name: Lint
+                                                                                                                                    run: npx eslint . --max-warnings=0
+                                                                                                                                            continue-on-error: true
+                                                                                                                                            
+                                                                                                                                                  - name: Build
+                                                                                                                                                          run: npm run build
+                                                                                                                                                          
+                                                                                                                                                                - name: Run tests
+                                                                                                                                                                        run: npx vitest run
+                                                                                                                                                                                continue-on-error: true
