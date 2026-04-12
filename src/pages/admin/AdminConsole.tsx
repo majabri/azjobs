@@ -1,13 +1,28 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-  Terminal, ChevronRight, Clock, CheckCircle2, XCircle,
-  History, HelpCircle, Trash2,
+  Terminal,
+  ChevronRight,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  History,
+  HelpCircle,
+  Trash2,
 } from "lucide-react";
-import { executeAdminCommand, ALLOWED_COMMANDS, parseCommandString } from "@/lib/api/adminCommand";
+import {
+  executeAdminCommand,
+  ALLOWED_COMMANDS,
+  parseCommandString,
+} from "@/lib/api/adminCommand";
 import type { AdminCommandResponse } from "@/lib/api/adminCommand";
 
 interface HistoryEntry {
@@ -19,14 +34,17 @@ interface HistoryEntry {
 }
 
 const WELCOME_TEXT = `
-╔══════════════════════════════════════════════════╗
-║        iCareerOS Admin Command Console v1.0       ║
-║  Type "help" for available commands              ║
-╚══════════════════════════════════════════════════╝
+ââââââââââââââââââââââââââââââââââââââââââââââââââââ
+â iCareerOS Admin Command Console v1.0             â
+â Type "help" for available commands              â
+ââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 IMPORTANT: Only registered commands are allowed.
 No shell or OS access. All commands are logged.
 `.trim();
+
+/** Set of valid command names for fast client-side validation */
+const VALID_COMMAND_NAMES = new Set(ALLOWED_COMMANDS.map((c) => c.name));
 
 export default function AdminConsole() {
   const [input, setInput] = useState("");
@@ -35,14 +53,20 @@ export default function AdminConsole() {
   const [historyIdx, setHistoryIdx] = useState(-1);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showHelp, setShowHelp] = useState(false);
+
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const scrollBottom = useCallback(() => {
-    setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
+    setTimeout(() =>
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" }),
+      50
+    );
   }, []);
 
-  useEffect(() => { scrollBottom(); }, [history, scrollBottom]);
+  useEffect(() => {
+    scrollBottom();
+  }, [history, scrollBottom]);
 
   const handleInput = (val: string) => {
     setInput(val);
@@ -54,9 +78,10 @@ export default function AdminConsole() {
     }
 
     const lower = val.toLowerCase();
-    const matches = ALLOWED_COMMANDS
-      .map((c) => c.name)
-      .filter((name) => name.startsWith(lower));
+    const matches = ALLOWED_COMMANDS.map((c) => c.name).filter((name) =>
+      name.startsWith(lower)
+    );
+
     setSuggestions(matches.slice(0, 5));
   };
 
@@ -66,14 +91,17 @@ export default function AdminConsole() {
       submit(input);
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
+      if (cmdHistory.length === 0) return;
       const newIdx = Math.min(historyIdx + 1, cmdHistory.length - 1);
       setHistoryIdx(newIdx);
-      setInput(cmdHistory[newIdx] ?? "");
+      if (cmdHistory[newIdx] !== undefined) {
+        setInput(cmdHistory[newIdx]);
+      }
     } else if (e.key === "ArrowDown") {
       e.preventDefault();
       const newIdx = Math.max(historyIdx - 1, -1);
       setHistoryIdx(newIdx);
-      setInput(newIdx === -1 ? "" : cmdHistory[newIdx]);
+      setInput(newIdx === -1 ? "" : (cmdHistory[newIdx] ?? ""));
     } else if (e.key === "Tab" && suggestions.length > 0) {
       e.preventDefault();
       setInput(suggestions[0]);
@@ -141,6 +169,28 @@ export default function AdminConsole() {
       return;
     }
 
+    // ââ FIX 3.11.5: Client-side validation against ALLOWED_COMMANDS ââ
+    // Reject unrecognised commands BEFORE calling the Edge Function.
+    if (!VALID_COMMAND_NAMES.has(parsed.command)) {
+      const entry: HistoryEntry = {
+        id: crypto.randomUUID(),
+        input: trimmed,
+        response: {
+          command: parsed.command,
+          args: parsed.args,
+          result: {
+            error: `Unrecognised command: "${parsed.command}". Type "help" for available commands.`,
+          },
+          success: false,
+          timestamp: new Date().toISOString(),
+        },
+        timestamp: new Date(),
+        loading: false,
+      };
+      setHistory((prev) => [...prev, entry]);
+      return;
+    }
+
     const entry: HistoryEntry = {
       id: crypto.randomUUID(),
       input: trimmed,
@@ -153,7 +203,9 @@ export default function AdminConsole() {
     const response = await executeAdminCommand(parsed.command, parsed.args);
 
     setHistory((prev) =>
-      prev.map((h) => (h.id === entry.id ? { ...h, response, loading: false } : h))
+      prev.map((h) =>
+        h.id === entry.id ? { ...h, response, loading: false } : h
+      )
     );
   };
 
@@ -162,18 +214,29 @@ export default function AdminConsole() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold text-foreground flex items-center gap-2">
-            <Terminal className="w-6 h-6 text-accent" /> Admin Console
+            <Terminal className="w-6 h-6 text-accent" />
+            Admin Console
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Secure command execution — strict registry only, all actions logged
+            Secure command execution â strict registry only, all actions logged
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => setShowHelp((v) => !v)}>
-            <HelpCircle className="w-3.5 h-3.5 mr-1.5" /> {showHelp ? "Hide" : "Help"}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowHelp((v) => !v)}
+          >
+            <HelpCircle className="w-3.5 h-3.5 mr-1.5" />
+            {showHelp ? "Hide" : "Help"}
           </Button>
-          <Button variant="outline" size="sm" onClick={() => setHistory([])}>
-            <Trash2 className="w-3.5 h-3.5 mr-1.5" /> Clear
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setHistory([])}
+          >
+            <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+            Clear
           </Button>
         </div>
       </div>
@@ -192,12 +255,16 @@ export default function AdminConsole() {
                 </code>
                 <div>
                   <p className="text-foreground">{cmd.description}</p>
-                  <p className="text-muted-foreground font-mono mt-0.5">Example: {cmd.example}</p>
+                  <p className="text-muted-foreground font-mono mt-0.5">
+                    Example: {cmd.example}
+                  </p>
                 </div>
               </div>
             ))}
             <div className="flex items-start gap-3 text-xs">
-              <code className="bg-muted rounded px-1.5 py-0.5 text-accent font-mono shrink-0">clear</code>
+              <code className="bg-muted rounded px-1.5 py-0.5 text-accent font-mono shrink-0">
+                clear
+              </code>
               <p className="text-foreground">Clear terminal output</p>
             </div>
           </CardContent>
@@ -213,7 +280,9 @@ export default function AdminConsole() {
             onClick={() => inputRef.current?.focus()}
           >
             {/* Welcome */}
-            <pre className="text-green-600 text-[10px] leading-relaxed">{WELCOME_TEXT}</pre>
+            <pre className="text-green-600 text-[10px] leading-relaxed">
+              {WELCOME_TEXT}
+            </pre>
 
             {/* History */}
             {history.map((entry) => (
@@ -230,7 +299,8 @@ export default function AdminConsole() {
                 {/* Output */}
                 {entry.loading ? (
                   <div className="flex items-center gap-2 text-[10px] text-yellow-400 pl-4">
-                    <Clock className="w-3 h-3 animate-spin" /> Executing…
+                    <Clock className="w-3 h-3 animate-spin" />
+                    Executingâ¦
                   </div>
                 ) : entry.response && (
                   <OutputBlock response={entry.response} />
@@ -250,7 +320,7 @@ export default function AdminConsole() {
                 value={input}
                 onChange={(e) => handleInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Type a command… (Tab to autocomplete, ↑↓ history)"
+                placeholder="Type a commandâ¦ (Tab to autocomplete, ââ history)"
                 className="bg-transparent border-0 text-white placeholder:text-green-900 text-xs font-mono focus-visible:ring-0 focus-visible:ring-offset-0 p-0"
                 autoFocus
                 autoComplete="off"
@@ -265,7 +335,12 @@ export default function AdminConsole() {
                   <button
                     key={s}
                     className="block w-full text-left px-3 py-1.5 text-xs text-green-400 hover:bg-green-900/30 font-mono"
-                    onMouseDown={(e) => { e.preventDefault(); setInput(s + " "); setSuggestions([]); inputRef.current?.focus(); }}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      setInput(s + " ");
+                      setSuggestions([]);
+                      inputRef.current?.focus();
+                    }}
                   >
                     {s}
                   </button>
@@ -281,7 +356,8 @@ export default function AdminConsole() {
         <Card className="border-border">
           <CardHeader className="pb-2">
             <CardTitle className="text-xs flex items-center gap-2">
-              <History className="w-3.5 h-3.5" /> Command History
+              <History className="w-3.5 h-3.5" />
+              Command History
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -289,7 +365,10 @@ export default function AdminConsole() {
               {cmdHistory.slice(0, 10).map((cmd, i) => (
                 <button
                   key={i}
-                  onClick={() => { setInput(cmd); inputRef.current?.focus(); }}
+                  onClick={() => {
+                    setInput(cmd);
+                    inputRef.current?.focus();
+                  }}
                   className="text-[10px] font-mono bg-muted px-2 py-0.5 rounded hover:bg-accent/20 text-muted-foreground hover:text-foreground transition-colors"
                 >
                   {cmd}
@@ -329,11 +408,19 @@ function OutputBlock({ response }: { response: AdminCommandResponse }) {
 
   return (
     <div className="pl-4">
-      <div className={`flex items-center gap-1.5 text-[10px] mb-1 ${success ? "text-green-500" : "text-red-400"}`}>
+      <div
+        className={`flex items-center gap-1.5 text-[10px] mb-1 ${
+          success ? "text-green-500" : "text-red-400"
+        }`}
+      >
         {success ? <CheckCircle2 className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
         <span>{success ? "Success" : "Error"}</span>
       </div>
-      <pre className={`text-[10px] leading-relaxed whitespace-pre-wrap break-all ${success ? "text-green-300" : "text-red-300"}`}>
+      <pre
+        className={`text-[10px] leading-relaxed whitespace-pre-wrap break-all ${
+          success ? "text-green-300" : "text-red-300"
+        }`}
+      >
         {JSON.stringify(result, null, 2)}
       </pre>
     </div>
