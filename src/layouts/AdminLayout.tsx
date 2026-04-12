@@ -1,17 +1,38 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import {
-  Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
-  SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
-  SidebarFooter, useSidebar,
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarFooter,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { NavLink } from "@/components/NavLink";
 import UserMenu from "@/components/UserMenu";
 import NotificationCenter from "@/components/NotificationCenter";
 import {
-  LayoutDashboard, Users, Bot, Shield, Settings, Target, ArrowLeft, UserCircle,
-  ScrollText, Layers, Terminal, ClipboardList, LifeBuoy, MessageSquare,
+  LayoutDashboard,
+  Users,
+  Bot,
+  Shield,
+  Settings,
+  Target,
+  ArrowLeft,
+  UserCircle,
+  ScrollText,
+  Layers,
+  Terminal,
+  ClipboardList,
+  LifeBuoy,
+  MessageSquare,
+  LogOut,
 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AdminNavItem {
   title: string;
@@ -28,39 +49,91 @@ const adminNavGroups: AdminNavGroup[] = [
   {
     label: "Overview",
     items: [
-      { title: "Command Center", url: "/admin", icon: LayoutDashboard },
+      {
+        title: "Command Center",
+        url: "/admin",
+        icon: LayoutDashboard,
+      },
     ],
   },
   {
     label: "User Management",
     items: [
-      { title: "Users", url: "/admin/users", icon: Users },
-      { title: "Support Inbox", url: "/admin/tickets", icon: LifeBuoy },
-      { title: "Customer Surveys", url: "/admin/surveys", icon: MessageSquare },
+      {
+        title: "Users",
+        url: "/admin/users",
+        icon: Users,
+      },
+      {
+        title: "Support Inbox",
+        url: "/admin/tickets",
+        icon: LifeBuoy,
+      },
+      {
+        title: "Customer Surveys",
+        url: "/admin/surveys",
+        icon: MessageSquare,
+      },
     ],
   },
   {
     label: "AI & Automation",
     items: [
-      { title: "The Crew Status", url: "/admin/agents", icon: Bot },
-      { title: "Agent Runs", url: "/admin/agent-runs", icon: Bot },
-      { title: "Queue", url: "/admin/queue", icon: Layers },
+      {
+        title: "The Crew Status",
+        url: "/admin/agents",
+        icon: Bot,
+      },
+      {
+        title: "Agent Runs",
+        url: "/admin/agent-runs",
+        icon: Bot,
+      },
+      {
+        title: "Queue",
+        url: "/admin/queue",
+        icon: Layers,
+      },
     ],
   },
   {
     label: "System & Monitoring",
     items: [
-      { title: "System Monitor", url: "/admin/system", icon: Shield },
-      { title: "Console", url: "/admin/console", icon: Terminal },
-      { title: "Event Log", url: "/admin/logs", icon: ScrollText },
-      { title: "Audit Log", url: "/admin/audit", icon: ClipboardList },
+      {
+        title: "System Monitor",
+        url: "/admin/system",
+        icon: Shield,
+      },
+      {
+        title: "Console",
+        url: "/admin/console",
+        icon: Terminal,
+      },
+      {
+        title: "Event Log",
+        url: "/admin/logs",
+        icon: ScrollText,
+      },
+      {
+        title: "Audit Log",
+        url: "/admin/audit",
+        icon: ClipboardList,
+      },
     ],
   },
   {
     label: "Account",
     items: [
-      { title: "Settings", url: "/admin/settings", icon: Settings },
-      { title: "My Profile", url: "/admin/profile", icon: UserCircle },
+      {
+        title: "Settings",
+        url: "/admin/settings",
+        icon: Settings,
+      },
+      {
+        title: "My Profile",
+        url: "/admin/profile",
+        icon: UserCircle,
+      },
     ],
   },
 ];
@@ -72,17 +145,35 @@ function AdminSidebar() {
   const navigate = useNavigate();
 
   const isActive = (path: string) =>
-    path === "/admin" ? location.pathname === path : location.pathname.startsWith(path);
+    path === "/admin"
+      ? location.pathname === path
+      : location.pathname.startsWith(path);
+
+  // ââ FIX 3.1.5: Sign Out handler â clears session & redirects to /auth/login ââ
+  const handleSignOut = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      console.error("Sign out error:", e);
+    }
+    navigate("/auth/login", { replace: true });
+  };
 
   return (
     <Sidebar collapsible="icon">
       <SidebarContent>
-        <div className={`flex items-center gap-2 px-4 py-5 ${collapsed ? "justify-center" : ""}`}>
+        <div
+          className={`flex items-center gap-2 px-4 py-5 ${
+            collapsed ? "justify-center" : ""
+          }`}
+        >
           <div className="w-8 h-8 bg-destructive/80 rounded-lg flex items-center justify-center flex-shrink-0">
             <Shield className="w-4 h-4 text-white" />
           </div>
           {!collapsed && (
-            <span className="font-display text-lg font-bold text-sidebar-foreground">Admin</span>
+            <span className="font-display text-lg font-bold text-sidebar-foreground">
+              Admin
+            </span>
           )}
         </div>
 
@@ -93,7 +184,10 @@ function AdminSidebar() {
               <SidebarMenu>
                 {group.items.map((item) => (
                   <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild isActive={isActive(item.url)}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive(item.url)}
+                    >
                       <NavLink
                         to={item.url}
                         end={item.url === "/admin"}
@@ -125,6 +219,18 @@ function AdminSidebar() {
                   </button>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+              {/* FIX 3.1.5: Sign Out button in the sidebar */}
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <button
+                    onClick={handleSignOut}
+                    className="w-full hover:bg-destructive/10 flex items-center gap-2 px-2 py-1.5 rounded-md text-sm text-destructive/70 hover:text-destructive"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    {!collapsed && <span>Sign Out</span>}
+                  </button>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -134,7 +240,9 @@ function AdminSidebar() {
         {!collapsed && (
           <div className="flex items-center gap-2 px-4 py-2">
             <Target className="w-3.5 h-3.5 text-muted-foreground" />
-            <span className="text-[10px] text-sidebar-foreground/40">iCareerOS Admin</span>
+            <span className="text-[10px] text-sidebar-foreground/40">
+              iCareerOS Admin
+            </span>
           </div>
         )}
       </SidebarFooter>
@@ -142,7 +250,11 @@ function AdminSidebar() {
   );
 }
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export default function AdminLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
@@ -160,9 +272,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <UserMenu />
             </div>
           </header>
-          <main className="flex-1 overflow-auto">
-            {children}
-          </main>
+          <main className="flex-1 overflow-auto">{children}</main>
         </div>
       </div>
     </SidebarProvider>
