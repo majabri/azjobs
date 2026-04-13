@@ -33,7 +33,6 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminAgents from "./pages/admin/AdminAgents";
 import AdminSystem from "./pages/admin/AdminSystem";
-import AdminSettings from "./pages/admin/AdminSettings";
 import AdminSetPassword from "./pages/admin/AdminSetPassword";
 import AdminTickets from "./pages/admin/AdminTickets";
 import AdminSurveys from "./pages/admin/AdminSurveys";
@@ -132,7 +131,7 @@ const App = () => (
               <Route path="/admin/users" element={<AdminProtectedRoute><AdminLayout><AdminUsers /></AdminLayout></AdminProtectedRoute>} />
               <Route path="/admin/agents" element={<AdminProtectedRoute><AdminLayout><AdminAgents /></AdminLayout></AdminProtectedRoute>} />
               <Route path="/admin/system" element={<AdminProtectedRoute><AdminLayout><AdminSystem /></AdminLayout></AdminProtectedRoute>} />
-              <Route path="/admin/settings" element={<AdminProtectedRoute><AdminLayout><AdminSettings /></AdminLayout></AdminProtectedRoute>} />
+              <Route path="/admin/settings" element={<Navigate to="/admin/platform-settings" replace />} />
               <Route path="/admin/profile" element={<AdminProtectedRoute><AdminLayout><AdminProfile /></AdminLayout></AdminProtectedRoute>} />
               <Route path="/admin/logs" element={<AdminProtectedRoute><AdminLayout><AdminLogs /></AdminLayout></AdminProtectedRoute>} />
               <Route path="/admin/agent-runs" element={<AdminProtectedRoute><AdminLayout><AdminAgentRuns /></AdminLayout></AdminProtectedRoute>} />
