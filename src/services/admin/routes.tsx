@@ -24,6 +24,9 @@ const AdminAgentRunDetail = lazy(() => import("./pages/AdminAgentRunDetail"));
 const AdminTickets = lazy(() => import("./pages/AdminTickets"));
 const AdminSurveys = lazy(() => import("./pages/AdminSurveys"));
 
+// Account settings (user-facing settings page, shared with /settings)
+const AccountSettings = lazy(() => import("@/pages/AccountSettings"));
+
 // Public admin pages (exported for shell to mount without auth guard)
 export const AdminUsernameLogin = lazy(() => import("./pages/AdminUsernameLogin"));
 export const AdminSetPassword = lazy(() => import("./pages/AdminSetPassword"));
@@ -44,7 +47,7 @@ export default function AdminRoutes() {
         <Route path="users" element={<AdminUsers />} />
         <Route path="agents" element={<AdminAgents />} />
         <Route path="system" element={<AdminSystem />} />
-        <Route path="settings" element={<AdminSettings />} />
+        <Route path="settings" element={<AccountSettings />} />
         <Route path="platform-settings" element={<AdminSettings />} />
         <Route path="profile" element={<AdminProfile />} />
         <Route path="logs" element={<AdminLogs />} />
