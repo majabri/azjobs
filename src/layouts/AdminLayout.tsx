@@ -131,11 +131,6 @@ const adminNavGroups: AdminNavGroup[] = [
     label: "Account",
     items: [
       {
-        title: "Settings",
-        url: "/admin/settings",
-        icon: Settings,
-      },
-      {
         title: "My Profile",
         url: "/admin/profile",
         icon: UserCircle,
@@ -155,7 +150,7 @@ function AdminSidebar() {
       ? location.pathname === path
       : location.pathname.startsWith(path);
 
-  // ââ FIX 3.1.5: Sign Out handler â clears session & redirects to /auth/login ââ
+  // Ã¢ÂÂÃ¢ÂÂ FIX 3.1.5: Sign Out handler Ã¢ÂÂ clears session & redirects to /auth/login Ã¢ÂÂÃ¢ÂÂ
   const handleSignOut = async () => {
     try {
       await supabase.auth.signOut();
