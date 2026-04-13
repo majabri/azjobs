@@ -1,2 +1,2 @@
-python-jobspy==0.2.2
+python-jobspy==1.1.82
 supabase==2.9.0
