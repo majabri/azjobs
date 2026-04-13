@@ -231,7 +231,7 @@ export default function AccountSettings() {
               } from "@/services/user/auth";
               import { normalizeError } from "@/lib/normalizeError";
               import { toast } from "sonner";
-              import ThemeSelector from "@/components/ThemeSelector";
+              import { ThemePicker } from "@/components/ThemePicker";
               
               export default function AccountSettings() {
                   const navigate = useNavigate();
@@ -452,7 +452,7 @@ export default function AccountSettings() {
                                                 </CardDescription>CardDescription>
                                       </CardHeader>CardHeader>
                                       <CardContent>
-                                                <ThemeSelector />
+                                                <ThemePicker />
                                       </CardContent>CardContent>
                               </Card>Card>
                         
