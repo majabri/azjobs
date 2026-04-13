@@ -153,12 +153,12 @@ export default function JobPostingForm() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 py-12 px-4">
+    <div className="min-h-screen bg-background py-12 px-4">
       <div className="max-w-2xl mx-auto">
-        <Card className="bg-gray-800 border-gray-700">
+        <Card className="bg-card border-border">
           <div className="p-8">
-            <h1 className="text-3xl font-bold text-white mb-2">Post a Job</h1>
-            <p className="text-gray-400 mb-8">
+            <h1 className="text-3xl font-bold text-foreground mb-2">Post a Job</h1>
+            <p className="text-muted-foreground mb-8">
               Fill in the details below to create a new job posting
             </p>
 
@@ -189,7 +189,7 @@ export default function JobPostingForm() {
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Job Title */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-muted-foreground mb-2">
                   Job Title *
                 </label>
                 <Input
@@ -198,13 +198,13 @@ export default function JobPostingForm() {
                   value={formData.title}
                   onChange={handleChange}
                   placeholder="e.g., Senior React Developer"
-                  className="bg-gray-700 border-gray-600 text-white placeholder-gray-500"
+                  className="bg-muted border-border text-foreground placeholder:text-muted-foreground"
                 />
               </div>
 
               {/* Description */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-muted-foreground mb-2">
                   Job Description *
                 </label>
                 <textarea
@@ -213,13 +213,13 @@ export default function JobPostingForm() {
                   onChange={handleChange}
                   placeholder="Describe the role, responsibilities, and requirements..."
                   rows={6}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  className="w-full px-3 py-2 bg-muted border border-border rounded-md text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
 
               {/* Location */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-muted-foreground mb-2">
                   Location *
                 </label>
                 <Input
@@ -228,14 +228,14 @@ export default function JobPostingForm() {
                   value={formData.location}
                   onChange={handleChange}
                   placeholder="e.g., San Francisco, CA or Remote"
-                  className="bg-gray-700 border-gray-600 text-white placeholder-gray-500"
+                  className="bg-muted border-border text-foreground placeholder:text-muted-foreground"
                 />
               </div>
 
               {/* Salary Range */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">
                     Minimum Salary (USD) *
                   </label>
                   <Input
@@ -244,11 +244,11 @@ export default function JobPostingForm() {
                     value={formData.salary_min}
                     onChange={handleChange}
                     placeholder="e.g., 80000"
-                    className="bg-gray-700 border-gray-600 text-white placeholder-gray-500"
+                    className="bg-muted border-border text-foreground placeholder:text-muted-foreground"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">
                     Maximum Salary (USD) *
                   </label>
                   <Input
@@ -257,7 +257,7 @@ export default function JobPostingForm() {
                     value={formData.salary_max}
                     onChange={handleChange}
                     placeholder="e.g., 120000"
-                    className="bg-gray-700 border-gray-600 text-white placeholder-gray-500"
+                    className="bg-muted border-border text-foreground placeholder:text-muted-foreground"
                   />
                 </div>
               </div>
@@ -265,14 +265,14 @@ export default function JobPostingForm() {
               {/* Job Type */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">
                     Job Type
                   </label>
                   <select
                     name="job_type"
                     value={formData.job_type}
                     onChange={handleChange}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    className="w-full px-3 py-2 bg-muted border border-border rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   >
                     <option value="full-time">Full-time</option>
                     <option value="part-time">Part-time</option>
@@ -282,14 +282,14 @@ export default function JobPostingForm() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">
                     Experience Level
                   </label>
                   <select
                     name="experience_level"
                     value={formData.experience_level}
                     onChange={handleChange}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    className="w-full px-3 py-2 bg-muted border border-border rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   >
                     <option value="entry">Entry Level</option>
                     <option value="mid">Mid Level</option>
@@ -301,7 +301,7 @@ export default function JobPostingForm() {
 
               {/* Skills Required */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-muted-foreground mb-2">
                   Required Skills (comma-separated)
                 </label>
                 <Input
@@ -310,20 +310,20 @@ export default function JobPostingForm() {
                   value={formData.skills_required}
                   onChange={handleChange}
                   placeholder="e.g., React, TypeScript, Node.js, PostgreSQL"
-                  className="bg-gray-700 border-gray-600 text-white placeholder-gray-500"
+                  className="bg-muted border-border text-foreground placeholder:text-muted-foreground"
                 />
               </div>
 
               {/* Employment Type */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-muted-foreground mb-2">
                   Employment Type
                 </label>
                 <select
                   name="employment_type"
                   value={formData.employment_type}
                   onChange={handleChange}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  className="w-full px-3 py-2 bg-muted border border-border rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 >
                   <option value="permanent">Permanent</option>
                   <option value="temporary">Temporary</option>
@@ -333,7 +333,7 @@ export default function JobPostingForm() {
 
               {/* Benefits */}
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-sm font-medium text-muted-foreground mb-2">
                   Benefits (optional)
                 </label>
                 <textarea
@@ -342,7 +342,7 @@ export default function JobPostingForm() {
                   onChange={handleChange}
                   placeholder="e.g., Health insurance, 401k, Remote work, Unlimited PTO"
                   rows={3}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  className="w-full px-3 py-2 bg-muted border border-border rounded-md text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
 
@@ -351,7 +351,7 @@ export default function JobPostingForm() {
                 <Button
                   type="submit"
                   disabled={loading}
-                  className="flex-1 bg-teal-600 hover:bg-teal-700 text-white py-2 font-medium"
+                  className="flex-1 bg-primary hover:bg-primary/90 text-foreground py-2 font-medium"
                 >
                   {loading ? (
                     <>
@@ -365,7 +365,7 @@ export default function JobPostingForm() {
                 <Button
                   type="button"
                   variant="outline"
-                  className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                  className="border-border text-muted-foreground hover:bg-muted"
                   onClick={() => window.location.href = '/employer/dashboard'}
                 >
                   Cancel
