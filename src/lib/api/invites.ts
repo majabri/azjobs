@@ -1,4 +1,4 @@
-// src/lib/api/invites.ts
+// src/lib/api/invites.ts (v2)
 // API utilities for the invite system.
 
 import { supabase } from "@/integrations/supabase/client";
@@ -87,5 +87,23 @@ export async function fetchAdminInviteDashboard() {
   );
 
   if (error) throw error;
+  return data;
+}
+
+/**
+ * Check the current registration mode (public or invite-only).
+ * Can be called without auth (uses anon key).
+ */
+export async function checkRegistrationMode(): Promise<{
+  invite_only: boolean;
+  mode: "invite_only" | "public";
+}> {
+  const { data, error } = await supabase.rpc("check_registration_mode");
+
+  if (error) {
+    // Default to invite-only if check fails
+    return { invite_only: true, mode: "invite_only" };
+  }
+
   return data;
 }
