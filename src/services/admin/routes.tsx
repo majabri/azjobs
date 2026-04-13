@@ -45,6 +45,7 @@ export default function AdminRoutes() {
         <Route path="agents" element={<AdminAgents />} />
         <Route path="system" element={<AdminSystem />} />
         <Route path="settings" element={<AdminSettings />} />
+        <Route path="platform-settings" element={<AdminSettings />} />
         <Route path="profile" element={<AdminProfile />} />
         <Route path="logs" element={<AdminLogs />} />
         <Route path="agent-runs" element={<AdminAgentRuns />} />
