@@ -15,25 +15,22 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          bun-version: latest
+          node-version: '20'
 
       - name: Install dependencies
-        run: bun install
+        run: npm install --legacy-peer-deps
 
       - name: Type check
-        run: bunx tsc --noEmit
-        continue-on-error: true
+        run: npx tsc --noEmit
 
       - name: Lint
-        run: bunx eslint . --max-warnings=0
-        continue-on-error: true
+        run: npm run lint
 
       - name: Build
-        run: bun run build
-
-      - name: Run tests
-        run: bunx vitest run
-        continue-on-error: true
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}

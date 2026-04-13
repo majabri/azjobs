@@ -142,7 +142,7 @@ export default function InterviewPrepPage() {
       // Check for readiness score in response
       const scoreMatch = assistantContent.match(/readiness[:\s]*(\d+)/i);
       if (scoreMatch) setReadinessScore(parseInt(scoreMatch[1]));
-    } catch { toast.error("Failed to get response"); }
+    } catch { toast.error("AI service is temporarily unavailable. Please try again later."); }
     finally { setStreaming(false); }
   };
 

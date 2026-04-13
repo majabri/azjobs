@@ -15,8 +15,10 @@ export interface AuthResult {
   error?: string;
 }
 
-/** Sign up with email + password. Email verification required.
- *  Optionally stores a username in the user's metadata for later use. */
+/**
+ * Sign up with email + password. Email verification required.
+ * Optionally stores a username in the user's metadata for later use.
+ */
 export async function signup(
   email: string,
   password: string,
@@ -60,26 +62,32 @@ export async function login(email: string, password: string): Promise<AuthResult
   }
 }
 
-/** Initiate Google OAuth via Lovable + sync session into Supabase. */
+/** Initiate Google OAuth via Supabase. */
 export async function loginWithGoogle(): Promise<AuthResult> {
   try {
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: `${window.location.origin}/auth/login`,
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth/login`,
+      },
     });
-    if (result.error) return { error: normalizeError(result.error) };
+    if (error) return { error: normalizeError(error) };
     return {};
   } catch (e) {
     return { error: normalizeError(e) };
   }
 }
 
-/** Initiate Apple OAuth via Lovable + sync session into Supabase. */
+/** Initiate Apple OAuth via Supabase. */
 export async function loginWithApple(): Promise<AuthResult> {
   try {
-    const result = await lovable.auth.signInWithOAuth("apple", {
-      redirect_uri: `${window.location.origin}/auth/login`,
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "apple",
+      options: {
+        redirectTo: `${window.location.origin}/auth/login`,
+      },
     });
-    if (result.error) return { error: normalizeError(result.error) };
+    if (error) return { error: normalizeError(error) };
     return {};
   } catch (e) {
     return { error: normalizeError(e) };
@@ -147,8 +155,10 @@ export function onAuthStateChange(
 
 // ─── Password Reset ─────────────────────────────────────────────────────────────────
 
-/** Send a password-reset magic link to the given email.
- *  Supabase emails a link that redirects to `redirectTo` with a recovery token. */
+/**
+ * Send a password-reset magic link to the given email.
+ * Supabase emails a link that redirects to `redirectTo` with a recovery token.
+ */
 export async function sendPasswordResetEmail(
   email: string,
   redirectTo?: string,
@@ -207,7 +217,6 @@ export async function verifyTOTP(factorId: string, code: string): Promise<{ erro
   try {
     const { data: challenge, error: challengeErr } = await supabase.auth.mfa.challenge({ factorId });
     if (challengeErr) return { error: normalizeError(challengeErr) };
-
     const { error: verifyErr } = await supabase.auth.mfa.verify({
       factorId,
       challengeId: challenge.id,

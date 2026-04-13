@@ -13,8 +13,7 @@ import heroBg from "@/assets/hero-bg.jpg";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { analyzeJobFit } from "@/lib/analysisEngine";
-import { AUTH_LOGIN } from "@/lib/routes";
-
+import { AUTH_LOGIN, AUTH_SIGNUP } from "@/lib/routes";
 /* ────────────────────── DATA ────────────────────── */
 
 const stats = [
@@ -278,7 +277,7 @@ export default function Index() {
             <Button
               size="lg"
               className="gradient-teal text-white font-semibold text-lg px-8 py-6 rounded-xl shadow-teal hover:opacity-90 transition-opacity animate-pulse-glow"
-              onClick={() => navigate(user ? "/dashboard" : AUTH_LOGIN)}
+              onClick={() => navigate(user ? "/dashboard" : AUTH_SIGNUP)}
             >
               <Bot className="mr-2 w-5 h-5" />
               {user ? "Go to Dashboard" : "Activate My Job Agent"}

@@ -31,6 +31,7 @@ import {
   LifeBuoy,
   MessageSquare,
   LogOut,
+  Globe,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -118,6 +119,11 @@ const adminNavGroups: AdminNavGroup[] = [
         title: "Audit Log",
         url: "/admin/audit",
         icon: ClipboardList,
+      },
+      {
+        title: "Platform Settings",
+        url: "/admin/platform-settings",
+        icon: Globe,
       },
     ],
   },

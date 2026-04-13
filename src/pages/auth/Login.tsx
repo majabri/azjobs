@@ -1,6 +1,6 @@
 /**
  * /auth/login — Primary login page.
- * Supports Google OAuth, Apple OAuth, and email-or-username + password.
+ * Supports Google OAuth, Apple OAuth, and email + password.
  * Role-aware redirect:
  *   admin → /admin
  *   job seeker only → /dashboard
@@ -24,7 +24,8 @@ import { supabase } from "@/integrations/supabase/client";
 export default function LoginPage() {
   const navigate = useNavigate();
   const { user, isReady } = useAuthReady();
-  const { destination, showModePrompt, setShowModePrompt, isResolving } = usePostLoginRedirect();
+  const { destination, showModePrompt, setShowModePrompt, isResolving } =
+    usePostLoginRedirect();
 
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
@@ -44,7 +45,11 @@ export default function LoginPage() {
   if (isReady && user && (isResolving || (!showModePrompt && destination))) {
     return (
       <>
-        <div className="min-h-screen bg-background flex items-center justify-center" role="status" aria-label="Redirecting">
+        <div
+          className="min-h-screen bg-background flex items-center justify-center"
+          role="status"
+          aria-label="Redirecting"
+        >
           <Loader2 className="w-6 h-6 text-muted-foreground animate-spin" />
         </div>
         <DashboardModeDialog
@@ -95,6 +100,7 @@ export default function LoginPage() {
 
     setErrorMsg(null);
     setLoadingEmail(true);
+
     try {
       let loginEmail = id;
 
@@ -105,7 +111,7 @@ export default function LoginPage() {
           { _username: id }
         );
         if (rpcError || !resolved) {
-          setErrorMsg("Invalid username/email or password.");
+          setErrorMsg("Invalid email or password.");
           setLoadingEmail(false);
           return;
         }
@@ -182,15 +188,15 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Unified login form */}
+        {/* Login form */}
         <form onSubmit={handleLogin} className="space-y-4 text-left">
           <div className="space-y-1">
-            <Label htmlFor="identifier">Email or Username</Label>
+            <Label htmlFor="identifier">Email</Label>
             <Input
               id="identifier"
               type="text"
-              autoComplete="username"
-              placeholder="you@example.com or username"
+              autoComplete="off"
+              placeholder=""
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
               disabled={loading}
@@ -200,6 +206,7 @@ export default function LoginPage() {
               autoCorrect="off"
             />
           </div>
+
           <div className="space-y-1">
             <div className="flex items-center justify-between">
               <Label htmlFor="password">Password</Label>
@@ -214,8 +221,8 @@ export default function LoginPage() {
             <Input
               id="password"
               type="password"
-              autoComplete="current-password"
-              placeholder="\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022"
+              autoComplete="off"
+              placeholder=""
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               disabled={loading}
@@ -240,7 +247,10 @@ export default function LoginPage() {
 
         <p className="text-sm text-muted-foreground">
           Don't have an account?{" "}
-          <a href="/auth/signup" className="text-primary hover:underline font-medium">
+          <a
+            href="/auth/signup"
+            className="text-primary hover:underline font-medium"
+          >
             Sign up
           </a>
         </p>
