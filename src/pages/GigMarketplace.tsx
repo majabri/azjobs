@@ -266,10 +266,10 @@ export default function GigMarketplace() {
                     className="w-full px-3 py-2 bg-muted border border-border rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   >
                     <option value="">Any Timeline</option>
-                    <option value="immediate">Immediate (< 1 week)</option>
+                    <option value="immediate">Immediate ({'<'} 1 week)</option>
                     <option value="short">Short (1-2 weeks)</option>
                     <option value="medium">Medium (1-3 months)</option>
-                    <option value="long">Long (> 3 months)</option>
+                    <option value="long">Long ({'>'} 3 months)</option>
                   </select>
                 </div>
 
