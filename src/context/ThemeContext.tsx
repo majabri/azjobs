@@ -33,7 +33,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (!user) return;
       const { data } = await supabase
-        .from('user_profiles')
+        .from('profiles')
         .select('theme')
         .eq('user_id', user.id)
         .single();
@@ -62,7 +62,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
     await supabase
-      .from('user_profiles')
+      .from('profiles')
       .update({ theme: newTheme })
       .eq('user_id', user.id);
   };
