@@ -163,52 +163,52 @@ export default function SupportPage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'open':
-        return 'bg-blue-900/30 text-blue-300 border-blue-700';
+        return 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30';
       case 'in_progress':
-        return 'bg-yellow-900/30 text-yellow-300 border-yellow-700';
+        return 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/30';
       case 'resolved':
-        return 'bg-green-900/30 text-green-300 border-green-700';
+        return 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/30';
       case 'closed':
-        return 'bg-gray-700 text-gray-300 border-gray-600';
+        return 'bg-muted text-muted-foreground border-border';
       default:
-        return 'bg-gray-700 text-gray-300 border-gray-600';
+        return 'bg-muted text-muted-foreground border-border';
     }
   };
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
       case 'critical':
-        return 'bg-red-900/30 text-red-300 border-red-700';
+        return 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/30';
       case 'high':
-        return 'bg-orange-900/30 text-orange-300 border-orange-700';
+        return 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/30';
       case 'medium':
-        return 'bg-yellow-900/30 text-yellow-300 border-yellow-700';
+        return 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/30';
       case 'low':
-        return 'bg-green-900/30 text-green-300 border-green-700';
+        return 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/30';
       default:
-        return 'bg-gray-700 text-gray-300 border-gray-600';
+        return 'bg-muted text-muted-foreground border-border';
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className="min-h-screen bg-background">
       <div className="max-w-4xl mx-auto px-4 py-12">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Support & Help Center</h1>
-          <p className="text-gray-400">
+          <h1 className="text-3xl font-bold text-foreground mb-2">Support & Help Center</h1>
+          <p className="text-muted-foreground">
             Submit bug reports, feature requests, and general support tickets
           </p>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-4 mb-8 border-b border-gray-700">
+        <div className="flex gap-4 mb-8 border-b border-border">
           <button
             onClick={() => setActiveTab('submit')}
             className={`px-4 py-3 font-medium transition-colors border-b-2 ${
               activeTab === 'submit'
-                ? 'text-teal-400 border-teal-400'
-                : 'text-gray-400 border-transparent hover:text-white'
+                ? 'text-primary border-primary'
+                : 'text-muted-foreground border-transparent hover:text-foreground'
             }`}
           >
             Submit Ticket
@@ -217,8 +217,8 @@ export default function SupportPage() {
             onClick={() => setActiveTab('tickets')}
             className={`px-4 py-3 font-medium transition-colors border-b-2 ${
               activeTab === 'tickets'
-                ? 'text-teal-400 border-teal-400'
-                : 'text-gray-400 border-transparent hover:text-white'
+                ? 'text-primary border-primary'
+                : 'text-muted-foreground border-transparent hover:text-foreground'
             }`}
           >
             My Tickets
@@ -233,9 +233,9 @@ export default function SupportPage() {
 
         {/* Submit Tab */}
         {activeTab === 'submit' && (
-          <Card className="bg-gray-800 border-gray-700">
+          <Card className="bg-card border-border">
             <div className="p-8">
-              <h2 className="text-2xl font-bold text-white mb-6">Create Support Ticket</h2>
+              <h2 className="text-2xl font-bold text-foreground mb-6">Create Support Ticket</h2>
 
               {toast.type && (
                 <div
@@ -264,14 +264,14 @@ export default function SupportPage() {
                 {/* Category */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-muted-foreground mb-2">
                       Category *
                     </label>
                     <select
                       name="category"
                       value={formData.category}
                       onChange={handleFormChange}
-                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+                      className="w-full px-3 py-2 bg-muted border border-border rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                     >
                       <option value="bug">Bug Report</option>
                       <option value="feature">Feature Request</option>
@@ -283,14 +283,14 @@ export default function SupportPage() {
 
                   {/* Severity */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                    <label className="block text-sm font-medium text-muted-foreground mb-2">
                       Severity *
                     </label>
                     <select
                       name="severity"
                       value={formData.severity}
                       onChange={handleFormChange}
-                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+                      className="w-full px-3 py-2 bg-muted border border-border rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                     >
                       <option value="low">Low</option>
                       <option value="medium">Medium</option>
@@ -302,7 +302,7 @@ export default function SupportPage() {
 
                 {/* Title */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">
                     Title *
                   </label>
                   <input
@@ -311,13 +311,13 @@ export default function SupportPage() {
                     value={formData.title}
                     onChange={handleFormChange}
                     placeholder="Brief summary of your issue"
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    className="w-full px-3 py-2 bg-muted border border-border rounded-md text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   />
                 </div>
 
                 {/* Description */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">
                     Description *
                   </label>
                   <textarea
@@ -326,13 +326,13 @@ export default function SupportPage() {
                     onChange={handleFormChange}
                     placeholder="Provide detailed information about your issue"
                     rows={5}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    className="w-full px-3 py-2 bg-muted border border-border rounded-md text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   />
                 </div>
 
                 {/* Steps to Reproduce */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">
                     Steps to Reproduce (for bugs)
                   </label>
                   <textarea
@@ -341,13 +341,13 @@ export default function SupportPage() {
                     onChange={handleFormChange}
                     placeholder="1. Step one&#10;2. Step two&#10;3. Step three"
                     rows={3}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    className="w-full px-3 py-2 bg-muted border border-border rounded-md text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   />
                 </div>
 
                 {/* Environment */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                  <label className="block text-sm font-medium text-muted-foreground mb-2">
                     Environment / Browser Info
                   </label>
                   <input
@@ -356,7 +356,7 @@ export default function SupportPage() {
                     value={formData.environment}
                     onChange={handleFormChange}
                     placeholder="e.g., Chrome 120 on macOS 14.2"
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                    className="w-full px-3 py-2 bg-muted border border-border rounded-md text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   />
                 </div>
 
@@ -364,7 +364,7 @@ export default function SupportPage() {
                 <Button
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-teal-600 hover:bg-teal-700 text-white py-2 font-medium"
+                  className="w-full bg-primary hover:bg-primary/90 text-foreground py-2 font-medium"
                 >
                   {loading ? (
                     <>
@@ -385,14 +385,14 @@ export default function SupportPage() {
           <div>
             {ticketsLoading ? (
               <div className="flex items-center justify-center py-12">
-                <Loader2 className="w-8 h-8 text-teal-500 animate-spin" />
+                <Loader2 className="w-8 h-8 text-primary animate-spin" />
               </div>
             ) : tickets.length === 0 ? (
-              <Card className="bg-gray-800 border-gray-700 p-12 text-center">
-                <MessageSquare className="w-12 h-12 text-gray-500 mx-auto mb-4" />
-                <p className="text-gray-400 mb-4">You haven't submitted any tickets yet</p>
+              <Card className="bg-card border-border p-12 text-center">
+                <MessageSquare className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground mb-4">You haven't submitted any tickets yet</p>
                 <Button
-                  className="bg-teal-600 hover:bg-teal-700 text-white"
+                  className="bg-primary hover:bg-primary/90 text-foreground"
                   onClick={() => setActiveTab('submit')}
                 >
                   Create Your First Ticket
@@ -403,14 +403,14 @@ export default function SupportPage() {
                 {tickets.map(ticket => (
                   <Card
                     key={ticket.id}
-                    className="bg-gray-800 border-gray-700 p-6 hover:border-teal-500/50 transition-colors"
+                    className="bg-card border-border p-6 hover:border-primary/50 transition-colors"
                   >
                     <div className="flex justify-between items-start mb-4">
                       <div>
-                        <p className="text-sm text-gray-400 mb-1">
+                        <p className="text-sm text-muted-foreground mb-1">
                           {ticket.ticket_number}
                         </p>
-                        <h3 className="text-lg font-semibold text-white">
+                        <h3 className="text-lg font-semibold text-foreground">
                           {ticket.title}
                         </h3>
                       </div>
@@ -430,11 +430,11 @@ export default function SupportPage() {
                       </div>
                     </div>
 
-                    <p className="text-gray-400 text-sm mb-4 line-clamp-2">
+                    <p className="text-muted-foreground text-sm mb-4 line-clamp-2">
                       {ticket.description}
                     </p>
 
-                    <div className="flex justify-between items-center text-sm text-gray-500">
+                    <div className="flex justify-between items-center text-sm text-muted-foreground">
                       <span>Category: {ticket.category}</span>
                       <span>
                         Created {new Date(ticket.created_at).toLocaleDateString()}
