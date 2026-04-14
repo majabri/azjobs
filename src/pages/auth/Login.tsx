@@ -239,7 +239,7 @@ export default function LoginPage() {
 
           <Button
             type="submit"
-              className="w-full gradient-teal text-white"
+              className="w-full gradient-brand text-white"
                           disabled={loading || !identifier.trim() || !password}
           >
             {loadingEmail ? "Signing in\u2026" : "Sign in"}
