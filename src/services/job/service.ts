@@ -11,7 +11,7 @@ import type { JobResult, JobSearchFilters } from "./types";
 
 export function normalizeJobUrl(rawUrl?: string | null): string {
   if (!rawUrl) return '';
-  const urlPattern = /^(https?):/\//i;
+  const urlPattern = /^(https?):\/\//i;
   let url = rawUrl.replace(/^\s+|\s+$/g, '').replace(/['"\[\]()\{\}]/g, '');
   if (!urlPattern.test(url)) url = 'https://' + url;
   url = url.replace(/[\s\.,;!?]+$/g, '');
