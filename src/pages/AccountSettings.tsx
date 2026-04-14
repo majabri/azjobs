@@ -39,7 +39,7 @@ import {
 } from "@/services/user/auth";
 import { normalizeError } from "@/lib/normalizeError";
 import { toast } from "sonner";
-import ThemeSelector from "@/components/ThemeSelector";
+import { ThemeSelector } from "@/components/settings/ThemeSelector";
 
 export default function AccountSettings() {
   const navigate = useNavigate();
@@ -250,19 +250,15 @@ export default function AccountSettings() {
       <h1 className="text-2xl font-bold text-foreground">Account Settings</h1>
 
       {/* âââ Appearance âââââââââââââââââââââââââââââââââââââââââââââââââââ */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Palette className="w-4 h-4" /> Appearance
-          </CardTitle>
-          <CardDescription>
-            Customize how iCareerOS looks on your device
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ThemeSelector />
-        </CardContent>
-      </Card>
+      <section className="space-y-6 pb-8 border-b border-border">
+        <div>
+          <h2 className="text-base font-semibold text-foreground">Appearance</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Personalise your iCareerOS experience
+          </p>
+        </div>
+        <ThemeSelector />
+      </section>
 
       {/* âââ Account Info ââââââââââââââââââââââââââââââââââââââââââââââââââ */}
       <Card>
