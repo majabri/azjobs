@@ -44,6 +44,10 @@ export interface JobSearchFilters {
   minFitScore: number;
   showFlagged: boolean;
   search_mode?: "quality" | "balanced" | "volume";
+  /** Only return jobs posted within the last N days (0 = no limit) */
+  days_old?: number;
+  /** Pagination offset for DB-level cursor paging */
+  offset?: number;
 }
 
 export interface ParsedJobDescription {
