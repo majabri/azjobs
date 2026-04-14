@@ -1,6 +1,6 @@
-import { useTheme, type ThemeOption } from '@/context/ThemeContext';
+import { useTheme, type ThemePreference } from '@/contexts/ThemeContext';
 
-const OPTIONS: { value: ThemeOption; label: string; desc: string }[] = [
+const OPTIONS: { value: ThemePreference; label: string; desc: string }[] = [
   { value: 'light',  label: 'Light',     desc: 'Clean white interface' },
   { value: 'dark',   label: 'Dark',       desc: 'Easy on the eyes'      },
   { value: 'system', label: 'Automatic',  desc: 'Follows system setting' },
