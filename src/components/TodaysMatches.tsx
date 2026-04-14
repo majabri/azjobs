@@ -649,7 +649,7 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
                     </Button>
                     <Button
                       size="sm"
-                      className="gradient-teal text-white text-xs"
+                      className="gradient-indigo text-white text-xs"
                       onClick={() => handleAnalyzeFit(job)}
                     >
                       <Target className="w-3.5 h-3.5 mr-1" /> Analyze Fit

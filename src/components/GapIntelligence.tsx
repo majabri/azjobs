@@ -153,7 +153,7 @@ export default function GapIntelligence({ analysis, onFixAll, onReEvaluate }: Ga
           <Button
             onClick={handleFixAll}
             disabled={fixingAll}
-            className="flex-1 gradient-teal text-white"
+            className="flex-1 gradient-indigo text-white"
             size="sm"
           >
             {fixingAll ? (

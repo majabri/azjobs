@@ -200,7 +200,7 @@ export default function InterviewPrepPage() {
                 <label className="text-sm font-semibold text-foreground block mb-1">Job Description (optional)</label>
                 <Textarea value={jobDesc} onChange={e => setJobDesc(e.target.value)} placeholder="Paste the job description for more targeted questions..." rows={4} />
               </div>
-              <Button className="gradient-teal text-white shadow-teal hover:opacity-90 w-full" onClick={startInterview}>
+              <Button className="gradient-indigo text-white shadow-indigo-500/20 hover:opacity-90 w-full" onClick={startInterview}>
                 <Sparkles className="w-4 h-4 mr-2" /> Start Mock Interview
               </Button>
             </Card>
@@ -267,7 +267,7 @@ export default function InterviewPrepPage() {
             {/* Input */}
             <div className="flex gap-3 pt-4 border-t border-border">
               <Textarea value={input} onChange={e => setInput(e.target.value)} placeholder="Type your answer..." rows={2} className="flex-1" onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }}} />
-              <Button className="gradient-teal text-white" onClick={sendMessage} disabled={streaming || !input.trim()}>
+              <Button className="gradient-indigo text-white" onClick={sendMessage} disabled={streaming || !input.trim()}>
                 <Send className="w-4 h-4" />
               </Button>
             </div>

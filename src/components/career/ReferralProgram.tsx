@@ -201,7 +201,7 @@ export default function ReferralProgram() {
   > = {
     pending: {
       label: "Pending",
-      color: "bg-accent/10 text-accent border-accent/20",
+      color: "bg-[hsl(var(--primary))]/10 text-[hsl(var(--primary))] border-[hsl(var(--primary))]/20",
       icon: Clock,
     },
     accepted: {
@@ -224,7 +224,7 @@ export default function ReferralProgram() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[200px]">
-        <Loader2 className="h-6 w-6 animate-spin text-accent" />
+        <Loader2 className="h-6 w-6 animate-spin text-[hsl(var(--primary))]" />
       </div>
     );
   }
@@ -242,8 +242,8 @@ export default function ReferralProgram() {
       {/* Section Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent/10">
-            <Gift className="h-5 w-5 text-accent" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[hsl(var(--primary))]/10">
+            <Gift className="h-5 w-5 text-[hsl(var(--primary))]" />
           </div>
           <div>
             <h2 className="text-xl font-semibold">Referral Program</h2>
@@ -288,7 +288,7 @@ export default function ReferralProgram() {
         </Card>
         <Card>
           <CardContent className="pt-5 pb-4 text-center">
-            <div className="text-2xl font-bold text-accent">
+            <div className="text-2xl font-bold text-[hsl(var(--primary))]">
               {referralCount}
             </div>
             <div className="text-xs text-muted-foreground mt-1 flex items-center justify-center gap-1">
@@ -304,7 +304,7 @@ export default function ReferralProgram() {
         <CardContent className="pt-5 pb-4">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium">Daily Invites Remaining</span>
-            <span className="text-lg font-bold text-accent">
+            <span className="text-lg font-bold text-[hsl(var(--primary))]">
               {invitesRemaining}
               <span className="text-xs font-normal text-muted-foreground">
                 {" "}
@@ -337,7 +337,7 @@ export default function ReferralProgram() {
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
-                <UserPlus className="h-4 w-4 text-accent" />
+                <UserPlus className="h-4 w-4 text-[hsl(var(--primary))]" />
                 Send Email Invitation
               </CardTitle>
               <CardDescription>
@@ -357,7 +357,7 @@ export default function ReferralProgram() {
                 />
                 <Button
                   type="submit"
-                  className="bg-accent hover:bg-accent/90 text-white shrink-0"
+                  className="bg-[hsl(var(--primary))] hover:bg-[#00A89A] text-white shrink-0"
                   disabled={
                     limitReached || isSendingEmail || !inviteEmail.trim()
                   }

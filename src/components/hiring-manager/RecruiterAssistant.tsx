@@ -156,7 +156,7 @@ export default function RecruiterAssistant() {
           </div>
         )}
 
-        <Button className="gradient-teal text-white shadow-teal hover:opacity-90" onClick={generateReply} disabled={loading}>
+        <Button className="gradient-indigo text-white shadow-indigo-500/20 hover:opacity-90" onClick={generateReply} disabled={loading}>
           {loading ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Drafting...</> : <><Sparkles className="w-4 h-4 mr-2" /> Draft Reply</>}
         </Button>
       </Card>
