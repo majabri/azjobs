@@ -289,6 +289,7 @@ export default function AccountSettings() {
                 </Badge>
               )}
             </div>
+          </div>
         </CardContent>
       </Card>
 
