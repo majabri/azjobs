@@ -1,38 +1,32 @@
-name: Close Completed Invite System Issues
+name: Fix PR 144 Merge Conflicts
 
 on:
   workflow_dispatch:
 
 permissions:
-  issues: write
+  contents: write
 
 jobs:
-  close-invite-issues:
-    name: Close Invite System issues as completed
+  fix-pr-144-conflicts:
+    name: Rebase PR 144 against dev
     runs-on: ubuntu-latest
     steps:
-      - name: Close invite system issues 128-137
-        uses: actions/github-script@v7
+      - uses: actions/checkout@v4
         with:
-          script: |
-            const issues = [
-              { number: 128, comment: 'Closing as completed. Database schema, invite_codes and talent_invites tables, and RLS policies are implemented in supabase/migrations/20260412000000_invite_only_enrollment.sql and 20260416_talent_invites.sql.' },
-              { number: 129, comment: 'Closing as completed. send-invite Edge Function is implemented at supabase/functions/send-invite/index.ts.' },
-              { number: 130, comment: 'Closing as completed. validate-invite Edge Function is implemented at supabase/functions/validate-invite/index.ts.' },
-              { number: 131, comment: 'Closing as completed. accept-invite Edge Function is implemented at supabase/functions/accept-invite/index.ts.' },
-              { number: 132, comment: 'Closing as completed. admin-invite-dashboard Edge Function is implemented at supabase/functions/admin-invite-dashboard/index.ts.' },
-              { number: 133, comment: 'Closing as completed. InviteGate component is implemented at src/components/invite/InviteGate.tsx and SignUpWithInvite page at src/pages/auth/SignUpWithInvite.tsx.' },
-              { number: 134, comment: 'Closing as completed. /invite page (user invite dashboard) is implemented at src/pages/InvitePage.tsx.' },
-              { number: 135, comment: 'Closing as completed. Admin invite management panel functionality is covered by the admin-invite-dashboard Edge Function and InvitePage.' },
-              { number: 136, comment: 'Closing as completed. Email invite flow is handled by the send-invite and accept-invite Edge Functions via Supabase.' },
-              { number: 137, comment: 'Closing as completed. Core invite system is implemented and integrated. Integration tests can be added as a separate task if needed.' },
-            ];
-            for (const issue of issues) {
-              try {
-                const { data: cur } = await github.rest.issues.get({ owner: context.repo.owner, repo: context.repo.repo, issue_number: issue.number });
-                if (cur.state === "closed") { console.log(`#${issue.number} already closed.`); continue; }
-                await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: issue.number, body: issue.comment });
-                await github.rest.issues.update({ owner: context.repo.owner, repo: context.repo.repo, issue_number: issue.number, state: "closed", state_reason: "completed" });
-                console.log(`Closed #${issue.number} as completed`);
-              } catch (e) { console.error(`Error #${issue.number}: ${e.message}`); }
-            }
+          ref: feature/theme-system-v2
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+      - name: Merge dev into feature/theme-system-v2
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch origin dev
+          git merge origin/dev --no-edit || (
+            git checkout --theirs -- . 2>/dev/null || true
+            git checkout HEAD -- src/context/ src/theme.css src/assets/Logo.tsx 2>/dev/null || true
+            git checkout HEAD -- src/components/ThemePicker.tsx public/favicon.svg 2>/dev/null || true
+            git checkout HEAD -- supabase/migrations/ 2>/dev/null || true
+            git add -A
+            git commit -m 'chore: merge dev into feature/theme-system-v2'
+          )
+          git push origin feature/theme-system-v2
