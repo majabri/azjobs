@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  ArrowRight, Target, Users, CheckCircle, TrendingUp, Zap, LogOut, Play,
+  ArrowRight, Users, CheckCircle, TrendingUp, Zap, LogOut, Play,
   BarChart3, Search, FileText, Briefcase, ClipboardList, UserCircle, Shield,
   Upload, Sparkles, Bot, Star, ChevronRight, Check, X, Share2, Gift,
   MessageSquare, Globe, Mail, Clock, Award, Rocket, Loader2
@@ -234,7 +234,7 @@ export default function Index() {
           className="absolute inset-0 bg-cover bg-center"
           style={{ backgroundImage: `url(${heroBg})` }}
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-navy-900/90 via-navy-800/80 to-navy-900/95" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[var(--bg-page)]/90 via-[var(--bg-page)]/80 to-[var(--bg-page)]/95" />
 
         <div className="relative z-10 max-w-5xl mx-auto px-6 text-center">
           {/* Personalized welcome */}
@@ -246,7 +246,7 @@ export default function Index() {
           )}
 
           {!user && (
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass border border-teal-500/30 text-teal-400 text-sm font-medium mb-8 animate-fade-up">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass border border-accent/30 text-accent text-sm font-medium mb-8 animate-fade-up">
               <Rocket className="w-3.5 h-3.5" />
               Your Intelligent Career Operating System
             </div>
@@ -302,7 +302,7 @@ export default function Index() {
                 key={stat.value}
                 className="glass rounded-2xl p-6 border border-white/10"
               >
-                <div className="text-3xl font-display font-bold text-teal-400 mb-2">
+                <div className="text-3xl font-display font-bold text-accent mb-2">
                   {stat.value}
                 </div>
                 <div className="text-white/60 text-sm leading-snug">
@@ -639,9 +639,7 @@ export default function Index() {
               </div>
               <div className="p-4 border-b border-border text-center">
                 <div className="inline-flex items-center gap-1.5">
-                  <div className="w-5 h-5 gradient-teal rounded flex items-center justify-center">
-                    <Target className="w-3 h-3 text-white" />
-                  </div>
+                  <Logo size={20} />
                   <span className="font-display font-bold text-primary text-sm">
                     iCareerOS
                   </span>
@@ -776,9 +774,7 @@ export default function Index() {
         <div className="max-w-5xl mx-auto">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 gradient-teal rounded-md flex items-center justify-center">
-                <Target className="w-3 h-3 text-white" />
-              </div>
+              <Logo size={24} />
               <span className="font-display font-bold text-primary-foreground">
                 iCareerOS
               </span>
