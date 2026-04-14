@@ -255,7 +255,7 @@ export default function ReferralProgram() {
         {userReferralCode && (
           <Badge
             variant="outline"
-            className="bg-[#F5A623]/10 text-[#F5A623] border-[#F5A623]/20 font-mono"
+            className="bg-brand-gold/10 text-brand-gold border-brand-gold/20 font-mono"
           >
             Your Code: {userReferralCode}
           </Badge>
@@ -280,7 +280,7 @@ export default function ReferralProgram() {
         </Card>
         <Card>
           <CardContent className="pt-5 pb-4 text-center">
-            <div className="text-2xl font-bold text-[#F5A623]">
+            <div className="text-2xl font-bold text-brand-gold">
               {pendingCount}
             </div>
             <div className="text-xs text-muted-foreground mt-1">Pending</div>
@@ -381,7 +381,7 @@ export default function ReferralProgram() {
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
-                <LinkIcon className="h-4 w-4 text-[#F5A623]" />
+                <LinkIcon className="h-4 w-4 text-brand-gold" />
                 Shareable Invite Code
               </CardTitle>
               <CardDescription>

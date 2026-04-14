@@ -200,7 +200,7 @@ export default function AdminInvitations() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-2 mb-1">
-              <TrendingUp className="h-4 w-4 text-[#F5A623]" />
+              <TrendingUp className="h-4 w-4 text-brand-gold" />
               <span className="text-sm text-muted-foreground">Conversion</span>
             </div>
             <div className="text-3xl font-bold">
@@ -253,7 +253,7 @@ export default function AdminInvitations() {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-lg flex items-center gap-2">
-              <Shield className="h-5 w-5 text-[#F5A623]" />
+              <Shield className="h-5 w-5 text-brand-gold" />
               Admin Invite (No Limit)
             </CardTitle>
           </CardHeader>
@@ -268,7 +268,7 @@ export default function AdminInvitations() {
               />
               <Button
                 type="submit"
-                className="bg-[#F5A623] hover:bg-[#E5961B] text-white shrink-0"
+                className="bg-brand-gold hover:bg-brand-gold/85 text-white shrink-0"
                 disabled={isSendingAdmin || !adminInviteEmail.trim()}
               >
                 {isSendingAdmin ? (

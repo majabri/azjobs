@@ -270,7 +270,7 @@ export default function InvitePage() {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-lg flex items-center gap-2">
-              <LinkIcon className="h-5 w-5 text-[#F5A623]" />
+              <LinkIcon className="h-5 w-5 text-brand-gold" />
               Share Your Code
             </CardTitle>
             <CardDescription>

@@ -147,8 +147,8 @@ export default function PlatformSettings() {
           <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
             <div className="flex items-center gap-3">
               {isInviteOnly ? (
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#F5A623]/10">
-                  <Lock className="h-5 w-5 text-[#F5A623]" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-gold/10">
+                  <Lock className="h-5 w-5 text-brand-gold" />
                 </div>
               ) : (
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-500/10">
@@ -170,7 +170,7 @@ export default function PlatformSettings() {
               variant="outline"
               className={
                 isInviteOnly
-                  ? "bg-[#F5A623]/10 text-[#F5A623] border-[#F5A623]/20"
+                  ? "bg-brand-gold/10 text-brand-gold border-brand-gold/20"
                   : "bg-green-500/10 text-green-600 border-green-500/20"
               }
             >
@@ -208,32 +208,32 @@ export default function PlatformSettings() {
             <div
               className={`p-4 rounded-lg border-2 transition-colors ${
                 isInviteOnly
-                  ? "border-[#F5A623]/40 bg-[#F5A623]/5"
+                  ? "border-brand-gold/40 bg-brand-gold/5"
                   : "border-muted"
               }`}
             >
               <div className="flex items-center gap-2 mb-2">
-                <Lock className="h-4 w-4 text-[#F5A623]" />
+                <Lock className="h-4 w-4 text-brand-gold" />
                 <span className="font-medium text-sm">Invite-Only</span>
                 {isInviteOnly && (
-                  <CheckCircle2 className="h-3.5 w-3.5 text-[#F5A623] ml-auto" />
+                  <CheckCircle2 className="h-3.5 w-3.5 text-brand-gold ml-auto" />
                 )}
               </div>
               <ul className="space-y-1.5 text-xs text-muted-foreground">
                 <li className="flex items-start gap-1.5">
-                  <span className="mt-0.5">â¢</span>
+                  <span className="mt-0.5">Ã¢ÂÂ¢</span>
                   Users receive email invitations with magic links
                 </li>
                 <li className="flex items-start gap-1.5">
-                  <span className="mt-0.5">â¢</span>
+                  <span className="mt-0.5">Ã¢ÂÂ¢</span>
                   Shareable invite codes for word-of-mouth growth
                 </li>
                 <li className="flex items-start gap-1.5">
-                  <span className="mt-0.5">â¢</span>
+                  <span className="mt-0.5">Ã¢ÂÂ¢</span>
                   Full referral chain tracking & analytics
                 </li>
                 <li className="flex items-start gap-1.5">
-                  <span className="mt-0.5">â¢</span>
+                  <span className="mt-0.5">Ã¢ÂÂ¢</span>
                   Daily invite limits (5/day per user, unlimited for admins)
                 </li>
               </ul>
@@ -256,19 +256,19 @@ export default function PlatformSettings() {
               </div>
               <ul className="space-y-1.5 text-xs text-muted-foreground">
                 <li className="flex items-start gap-1.5">
-                  <span className="mt-0.5">â¢</span>
+                  <span className="mt-0.5">Ã¢ÂÂ¢</span>
                   Anyone can register with email or OAuth
                 </li>
                 <li className="flex items-start gap-1.5">
-                  <span className="mt-0.5">â¢</span>
+                  <span className="mt-0.5">Ã¢ÂÂ¢</span>
                   No invite code or link required
                 </li>
                 <li className="flex items-start gap-1.5">
-                  <span className="mt-0.5">â¢</span>
+                  <span className="mt-0.5">Ã¢ÂÂ¢</span>
                   Referral tracking still works for users who share codes
                 </li>
                 <li className="flex items-start gap-1.5">
-                  <span className="mt-0.5">â¢</span>
+                  <span className="mt-0.5">Ã¢ÂÂ¢</span>
                   Best for open launch or growth phases
                 </li>
               </ul>
@@ -302,7 +302,7 @@ export default function PlatformSettings() {
               </div>
             </div>
             <div className="text-center p-3 rounded-lg bg-muted/50">
-              <div className="text-2xl font-bold text-[#F5A623]">
+              <div className="text-2xl font-bold text-brand-gold">
                 {stats.pendingInvites}
               </div>
               <div className="text-xs text-muted-foreground mt-1">
@@ -321,7 +321,7 @@ export default function PlatformSettings() {
           invite-only mode is active, the signup page requires a valid invite
           token or code. Existing users can send invites from the{" "}
           <strong>Referral Program</strong> section in their career profile.
-          Email invitations send a magic link â the recipient clicks it and
+          Email invitations send a magic link Ã¢ÂÂ the recipient clicks it and
           completes registration using the invited email address. In public
           access mode, the invite gate is bypassed and anyone can register
           directly.

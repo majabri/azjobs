@@ -1,5 +1,5 @@
 /**
- * Account Settings page â appearance, password, MFA (TOTP), Google linking, delete account.
+ * Account Settings page Ã¢ÂÂ appearance, password, MFA (TOTP), Google linking, delete account.
  */
 
 import { useState, useEffect, useMemo } from "react";
@@ -260,7 +260,7 @@ export default function AccountSettings() {
         <ThemeSelector />
       </section>
 
-      {/* âââ Account Info ââââââââââââââââââââââââââââââââââââââââââââââââââ */}
+      {/* Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ Account Info Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Account Info</CardTitle>
@@ -268,7 +268,7 @@ export default function AccountSettings() {
         <CardContent className="space-y-2">
           <div className="flex justify-between items-center">
             <span className="text-sm text-muted-foreground">Email</span>
-            <span className="text-sm font-medium">{user?.email || "â"}</span>
+            <span className="text-sm font-medium">{user?.email || "Ã¢ÂÂ"}</span>
           </div>
           <div className="flex justify-between items-center">
             <span className="text-sm text-muted-foreground">
@@ -289,7 +289,7 @@ export default function AccountSettings() {
         </CardContent>
       </Card>
 
-      {/* âââ Connected Accounts ââââââââââââââââââââââââââââââââââââââââââââ */}
+      {/* Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ Connected Accounts Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
@@ -428,7 +428,7 @@ export default function AccountSettings() {
         </CardContent>
       </Card>
 
-      {/* âââ Change Password ââââââââââââââââââââââââââââââââââââââââââââââ */}
+      {/* Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ Change Password Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
@@ -472,7 +472,7 @@ export default function AccountSettings() {
         </CardContent>
       </Card>
 
-      {/* âââ MFA âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ */}
+      {/* Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ MFA Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
@@ -559,7 +559,7 @@ export default function AccountSettings() {
 
           <Separator />
 
-          {/* Email MFA â grayed out */}
+          {/* Email MFA Ã¢ÂÂ grayed out */}
           <div className="flex items-center justify-between p-3 rounded-lg border border-border opacity-50">
             <div className="flex items-center gap-3">
               <Mail className="w-5 h-5 text-muted-foreground" />
@@ -577,7 +577,7 @@ export default function AccountSettings() {
             </Badge>
           </div>
 
-          {/* SMS MFA â grayed out */}
+          {/* SMS MFA Ã¢ÂÂ grayed out */}
           <div className="flex items-center justify-between p-3 rounded-lg border border-border opacity-50">
             <div className="flex items-center gap-3">
               <MessageSquare className="w-5 h-5 text-muted-foreground" />
@@ -597,7 +597,7 @@ export default function AccountSettings() {
         </CardContent>
       </Card>
 
-      {/* âââ Delete Account ââââââââââââââââââââââââââââââââââââââââââââââââ */}
+      {/* Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ Delete Account Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ */}
       <Card className="border-destructive/30">
         <CardHeader>
           <CardTitle className="text-lg text-destructive flex items-center gap-2">

@@ -155,7 +155,7 @@ function AdminSidebar() {
       ? location.pathname === path
       : location.pathname.startsWith(path);
 
-  // ââ FIX 3.1.5: Sign Out handler â clears session & redirects to /auth/login ââ
+  // ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ FIX 3.1.5: Sign Out handler ÃÂ¢ÃÂÃÂ clears session & redirects to /auth/login ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
   const handleSignOut = async () => {
     try {
       await supabase.auth.signOut();

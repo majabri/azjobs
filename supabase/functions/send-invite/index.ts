@@ -275,7 +275,7 @@ serve(async (req: Request) => {
             html: `
               <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 40px 20px;">
                 <div style="text-align: center; margin-bottom: 32px;">
-                  <h1 style="color: #00B8A9; font-size: 28px; margin: 0;">iCareerOS</h1>
+                  <h1 style="color: #3B5BDB; font-size: 28px; margin: 0;">iCareerOS</h1>
                   <p style="color: #888; font-size: 14px; margin-top: 4px;">AI-Powered Career Operating System</p>
                 </div>
 
@@ -291,7 +291,7 @@ serve(async (req: Request) => {
 
                 <div style="text-align: center; margin: 36px 0;">
                   <a href="${magicLinkUrl}"
-                     style="background-color: #00B8A9; color: white; padding: 16px 40px;
+                     style="background-color: #3B5BDB; color: white; padding: 16px 40px;
                             border-radius: 8px; text-decoration: none; font-size: 16px;
                             font-weight: 600; display: inline-block;">
                     Complete Registration
@@ -308,7 +308,7 @@ serve(async (req: Request) => {
 
                 <p style="font-size: 13px; color: #999; line-height: 1.5;">
                   If the button doesn't work, copy and paste this link into your browser:<br/>
-                  <a href="${magicLinkUrl}" style="color: #00B8A9; word-break: break-all;">${magicLinkUrl}</a>
+                  <a href="${magicLinkUrl}" style="color: #3B5BDB; word-break: break-all;">${magicLinkUrl}</a>
                 </p>
 
                 <hr style="border: none; border-top: 1px solid #eee; margin: 32px 0;" />
