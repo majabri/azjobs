@@ -1,4 +1,4 @@
-import { useTheme, type ThemePreference } from '@/contexts/ThemeContext';
+import { useTheme, type ThemePreference } from '@/components/providers/ThemeProvider';
 
 const OPTIONS: { value: ThemePreference; label: string; desc: string }[] = [
   { value: 'light',  label: 'Light',     desc: 'Clean white interface' },
