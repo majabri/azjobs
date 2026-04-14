@@ -42,7 +42,7 @@ export default function LearningInsights() {
         <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
           Discover patterns from your application outcomes to improve your strategy.
         </p>
-        <Button className="gradient-teal text-white shadow-teal hover:opacity-90" onClick={analyze} disabled={loading}>
+        <Button className="gradient-indigo text-white shadow-indigo-500/20 hover:opacity-90" onClick={analyze} disabled={loading}>
           {loading ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Analyzing...</> : <><Sparkles className="w-4 h-4 mr-2" /> Generate Insights</>}
         </Button>
       </Card>

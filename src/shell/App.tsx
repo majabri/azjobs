@@ -1,6 +1,6 @@
 /**
  * Shell App — The root container for the entire application.
- * Provides global context (query client, tooltips, toasts) and mounts service routes.
+ * Provides global context (query client, tooltips, toasts, theme) and mounts service routes.
  * Contains NO business logic. NO feature imports. Only infrastructure.
  */
 
@@ -11,6 +11,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter } from "react-router-dom";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import ShellRoutes from "./routes";
 import { useLanguagePreference } from "@/hooks/useLanguagePreference";
 
@@ -29,7 +30,9 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <AuthProvider>
-            <AppInner />
+            <ThemeProvider>
+              <AppInner />
+            </ThemeProvider>
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>

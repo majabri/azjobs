@@ -1,4 +1,5 @@
-import { ChevronDown, Shield, Target } from "lucide-react";
+import { ChevronDown, Shield } from "lucide-react";
+import { ICareerOSLogo } from "@/components/ui/ICareerOSLogo";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
@@ -30,12 +31,13 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarContent>
         {/* Logo */}
-        <div className={`flex items-center gap-2 px-4 py-5 ${collapsed ? "justify-center" : ""}`}>
-          <div className="w-8 h-8 gradient-teal rounded-lg flex items-center justify-center shadow-teal flex-shrink-0">
-            <Target className="w-4 h-4 text-white" />
-          </div>
+        <div className={`flex items-center gap-2 px-4 py-3 select-none ${collapsed ? "justify-center" : ""}`}>
+          <ICareerOSLogo size={24} />
           {!collapsed && (
-            <span className="font-display text-lg font-bold text-sidebar-foreground">iCareerOS</span>
+            <span className="text-sm font-medium">
+              <span className="text-primary">iCareer</span>
+              <span className="text-foreground">OS</span>
+            </span>
           )}
         </div>
 

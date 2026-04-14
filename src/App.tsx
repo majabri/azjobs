@@ -33,7 +33,6 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminAgents from "./pages/admin/AdminAgents";
 import AdminSystem from "./pages/admin/AdminSystem";
-import AdminSettings from "./pages/admin/AdminSettings";
 import AdminSetPassword from "./pages/admin/AdminSetPassword";
 import AdminTickets from "./pages/admin/AdminTickets";
 import AdminSurveys from "./pages/admin/AdminSurveys";
@@ -44,6 +43,8 @@ import AdminQueue from "./pages/admin/AdminQueue";
 import AdminConsole from "./pages/admin/AdminConsole";
 import AdminAudit from "./pages/admin/AdminAudit";
 import AdminAgentRunDetail from "./pages/admin/AdminAgentRunDetail";
+import PlatformSettings from "./pages/admin/PlatformSettings";
+import SignUpWithInvite from "./pages/auth/SignUpWithInvite";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import React, { lazy, Suspense } from "react";
 
@@ -100,9 +101,8 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
-
+              <Route path="/auth/signup" element={<SignUpWithInvite />} />
               <Route path="/job-seeker" element={<OptionalLayout><JobSeeker /></OptionalLayout>} />
-
               <Route path="/dashboard" element={<ProtectedWithLayout><Dashboard /></ProtectedWithLayout>} />
               <Route path="/applications" element={<ProtectedWithLayout><Applications /></ProtectedWithLayout>} />
               <Route path="/profile" element={<ProtectedWithLayout><Profile /></ProtectedWithLayout>} />
@@ -131,7 +131,7 @@ const App = () => (
               <Route path="/admin/users" element={<AdminProtectedRoute><AdminLayout><AdminUsers /></AdminLayout></AdminProtectedRoute>} />
               <Route path="/admin/agents" element={<AdminProtectedRoute><AdminLayout><AdminAgents /></AdminLayout></AdminProtectedRoute>} />
               <Route path="/admin/system" element={<AdminProtectedRoute><AdminLayout><AdminSystem /></AdminLayout></AdminProtectedRoute>} />
-              <Route path="/admin/settings" element={<AdminProtectedRoute><AdminLayout><AdminSettings /></AdminLayout></AdminProtectedRoute>} />
+              <Route path="/admin/settings" element={<AdminProtectedRoute><AdminLayout><AccountSettings /></AdminLayout></AdminProtectedRoute>} />
               <Route path="/admin/profile" element={<AdminProtectedRoute><AdminLayout><AdminProfile /></AdminLayout></AdminProtectedRoute>} />
               <Route path="/admin/logs" element={<AdminProtectedRoute><AdminLayout><AdminLogs /></AdminLayout></AdminProtectedRoute>} />
               <Route path="/admin/agent-runs" element={<AdminProtectedRoute><AdminLayout><AdminAgentRuns /></AdminLayout></AdminProtectedRoute>} />
@@ -141,6 +141,7 @@ const App = () => (
               <Route path="/admin/tickets" element={<AdminProtectedRoute><AdminLayout><AdminTickets /></AdminLayout></AdminProtectedRoute>} />
               <Route path="/admin/surveys" element={<AdminProtectedRoute><AdminLayout><AdminSurveys /></AdminLayout></AdminProtectedRoute>} />
               <Route path="/admin/agent-runs/:runId" element={<AdminProtectedRoute><AdminLayout><AdminAgentRunDetail /></AdminLayout></AdminProtectedRoute>} />
+              <Route path="/admin/platform-settings" element={<AdminProtectedRoute><AdminLayout><PlatformSettings /></AdminLayout></AdminProtectedRoute>} />
 
               {/* Public routes */}
               <Route path="/p/:userId" element={<PublicProfile />} />

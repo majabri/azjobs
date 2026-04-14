@@ -25,13 +25,11 @@ by the Supabase runtime and must **never** be hardcoded:
 | `SUPABASE_URL` | Injected by Supabase runtime |
 | `SUPABASE_ANON_KEY` | Injected by Supabase runtime |
 | `SUPABASE_SERVICE_ROLE_KEY` | Injected by Supabase runtime – treat as a secret |
-| `FIRECRAWL_API_KEY` | Set as a Supabase secret via `supabase secrets set` |
 | `LOVABLE_API_KEY` | Set as a Supabase secret via `supabase secrets set` |
 
 ### Setting edge-function secrets
 
 ```sh
-supabase secrets set FIRECRAWL_API_KEY=<value>
 supabase secrets set LOVABLE_API_KEY=<value>
 ```
 

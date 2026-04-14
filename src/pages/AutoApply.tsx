@@ -113,6 +113,19 @@ export default function AutoApplyPage() {
     }
   };
 
+  // Persist minMatchScore to DB on change (debounced)
+  useEffect(() => {
+    if (!profileLoaded) return;
+    const timer = setTimeout(async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+        await supabase.from("job_seeker_profiles").update({ min_match_score: prefs.minMatchScore } as any).eq("user_id", session.user.id);
+      } catch (e) { console.error("Failed to save match score:", e); }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [prefs.minMatchScore, profileLoaded]);
+
   const addTitle = () => {
     const t = titleInput.trim();
     if (t && !prefs.jobTitles.includes(t)) {
@@ -444,7 +457,7 @@ export default function AutoApplyPage() {
           ] as const).map(m => (
             <Card
               key={m.mode}
-              className={`p-4 cursor-pointer transition-all ${prefs.applyMode === m.mode ? "border-accent bg-accent/5 shadow-teal" : "hover:border-accent/30"}`}
+              className={`p-4 cursor-pointer transition-all ${prefs.applyMode === m.mode ? "border-accent bg-accent/5 shadow-indigo-500/20" : "hover:border-accent/30"}`}
               onClick={() => setPrefs({ ...prefs, applyMode: m.mode, requireReview: m.mode === "manual" })}
             >
               <div className="flex items-center gap-2 mb-1">
@@ -615,7 +628,7 @@ export default function AutoApplyPage() {
           </div>
 
           <div className="mt-6 flex items-center gap-3">
-            <Button className="gradient-teal text-white shadow-teal hover:opacity-90" disabled={isSearching} onClick={runAutoSearch}>
+            <Button className="gradient-indigo text-white shadow-indigo-500/20 hover:opacity-90" disabled={isSearching} onClick={runAutoSearch}>
               {isSearching ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Searching...</> : <><Search className="w-4 h-4 mr-2" /> Find & Queue Jobs</>}
             </Button>
             {queue.length > 0 && (
@@ -671,7 +684,7 @@ export default function AutoApplyPage() {
                       <div className="flex items-center gap-1 flex-wrap">
                         {item.status === "review" && (
                           <>
-                            <Button size="sm" className="text-xs gradient-teal text-white" onClick={() => { analyzeItem(item); setExpandedId(item.id); }} disabled={isAnalyzing}>
+                            <Button size="sm" className="text-xs gradient-indigo text-white" onClick={() => { analyzeItem(item); setExpandedId(item.id); }} disabled={isAnalyzing}>
                               {isAnalyzing ? <Loader2 className="w-3 h-3 animate-spin" /> : <><Target className="w-3 h-3 mr-1" /> Analyze Fit</>}
                             </Button>
                             <Button size="sm" variant="outline" className="text-xs" onClick={() => setExpandedId(isExpanded ? null : item.id)}>
@@ -685,7 +698,7 @@ export default function AutoApplyPage() {
                             <Button size="sm" variant="outline" className="text-xs" onClick={() => setExpandedId(isExpanded ? null : item.id)}>
                               <Eye className="w-3 h-3 mr-1" /> {isExpanded ? "Collapse" : "Review Analysis"}
                             </Button>
-                            <Button size="sm" className="text-xs gradient-teal text-white" onClick={() => generatePackage(item)} disabled={isGenerating}>
+                            <Button size="sm" className="text-xs gradient-indigo text-white" onClick={() => generatePackage(item)} disabled={isGenerating}>
                               {isGenerating ? <Loader2 className="w-3 h-3 animate-spin" /> : <><Package className="w-3 h-3 mr-1" /> Generate Package</>}
                             </Button>
                             <Button size="sm" variant="outline" className="text-xs" onClick={() => {

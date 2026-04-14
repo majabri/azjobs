@@ -169,11 +169,11 @@ export default function WatchdogDashboard() {
 
   const getStatusBadge = (isHealthy: boolean) => {
     return isHealthy ? (
-      <Badge className="bg-green-900/30 text-green-300 border-green-700 border">
+      <Badge className="bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/30 border">
         Healthy
       </Badge>
     ) : (
-      <Badge className="bg-red-900/30 text-red-300 border-red-700 border">
+      <Badge className="bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/30 border">
         Unhealthy
       </Badge>
     );
@@ -182,15 +182,15 @@ export default function WatchdogDashboard() {
   const getSeverityColor = (severity: string) => {
     switch (severity) {
       case 'critical':
-        return 'bg-red-900/30 text-red-300 border-red-700';
+        return 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/30';
       case 'high':
         return 'bg-orange-900/30 text-orange-300 border-orange-700';
       case 'medium':
-        return 'bg-yellow-900/30 text-yellow-300 border-yellow-700';
+        return 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/30';
       case 'low':
-        return 'bg-blue-900/30 text-blue-300 border-blue-700';
+        return 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30';
       default:
-        return 'bg-gray-700 text-gray-300';
+        return 'bg-muted text-muted-foreground';
     }
   };
 
@@ -202,12 +202,12 @@ export default function WatchdogDashboard() {
 
   if (error && error.includes('Access denied')) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <Card className="bg-gray-800 border-gray-700 max-w-md w-full mx-4 p-8">
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Card className="bg-card border-border max-w-md w-full mx-4 p-8">
           <div className="text-center">
             <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-            <h1 className="text-2xl font-bold text-white mb-2">Access Denied</h1>
-            <p className="text-gray-400">{error}</p>
+            <h1 className="text-2xl font-bold text-foreground mb-2">Access Denied</h1>
+            <p className="text-muted-foreground">{error}</p>
           </div>
         </Card>
       </div>
@@ -215,13 +215,13 @@ export default function WatchdogDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className="min-h-screen bg-background">
       <div className="max-w-7xl mx-auto px-4 py-12">
         {/* Header */}
         <div className="flex justify-between items-start mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-white mb-2">System Health</h1>
-            <p className="text-gray-400">Monitor platform health and service status</p>
+            <h1 className="text-3xl font-bold text-foreground mb-2">System Health</h1>
+            <p className="text-muted-foreground">Monitor platform health and service status</p>
           </div>
           <div className="flex gap-2">
             {['24h', '7d', '30d'].map(range => (
@@ -230,8 +230,8 @@ export default function WatchdogDashboard() {
                 onClick={() => setTimeRange(range)}
                 className={`px-4 py-2 rounded-md transition-colors ${
                   timeRange === range
-                    ? 'bg-teal-600 text-white'
-                    : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                    ? 'bg-primary text-foreground'
+                    : 'bg-card text-muted-foreground hover:bg-muted'
                 }`}
               >
                 {range}
@@ -248,46 +248,46 @@ export default function WatchdogDashboard() {
 
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 text-teal-500 animate-spin" />
+            <Loader2 className="w-8 h-8 text-primary animate-spin" />
           </div>
         ) : (
           <>
             {/* KPI Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
               {/* Uptime */}
-              <Card className="bg-gray-800 border-gray-700 p-6">
+              <Card className="bg-card border-border p-6">
                 <div className="flex justify-between items-start mb-4">
-                  <h3 className="text-sm font-medium text-gray-400">SLO Uptime</h3>
-                  <TrendingUp className="w-5 h-5 text-teal-400" />
+                  <h3 className="text-sm font-medium text-muted-foreground">SLO Uptime</h3>
+                  <TrendingUp className="w-5 h-5 text-primary" />
                 </div>
                 <div className={`text-3xl font-bold ${getUptimeColor()}`}>
                   {uptime.toFixed(2)}%
                 </div>
-                <p className="text-xs text-gray-500 mt-2">Last {timeRange}</p>
+                <p className="text-xs text-muted-foreground mt-2">Last {timeRange}</p>
               </Card>
 
               {/* Active Probes */}
-              <Card className="bg-gray-800 border-gray-700 p-6">
+              <Card className="bg-card border-border p-6">
                 <div className="flex justify-between items-start mb-4">
-                  <h3 className="text-sm font-medium text-gray-400">
+                  <h3 className="text-sm font-medium text-muted-foreground">
                     Active Probes
                   </h3>
                   <CheckCircle className="w-5 h-5 text-green-400" />
                 </div>
-                <div className="text-3xl font-bold text-white">{probes.length}</div>
-                <p className="text-xs text-gray-500 mt-2">Monitoring endpoints</p>
+                <div className="text-3xl font-bold text-foreground">{probes.length}</div>
+                <p className="text-xs text-muted-foreground mt-2">Monitoring endpoints</p>
               </Card>
 
               {/* Healthy Probes */}
-              <Card className="bg-gray-800 border-gray-700 p-6">
+              <Card className="bg-card border-border p-6">
                 <div className="flex justify-between items-start mb-4">
-                  <h3 className="text-sm font-medium text-gray-400">Healthy</h3>
+                  <h3 className="text-sm font-medium text-muted-foreground">Healthy</h3>
                   <CheckCircle className="w-5 h-5 text-green-400" />
                 </div>
                 <div className="text-3xl font-bold text-green-400">
                   {results.filter(r => r.is_healthy).length}
                 </div>
-                <p className="text-xs text-gray-500 mt-2">
+                <p className="text-xs text-muted-foreground mt-2">
                   {probes.length > 0
                     ? `${(
                         (results.filter(r => r.is_healthy).length /
@@ -299,9 +299,9 @@ export default function WatchdogDashboard() {
               </Card>
 
               {/* Active Incidents */}
-              <Card className="bg-gray-800 border-gray-700 p-6">
+              <Card className="bg-card border-border p-6">
                 <div className="flex justify-between items-start mb-4">
-                  <h3 className="text-sm font-medium text-gray-400">
+                  <h3 className="text-sm font-medium text-muted-foreground">
                     Active Incidents
                   </h3>
                   <AlertCircle className="w-5 h-5 text-red-400" />
@@ -309,7 +309,7 @@ export default function WatchdogDashboard() {
                 <div className="text-3xl font-bold text-red-400">
                   {incidents.filter(i => i.status === 'open').length}
                 </div>
-                <p className="text-xs text-gray-500 mt-2">Unresolved</p>
+                <p className="text-xs text-muted-foreground mt-2">Unresolved</p>
               </Card>
             </div>
 
@@ -317,36 +317,36 @@ export default function WatchdogDashboard() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               {/* Probes Status */}
               <div className="lg:col-span-2">
-                <h2 className="text-xl font-bold text-white mb-4">
+                <h2 className="text-xl font-bold text-foreground mb-4">
                   Probe Status (Last 24h)
                 </h2>
-                <Card className="bg-gray-800 border-gray-700">
+                <Card className="bg-card border-border">
                   <div className="divide-y divide-gray-700">
                     {results.length === 0 ? (
-                      <div className="p-6 text-center text-gray-400">
+                      <div className="p-6 text-center text-muted-foreground">
                         No data available
                       </div>
                     ) : (
                       results.slice(0, 20).map(result => (
                         <div
                           key={result.id}
-                          className="p-4 hover:bg-gray-700/30 transition-colors"
+                          className="p-4 hover:bg-muted/30 transition-colors"
                         >
                           <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-3 flex-1 min-w-0">
                               {getStatusIcon(result.is_healthy)}
                               <div className="min-w-0">
-                                <p className="font-medium text-white truncate">
+                                <p className="font-medium text-foreground truncate">
                                   {result.probe?.name || 'Unknown Probe'}
                                 </p>
-                                <p className="text-xs text-gray-500 truncate">
+                                <p className="text-xs text-muted-foreground truncate">
                                   {result.probe?.endpoint}
                                 </p>
                               </div>
                             </div>
                             {getStatusBadge(result.is_healthy)}
                           </div>
-                          <div className="flex justify-between text-xs text-gray-400">
+                          <div className="flex justify-between text-xs text-muted-foreground">
                             <span>
                               Status: {result.status_code} | Response:{' '}
                               {result.response_time_ms}ms
@@ -369,22 +369,22 @@ export default function WatchdogDashboard() {
 
               {/* Incidents Timeline */}
               <div>
-                <h2 className="text-xl font-bold text-white mb-4">
+                <h2 className="text-xl font-bold text-foreground mb-4">
                   Incident Timeline
                 </h2>
-                <Card className="bg-gray-800 border-gray-700">
+                <Card className="bg-card border-border">
                   {incidents.length === 0 ? (
-                    <div className="p-6 text-center text-gray-400">
+                    <div className="p-6 text-center text-muted-foreground">
                       No incidents
                     </div>
                   ) : (
                     <div className="divide-y divide-gray-700">
                       {incidents.slice(0, 10).map(incident => (
-                        <div key={incident.id} className="p-4 hover:bg-gray-700/30">
+                        <div key={incident.id} className="p-4 hover:bg-muted/30">
                           <div className="flex gap-3 mb-2">
                             <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5 text-orange-400" />
                             <div className="min-w-0">
-                              <p className="font-medium text-white text-sm truncate">
+                              <p className="font-medium text-foreground text-sm truncate">
                                 {incident.title}
                               </p>
                               <Badge
@@ -397,7 +397,7 @@ export default function WatchdogDashboard() {
                               </Badge>
                             </div>
                           </div>
-                          <p className="text-xs text-gray-500 ml-7">
+                          <p className="text-xs text-muted-foreground ml-7">
                             {new Date(incident.created_at).toLocaleTimeString()}
                           </p>
                           {!incident.resolved_at && (

@@ -201,30 +201,30 @@ export default function AdminTickets() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'open':
-        return 'bg-blue-900/30 text-blue-300 border-blue-700';
+        return 'bg-blue-500/10 text-blue-600 dark:text-blue-600 dark:text-blue-400 border-blue-500/30';
       case 'in_progress':
-        return 'bg-yellow-900/30 text-yellow-300 border-yellow-700';
+        return 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/30';
       case 'resolved':
-        return 'bg-green-900/30 text-green-300 border-green-700';
+        return 'bg-green-500/10 text-green-600 dark:text-green-600 dark:text-green-400 border-green-500/30';
       case 'closed':
-        return 'bg-gray-700 text-gray-300 border-gray-600';
+        return 'bg-muted text-muted-foreground border-border';
       default:
-        return 'bg-gray-700 text-gray-300';
+        return 'bg-muted text-muted-foreground';
     }
   };
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
       case 'critical':
-        return 'bg-red-900/30 text-red-300 border-red-700';
+        return 'bg-red-500/10 text-red-600 dark:text-red-600 dark:text-red-400 border-red-500/30';
       case 'high':
-        return 'bg-orange-900/30 text-orange-300 border-orange-700';
+        return 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/30';
       case 'medium':
-        return 'bg-yellow-900/30 text-yellow-300 border-yellow-700';
+        return 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/30';
       case 'low':
-        return 'bg-green-900/30 text-green-300 border-green-700';
+        return 'bg-green-500/10 text-green-600 dark:text-green-600 dark:text-green-400 border-green-500/30';
       default:
-        return 'bg-gray-700 text-gray-300';
+        return 'bg-muted text-muted-foreground';
     }
   };
 
@@ -247,14 +247,14 @@ export default function AdminTickets() {
 
   if (error && error.includes('Access denied')) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <Card className="bg-gray-800 border-gray-700 max-w-md w-full mx-4 p-8">
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Card className="bg-card border-border max-w-md w-full mx-4 p-8">
           <div className="text-center">
-            <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-            <h1 className="text-2xl font-bold text-white mb-2">Access Denied</h1>
-            <p className="text-gray-400 mb-6">{error}</p>
+            <AlertCircle className="w-12 h-12 text-destructive mx-auto mb-4" />
+            <h1 className="text-2xl font-bold text-foreground mb-2">Access Denied</h1>
+            <p className="text-muted-foreground mb-6">{error}</p>
             <Button
-              className="bg-teal-600 hover:bg-teal-700 text-white"
+              className="bg-primary hover:bg-primary/90 text-foreground"
               onClick={() => window.location.href = '/'}
             >
               Back to Home
@@ -266,30 +266,30 @@ export default function AdminTickets() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className="min-h-screen bg-background">
       <div className="max-w-7xl mx-auto px-4 py-12">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-white mb-2">Support Tickets</h1>
-          <p className="text-gray-400">Manage and triage customer support requests</p>
+          <h1 className="text-3xl font-bold text-foreground mb-2">Support Tickets</h1>
+          <p className="text-muted-foreground">Manage and triage customer support requests</p>
         </div>
 
         {error && (
-          <div className="mb-6 p-4 bg-red-900/30 border border-red-700 rounded-lg text-red-300">
+          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-lg text-red-600 dark:text-red-600 dark:text-red-400">
             {error}
           </div>
         )}
 
         {/* Filters */}
-        <Card className="bg-gray-800 border-gray-700 mb-8 p-6">
+        <Card className="bg-card border-border mb-8 p-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {/* Search */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-muted-foreground mb-2">
                 Search
               </label>
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <input
                   type="text"
                   value={filters.search}
@@ -297,14 +297,14 @@ export default function AdminTickets() {
                     setFilters(prev => ({ ...prev, search: e.target.value }))
                   }
                   placeholder="Search tickets..."
-                  className="w-full pl-10 pr-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  className="w-full pl-10 pr-3 py-2 bg-muted border border-border rounded-md text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
             </div>
 
             {/* Status Filter */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-muted-foreground mb-2">
                 Status
               </label>
               <select
@@ -312,7 +312,7 @@ export default function AdminTickets() {
                 onChange={e =>
                   setFilters(prev => ({ ...prev, status: e.target.value }))
                 }
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="w-full px-3 py-2 bg-muted border border-border rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               >
                 <option value="">All Statuses</option>
                 <option value="open">Open</option>
@@ -324,7 +324,7 @@ export default function AdminTickets() {
 
             {/* Severity Filter */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-muted-foreground mb-2">
                 Severity
               </label>
               <select
@@ -332,7 +332,7 @@ export default function AdminTickets() {
                 onChange={e =>
                   setFilters(prev => ({ ...prev, severity: e.target.value }))
                 }
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="w-full px-3 py-2 bg-muted border border-border rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               >
                 <option value="">All Severities</option>
                 <option value="critical">Critical</option>
@@ -344,13 +344,13 @@ export default function AdminTickets() {
 
             {/* Sort By */}
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
+              <label className="block text-sm font-medium text-muted-foreground mb-2">
                 Sort By
               </label>
               <select
                 value={sortBy}
                 onChange={e => setSortBy(e.target.value as SortField)}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="w-full px-3 py-2 bg-muted border border-border rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               >
                 <option value="created_at">Newest First</option>
                 <option value="severity">By Severity</option>
@@ -363,18 +363,18 @@ export default function AdminTickets() {
         {/* Tickets List */}
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 text-teal-500 animate-spin" />
+            <Loader2 className="w-8 h-8 text-primary animate-spin" />
           </div>
         ) : displayTickets.length === 0 ? (
-          <Card className="bg-gray-800 border-gray-700 p-12 text-center">
-            <p className="text-gray-400">No tickets found</p>
+          <Card className="bg-card border-border p-12 text-center">
+            <p className="text-muted-foreground">No tickets found</p>
           </Card>
         ) : (
           <div className="space-y-3">
             {displayTickets.map(ticket => (
               <div key={ticket.id}>
                 <Card
-                  className="bg-gray-800 border-gray-700 hover:border-teal-500/50 transition-colors cursor-pointer"
+                  className="bg-card border-border hover:border-primary/50 transition-colors cursor-pointer"
                   onClick={() =>
                     setExpandedTicket(
                       expandedTicket === ticket.id ? null : ticket.id
@@ -387,15 +387,15 @@ export default function AdminTickets() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-4 mb-2">
                           <div>
-                            <p className="text-sm text-gray-400 mb-1">
+                            <p className="text-sm text-muted-foreground mb-1">
                               {ticket.ticket_number}
                             </p>
-                            <h3 className="text-lg font-semibold text-white truncate">
+                            <h3 className="text-lg font-semibold text-foreground truncate">
                               {ticket.title}
                             </h3>
                           </div>
                           <ChevronDown
-                            className={`w-5 h-5 text-gray-400 flex-shrink-0 transition-transform ${
+                            className={`w-5 h-5 text-muted-foreground flex-shrink-0 transition-transform ${
                               expandedTicket === ticket.id ? 'rotate-180' : ''
                             }`}
                           />
@@ -417,14 +417,14 @@ export default function AdminTickets() {
                           </Badge>
                           <Badge
                             variant="outline"
-                            className="border-gray-600 text-gray-300"
+                            className="border-border text-muted-foreground"
                           >
                             {ticket.category}
                           </Badge>
                         </div>
 
                         {/* Timestamp */}
-                        <p className="text.xs text-gray-500">
+                        <p className="text.xs text-muted-foreground">
                           Created {new Date(ticket.created_at).toLocaleString()}
                         </p>
                       </div>
@@ -434,7 +434,7 @@ export default function AdminTickets() {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                          className="border-border text-muted-foreground hover:bg-muted"
                           onClick={e => {
                             e.stopPropagation();
                             handleAITriage(ticket.id);
@@ -452,8 +452,8 @@ export default function AdminTickets() {
 
                     {/* Expanded Content */}
                     {expandedTicket === ticket.id && (
-                      <div className="mt-6 pt-6 border-t border-gray-700">
-                        <p className="text-gray-300 mb-6">{ticket.description}</p>
+                      <div className="mt-6 pt-6 border-t border-border">
+                        <p className="text-muted-foreground mb-6">{ticket.description}</p>
 
                         {/* Status Update Buttons */}
                         <div className="flex gap-2">
@@ -467,8 +467,8 @@ export default function AdminTickets() {
                                 }
                                 className={
                                   ticket.status === status
-                                    ? 'bg-teal-600 hover:bg-teal-700 text-white'
-                                    : 'border-gray-600 text-gray-300 hover:bg-gray-700'
+                                    ? 'bg-primary hover:bg-primary/90 text-foreground'
+                                    : 'border-border text-muted-foreground hover:bg-muted'
                                 }
                                 onClick={e => {
                                   e.stopPropagation();
@@ -492,25 +492,25 @@ export default function AdminTickets() {
         {/* Stats */}
         {!loading && (
           <div className="grid grid-cols-4 gap-4 mt-8">
-            <Card className="bg-gray-800 border-gray-700 p-6">
-              <p className="text-gray-400 text-sm mb-2">Total Tickets</p>
-              <p className="text-3xl font-bold text-white">{tickets.length}</p>
+            <Card className="bg-card border-border p-6">
+              <p className="text-muted-foreground text-sm mb-2">Total Tickets</p>
+              <p className="text-3xl font-bold text-foreground">{tickets.length}</p>
             </Card>
-            <Card className="bg-gray-800 border-gray-700 p-6">
-              <p className="text-gray-400 text-sm mb-2">Open</p>
-              <p className="text-3xl font-bold text-blue-400">
+            <Card className="bg-card border-border p-6">
+              <p className="text-muted-foreground text-sm mb-2">Open</p>
+              <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">
                 {tickets.filter(t => t.status === 'open').length}
               </p>
             </Card>
-            <Card className="bg-gray-800 border-gray-700 p-6">
-              <p className="text-gray-400 text-sm mb-2">In Progress</p>
+            <Card className="bg-card border-border p-6">
+              <p className="text-muted-foreground text-sm mb-2">In Progress</p>
               <p className="text-3xl font-bold text-yellow-400">
                 {tickets.filter(t => t.status === 'in_progress').length}
               </p>
             </Card>
-            <Card className="bg-gray-800 border-gray-700 p-6">
-              <p className="text-gray-400 text-sm mb-2">Critical</p>
-              <p className="text-3xl font-bold text-red-400">
+            <Card className="bg-card border-border p-6">
+              <p className="text-muted-foreground text-sm mb-2">Critical</p>
+              <p className="text-3xl font-bold text-red-600 dark:text-red-400">
                 {tickets.filter(t => t.severity === 'critical').length}
               </p>
             </Card>

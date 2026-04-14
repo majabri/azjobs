@@ -173,7 +173,7 @@ All critical bugs fixed. Lovable dependencies removed. Package named "icareeros.
 - Branch: fix/lockfile
 
 ### Task 2.3 -- GitHub Secrets
-- Add FIRECRAWL_API_KEY, ANTHROPIC_API_KEY, SUPABASE_ACCESS_TOKEN to GitHub Actions secrets
+- Add ANTHROPIC_API_KEY, SUPABASE_ACCESS_TOKEN to GitHub Actions secrets
 - Follow phase-02/task-2.3-github-secrets.md
 
 ### Phase 2 Output

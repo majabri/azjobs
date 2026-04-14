@@ -1,6 +1,6 @@
 /**
  * /auth/login — Primary login page.
- * Supports Google OAuth, Apple OAuth, and email-or-username + password.
+ * Supports Google OAuth, Apple OAuth, and email + password.
  * Role-aware redirect:
  *   admin → /admin
  *   job seeker only → /dashboard
@@ -13,18 +13,20 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Target, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { usePostLoginRedirect } from "@/hooks/usePostLoginRedirect";
 import DashboardModeDialog from "@/components/DashboardModeDialog";
 import { login, loginWithGoogle, loginWithApple } from "@/services/user/auth";
 import { normalizeError } from "@/lib/normalizeError";
 import { supabase } from "@/integrations/supabase/client";
+import { ICareerOSLogo } from '@/components/ui/ICareerOSLogo';
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const { user, isReady } = useAuthReady();
-  const { destination, showModePrompt, setShowModePrompt, isResolving } = usePostLoginRedirect();
+  const { destination, showModePrompt, setShowModePrompt, isResolving } =
+    usePostLoginRedirect();
 
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
@@ -44,7 +46,11 @@ export default function LoginPage() {
   if (isReady && user && (isResolving || (!showModePrompt && destination))) {
     return (
       <>
-        <div className="min-h-screen bg-background flex items-center justify-center" role="status" aria-label="Redirecting">
+        <div
+          className="min-h-screen bg-background flex items-center justify-center"
+          role="status"
+          aria-label="Redirecting"
+        >
           <Loader2 className="w-6 h-6 text-muted-foreground animate-spin" />
         </div>
         <DashboardModeDialog
@@ -95,6 +101,7 @@ export default function LoginPage() {
 
     setErrorMsg(null);
     setLoadingEmail(true);
+
     try {
       let loginEmail = id;
 
@@ -105,7 +112,7 @@ export default function LoginPage() {
           { _username: id }
         );
         if (rpcError || !resolved) {
-          setErrorMsg("Invalid username/email or password.");
+          setErrorMsg("Invalid email or password.");
           setLoadingEmail(false);
           return;
         }
@@ -129,11 +136,12 @@ export default function LoginPage() {
     <div className="min-h-screen bg-background flex items-center justify-center px-6">
       <div className="w-full max-w-sm text-center space-y-8">
         {/* Branding */}
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-14 h-14 gradient-teal rounded-2xl flex items-center justify-center shadow-teal">
-            <Target className="w-7 h-7 text-white" />
-          </div>
-          <h1 className="font-display text-3xl font-bold text-primary">iCareerOS</h1>
+        <div className="flex flex-col items-center gap-3 mb-6">
+          <ICareerOSLogo size={52} />
+          <span className="text-2xl font-semibold tracking-tight">
+            <span className="text-primary">iCareer</span>
+            <span className="text-foreground">OS</span>
+          </span>
           <p className="text-muted-foreground text-sm">
             Sign in to save your analyses and track your progress
           </p>
@@ -182,15 +190,15 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Unified login form */}
+        {/* Login form */}
         <form onSubmit={handleLogin} className="space-y-4 text-left">
           <div className="space-y-1">
-            <Label htmlFor="identifier">Email or Username</Label>
+            <Label htmlFor="identifier">Email</Label>
             <Input
               id="identifier"
               type="text"
-              autoComplete="username"
-              placeholder="you@example.com or username"
+              autoComplete="off"
+              placeholder=""
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
               disabled={loading}
@@ -200,6 +208,7 @@ export default function LoginPage() {
               autoCorrect="off"
             />
           </div>
+
           <div className="space-y-1">
             <div className="flex items-center justify-between">
               <Label htmlFor="password">Password</Label>
@@ -214,8 +223,8 @@ export default function LoginPage() {
             <Input
               id="password"
               type="password"
-              autoComplete="current-password"
-              placeholder="\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022"
+              autoComplete="off"
+              placeholder=""
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               disabled={loading}
@@ -231,8 +240,8 @@ export default function LoginPage() {
 
           <Button
             type="submit"
-            className="w-full"
-            disabled={loading || !identifier.trim() || !password}
+              className="w-full gradient-indigo text-white"
+                          disabled={loading || !identifier.trim() || !password}
           >
             {loadingEmail ? "Signing in\u2026" : "Sign in"}
           </Button>
@@ -240,7 +249,10 @@ export default function LoginPage() {
 
         <p className="text-sm text-muted-foreground">
           Don't have an account?{" "}
-          <a href="/auth/signup" className="text-primary hover:underline font-medium">
+          <a
+            href="/auth/signup"
+            className="text-primary hover:underline font-medium"
+          >
             Sign up
           </a>
         </p>
