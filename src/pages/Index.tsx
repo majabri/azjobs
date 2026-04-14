@@ -14,7 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { analyzeJobFit } from "@/lib/analysisEngine";
 import { AUTH_LOGIN, AUTH_SIGNUP } from "@/lib/routes";
-import { Logo } from '@/assets/Logo';
+import { ICareerOSLogo } from '@/components/ui/ICareerOSLogo';
 /* ────────────────────── DATA ────────────────────── */
 
 const stats = [
@@ -184,10 +184,11 @@ export default function Index() {
           className="flex items-center gap-2 cursor-pointer"
           onClick={() => navigate("/")}
         >
-          <Logo size={28} />
-                    <span style={{ fontSize: '15px', fontWeight: 500, color: 'var(--text-primary)', letterSpacing: '-0.2px' }}>
-                                iCareer<span style={{ color: 'var(--brand)' }}>OS</span>
-                                          </span>
+          <ICareerOSLogo size={28} />
+          <span className="text-sm font-medium tracking-tight">
+            <span className="text-primary">iCareer</span>
+            <span className="text-foreground">OS</span>
+          </span>
                                                   </div>
 
         <nav className="flex items-center gap-1">
