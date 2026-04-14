@@ -82,9 +82,7 @@ async function resilientFetch(
       return resp;
     } catch (e: any) {
       lastError = e;
-      if (attempt < maxRetries) {
-        await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
-      }
+      if (attempt < maxRetries) await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
     }
   }
   throw lastError || new Error("Fetch failed after retries");
@@ -132,7 +130,6 @@ export async function searchJobs(
 
 // ── Database-only search ───────────────────────────────────────────────
 
-// Map UI career-level labels → DB seniority values
 const CAREER_LEVEL_TO_SENIORITY: Record<string, string[]> = {
   "Entry-Level / Junior": ["entry", "junior", "intern"],
   "Mid-Level":            ["mid", "intermediate"],
@@ -143,7 +140,6 @@ const CAREER_LEVEL_TO_SENIORITY: Record<string, string[]> = {
   "C-Level / Executive":  ["c-level", "executive", "chief"],
 };
 
-// DB job_type values that map from UI job-type badges
 const JOB_TYPE_MAP: Record<string, string[]> = {
   "full-time":  ["full-time", "fulltime", "full_time"],
   "part-time":  ["part-time", "parttime", "part_time"],
@@ -155,39 +151,31 @@ export async function searchDatabaseJobs(
   filters: JobSearchFilters
 ): Promise<JobResult[]> {
   try {
-    const limit = filters.search_mode === "volume" ? 800 : 200;
+    const limit  = filters.search_mode === "volume" ? 800 : 200;
+    const offset = filters.offset ?? 0;
 
     let query = supabase
       .from("scraped_jobs")
       .select("id, title, company, location, job_type, description, job_url, quality_score, is_flagged, flag_reasons, salary, market_rate, seniority, is_remote, source, first_seen_at")
       .order("quality_score", { ascending: false })
-      .limit(limit);
+      .range(offset, offset + limit - 1);
 
     // ── Text search ────────────────────────────────────────────────────
-    // Build one OR condition per target title and per unique keyword.
-    // FIX: previously only searchTerms.split(" ")[0] (the first word) was
-    // ever searched, causing "No jobs found" for any multi-word query.
     const orParts: string[] = [];
-
     for (const t of filters.targetTitles) {
       const escaped = t.replace(/%/g, "\\%").replace(/_/g, "\\_");
       orParts.push(`title.ilike.%${escaped}%`);
     }
-
     const keywords = [filters.query, ...filters.skills]
       .flatMap(s => (s || "").split(/[\s,]+/))
       .map(s => s.replace(/[%_]/g, "").trim())
       .filter(s => s.length >= 3);
-
     const uniqueKeywords = [...new Set(keywords)];
     for (const kw of uniqueKeywords.slice(0, 10)) {
       orParts.push(`title.ilike.%${kw}%`);
       if (kw.length >= 4) orParts.push(`description.ilike.%${kw}%`);
     }
-
-    if (orParts.length > 0) {
-      query = query.or(orParts.join(","));
-    }
+    if (orParts.length > 0) query = query.or(orParts.join(","));
 
     // ── Location filter ────────────────────────────────────────────────
     if (filters.location && !/^\s*remote\s*$/i.test(filters.location)) {
@@ -195,17 +183,14 @@ export async function searchDatabaseJobs(
     }
 
     // ── Remote filter ──────────────────────────────────────────────────
-    if (filters.jobTypes.includes("remote")) {
-      query = query.eq("is_remote", true);
-    }
+    if (filters.jobTypes.includes("remote")) query = query.eq("is_remote", true);
 
     // ── Structured job type filter ─────────────────────────────────────
     const structuredTypes = filters.jobTypes
       .filter(t => !["remote", "hybrid", "in-office"].includes(t))
       .flatMap(t => JOB_TYPE_MAP[t] ?? [t]);
     if (structuredTypes.length > 0) {
-      const typeOr = structuredTypes.map(t => `job_type.ilike.%${t}%`).join(",");
-      query = query.or(typeOr);
+      query = query.or(structuredTypes.map(t => `job_type.ilike.%${t}%`).join(","));
     }
 
     // ── Seniority / career level filter ───────────────────────────────
@@ -213,8 +198,7 @@ export async function searchDatabaseJobs(
       const levels = filters.careerLevel.split(",").map(s => s.trim()).filter(Boolean);
       const seniorityValues = levels.flatMap(l => CAREER_LEVEL_TO_SENIORITY[l] ?? []);
       if (seniorityValues.length > 0) {
-        const senOr = seniorityValues.map(s => `seniority.ilike.%${s}%`).join(",");
-        query = query.or(senOr);
+        query = query.or(seniorityValues.map(s => `seniority.ilike.%${s}%`).join(","));
       }
     }
 
@@ -224,16 +208,18 @@ export async function searchDatabaseJobs(
     if (salaryMinNum && !isNaN(salaryMinNum)) query = query.gte("market_rate", salaryMinNum);
     if (salaryMaxNum && !isNaN(salaryMaxNum)) query = query.lte("market_rate", salaryMaxNum);
 
-    // ── Flagged filter ─────────────────────────────────────────────────
-    if (!filters.showFlagged) {
-      query = query.eq("is_flagged", false);
+    // ── Freshness filter ───────────────────────────────────────────────
+    const daysOld = filters.days_old ?? 0;
+    if (daysOld > 0) {
+      const cutoff = new Date(Date.now() - daysOld * 24 * 60 * 60 * 1000).toISOString();
+      query = query.gte("first_seen_at", cutoff);
     }
 
+    // ── Flagged filter ─────────────────────────────────────────────────
+    if (!filters.showFlagged) query = query.eq("is_flagged", false);
+
     const { data, error } = await query;
-    if (error) {
-      console.error("[searchDatabaseJobs] Error:", error.message);
-      return [];
-    }
+    if (error) { console.error("[searchDatabaseJobs] Error:", error.message); return []; }
 
     return (data || []).map((row: any) => ({
       id: row.id,
@@ -257,105 +243,4 @@ export async function searchDatabaseJobs(
     console.error("[searchDatabaseJobs] Exception:", e);
     return [];
   }
-}
-
-// ── AI search via edge function (async polling pattern) ────────────────
-
-export async function searchAIJobs(
-  filters: JobSearchFilters
-): Promise<{ jobs: JobResult[]; citations: string[] }> {
-  const token = await getFreshToken();
-  if (!token) {
-    console.warn("[searchAIJobs] No auth token, skipping AI search");
-    return { jobs: [], citations: [] };
-  }
-
-  const url = getEdgeFunctionUrl("search-jobs");
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    "Authorization": `Bearer ${token}`,
-    "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-  };
-
-  const body = JSON.stringify({
-    skills: filters.skills,
-    jobTypes: filters.jobTypes,
-    location: filters.location,
-    query: filters.query,
-    careerLevel: filters.careerLevel,
-    targetTitles: filters.targetTitles,
-    search_mode: filters.search_mode || "balanced",
-    limit: filters.search_mode === "volume" ? 200 : 50,
-  });
-
-  const submitResp = await resilientFetch(url, { method: "POST", headers, body });
-  if (!submitResp.ok) {
-    const text = await submitResp.text().catch(() => "");
-    console.error("[searchAIJobs] Submit failed:", submitResp.status, text);
-    return { jobs: [], citations: [] };
-  }
-
-  const submitData = await submitResp.json();
-  if (submitData.jobs) {
-    return { jobs: normalizeAIJobs(submitData.jobs), citations: submitData.citations || [] };
-  }
-
-  const jobId = submitData.job_id;
-  if (!jobId) {
-    console.warn("[searchAIJobs] No job_id returned");
-    return { jobs: [], citations: [] };
-  }
-
-  const maxPolls = 15;
-  const pollInterval = 2000;
-
-  for (let i = 0; i < maxPolls; i++) {
-    await new Promise(r => setTimeout(r, pollInterval));
-    const freshToken = await getFreshToken();
-    if (freshToken) headers["Authorization"] = `Bearer ${freshToken}`;
-
-    const pollResp = await resilientFetch(url, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({ job_id: jobId }),
-    });
-    if (!pollResp.ok) continue;
-
-    const pollData = await pollResp.json();
-    if (pollData.status === "completed" && pollData.jobs) {
-      return { jobs: normalizeAIJobs(pollData.jobs), citations: pollData.citations || [] };
-    }
-    if (pollData.status === "failed") {
-      console.error("[searchAIJobs] Job failed:", pollData.error);
-      return { jobs: [], citations: [] };
-    }
-  }
-
-  console.warn("[searchAIJobs] Polling timed out for job", jobId);
-  return { jobs: [], citations: [] };
-}
-
-// ── Normalize AI response jobs ─────────────────────────────────────────
-
-function normalizeAIJobs(raw: any[]): JobResult[] {
-  if (!Array.isArray(raw)) return [];
-  return raw
-    .map((item: any) => ({
-      title: item.title || "Job Opportunity",
-      company: item.company || "Company",
-      location: item.location || "Remote",
-      type: item.type || item.job_type || "full-time",
-      description: item.description || "",
-      url: normalizeJobUrl(item.url || item.job_url) || "",
-      matchReason: item.matchReason || "AI match",
-      quality_score: item.qualityScore ?? item.quality_score ?? 50,
-      is_flagged: item.is_flagged ?? false,
-      flag_reasons: item.flag_reasons ?? [],
-      salary: item.salary,
-      seniority: item.seniority,
-      is_remote: item.is_remote ?? /remote/i.test(item.location || ""),
-      source: "ai",
-      first_seen_at: item.first_seen_at,
-    }))
-    .filter((j: JobResult) => j.url && j.title !== "Job Opportunity");
-}
+}undefined
