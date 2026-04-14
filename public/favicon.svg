@@ -1,12 +1,34 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 44" fill="none">
-  <ellipse cx="22" cy="22" rx="19" ry="19" stroke="#748FFC" stroke-width="0.8" stroke-dasharray="3 2.5" opacity="0.5"/>
-  <ellipse cx="22" cy="22" rx="14" ry="14" stroke="#3B5BDB" stroke-width="2.5"/>
-  <ellipse cx="22" cy="22" rx="8" ry="8" stroke="#748FFC" stroke-width="1" stroke-dasharray="2.5 2" opacity="0.7"/>
-  <circle cx="22" cy="22" r="5" fill="#3B5BDB"/>
-  <path d="M22 25 L22 19" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
-  <path d="M19.5 21.5 L22 19 L24.5 21.5" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="22" cy="8"  r="2.5" fill="#3B5BDB"/>
-  <circle cx="36" cy="22" r="2.5" fill="#3B5BDB"/>
-  <circle cx="22" cy="36" r="2"   fill="#4DABF7" opacity="0.8"/>
-  <circle cx="8"  cy="22" r="2"   fill="#4DABF7" opacity="0.8"/>
+  <!-- Red outer ring — Discovery -->
+  <ellipse cx="22" cy="22" rx="19" ry="19"
+    stroke="#EF4444" stroke-width="1"
+    stroke-dasharray="4 3" opacity="0.6"/>
+  <!-- Green mid ring — Matching -->
+  <ellipse cx="22" cy="22" rx="14" ry="14"
+    stroke="#22C55E" stroke-width="2"/>
+  <!-- Blue inner ring — Apply -->
+  <ellipse cx="22" cy="22" rx="8" ry="8"
+    stroke="#3B82F6" stroke-width="1"
+    stroke-dasharray="2.5 2" opacity="0.85"/>
+  <!-- Core -->
+  <circle cx="22" cy="22" r="5.5" fill="#1E2340"/>
+  <circle cx="22" cy="22" r="5"   fill="#2D3A5E"/>
+  <!-- Person silhouette — head + shoulders in green -->
+  <circle cx="22" cy="19.5" r="1.8" fill="#22C55E"/>
+  <path d="M18.5 25.5 C18.5 23 19.5 22 22 22 C24.5 22 25.5 23 25.5 25.5" fill="#22C55E"/>
+  <!-- Red cardinal nodes -->
+  <circle cx="22" cy="3"  r="2.5" fill="#EF4444"/>
+  <circle cx="41" cy="22" r="2.5" fill="#EF4444"/>
+  <circle cx="22" cy="41" r="2"   fill="#EF4444" opacity="0.7"/>
+  <circle cx="3"  cy="22" r="2"   fill="#EF4444" opacity="0.7"/>
+  <!-- Green diagonal nodes -->
+  <circle cx="32" cy="12" r="2"   fill="#22C55E"/>
+  <circle cx="12" cy="32" r="1.8" fill="#22C55E" opacity="0.75"/>
+  <circle cx="32" cy="32" r="1.5" fill="#22C55E" opacity="0.55"/>
+  <circle cx="12" cy="12" r="1.5" fill="#22C55E" opacity="0.45"/>
+  <!-- Blue inner nodes -->
+  <circle cx="22" cy="14" r="1.8" fill="#3B82F6"/>
+  <circle cx="30" cy="22" r="1.8" fill="#3B82F6"/>
+  <circle cx="14" cy="22" r="1.4" fill="#3B82F6" opacity="0.7"/>
+  <circle cx="22" cy="30" r="1.4" fill="#3B82F6" opacity="0.7"/>
 </svg>
