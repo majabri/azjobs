@@ -42,6 +42,7 @@ export function normalizeJobUrl(rawUrl?: string | null): string {
 
 // ── Fresh token helper ─────────────────────────────────────────────────
 
+// NOTE: Only used by AI search (currently disabled). Keep for future re-enablement.
 async function getFreshToken(): Promise<string | null> {
   try {
     const { data } = await supabase.auth.refreshSession();
@@ -54,6 +55,7 @@ async function getFreshToken(): Promise<string | null> {
 
 // ── Resilient fetch with retries ───────────────────────────────────────
 
+// NOTE: Only used by AI search (currently disabled). Keep for future re-enablement.
 async function resilientFetch(
   url: string,
   options: RequestInit,
