@@ -179,16 +179,17 @@ export default function Index() {
   return (
     <div className="min-h-screen flex flex-col">
       {/* ═══════════════ NAV ═══════════════ */}
-      <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-3 bg-primary/95 backdrop-blur-sm border-b border-white/10">
+      <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-3 bg-card/95 backdrop-blur-sm border-b border-border">
         <div
-          className="flex items-center gap-2 cursor-pointer"
+          className="flex items-center gap-2 cursor-pointer select-none"
           onClick={() => navigate("/")}
         >
           <Logo size={28} />
-                    <span style={{ fontSize: '15px', fontWeight: 500, color: 'var(--text-primary)', letterSpacing: '-0.2px' }}>
-                                iCareer<span style={{ color: 'var(--brand)' }}>OS</span>
-                                          </span>
-                                                  </div>
+          <span className="text-sm font-medium tracking-tight">
+            <span className="text-primary">iCareer</span>
+            <span className="text-foreground">OS</span>
+          </span>
+        </div>
 
         <nav className="flex items-center gap-1">
           {user ? (
@@ -197,11 +198,11 @@ export default function Index() {
               <NavBtn icon={<Search className="w-4 h-4" />} label="Find Jobs" onClick={() => navigate("/job-search")} />
               <NavBtn icon={<ClipboardList className="w-4 h-4" />} label="Applications" onClick={() => navigate("/applications")} />
               <NavBtn icon={<UserCircle className="w-4 h-4" />} label="Profile" onClick={() => navigate("/profile")} />
-              <div className="w-px h-6 bg-white/20 mx-1" />
+              <div className="w-px h-6 bg-border mx-1" />
               <Button
                 size="sm"
                 variant="ghost"
-                className="text-primary-foreground/60 hover:text-primary-foreground hover:bg-white/10 text-xs"
+                className="text-muted-foreground hover:text-foreground text-xs"
                 onClick={async () => { await supabase.auth.signOut(); }}
               >
                 <LogOut className="w-3.5 h-3.5" />
@@ -211,14 +212,14 @@ export default function Index() {
             <>
               <Button
                 variant="ghost"
-                className="text-primary-foreground/80 hover:text-primary-foreground hover:bg-white/10 text-sm"
+                className="text-muted-foreground hover:text-foreground border border-border hover:border-primary/50 text-sm"
                 onClick={() => navigate("/job-seeker?demo=true")}
               >
                 Try Demo
               </Button>
               <Button
                 size="sm"
-                className="gradient-teal text-white font-semibold shadow-teal hover:opacity-90 ml-2"
+                className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold ml-2"
                 onClick={() => navigate(AUTH_LOGIN)}
               >
                 Sign In
@@ -234,7 +235,7 @@ export default function Index() {
           className="absolute inset-0 bg-cover bg-center"
           style={{ backgroundImage: `url(${heroBg})` }}
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-navy-900/90 via-navy-800/80 to-navy-900/95" />
+        <div className="absolute inset-0 bg-gradient-to-b from-indigo-900/90 via-indigo-800/80 to-indigo-900/95" />
 
         <div className="relative z-10 max-w-5xl mx-auto px-6 text-center">
           {/* Personalized welcome */}
@@ -751,10 +752,10 @@ export default function Index() {
       </section>
 
       {/* ═══════════════ MOBILE STICKY CTA ═══════════════ */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-primary/95 backdrop-blur-sm border-t border-white/10 px-4 py-3 flex items-center justify-center gap-3 sm:hidden">
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-sm border-t border-border px-4 py-3 flex items-center justify-center gap-3 sm:hidden">
         <Button
           size="sm"
-          className="gradient-teal text-white font-semibold shadow-teal text-xs flex-1"
+          className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold text-xs flex-1"
           onClick={() => navigate(user ? "/job-seeker" : AUTH_LOGIN)}
         >
           <Upload className="w-3.5 h-3.5 mr-1" />
@@ -763,7 +764,7 @@ export default function Index() {
         <Button
           size="sm"
           variant="outline"
-          className="border-white/30 text-white bg-white/10 text-xs flex-1"
+          className="border-border text-foreground bg-muted text-xs flex-1"
           onClick={() => navigate(user ? "/job-search" : AUTH_LOGIN)}
         >
           <Search className="w-3.5 h-3.5 mr-1" />
@@ -837,7 +838,7 @@ function NavBtn({
     <Button
       size="sm"
       variant="ghost"
-      className="text-primary-foreground/70 hover:text-primary-foreground hover:bg-white/10 text-xs gap-1 px-2.5"
+      className="text-muted-foreground hover:text-foreground hover:bg-accent text-xs gap-1 px-2.5"
       onClick={onClick}
     >
       {icon}
