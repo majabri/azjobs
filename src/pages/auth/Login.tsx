@@ -20,6 +20,7 @@ import DashboardModeDialog from "@/components/DashboardModeDialog";
 import { login, loginWithGoogle, loginWithApple } from "@/services/user/auth";
 import { normalizeError } from "@/lib/normalizeError";
 import { supabase } from "@/integrations/supabase/client";
+import { Logo } from '@/assets/Logo';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -136,11 +137,11 @@ export default function LoginPage() {
       <div className="w-full max-w-sm text-center space-y-8">
         {/* Branding */}
         <div className="flex flex-col items-center gap-3">
-          <div className="w-14 h-14 gradient-teal rounded-2xl flex items-center justify-center shadow-teal">
-            <Target className="w-7 h-7 text-white" />
-          </div>
-          <h1 className="font-display text-3xl font-bold text-primary">iCareerOS</h1>
-          <p className="text-muted-foreground text-sm">
+            <Logo size={48} />
+                        <h1 className="font-display text-3xl font-bold text-primary">
+                                      iCareer<span style={{ color: 'var(--brand)' }}>OS</span>
+                                                  </h1>
+                                                            <p className="text-muted-foreground text-sm">
             Sign in to save your analyses and track your progress
           </p>
         </div>
@@ -238,8 +239,8 @@ export default function LoginPage() {
 
           <Button
             type="submit"
-            className="w-full"
-            disabled={loading || !identifier.trim() || !password}
+              className="w-full gradient-teal text-white"
+                          disabled={loading || !identifier.trim() || !password}
           >
             {loadingEmail ? "Signing in\u2026" : "Sign in"}
           </Button>
