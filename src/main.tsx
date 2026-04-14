@@ -1,12 +1,9 @@
 import { createRoot } from "react-dom/client";
 import App from "./shell/App.tsx";
-import { ThemeProvider } from "./contexts/ThemeContext";
 import "./index.css";
 import "./theme.css";
 import "./lib/i18n";
 
-createRoot(document.getElementById("root")!).render(
-  <ThemeProvider>
-    <App />
-  </ThemeProvider>
-);
+// ThemeProvider is mounted inside App.tsx (within AuthProvider).
+// Do NOT wrap here — ThemeContext calls useAuth() and must live below AuthProvider.
+createRoot(document.getElementById("root")!).render(<App />);
