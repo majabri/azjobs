@@ -330,7 +330,7 @@ export default function GigMarketplace() {
                           {project.category && (
                             <Badge
                               variant="outline"
-                              className="border-teal-600 bg-teal-900/20 text-primary/80 mb-3"
+                              className="border-primary bg-primary/30 text-primary/80 mb-3"
                             >
                               {project.category.name}
                             </Badge>

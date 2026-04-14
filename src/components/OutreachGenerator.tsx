@@ -77,7 +77,7 @@ export default function OutreachGenerator() {
           </div>
         </div>
       </div>
-      <Button onClick={generate} disabled={generating} className="gradient-teal text-white shadow-teal hover:opacity-90">
+      <Button onClick={generate} disabled={generating} className="gradient-indigo text-white shadow-indigo-500/20 hover:opacity-90">
         {generating ? <><Loader2 className="w-4 h-4 animate-spin mr-1" /> Generating...</> : <><Send className="w-4 h-4 mr-1" /> Generate Message</>}
       </Button>
 

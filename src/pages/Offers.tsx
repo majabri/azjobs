@@ -163,7 +163,7 @@ export default function Offers() {
           </div>
           <Dialog open={showAdd} onOpenChange={setShowAdd}>
             <DialogTrigger asChild>
-              <Button size="sm" className="gradient-teal text-white"><Plus className="w-4 h-4 mr-1" /> Add Offer</Button>
+              <Button size="sm" className="gradient-indigo text-white"><Plus className="w-4 h-4 mr-1" /> Add Offer</Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader><DialogTitle>Add New Offer</DialogTitle></DialogHeader>
@@ -180,7 +180,7 @@ export default function Offers() {
                   <Input type="date" value={form.deadline} onChange={e => setForm({ ...form, deadline: e.target.value })} />
                 </div>
                 <Input placeholder="Notes (optional)" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} />
-                <Button onClick={addOffer} disabled={saving} className="w-full gradient-teal text-white">
+                <Button onClick={addOffer} disabled={saving} className="w-full gradient-indigo text-white">
                   {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
                   Save Offer
                 </Button>
@@ -295,7 +295,7 @@ export default function Offers() {
             <DollarSign className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="font-display text-xl font-bold text-primary mb-2">No offers yet</h3>
             <p className="text-muted-foreground mb-6">Add your first job offer to start tracking and comparing compensation.</p>
-            <Button className="gradient-teal text-white" onClick={() => setShowAdd(true)}>
+            <Button className="gradient-indigo text-white" onClick={() => setShowAdd(true)}>
               <Plus className="w-4 h-4 mr-2" /> Add Your First Offer
             </Button>
           </div>

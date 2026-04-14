@@ -53,15 +53,14 @@
     /* Custom gradients & glows */
     --gradient-hero: linear-gradient(135deg, hsl(220 65% 12%), hsl(220 65% 22%) 50%, hsl(200 60% 18%));
     --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(220 15% 97%));
-    --gradient-teal: linear-gradient(135deg, hsl(172 70% 42%), hsl(185 75% 38%));
+    --gradient-indigo: linear-gradient(135deg, hsl(172 70% 42%), hsl(185 75% 38%));
     --gradient-score-high: linear-gradient(90deg, hsl(145 65% 42%), hsl(172 70% 48%));
     --gradient-score-mid: linear-gradient(90deg, hsl(38 92% 50%), hsl(30 90% 55%));
     --gradient-score-low: linear-gradient(90deg, hsl(4 86% 55%), hsl(10 80% 58%));
 
     --shadow-card: 0 4px 24px -4px hsl(220 40% 15% / 0.08), 0 1px 4px hsl(220 40% 15% / 0.04);
     --shadow-elevated: 0 12px 40px -8px hsl(220 40% 15% / 0.14), 0 4px 12px hsl(220 40% 15% / 0.06);
-    --shadow-teal: 0 8px 24px -4px hsl(172 70% 42% / 0.3);
-    --shadow-primary: 0 8px 24px -4px hsl(220 65% 18% / 0.3);
+    --shadow-primary: 0 8px 24px -4px hsl(228 69% 55% / 0.3);
 
     /* Sidebar */
     --sidebar-background: 220 20% 97%;
@@ -116,12 +115,11 @@
     /* Dark gradients */
     --gradient-hero: linear-gradient(135deg, hsl(220 40% 6%), hsl(220 40% 12%) 50%, hsl(200 35% 10%));
     --gradient-card: linear-gradient(145deg, hsl(220 35% 12%), hsl(220 30% 10%));
-    --gradient-teal: linear-gradient(135deg, hsl(172 70% 48%), hsl(185 65% 42%));
+    --gradient-indigo: linear-gradient(135deg, hsl(172 70% 48%), hsl(185 65% 42%));
 
     --shadow-card: 0 4px 24px -4px hsl(0 0% 0% / 0.3), 0 1px 4px hsl(0 0% 0% / 0.2);
     --shadow-elevated: 0 12px 40px -8px hsl(0 0% 0% / 0.4), 0 4px 12px hsl(0 0% 0% / 0.25);
-    --shadow-teal: 0 8px 24px -4px hsl(172 70% 48% / 0.25);
-    --shadow-primary: 0 8px 24px -4px hsl(172 70% 48% / 0.2);
+    --shadow-primary: 0 8px 24px -4px hsl(228 69% 55% / 0.3);
 
     /* Sidebar (dark variant) */
     --sidebar-background: 220 40% 6%;
@@ -168,8 +166,8 @@
   .gradient-hero {
     background: var(--gradient-hero);
   }
-  .gradient-teal {
-    background: var(--gradient-teal);
+  .gradient-indigo {
+    background: var(--gradient-indigo);
   }
   .gradient-card {
     background: var(--gradient-card);
@@ -180,14 +178,14 @@
   .shadow-elevated {
     box-shadow: var(--shadow-elevated);
   }
-  .shadow-teal {
-    box-shadow: var(--shadow-teal);
+  .shadow-indigo-glow {
+    box-shadow: var(--shadow-primary);
   }
   .shadow-primary-glow {
     box-shadow: var(--shadow-primary);
   }
-  .text-gradient-teal {
-    background: var(--gradient-teal);
+  .text-gradient-indigo {
+    background: var(--gradient-indigo);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;

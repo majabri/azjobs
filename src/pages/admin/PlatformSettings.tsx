@@ -111,7 +111,7 @@ export default function PlatformSettings() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-[#00B8A9]" />
+        <Loader2 className="h-8 w-8 animate-spin text-[hsl(var(--primary))]" />
       </div>
     );
   }
@@ -120,8 +120,8 @@ export default function PlatformSettings() {
     <div className="max-w-3xl mx-auto space-y-6 p-4 md:p-6">
       {/* Page Header */}
       <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#00B8A9]/10">
-          <Settings className="h-5 w-5 text-[#00B8A9]" />
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[hsl(var(--primary))]/10">
+          <Settings className="h-5 w-5 text-[hsl(var(--primary))]" />
         </div>
         <div>
           <h1 className="text-2xl font-bold">Platform Settings</h1>
@@ -132,10 +132,10 @@ export default function PlatformSettings() {
       </div>
 
       {/* Registration Mode Card */}
-      <Card className="border-2 border-[#00B8A9]/20">
+      <Card className="border-2 border-[hsl(var(--primary))]/20">
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
-            <Shield className="h-5 w-5 text-[#00B8A9]" />
+            <Shield className="h-5 w-5 text-[hsl(var(--primary))]" />
             Registration Access Control
           </CardTitle>
           <CardDescription>
@@ -294,7 +294,7 @@ export default function PlatformSettings() {
               </div>
             </div>
             <div className="text-center p-3 rounded-lg bg-muted/50">
-              <div className="text-2xl font-bold text-[#00B8A9]">
+              <div className="text-2xl font-bold text-[hsl(var(--primary))]">
                 {stats.totalInvitesSent}
               </div>
               <div className="text-xs text-muted-foreground mt-1">
