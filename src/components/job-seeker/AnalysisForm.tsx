@@ -165,10 +165,20 @@ export default function AnalysisForm({ onAnalyze, isAnalyzing, isDemo, prefillJo
       if (result.success && result.text) {
         setResume(result.text);
         toast.success("Resume extracted!");
-        // Sync skills to profile
+        // Sync skills to profile and save to vault
         try {
           const { data: { session } } = await supabase.auth.getSession();
           if (session) {
+            // Save to resume vault so it can be loaded via the Vault button
+            const versionName = file.name.replace(/\.[^.]+$/, "") || "Uploaded Resume";
+            await supabase.from("resume_versions").insert({
+              user_id: session.user.id,
+              version_name: versionName,
+              job_type: null,
+              resume_text: result.text,
+            } as any);
+
+            // Sync skills
             const extracted = extractProfileFromResume(result.text);
             if (extracted.skills.length) {
               const { data } = await supabase
