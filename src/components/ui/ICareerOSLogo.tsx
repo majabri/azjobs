@@ -5,6 +5,17 @@ interface ICareerOSLogoProps {
   className?: string;
 }
 
+/**
+ * iCareerOS orbital logo — RGB three-ring design
+ *
+ * Ring meanings:
+ *   Red   (outer, dashed) — Discovery: jobs being found and surfaced
+ *   Green (mid,   solid)  — Matching:  fit scored and confirmed
+ *   Blue  (inner, dashed) — Apply:     submissions in flight
+ *
+ * Core: deep navy with green person silhouette — you are at the centre,
+ *       the AI orbits around you
+ */
 export function ICareerOSLogo({ size = 32, className }: ICareerOSLogoProps) {
   return (
     <svg
@@ -16,43 +27,56 @@ export function ICareerOSLogo({ size = 32, className }: ICareerOSLogoProps) {
       className={className}
       aria-label="iCareerOS logo"
     >
-      {/* Outermost dashed orbit ring */}
+      {/* ── Outer ring: RED — Discovery (dashed, always scanning) ── */}
       <ellipse
         cx="22" cy="22" rx="19" ry="19"
-        stroke="#748FFC" strokeWidth="0.8"
-        strokeDasharray="3 2.5" opacity="0.5"
+        stroke="#EF4444" strokeWidth="1"
+        strokeDasharray="4 3" opacity="0.6"
       />
-      {/* Main solid orbit ring — uses CSS variable so it adapts to theme */}
+
+      {/* ── Mid ring: GREEN — Matching (solid, confirmed fit) ── */}
       <ellipse
         cx="22" cy="22" rx="14" ry="14"
-        stroke="hsl(var(--primary))" strokeWidth="2"
+        stroke="#22C55E" strokeWidth="2"
       />
-      {/* Inner dashed orbit */}
+
+      {/* ── Inner ring: BLUE — Apply (dashed, in flight) ── */}
       <ellipse
         cx="22" cy="22" rx="8" ry="8"
-        stroke="#748FFC" strokeWidth="1"
-        strokeDasharray="2.5 2" opacity="0.7"
+        stroke="#3B82F6" strokeWidth="1"
+        strokeDasharray="2.5 2" opacity="0.85"
       />
-      {/* Core circle */}
-      <circle cx="22" cy="22" r="5" fill="hsl(var(--primary))" />
-      {/* Upward arrow inside core */}
+
+      {/* ── Core ── */}
+      <circle cx="22" cy="22" r="5.5" fill="#1E2340" />
+      <circle cx="22" cy="22" r="5"   fill="#2D3A5E" />
+
+      {/* ── Person silhouette — you are at the centre ── */}
+      {/* Head */}
+      <circle cx="22" cy="19.5" r="1.8" fill="#22C55E" />
+      {/* Shoulders */}
       <path
-        d="M22 25 L22 19"
-        stroke="hsl(var(--primary-foreground))"
-        strokeWidth="1.5" strokeLinecap="round"
+        d="M18.5 25.5 C18.5 23 19.5 22 22 22 C24.5 22 25.5 23 25.5 25.5"
+        fill="#22C55E"
       />
-      <path
-        d="M19.5 21.5 L22 19 L24.5 21.5"
-        stroke="hsl(var(--primary-foreground))"
-        strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
-      />
-      {/* Orbit nodes — opportunities being surfaced */}
-      <circle cx="22" cy="8"  r="2.5" fill="hsl(var(--primary))" />
-      <circle cx="36" cy="22" r="2.5" fill="hsl(var(--primary))" />
-      <circle cx="22" cy="36" r="2"   fill="#4DABF7" opacity="0.8" />
-      <circle cx="8"  cy="22" r="2"   fill="#4DABF7" opacity="0.8" />
-      <circle cx="33" cy="11" r="1.5" fill="#4DABF7" />
-      <circle cx="11" cy="33" r="1.2" fill="#4DABF7" opacity="0.7" />
+
+      {/* ── RED nodes — cardinal points on outer ring ── */}
+      <circle cx="22" cy="3"  r="2.5" fill="#EF4444" />
+      <circle cx="41" cy="22" r="2.5" fill="#EF4444" />
+      <circle cx="22" cy="41" r="2"   fill="#EF4444" opacity="0.7" />
+      <circle cx="3"  cy="22" r="2"   fill="#EF4444" opacity="0.7" />
+
+      {/* ── GREEN nodes — diagonal on mid ring ── */}
+      <circle cx="32" cy="12" r="2"   fill="#22C55E" />
+      <circle cx="12" cy="32" r="1.8" fill="#22C55E" opacity="0.75" />
+      <circle cx="32" cy="32" r="1.5" fill="#22C55E" opacity="0.55" />
+      <circle cx="12" cy="12" r="1.5" fill="#22C55E" opacity="0.45" />
+
+      {/* ── BLUE nodes — inner ring ── */}
+      <circle cx="22" cy="14" r="1.8" fill="#3B82F6" />
+      <circle cx="30" cy="22" r="1.8" fill="#3B82F6" />
+      <circle cx="14" cy="22" r="1.4" fill="#3B82F6" opacity="0.7" />
+      <circle cx="22" cy="30" r="1.4" fill="#3B82F6" opacity="0.7" />
     </svg>
   );
 }
