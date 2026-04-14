@@ -42,6 +42,7 @@ export function normalizeJobUrl(rawUrl?: string | null): string {
 
 // ── Fresh token helper ─────────────────────────────────────────────────
 
+// NOTE: Only used by AI search (currently disabled). Keep for future re-enablement.
 async function getFreshToken(): Promise<string | null> {
   try {
     const { data } = await supabase.auth.refreshSession();
@@ -54,6 +55,7 @@ async function getFreshToken(): Promise<string | null> {
 
 // ── Resilient fetch with retries ───────────────────────────────────────
 
+// NOTE: Only used by AI search (currently disabled). Keep for future re-enablement.
 async function resilientFetch(
   url: string,
   options: RequestInit,
@@ -95,37 +97,14 @@ function getEdgeFunctionUrl(name: string): string {
   return `https://${projectId}.supabase.co/functions/v1/${name}`;
 }
 
-// ── Search Jobs (main entry — async polling) ───────────────────────────
+// ── Search Jobs (main entry — database-only mode) ────────────────────────
 
+// Main entry: database-only search (AI/Firecrawl disabled — zero external cost)
 export async function searchJobs(
   filters: JobSearchFilters
 ): Promise<{ jobs: JobResult[]; citations: string[] }> {
-  const source = filters.searchSource || "all";
-
-  const dbPromise = (source === "all" || source === "database")
-    ? searchDatabaseJobs(filters)
-    : Promise.resolve([]);
-
-  const aiPromise = (source === "all" || source === "ai")
-    ? searchAIJobs(filters).catch(e => {
-        console.error("[searchJobs] AI search failed (continuing with DB):", e);
-        return { jobs: [] as JobResult[], citations: [] as string[] };
-      })
-    : Promise.resolve({ jobs: [] as JobResult[], citations: [] as string[] });
-
-  const [dbJobs, aiResult] = await Promise.all([dbPromise, aiPromise]);
-  const aiJobs = aiResult.jobs || [];
-  const citations = aiResult.citations || [];
-
-  const seen = new Set<string>();
-  const merged: JobResult[] = [];
-  for (const job of [...aiJobs, ...dbJobs]) {
-    const key = `${(job.url || "").toLowerCase()}|${job.title.toLowerCase()}|${job.company.toLowerCase()}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    merged.push(job);
-  }
-  return { jobs: merged, citations };
+  const dbJobs = await searchDatabaseJobs(filters);
+  return { jobs: dbJobs, citations: [] };
 }
 
 // ── Database-only search ───────────────────────────────────────────────
@@ -243,4 +222,14 @@ export async function searchDatabaseJobs(
     console.error("[searchDatabaseJobs] Exception:", e);
     return [];
   }
-}undefined
+}
+
+// ── AI search (disabled in database-only mode) ─────────────────────────
+
+// AI search via edge function — DISABLED (database-only mode, zero cost)
+export async function searchAIJobs(
+  filters: JobSearchFilters
+): Promise<{ jobs: JobResult[]; citations: string[] }> {
+  console.info("[searchAIJobs] Skipped — database-only mode active. AI search disabled to operate at zero cost.");
+  return { jobs: [], citations: [] };
+}
