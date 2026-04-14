@@ -139,7 +139,7 @@ export default function BulkResumeUpload({ onResumesReady }: BulkResumeUploadPro
         <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
           {files.map((f, i) => (
             <div key={f.id} className="flex items-center gap-2 bg-card rounded-lg border border-border p-3">
-              <div className="w-6 h-6 gradient-teal rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+              <div className="w-6 h-6 gradient-indigo rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
                 {i + 1}
               </div>
               <FileText className="w-4 h-4 text-muted-foreground flex-shrink-0" />

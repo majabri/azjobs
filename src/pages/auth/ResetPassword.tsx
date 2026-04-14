@@ -112,7 +112,7 @@ export default function ResetPasswordPage() {
     <div className="min-h-screen bg-background flex items-center justify-center px-6">
       <div className="w-full max-w-sm text-center space-y-8">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-14 h-14 gradient-teal rounded-2xl flex items-center justify-center shadow-teal">
+          <div className="w-14 h-14 gradient-indigo rounded-2xl flex items-center justify-center shadow-indigo-500/20">
             <Target className="w-7 h-7 text-white" />
           </div>
           <h1 className="font-display text-3xl font-bold text-primary">

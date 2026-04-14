@@ -214,7 +214,7 @@ export default function AnalysisResults({
           <p className="text-white/50 text-sm font-medium uppercase tracking-widest mb-2">Overall Fit Score</p>
           <h2 className="font-display text-3xl font-bold text-white mb-4">{analysis.summary}</h2>
           <div className="flex flex-wrap gap-2 justify-center md:justify-start">
-            {analysis.strengths.map(s => <Badge key={s} className="bg-teal-500/20 text-teal-300 border-teal-500/30"><CheckCircle2 className="w-3 h-3 mr-1" /> {s}</Badge>)}
+            {analysis.strengths.map(s => <Badge key={s} className="bg-accent0/20 text-primary border-primary/30"><CheckCircle2 className="w-3 h-3 mr-1" /> {s}</Badge>)}
           </div>
         </div>
       </div>
@@ -243,7 +243,7 @@ export default function AnalysisResults({
           <div className="space-y-2">
             {analysis.topActions.map((action, i) => (
               <div key={i} className="flex items-start gap-3 text-sm">
-                <span className="w-6 h-6 rounded-full gradient-teal text-white flex items-center justify-center text-xs font-bold flex-shrink-0">{i + 1}</span>
+                <span className="w-6 h-6 rounded-full gradient-indigo text-white flex items-center justify-center text-xs font-bold flex-shrink-0">{i + 1}</span>
                 <span className="text-foreground">{action}</span>
               </div>
             ))}
@@ -322,11 +322,11 @@ export default function AnalysisResults({
             <div className="flex items-center gap-2"><ExternalLink className="w-4 h-4 text-accent" /><span className="font-semibold text-sm">Apply via Direct Link</span></div>
             <p className="text-xs text-muted-foreground flex-1">Open the job posting and apply manually.</p>
             {jobLink ? (
-              <a href={jobLink} target="_blank" rel="noopener noreferrer"><Button className="w-full gradient-teal text-white" size="sm"><ExternalLink className="w-4 h-4 mr-1.5" /> Open & Apply</Button></a>
+              <a href={jobLink} target="_blank" rel="noopener noreferrer"><Button className="w-full gradient-indigo text-white" size="sm"><ExternalLink className="w-4 h-4 mr-1.5" /> Open & Apply</Button></a>
             ) : (
               <div className="space-y-2">
                 <Input placeholder="Paste job URL…" value={applyDirectUrl} onChange={e => setApplyDirectUrl(e.target.value)} className="text-sm" />
-                <Button className="w-full gradient-teal text-white" size="sm" disabled={!applyDirectUrl} onClick={() => window.open(applyDirectUrl, "_blank")}><ExternalLink className="w-4 h-4 mr-1.5" /> Open & Apply</Button>
+                <Button className="w-full gradient-indigo text-white" size="sm" disabled={!applyDirectUrl} onClick={() => window.open(applyDirectUrl, "_blank")}><ExternalLink className="w-4 h-4 mr-1.5" /> Open & Apply</Button>
               </div>
             )}
           </div>
@@ -406,7 +406,7 @@ export default function AnalysisResults({
           <div className="space-y-6">
             {analysis.improvementPlan.map((item, i) => (
               <div key={i} className="flex gap-5">
-                <div className="relative flex-shrink-0"><div className="w-10 h-10 rounded-full gradient-teal flex items-center justify-center text-white font-bold text-sm shadow-teal">{i + 1}</div></div>
+                <div className="relative flex-shrink-0"><div className="w-10 h-10 rounded-full gradient-indigo flex items-center justify-center text-white font-bold text-sm shadow-indigo-500/20">{i + 1}</div></div>
                 <div className="pt-1.5"><div className="text-xs font-semibold text-accent uppercase tracking-wider mb-1">{item.week}</div><p className="text-sm text-foreground">{item.action}</p></div>
               </div>
             ))}
@@ -418,7 +418,7 @@ export default function AnalysisResults({
       <div className="bg-card rounded-2xl p-6 border border-border">
         <div className="flex items-center justify-between mb-2">
           <h3 className="font-display font-bold text-foreground text-lg flex items-center gap-2"><FileText className="w-5 h-5 text-accent" /> Optimize Resume</h3>
-          <Button size="sm" className="gradient-teal text-white shadow-teal hover:opacity-90" disabled={isRewriting || isDemo} onClick={handleAIRewrite}>
+          <Button size="sm" className="gradient-indigo text-white shadow-indigo-500/20 hover:opacity-90" disabled={isRewriting || isDemo} onClick={handleAIRewrite}>
             {isRewriting ? <><Loader2 className="w-4 h-4 animate-spin mr-1.5" /> Optimizing…</> : <><Sparkles className="w-4 h-4 mr-1.5" /> {aiResume ? "Re-Optimize" : "Optimize"}</>}
           </Button>
         </div>
@@ -437,14 +437,14 @@ export default function AnalysisResults({
       <div className="bg-card rounded-2xl p-6 border border-border">
         <div className="flex items-center justify-between mb-2">
           <h3 className="font-display font-bold text-foreground text-lg flex items-center gap-2"><Mail className="w-5 h-5 text-accent" /> Cover Letter</h3>
-          <Button size="sm" className="gradient-teal text-white shadow-teal hover:opacity-90" disabled={isGeneratingCover || isDemo} onClick={handleGenerateCoverLetter}>
+          <Button size="sm" className="gradient-indigo text-white shadow-indigo-500/20 hover:opacity-90" disabled={isGeneratingCover || isDemo} onClick={handleGenerateCoverLetter}>
             {isGeneratingCover ? <><Loader2 className="w-4 h-4 animate-spin mr-1.5" /> Generating…</> : <><Sparkles className="w-4 h-4 mr-1.5" /> {coverLetter ? "Regenerate" : "Generate"}</>}
           </Button>
         </div>
         <div className="flex items-center gap-2 mb-4">
           <span className="text-sm text-muted-foreground">Tone:</span>
           {(["professional", "conversational", "enthusiastic"] as const).map(t => (
-            <Button key={t} variant={coverTone === t ? "default" : "outline"} size="sm" className={`text-xs capitalize ${coverTone === t ? "gradient-teal text-white" : ""}`} onClick={() => setCoverTone(t)}>{t}</Button>
+            <Button key={t} variant={coverTone === t ? "default" : "outline"} size="sm" className={`text-xs capitalize ${coverTone === t ? "gradient-indigo text-white" : ""}`} onClick={() => setCoverTone(t)}>{t}</Button>
           ))}
         </div>
         {coverLetter && (
@@ -462,7 +462,7 @@ export default function AnalysisResults({
       <div className="bg-card rounded-2xl p-6 border border-border">
         <div className="flex items-center justify-between mb-2">
           <h3 className="font-display font-bold text-foreground text-lg flex items-center gap-2"><MessageSquare className="w-5 h-5 text-accent" /> Interview Prep</h3>
-          <Button size="sm" className="gradient-teal text-white shadow-teal hover:opacity-90" disabled={isGeneratingInterviewPrep || isDemo} onClick={handleGenerateInterviewPrep}>
+          <Button size="sm" className="gradient-indigo text-white shadow-indigo-500/20 hover:opacity-90" disabled={isGeneratingInterviewPrep || isDemo} onClick={handleGenerateInterviewPrep}>
             {isGeneratingInterviewPrep ? <><Loader2 className="w-4 h-4 animate-spin mr-1.5" /> Generating…</> : <><Sparkles className="w-4 h-4 mr-1.5" /> {interviewPrep ? "Regenerate" : "Prepare"}</>}
           </Button>
         </div>
@@ -478,14 +478,14 @@ export default function AnalysisResults({
       <div className="bg-card rounded-2xl p-6 border border-border">
         <div className="flex items-center justify-between mb-2">
           <h3 className="font-display font-bold text-foreground text-lg flex items-center gap-2"><Mail className="w-5 h-5 text-accent" /> Follow-Up Email</h3>
-          <Button size="sm" className="gradient-teal text-white shadow-teal hover:opacity-90" disabled={isGeneratingEmail || isDemo} onClick={handleGenerateFollowUpEmail}>
+          <Button size="sm" className="gradient-indigo text-white shadow-indigo-500/20 hover:opacity-90" disabled={isGeneratingEmail || isDemo} onClick={handleGenerateFollowUpEmail}>
             {isGeneratingEmail ? <><Loader2 className="w-4 h-4 animate-spin mr-1.5" /> Generating…</> : <><Sparkles className="w-4 h-4 mr-1.5" /> Generate</>}
           </Button>
         </div>
         <div className="flex items-center gap-2 mb-4">
           <span className="text-sm text-muted-foreground">Type:</span>
           {["follow-up", "thank-you", "recruiter-outreach", "networking"].map(t => (
-            <Button key={t} variant={emailType === t ? "default" : "outline"} size="sm" className={`text-xs capitalize ${emailType === t ? "gradient-teal text-white" : ""}`} onClick={() => setEmailType(t)}>{t.replace("-", " ")}</Button>
+            <Button key={t} variant={emailType === t ? "default" : "outline"} size="sm" className={`text-xs capitalize ${emailType === t ? "gradient-indigo text-white" : ""}`} onClick={() => setEmailType(t)}>{t.replace("-", " ")}</Button>
           ))}
         </div>
         {followUpEmail && (
@@ -502,7 +502,7 @@ export default function AnalysisResults({
           <div className="w-full max-w-md bg-accent/10 border border-accent/20 rounded-2xl p-6 text-center">
             <h3 className="font-display font-bold text-foreground text-lg mb-2">Ready to optimize your real resume?</h3>
             <p className="text-sm text-muted-foreground mb-4">Sign up free to unlock all features.</p>
-            <Button className="gradient-teal text-white shadow-teal hover:opacity-90" onClick={() => navigate(AUTH_LOGIN)}>Sign Up Free</Button>
+            <Button className="gradient-indigo text-white shadow-indigo-500/20 hover:opacity-90" onClick={() => navigate(AUTH_LOGIN)}>Sign Up Free</Button>
           </div>
         )}
         <Button variant="outline" onClick={onReset}>Analyze Another Role</Button>
