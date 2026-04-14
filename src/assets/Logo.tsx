@@ -4,13 +4,7 @@ interface LogoProps {
 
 export function Logo({ size = 28 }: LogoProps) {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width={size}
-      height={size}
-      viewBox="0 0 44 44"
-      aria-label="iCareerOS"
-    >
+    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 44 44" aria-label="iCareerOS">
       <circle cx="22" cy="22" r="19" fill="none" stroke="#748FFC" strokeWidth="0.8" strokeDasharray="3 2.5" opacity="0.5"/>
       <circle cx="22" cy="22" r="14" fill="none" stroke="var(--brand)" strokeWidth="2"/>
       <circle cx="22" cy="22" r="8"  fill="none" stroke="#748FFC" strokeWidth="1" strokeDasharray="2.5 2" opacity="0.7"/>
