@@ -61,41 +61,77 @@ async function scrapeLever(company: string): Promise<NormalizedJob[]> {
   }));
 }
 
+/** Strip HTML tags and collapse whitespace into readable plain text. */
+function htmlToText(html: string): string {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n\n')
+    .replace(/<\/li>/gi, '\n')
+    .replace(/<\/h[1-6]>/gi, '\n\n')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 async function scrapeCareerPage(url: string, companyName: string): Promise<NormalizedJob[]> {
-  const apiKey = Deno.env.get('FIRECRAWL_API_KEY');
-  if (!apiKey) return [];
+  try {
+    const res = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; iCareerOS/1.0; +https://icareeros.com)',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+      },
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!res.ok) return [];
 
-  const res = await fetch('https://api.firecrawl.dev/v1/scrape', {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ url, formats: ['markdown'], onlyMainContent: true }),
-  });
-  if (!res.ok) return [];
-  const data = await res.json();
-  const markdown = data.data?.markdown || data.markdown || '';
-  
-  // Extract job-like entries from markdown
-  const lines = markdown.split('\n');
-  const jobs: NormalizedJob[] = [];
-  let currentTitle = '';
-  let currentDesc = '';
+    const contentType = res.headers.get('content-type') ?? '';
+    if (!contentType.includes('text/html') && !contentType.includes('text/plain')) return [];
 
-  for (const line of lines) {
-    const headingMatch = line.match(/^#{1,3}\s+(.+)/);
-    if (headingMatch && looksLikeJobTitle(headingMatch[1])) {
-      if (currentTitle) {
-        jobs.push(buildJobFromText(currentTitle, currentDesc, companyName, url));
+    const html = await res.text();
+
+    // Prefer <main> or <article> for cleaner signal
+    const mainMatch =
+      html.match(/<main[\s\S]*?<\/main>/i) ||
+      html.match(/<article[\s\S]*?<\/article>/i);
+    const rawText = htmlToText(mainMatch?.[0] ?? html);
+
+    if (!rawText || rawText.length < 100) return [];
+
+    // Split into sections on heading-like lines and extract job entries
+    const lines = rawText.split('\n');
+    const jobs: NormalizedJob[] = [];
+    let currentTitle = '';
+    let currentDesc = '';
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (looksLikeJobTitle(trimmed)) {
+        if (currentTitle) {
+          jobs.push(buildJobFromText(currentTitle, currentDesc, companyName, url));
+        }
+        currentTitle = trimmed;
+        currentDesc = '';
+      } else if (currentTitle) {
+        currentDesc += line + '\n';
       }
-      currentTitle = headingMatch[1].trim();
-      currentDesc = '';
-    } else if (currentTitle) {
-      currentDesc += line + '\n';
     }
+    if (currentTitle) {
+      jobs.push(buildJobFromText(currentTitle, currentDesc, companyName, url));
+    }
+    return jobs;
+  } catch {
+    return [];
   }
-  if (currentTitle) {
-    jobs.push(buildJobFromText(currentTitle, currentDesc, companyName, url));
-  }
-  return jobs;
 }
 
 function looksLikeJobTitle(text: string): boolean {
