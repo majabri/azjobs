@@ -21,8 +21,6 @@ import { searchJobs as searchJobsService } from "@/services/job/api";
 import { scoreJobs, type EnrichedJob } from "@/services/matching/api";
 import type { JobResult, JobSearchFilters } from "@/services/job/types";
 
-// ── UI Helpers (presentation only, no business logic) ──────────────────
-
 function parseSalaryNumber(salary: string): number | null {
   const match = salary.replace(/,/g, "").match(/(\d+)/g);
   if (!match) return null;
@@ -81,10 +79,7 @@ function getProbColor(prob: number) {
   return "text-destructive";
 }
 
-const JOB_TYPE_OPTIONS = [
-  "remote", "hybrid", "in-office", "full-time", "part-time", "contract", "short-term",
-];
-
+const JOB_TYPE_OPTIONS = ["remote", "hybrid", "in-office", "full-time", "part-time", "contract", "short-term"];
 const PAGE_SIZE = 50;
 
 export default function JobSearchPage() {
@@ -116,6 +111,16 @@ export default function JobSearchPage() {
 
   useEffect(() => { loadProfile(); loadIgnoredAndSaved(); }, []);
 
+  // Auto-search once profile loads if the user has skills or titles saved.
+  // FIX: profileLoaded was never set to true, so this effect never fired.
+  useEffect(() => {
+    if (!profileLoaded) return;
+    if (skills.length > 0 || targetTitles.length > 0) {
+      handleSearch();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profileLoaded]);
+
   const loadIgnoredAndSaved = async () => {
     const [ignored, { data: { session } }] = await Promise.all([
       getIgnoredJobs(),
@@ -134,7 +139,8 @@ export default function JobSearchPage() {
   const loadProfile = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
+      // FIX: always mark profile as loaded even when unauthenticated
+      if (!session) { setProfileLoaded(true); return; }
       const [{ data }, { data: appData }] = await Promise.all([
         supabase.from("job_seeker_profiles")
           .select("skills, preferred_job_types, location, career_level, target_job_titles, salary_min, salary_max, min_match_score, search_mode")
@@ -160,19 +166,16 @@ export default function JobSearchPage() {
         setHistoricalOutcomes({ totalApplications: total, totalResponses: responded, avgResponseRate: (responded / total) * 100, avgDaysToResponse: avgDays });
       }
     } catch (e) { console.error(e); }
+    finally { setProfileLoaded(true); }
   };
 
   const toggleJobType = (type: string) => {
     setJobTypes(prev => prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]);
   };
 
-  // ── Search orchestration: delegates to job-service + matching-service ──
-
-  const handleSearch = async () => {
-    if (!skills.length && !customQuery.trim() && !targetTitles.length) {
-      toast.error("Add skills, titles, or a search query");
-      return;
-    }
+  // overrideFilters lets callers like "Browse all" bypass current state values.
+  // FIX: removed the hard validation that blocked searching without skills/query.
+  const handleSearch = async (overrideFilters?: Partial<JobSearchFilters>) => {
     setSearching(true);
     setJobs([]);
     setCitations([]);
@@ -181,10 +184,9 @@ export default function JobSearchPage() {
       skills, jobTypes, location, query: customQuery, careerLevel,
       targetTitles, salaryMin, salaryMax, searchSource, minFitScore, showFlagged,
       search_mode: searchMode,
+      ...overrideFilters,
     };
 
-    // Step 1: Job service fetches raw results (DB + AI with async queue)
-    // This NEVER throws — always returns a result (possibly empty)
     let rawJobs: JobResult[] = [];
     let cits: string[] = [];
     try {
@@ -196,38 +198,25 @@ export default function JobSearchPage() {
       toast.error("Search encountered an issue. Showing partial results.");
     }
 
-    // Step 2: Filter out ignored/saved jobs
     let filtered = rawJobs
       .filter(job => !isJobIgnored(job, ignoredList))
       .filter(job => !isJobAlreadySaved(job, savedApps));
 
-    // Step 3: Matching service enriches with trust, probability, strategy
-    // If matching fails, we still show jobs with default scores
     let enriched: EnrichedJob[];
     try {
       enriched = scoreJobs({ jobs: filtered, skills, historicalOutcomes, salaryMin, salaryMax, remotePreferred: jobTypes.includes("remote") });
     } catch (e) {
       console.error("[JobSearch] Matching service error (degrading gracefully):", e);
-      // Fallback: show jobs without enrichment
       enriched = filtered.map(job => ({
-        ...job,
-        flags: [],
-        trustScore: 50,
-        trustLevel: "caution" as const,
-        strategy: "apply_now" as const,
-        responseProbability: 50,
-        decisionScore: job.quality_score || 50,
-        effortEstimate: 50,
-        smartTag: "Worth Applying",
+        ...job, flags: [], trustScore: 50, trustLevel: "caution" as const,
+        strategy: "apply_now" as const, responseProbability: 50,
+        decisionScore: job.quality_score || 50, effortEstimate: 50, smartTag: "Worth Applying",
       }));
     }
 
-    // Step 4: Sort
-    if (sortBy === "decision") {
-      enriched.sort((a, b) => (b.decisionScore || 0) - (a.decisionScore || 0));
-    } else if (sortBy === "probability") {
-      enriched.sort((a, b) => (b.responseProbability || 0) - (a.responseProbability || 0));
-    } else if (sortBy === "newest") {
+    if (sortBy === "decision") enriched.sort((a, b) => (b.decisionScore || 0) - (a.decisionScore || 0));
+    else if (sortBy === "probability") enriched.sort((a, b) => (b.responseProbability || 0) - (a.responseProbability || 0));
+    else if (sortBy === "newest") {
       enriched.sort((a, b) => {
         if (!a.first_seen_at && !b.first_seen_at) return 0;
         if (!a.first_seen_at) return 1;
@@ -236,17 +225,17 @@ export default function JobSearchPage() {
       });
     }
 
-    // Step 5: Client-side filters
     if (!showFlagged) enriched = enriched.filter(j => !j.is_flagged);
+    const effectiveMinFit = overrideFilters?.minFitScore ?? minFitScore;
     const beforeFilterCount = enriched.length;
-    enriched = enriched.filter(j => (j.decisionScore || 0) >= minFitScore);
+    enriched = enriched.filter(j => (j.decisionScore || 0) >= effectiveMinFit);
     setTotalBeforeFilter(beforeFilterCount);
-
     setJobs(enriched);
     setCitations(cits);
     setVisibleCount(PAGE_SIZE);
+
     if (!enriched.length && beforeFilterCount > 0) {
-      toast.info(`${beforeFilterCount} jobs found but hidden by your ${minFitScore}% fit score filter. Try lowering it.`);
+      toast.info(`${beforeFilterCount} jobs found but hidden by your ${effectiveMinFit}% fit score filter. Try lowering it.`);
     } else if (!enriched.length && rawJobs.length > 0) {
       toast.info("Jobs found but all filtered out. Try lowering minimum fit score.");
     } else if (!enriched.length) {
@@ -263,7 +252,6 @@ export default function JobSearchPage() {
   const handleSaveJob = async (job: EnrichedJob) => {
     const saveKey = getJobSaveKey(job);
     if (savingJobKeys[saveKey]) return;
-
     setSavingJobKeys((prev) => ({ ...prev, [saveKey]: true }));
     try {
       const result = await saveJobToApplications({
@@ -290,52 +278,31 @@ export default function JobSearchPage() {
           </p>
         </div>
 
-        {/* Search Controls */}
         <Card className="p-6 mb-8">
           <div className="space-y-4">
-            {/* Search Source Toggle */}
             <div>
               <label className="text-sm font-semibold text-foreground mb-2 block">Search Source</label>
               <div className="flex gap-2">
                 {(["all", "database", "ai"] as const).map(src => (
-                  <Badge
-                    key={src}
-                    variant={searchSource === src ? "default" : "outline"}
+                  <Badge key={src} variant={searchSource === src ? "default" : "outline"}
                     className={`cursor-pointer capitalize ${searchSource === src ? "bg-primary text-primary-foreground" : "hover:bg-accent/10"}`}
-                    onClick={() => setSearchSource(src)}
-                  >
-                    {src === "all" ? (
-                      <><Database className="w-3 h-3 mr-1" /> All Sources</>
-                    ) : src === "database" ? (
-                      <><Database className="w-3 h-3 mr-1" /> Job Database</>
-                    ) : (
-                      <><Search className="w-3 h-3 mr-1" /> AI Search</>
-                    )}
+                    onClick={() => setSearchSource(src)}>
+                    {src === "all" ? <><Database className="w-3 h-3 mr-1" /> All Sources</>
+                      : src === "database" ? <><Database className="w-3 h-3 mr-1" /> Job Database</>
+                      : <><Search className="w-3 h-3 mr-1" /> AI Search</>}
                   </Badge>
                 ))}
               </div>
             </div>
 
-            {/* Target Titles */}
             <div>
               <label className="text-sm font-semibold text-foreground mb-2 block">Target Job Titles</label>
               <div className="flex gap-2 mb-2">
-                <Input
-                  value={titleInput}
-                  onChange={e => setTitleInput(e.target.value)}
-                  placeholder="e.g. Software Engineer"
-                  onKeyDown={e => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      const t = titleInput.trim();
-                      if (t && !targetTitles.includes(t)) { setTargetTitles([...targetTitles, t]); setTitleInput(""); }
-                    }
-                  }}
-                />
-                <Button variant="outline" size="sm" onClick={() => {
-                  const t = titleInput.trim();
-                  if (t && !targetTitles.includes(t)) { setTargetTitles([...targetTitles, t]); setTitleInput(""); }
-                }}><Plus className="w-4 h-4" /></Button>
+                <Input value={titleInput} onChange={e => setTitleInput(e.target.value)} placeholder="e.g. Software Engineer"
+                  onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); const t = titleInput.trim(); if (t && !targetTitles.includes(t)) { setTargetTitles([...targetTitles, t]); setTitleInput(""); } } }} />
+                <Button variant="outline" size="sm" onClick={() => { const t = titleInput.trim(); if (t && !targetTitles.includes(t)) { setTargetTitles([...targetTitles, t]); setTitleInput(""); } }}>
+                  <Plus className="w-4 h-4" />
+                </Button>
               </div>
               <div className="flex flex-wrap gap-2">
                 {targetTitles.map((t, i) => (
@@ -353,15 +320,11 @@ export default function JobSearchPage() {
                   const levels = careerLevel ? careerLevel.split(", ").filter(Boolean) : [];
                   const isSelected = levels.includes(level);
                   return (
-                    <Badge
-                      key={level}
-                      variant={isSelected ? "default" : "outline"}
+                    <Badge key={level} variant={isSelected ? "default" : "outline"}
                       className={`cursor-pointer text-xs ${isSelected ? "bg-primary text-primary-foreground" : "hover:bg-accent/10"}`}
-                      onClick={() => {
-                        const newLevels = isSelected ? levels.filter(l => l !== level) : [...levels, level];
-                        setCareerLevel(newLevels.join(", "));
-                      }}
-                    >{level}</Badge>
+                      onClick={() => { const newLevels = isSelected ? levels.filter(l => l !== level) : [...levels, level]; setCareerLevel(newLevels.join(", ")); }}>
+                      {level}
+                    </Badge>
                   );
                 })}
               </div>
@@ -370,13 +333,9 @@ export default function JobSearchPage() {
             <div>
               <label className="text-sm font-semibold text-foreground mb-2 block">Your Skills</label>
               {skills.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
-                  {skills.map((s, i) => <Badge key={i} variant="secondary">{s}</Badge>)}
-                </div>
+                <div className="flex flex-wrap gap-2">{skills.map((s, i) => <Badge key={i} variant="secondary">{s}</Badge>)}</div>
               ) : (
-                <p className="text-sm text-muted-foreground">
-                  No skills loaded. <button className="text-accent hover:underline" onClick={() => navigate("/profile")}>Add skills</button>
-                </p>
+                <p className="text-sm text-muted-foreground">No skills loaded. <button className="text-accent hover:underline" onClick={() => navigate("/profile")}>Add skills</button></p>
               )}
             </div>
 
@@ -384,12 +343,9 @@ export default function JobSearchPage() {
               <label className="text-sm font-semibold text-foreground mb-2 block">Job Type</label>
               <div className="flex flex-wrap gap-2">
                 {JOB_TYPE_OPTIONS.map(type => (
-                  <Badge
-                    key={type}
-                    variant={jobTypes.includes(type) ? "default" : "outline"}
+                  <Badge key={type} variant={jobTypes.includes(type) ? "default" : "outline"}
                     className={`cursor-pointer capitalize ${jobTypes.includes(type) ? "bg-primary text-primary-foreground" : "hover:bg-accent/10"}`}
-                    onClick={() => toggleJobType(type)}
-                  >{type}</Badge>
+                    onClick={() => toggleJobType(type)}>{type}</Badge>
                 ))}
               </div>
             </div>
@@ -409,80 +365,39 @@ export default function JobSearchPage() {
             </div>
 
             <div>
-              <label className="text-sm font-semibold text-foreground mb-2 block">
-                Minimum Fit Score: <span className="text-accent font-bold">{minFitScore}%</span>
-              </label>
+              <label className="text-sm font-semibold text-foreground mb-2 block">Minimum Fit Score: <span className="text-accent font-bold">{minFitScore}%</span></label>
               <p className="text-xs text-muted-foreground mb-2">Only show jobs with a decision score at or above this threshold</p>
               <div className="flex items-center gap-3">
-                <input
-                  type="range"
-                  min={0}
-                  max={100}
-                  value={minFitScore}
-                  onChange={e => setMinFitScore(Number(e.target.value))}
-                  className="flex-1 accent-[hsl(var(--accent))]"
-                />
-                <Input
-                  type="number"
-                  min={0}
-                  max={100}
-                  value={minFitScore}
-                  onChange={e => setMinFitScore(Math.max(0, Math.min(100, Number(e.target.value))))}
-                  className="w-20 h-8 text-xs"
-                />
+                <input type="range" min={0} max={100} value={minFitScore} onChange={e => setMinFitScore(Number(e.target.value))} className="flex-1 accent-[hsl(var(--accent))]" />
+                <Input type="number" min={0} max={100} value={minFitScore} onChange={e => setMinFitScore(Math.max(0, Math.min(100, Number(e.target.value))))} className="w-20 h-8 text-xs" />
               </div>
             </div>
 
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
                 <label className="text-sm font-semibold text-foreground mb-1 block">Min Salary</label>
-                <div className="flex items-center gap-1">
-                  <DollarSign className="w-4 h-4 text-muted-foreground" />
-                  <Input value={salaryMin} onChange={e => setSalaryMin(e.target.value)} placeholder="80,000" />
-                </div>
+                <div className="flex items-center gap-1"><DollarSign className="w-4 h-4 text-muted-foreground" /><Input value={salaryMin} onChange={e => setSalaryMin(e.target.value)} placeholder="80,000" /></div>
               </div>
               <div>
                 <label className="text-sm font-semibold text-foreground mb-1 block">Max Salary</label>
-                <div className="flex items-center gap-1">
-                  <DollarSign className="w-4 h-4 text-muted-foreground" />
-                  <Input value={salaryMax} onChange={e => setSalaryMax(e.target.value)} placeholder="150,000" />
-                </div>
+                <div className="flex items-center gap-1"><DollarSign className="w-4 h-4 text-muted-foreground" /><Input value={salaryMax} onChange={e => setSalaryMax(e.target.value)} placeholder="150,000" /></div>
               </div>
             </div>
 
-            <Button className="gradient-indigo text-white shadow-indigo-500/20 hover:opacity-90 w-full sm:w-auto" disabled={searching} onClick={handleSearch}>
+            <Button className="gradient-indigo text-white shadow-indigo-500/20 hover:opacity-90 w-full sm:w-auto" disabled={searching} onClick={() => handleSearch()}>
               {searching ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Searching...</> : <><Search className="w-4 h-4 mr-2" /> Search Jobs</>}
             </Button>
           </div>
         </Card>
 
-        {/* Results Controls */}
         {jobs.length > 0 && (
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
             <h2 className="font-display font-bold text-primary text-xl">{jobs.length} Jobs Found</h2>
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2">
                 <Filter className="w-4 h-4 text-muted-foreground" />
-                <select
-                  className="text-sm bg-card border border-input rounded-md px-2 py-1 text-foreground"
-                  value={sortBy}
-                  onChange={e => {
-                    setSortBy(e.target.value as any);
-                    setVisibleCount(PAGE_SIZE);
-                    setJobs(prev => {
-                      const sorted = [...prev];
-                      if (e.target.value === "decision") sorted.sort((a, b) => (b.decisionScore || 0) - (a.decisionScore || 0));
-                      else if (e.target.value === "probability") sorted.sort((a, b) => (b.responseProbability || 0) - (a.responseProbability || 0));
-                      else if (e.target.value === "newest") sorted.sort((a, b) => {
-                        if (!a.first_seen_at && !b.first_seen_at) return 0;
-                        if (!a.first_seen_at) return 1;
-                        if (!b.first_seen_at) return -1;
-                        return new Date(b.first_seen_at).getTime() - new Date(a.first_seen_at).getTime();
-                      });
-                      return sorted;
-                    });
-                  }}
-                >
+                <select className="text-sm bg-card border border-input rounded-md px-2 py-1 text-foreground" value={sortBy}
+                  onChange={e => { setSortBy(e.target.value as any); setVisibleCount(PAGE_SIZE); setJobs(prev => { const sorted = [...prev]; if (e.target.value === "decision") sorted.sort((a, b) => (b.decisionScore || 0) - (a.decisionScore || 0)); else if (e.target.value === "probability") sorted.sort((a, b) => (b.responseProbability || 0) - (a.responseProbability || 0)); else if (e.target.value === "newest") sorted.sort((a, b) => { if (!a.first_seen_at && !b.first_seen_at) return 0; if (!a.first_seen_at) return 1; if (!b.first_seen_at) return -1; return new Date(b.first_seen_at).getTime() - new Date(a.first_seen_at).getTime(); }); return sorted; }); }}>
                   <option value="decision">Decision Score</option>
                   <option value="relevance">Relevance</option>
                   <option value="probability">Response Probability</option>
@@ -490,14 +405,12 @@ export default function JobSearchPage() {
                 </select>
               </div>
               <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
-                <input type="checkbox" checked={showFlagged} onChange={e => setShowFlagged(e.target.checked)} className="rounded" />
-                Show flagged
+                <input type="checkbox" checked={showFlagged} onChange={e => setShowFlagged(e.target.checked)} className="rounded" /> Show flagged
               </label>
             </div>
           </div>
         )}
 
-        {/* Job Cards */}
         <div className="space-y-4">
           {jobs.filter(j => showFlagged || !j.is_flagged).slice(0, visibleCount).map((job, i) => {
             const prob = job.responseProbability || 0;
@@ -508,7 +421,6 @@ export default function JobSearchPage() {
             const hasFlags = job.flags && job.flags.length > 0;
             const hasDanger = job.flags?.some(f => f.severity === "danger");
             const saveKey = getJobSaveKey(job);
-
             return (
               <Card key={job.id || i} className={`p-5 transition-colors ${hasDanger ? "border-destructive/30 bg-destructive/5" : hasFlags ? "border-warning/30 bg-warning/5" : "hover:border-accent/50"}`}>
                 <div className="flex flex-col sm:flex-row sm:items-start gap-4">
@@ -521,88 +433,32 @@ export default function JobSearchPage() {
                       <span className="flex items-center gap-1"><Building2 className="w-3.5 h-3.5" /> {job.company}</span>
                       <span className="flex items-center gap-1"><MapPin className="w-3.5 h-3.5" /> {job.location}</span>
                       {job.type && <Badge variant="outline" className="capitalize text-xs"><Briefcase className="w-3 h-3 mr-1" /> {job.type}</Badge>}
-                      {job.salary && (
-                        <span className="flex items-center gap-1">
-                          <Badge variant="outline" className="text-xs"><DollarSign className="w-3 h-3 mr-1" /> {job.salary}</Badge>
-                          <SalaryBadge salary={job.salary} title={job.title} />
-                        </span>
-                      )}
+                      {job.salary && (<span className="flex items-center gap-1"><Badge variant="outline" className="text-xs"><DollarSign className="w-3 h-3 mr-1" /> {job.salary}</Badge><SalaryBadge salary={job.salary} title={job.title} /></span>)}
                       {job.source && <Badge variant="outline" className="text-xs capitalize">{job.source}</Badge>}
                     </div>
                     <p className="text-sm text-muted-foreground mt-2 leading-relaxed line-clamp-3">{job.description}</p>
-
-                    {/* Trust + Probability + Smart Tags */}
                     <div className="flex flex-wrap items-center gap-3 mt-3">
                       <div className="flex items-center gap-1">
                         <TrustIcon className={`w-3.5 h-3.5 ${trustCfg.colorClass}`} />
                         <span className={`text-xs font-semibold ${trustCfg.colorClass}`}>{trustCfg.label}</span>
                       </div>
-                      <Badge variant="outline" className={`text-xs ${tag.color}`}>
-                        <TagIcon className="w-3 h-3 mr-1" /> {tag.label}
-                      </Badge>
-                      <span className={`text-sm font-semibold ${getProbColor(prob)}`}>
-                        {prob}% response probability
-                      </span>
-                      {job.first_seen_at && (
-                        <span className="text-xs text-muted-foreground flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          {Math.round((Date.now() - new Date(job.first_seen_at).getTime()) / (1000 * 60 * 60 * 24))}d ago
-                        </span>
-                      )}
+                      <Badge variant="outline" className={`text-xs ${tag.color}`}><TagIcon className="w-3 h-3 mr-1" /> {tag.label}</Badge>
+                      <span className={`text-sm font-semibold ${getProbColor(prob)}`}>{prob}% response probability</span>
+                      {job.first_seen_at && (<span className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" />{Math.round((Date.now() - new Date(job.first_seen_at).getTime()) / (1000 * 60 * 60 * 24))}d ago</span>)}
                     </div>
-
-                    {/* Flag warnings */}
-                    {hasFlags && (
-                      <div className="flex flex-wrap gap-1.5 mt-2">
-                        {job.flags!.map((flag, fi) => (
-                          <Badge key={fi} variant="outline" className={`text-[10px] ${
-                            flag.severity === "danger" ? "border-destructive/40 text-destructive bg-destructive/5" : "border-warning/40 text-warning bg-warning/5"
-                          }`}>
-                            <AlertTriangle className="w-3 h-3 mr-1" /> {flag.label}
-                          </Badge>
-                        ))}
-                      </div>
-                    )}
-
-                    {job.matchReason && !hasDanger && (
-                      <p className="text-xs text-accent mt-2 italic">💡 {job.matchReason}</p>
-                    )}
+                    {hasFlags && (<div className="flex flex-wrap gap-1.5 mt-2">{job.flags!.map((flag, fi) => (<Badge key={fi} variant="outline" className={`text-[10px] ${flag.severity === "danger" ? "border-destructive/40 text-destructive bg-destructive/5" : "border-warning/40 text-warning bg-warning/5"}`}><AlertTriangle className="w-3 h-3 mr-1" /> {flag.label}</Badge>))}</div>)}
+                    {job.matchReason && !hasDanger && (<p className="text-xs text-accent mt-2 italic">💡 {job.matchReason}</p>)}
                   </div>
                   <div className="flex sm:flex-col gap-2 flex-shrink-0">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-xs"
-                      onClick={() => handleSaveJob(job)}
-                      disabled={!!savingJobKeys[saveKey]}
-                    >
-                      {savingJobKeys[saveKey]
-                        ? <><Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> Saving</>
-                        : <><Plus className="w-3.5 h-3.5 mr-1" /> Save Job</>}
+                    <Button variant="outline" size="sm" className="text-xs" onClick={() => handleSaveJob(job)} disabled={!!savingJobKeys[saveKey]}>
+                      {savingJobKeys[saveKey] ? <><Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> Saving</> : <><Plus className="w-3.5 h-3.5 mr-1" /> Save Job</>}
                     </Button>
                     <Button size="sm" className="gradient-indigo text-white text-xs" onClick={() => handleAnalyzeFit(job)}>
                       <Target className="w-3.5 h-3.5 mr-1" /> Check My Chances
                     </Button>
-                    {job.url && (
-                      <Button variant="outline" size="sm" className="text-xs" onClick={() => {
-                        window.open(job.url, "_blank", "noopener,noreferrer");
-                      }}>
-                        <ExternalLink className="w-3.5 h-3.5 mr-1" /> Find & Apply
-                      </Button>
-                    )}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-xs text-muted-foreground hover:text-destructive"
-                      onClick={async () => {
-                        const ok = await ignoreJob({ title: job.title, company: job.company, url: job.url });
-                        if (ok) {
-                          setJobs(prev => prev.filter(j => getJobSaveKey(j) !== saveKey));
-                          setIgnoredList(prev => [...prev, { id: '', job_title: job.title, company: job.company, job_url: job.url }]);
-                          toast.success("Job hidden — won't appear again");
-                        }
-                      }}
-                    >
+                    {job.url && (<Button variant="outline" size="sm" className="text-xs" onClick={() => window.open(job.url, "_blank", "noopener,noreferrer")}><ExternalLink className="w-3.5 h-3.5 mr-1" /> Find & Apply</Button>)}
+                    <Button variant="ghost" size="sm" className="text-xs text-muted-foreground hover:text-destructive"
+                      onClick={async () => { const ok = await ignoreJob({ title: job.title, company: job.company, url: job.url }); if (ok) { setJobs(prev => prev.filter(j => getJobSaveKey(j) !== saveKey)); setIgnoredList(prev => [...prev, { id: '', job_title: job.title, company: job.company, job_url: job.url }]); toast.success("Job hidden — won't appear again"); } }}>
                       <EyeOff className="w-3.5 h-3.5 mr-1" /> Ignore
                     </Button>
                   </div>
@@ -614,10 +470,7 @@ export default function JobSearchPage() {
 
         {visibleCount < jobs.filter(j => showFlagged || !j.is_flagged).length && (
           <div className="mt-4 text-center">
-            <Button
-              variant="outline"
-              onClick={() => setVisibleCount(prev => prev + PAGE_SIZE)}
-            >
+            <Button variant="outline" onClick={() => setVisibleCount(prev => prev + PAGE_SIZE)}>
               Load More ({jobs.filter(j => showFlagged || !j.is_flagged).length - visibleCount} remaining)
             </Button>
           </div>
@@ -627,11 +480,7 @@ export default function JobSearchPage() {
           <div className="mt-6 pt-4 border-t border-border">
             <p className="text-xs text-muted-foreground mb-2">Sources:</p>
             <div className="flex flex-wrap gap-2">
-              {citations.map((c, i) => (
-                <a key={i} href={c} target="_blank" rel="noopener noreferrer" className="text-xs text-accent hover:underline truncate max-w-xs">
-                  [{i + 1}] {c}
-                </a>
-              ))}
+              {citations.map((c, i) => (<a key={i} href={c} target="_blank" rel="noopener noreferrer" className="text-xs text-accent hover:underline truncate max-w-xs">[{i + 1}] {c}</a>))}
             </div>
           </div>
         )}
@@ -639,7 +488,19 @@ export default function JobSearchPage() {
         {!searching && jobs.length === 0 && profileLoaded && (
           <div className="text-center py-16 text-muted-foreground">
             <Search className="w-12 h-12 mx-auto mb-4 opacity-30" />
-            <p className="text-lg">Click "Search Jobs" to find matching opportunities</p>
+            {skills.length > 0 || targetTitles.length > 0 ? (
+              <>
+                <p className="text-lg mb-2">No jobs matched your filters</p>
+                <p className="text-sm mb-4">Try lowering the minimum fit score, removing location, or broadening job types</p>
+                <Button variant="outline" onClick={() => handleSearch({ minFitScore: 0, showFlagged: true })}>Browse all jobs (ignore filters)</Button>
+              </>
+            ) : (
+              <>
+                <p className="text-lg mb-2">Set up your profile or search manually above</p>
+                <p className="text-sm mb-4">No skills or titles saved yet — add them to your <button className="text-accent hover:underline" onClick={() => navigate("/profile")}>Career Profile</button>, or click below to browse everything</p>
+                <Button variant="outline" onClick={() => handleSearch({ skills: [], targetTitles: [], minFitScore: 0 })}>Browse all →</Button>
+              </>
+            )}
           </div>
         )}
       </div>
