@@ -28,7 +28,6 @@ import {
   Unlink,
   Palette,
 } from "lucide-react";
-import { ThemePicker } from "@/components/ThemePicker";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import {
@@ -261,8 +260,6 @@ export default function AccountSettings() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-              <ThemePicker />
-              <Separator className="my-4" />
           <ThemeSelector />
         </CardContent>
       </Card>
