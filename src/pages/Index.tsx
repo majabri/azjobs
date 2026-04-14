@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { analyzeJobFit } from "@/lib/analysisEngine";
 import { AUTH_LOGIN, AUTH_SIGNUP } from "@/lib/routes";
+import { Logo } from '@/assets/Logo';
 /* ────────────────────── DATA ────────────────────── */
 
 const stats = [
@@ -183,13 +184,11 @@ export default function Index() {
           className="flex items-center gap-2 cursor-pointer"
           onClick={() => navigate("/")}
         >
-          <div className="w-8 h-8 gradient-teal rounded-lg flex items-center justify-center shadow-teal">
-            <Target className="w-4 h-4 text-white" />
-          </div>
-          <span className="font-display text-lg font-bold text-primary-foreground">
-            iCareerOS
-          </span>
-        </div>
+          <Logo size={28} />
+                    <span style={{ fontSize: '15px', fontWeight: 500, color: 'var(--text-primary)', letterSpacing: '-0.2px' }}>
+                                iCareer<span style={{ color: 'var(--brand)' }}>OS</span>
+                                          </span>
+                                                  </div>
 
         <nav className="flex items-center gap-1">
           {user ? (

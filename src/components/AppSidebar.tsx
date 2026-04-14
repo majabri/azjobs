@@ -34,8 +34,10 @@ export function AppSidebar() {
         <div className={`flex items-center gap-2 px-4 py-5 ${collapsed ? "justify-center" : ""}`}>
           <Logo size={28} />
           {!collapsed && (
-            <span className="font-display text-lg font-bold text-sidebar-foreground">iCareerOS</span>
-          )}
+              <span style={{ fontSize: '15px', fontWeight: 500, color: 'var(--text-primary)', letterSpacing: '-0.2px' }}>
+                                iCareer<span style={{ color: 'var(--brand)' }}>OS</span>
+                                              </span>
+                                                        )}
         </div>
 
         {/* Mode switcher */}
