@@ -1,5 +1,5 @@
 import { ChevronDown, Shield } from "lucide-react";
-import { Logo } from "@/assets/Logo";
+import { ICareerOSLogo } from "@/components/ui/ICareerOSLogo";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
@@ -31,13 +31,14 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       <SidebarContent>
         {/* Logo */}
-        <div className={`flex items-center gap-2 px-4 py-5 ${collapsed ? "justify-center" : ""}`}>
-          <Logo size={28} />
+        <div className={`flex items-center gap-2 px-4 py-3 select-none ${collapsed ? "justify-center" : ""}`}>
+          <ICareerOSLogo size={24} />
           {!collapsed && (
-              <span style={{ fontSize: '15px', fontWeight: 500, color: 'var(--text-primary)', letterSpacing: '-0.2px' }}>
-                                iCareer<span style={{ color: 'var(--brand)' }}>OS</span>
-                                              </span>
-                                                        )}
+            <span className="text-sm font-medium">
+              <span className="text-primary">iCareer</span>
+              <span className="text-foreground">OS</span>
+            </span>
+          )}
         </div>
 
         {/* Mode switcher */}
