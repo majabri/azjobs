@@ -6,14 +6,13 @@
  *
  * To re-enable AI search:
  * 1. Set feature flag 'ai_search' to true in feature_flags table
- * 2. Set FIRECRAWL_API_KEY in Supabase secrets
- * 3. Restore the dual-source logic in src/services/job/service.ts searchJobs()
- * 4. Deploy this function: supabase functions deploy search-jobs
+ * 2. Restore the dual-source logic in src/services/job/service.ts searchJobs()
+ * 3. Deploy this function: supabase functions deploy search-jobs
  */
 
 // iCareerOS v5 â search-jobs Edge Function
 // Zero-dependency: uses Deno.serve + inline PostgREST client.
-// Replaces the old 707-line Firecrawl-based search with direct job_postings queries.
+// Uses direct job_postings queries (no third-party scraping services).
 // Called by agent-orchestrator discovery agent + frontend JobSearch page.
 
 const corsHeaders = {

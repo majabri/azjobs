@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { checkRateLimit } from "../_shared/rate-limit.ts";
+import { withRetryText } from "../_shared/retry.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -61,41 +62,82 @@ async function scrapeLever(company: string): Promise<NormalizedJob[]> {
   }));
 }
 
+/** Strip HTML tags and collapse whitespace into readable plain text. */
+function htmlToText(html: string): string {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n\n')
+    .replace(/<\/li>/gi, '\n')
+    .replace(/<\/h[1-6]>/gi, '\n\n')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 async function scrapeCareerPage(url: string, companyName: string): Promise<NormalizedJob[]> {
-  const apiKey = Deno.env.get('FIRECRAWL_API_KEY');
-  if (!apiKey) return [];
+  try {
+    // Fetch with retry + exponential backoff (3 attempts, 500ms base, 12s timeout).
+    const fetchResult = await withRetryText(
+      (signal) => fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; iCareerOS/1.0; +https://icareeros.com)',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.9',
+        },
+        signal,
+      }),
+      { maxAttempts: 3, baseDelayMs: 500, timeoutMs: 12_000, label: url }
+    );
 
-  const res = await fetch('https://api.firecrawl.dev/v1/scrape', {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ url, formats: ['markdown'], onlyMainContent: true }),
-  });
-  if (!res.ok) return [];
-  const data = await res.json();
-  const markdown = data.data?.markdown || data.markdown || '';
-  
-  // Extract job-like entries from markdown
-  const lines = markdown.split('\n');
-  const jobs: NormalizedJob[] = [];
-  let currentTitle = '';
-  let currentDesc = '';
-
-  for (const line of lines) {
-    const headingMatch = line.match(/^#{1,3}\s+(.+)/);
-    if (headingMatch && looksLikeJobTitle(headingMatch[1])) {
-      if (currentTitle) {
-        jobs.push(buildJobFromText(currentTitle, currentDesc, companyName, url));
-      }
-      currentTitle = headingMatch[1].trim();
-      currentDesc = '';
-    } else if (currentTitle) {
-      currentDesc += line + '\n';
+    if (!fetchResult.ok || !fetchResult.value) {
+      console.warn(`[scrape-jobs-ats] Failed to fetch ${url}: ${fetchResult.error}`);
+      return [];
     }
+
+    const html = fetchResult.value;
+
+    // Prefer <main> or <article> for cleaner signal
+    const mainMatch =
+      html.match(/<main[\s\S]*?<\/main>/i) ||
+      html.match(/<article[\s\S]*?<\/article>/i);
+    const rawText = htmlToText(mainMatch?.[0] ?? html);
+
+    if (!rawText || rawText.length < 100) return [];
+
+    // Split into sections on heading-like lines and extract job entries
+    const lines = rawText.split('\n');
+    const jobs: NormalizedJob[] = [];
+    let currentTitle = '';
+    let currentDesc = '';
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (looksLikeJobTitle(trimmed)) {
+        if (currentTitle) {
+          jobs.push(buildJobFromText(currentTitle, currentDesc, companyName, url));
+        }
+        currentTitle = trimmed;
+        currentDesc = '';
+      } else if (currentTitle) {
+        currentDesc += line + '\n';
+      }
+    }
+    if (currentTitle) {
+      jobs.push(buildJobFromText(currentTitle, currentDesc, companyName, url));
+    }
+    return jobs;
+  } catch {
+    return [];
   }
-  if (currentTitle) {
-    jobs.push(buildJobFromText(currentTitle, currentDesc, companyName, url));
-  }
-  return jobs;
 }
 
 function looksLikeJobTitle(text: string): boolean {
@@ -182,7 +224,6 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
   try {
-    // Explicit auth check (defense in depth – verify_jwt=true is the first gate)
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return new Response(
@@ -206,7 +247,6 @@ Deno.serve(async (req) => {
 
     const userId: string = user.id;
 
-    // Rate limit: 10 scrape requests per user per minute
     if (!checkRateLimit(`scrape-jobs-ats:${userId}`, 10, 60_000)) {
       return new Response(
         JSON.stringify({ success: false, error: 'Too many requests – please slow down' }),
@@ -220,7 +260,6 @@ Deno.serve(async (req) => {
     );
 
     const { targets } = await req.json();
-    // targets: Array<{ type: 'greenhouse' | 'lever' | 'career_page', identifier: string, company?: string }>
 
     let allJobs: NormalizedJob[] = [];
 
@@ -240,7 +279,6 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Deduplicate by source_id
     const seen = new Set<string>();
     const unique = allJobs.filter(j => {
       if (!j.source_id || seen.has(j.source_id)) return false;
@@ -248,7 +286,6 @@ Deno.serve(async (req) => {
       return true;
     });
 
-    // Score and upsert
     let inserted = 0;
     for (const job of unique) {
       const quality = scoreJobQuality(job);

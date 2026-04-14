@@ -99,7 +99,7 @@ function getEdgeFunctionUrl(name: string): string {
 
 // ── Search Jobs (main entry — database-only mode) ────────────────────────
 
-// Main entry: database-only search (AI/Firecrawl disabled — zero external cost)
+// Main entry: database-only search — zero external cost
 export async function searchJobs(
   filters: JobSearchFilters
 ): Promise<{ jobs: JobResult[]; citations: string[] }> {
