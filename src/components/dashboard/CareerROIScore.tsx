@@ -122,7 +122,7 @@ export default function CareerROIScore() {
   return (
     <Card className="p-6 border-accent/20">
       <div className="flex items-center gap-2 mb-5">
-        <div className="w-8 h-8 rounded-lg gradient-teal flex items-center justify-center">
+        <div className="w-8 h-8 rounded-lg gradient-brand flex items-center justify-center">
           <Zap className="w-4 h-4 text-white" />
         </div>
         <div>

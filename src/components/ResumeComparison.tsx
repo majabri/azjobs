@@ -99,7 +99,7 @@ export default function ResumeComparison({ original, optimized, jobTitle }: Resu
         <Button
           size="sm"
           variant={saved ? "outline" : "default"}
-          className={saved ? "border-success/30 text-success" : "gradient-teal text-white shadow-teal hover:opacity-90"}
+          className={saved ? "border-success/30 text-success" : "gradient-brand text-white shadow-brand hover:opacity-90"}
           onClick={handleSaveAsVersion}
           disabled={saving || saved}
         >

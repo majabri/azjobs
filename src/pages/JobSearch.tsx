@@ -283,7 +283,7 @@ export default function JobSearchPage() {
       <div className="max-w-5xl mx-auto px-6 py-10">
         <div className="text-center mb-10">
           <h1 className="font-display text-4xl font-bold text-primary mb-3">
-            Jobs that <span className="text-gradient-teal">get you interviews</span>
+            Jobs that <span className="text-gradient-brand">get you interviews</span>
           </h1>
           <p className="text-muted-foreground text-lg max-w-xl mx-auto">
             AI finds the best opportunities and shows your interview probability for each one.
@@ -450,7 +450,7 @@ export default function JobSearchPage() {
               </div>
             </div>
 
-            <Button className="gradient-teal text-white shadow-teal hover:opacity-90 w-full sm:w-auto" disabled={searching} onClick={handleSearch}>
+            <Button className="gradient-brand text-white shadow-brand hover:opacity-90 w-full sm:w-auto" disabled={searching} onClick={handleSearch}>
               {searching ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Searching...</> : <><Search className="w-4 h-4 mr-2" /> Search Jobs</>}
             </Button>
           </div>
@@ -580,7 +580,7 @@ export default function JobSearchPage() {
                         ? <><Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> Saving</>
                         : <><Plus className="w-3.5 h-3.5 mr-1" /> Save Job</>}
                     </Button>
-                    <Button size="sm" className="gradient-teal text-white text-xs" onClick={() => handleAnalyzeFit(job)}>
+                    <Button size="sm" className="gradient-brand text-white text-xs" onClick={() => handleAnalyzeFit(job)}>
                       <Target className="w-3.5 h-3.5 mr-1" /> Check My Chances
                     </Button>
                     {job.url && (

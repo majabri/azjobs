@@ -106,7 +106,7 @@ export default function AdminProfile() {
         </div>
         <Button
           size="sm"
-          className="gradient-teal text-white"
+          className="gradient-brand text-white"
           onClick={handleSave}
           disabled={saving}
         >

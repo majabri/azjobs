@@ -170,7 +170,7 @@ export default function ApplicationToolkit({
             href={jobLink}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-2 px-4 py-3 rounded-xl gradient-teal text-sm font-bold text-white shadow-lg hover:opacity-90 transition-opacity text-center justify-center"
+            className="flex items-center gap-2 px-4 py-3 rounded-xl gradient-brand text-sm font-bold text-white shadow-lg hover:opacity-90 transition-opacity text-center justify-center"
           >
             <ExternalLink className="w-4 h-4" /> Apply Now
           </a>

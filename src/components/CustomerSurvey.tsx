@@ -102,7 +102,7 @@ export default function CustomerSurvey() {
   return (
     <Card className="max-w-2xl mx-auto border-border shadow-card">
       <CardHeader className="text-center pb-2">
-        <div className="w-12 h-12 gradient-teal rounded-xl flex items-center justify-center mx-auto mb-3 shadow-teal">
+        <div className="w-12 h-12 gradient-brand rounded-xl flex items-center justify-center mx-auto mb-3 shadow-brand">
           <MessageSquare className="w-6 h-6 text-white" />
         </div>
         <CardTitle className="text-2xl font-display">Help Us Build the Perfect Tool</CardTitle>
@@ -234,7 +234,7 @@ export default function CustomerSurvey() {
                 {answeredCount}/{questions.length} questions answered
               </span>
               <Button
-                className="gradient-teal text-white shadow-teal hover:opacity-90"
+                className="gradient-brand text-white shadow-brand hover:opacity-90"
                 disabled={!canSubmit || loading}
                 onClick={handleSubmit}
               >

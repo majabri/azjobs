@@ -89,7 +89,7 @@ export default function RejectionSimulator({ resumeText: initialResume, jobDescr
         </div>
       )}
 
-      <Button onClick={runSimulation} disabled={loading} className="gradient-teal text-white">
+      <Button onClick={runSimulation} disabled={loading} className="gradient-brand text-white">
         {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <ShieldAlert className="w-4 h-4 mr-2" />}
         {loading ? "Simulating rejection..." : "Simulate Rejection"}
       </Button>

@@ -292,7 +292,7 @@ export default function CandidateScreenerLegacy() {
             </Button>
             <div className="w-px h-5 bg-border" />
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 gradient-teal rounded-lg flex items-center justify-center">
+              <div className="w-7 h-7 gradient-brand rounded-lg flex items-center justify-center">
                 <Users className="w-3.5 h-3.5 text-white" />
               </div>
               <span className="font-display font-bold text-primary">Candidate Screener</span>
@@ -315,7 +315,7 @@ export default function CandidateScreenerLegacy() {
           <div className="animate-fade-up">
             <div className="text-center mb-10">
               <h1 className="font-display text-4xl font-bold text-primary mb-3">
-                Find your <span className="text-gradient-teal">best fit</span> candidates
+                Find your <span className="text-gradient-brand">best fit</span> candidates
               </h1>
               <p className="text-muted-foreground text-lg max-w-xl mx-auto">
                 Paste your job description and candidate profiles. Get ranked results with fit scores and gap analysis instantly.
@@ -404,7 +404,7 @@ export default function CandidateScreenerLegacy() {
                     {candidates.map((c, i) => (
                       <div key={c.id} className="bg-card rounded-xl border border-border p-4 space-y-2">
                         <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 gradient-teal rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                          <div className="w-6 h-6 gradient-brand rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
                             {i + 1}
                           </div>
                           <Input
@@ -494,7 +494,7 @@ export default function CandidateScreenerLegacy() {
             <div className="flex justify-center">
               <Button
                 size="lg"
-                className="gradient-teal text-white font-semibold text-lg px-12 py-6 rounded-xl shadow-teal hover:opacity-90 transition-opacity"
+                className="gradient-brand text-white font-semibold text-lg px-12 py-6 rounded-xl shadow-brand hover:opacity-90 transition-opacity"
                 disabled={!canAnalyze || isAnalyzing}
                 onClick={handleAnalyze}
               >
@@ -539,14 +539,14 @@ export default function CandidateScreenerLegacy() {
                       onClick={() => setSelectedCandidate(r)}
                       className={`w-full text-left bg-card rounded-xl border p-4 transition-all hover:shadow-elevated ${
                         isSelected
-                          ? "border-accent shadow-teal ring-1 ring-accent/30"
+                          ? "border-accent shadow-brand ring-1 ring-accent/30"
                           : "border-border hover:border-accent/40"
                       }`}
                     >
                       <div className="flex items-center gap-3">
                         <div
                           className={`w-8 h-8 rounded-full flex items-center justify-center font-display font-bold text-sm flex-shrink-0 ${
-                            i === 0 ? "gradient-teal text-white shadow-teal" : "bg-secondary text-secondary-foreground"
+                            i === 0 ? "gradient-brand text-white shadow-brand" : "bg-secondary text-secondary-foreground"
                           }`}
                         >
                           #{i + 1}
@@ -690,7 +690,7 @@ export default function CandidateScreenerLegacy() {
                 </DropdownMenuContent>
               </DropdownMenu>
               <Button
-                className="gradient-teal text-white shadow-teal hover:opacity-90"
+                className="gradient-brand text-white shadow-brand hover:opacity-90"
                 onClick={() => navigate("/job-seeker")}
               >
                 Switch to Job Seeker View

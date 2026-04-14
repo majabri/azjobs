@@ -181,7 +181,7 @@ export default function OnboardingWizard() {
           <p className="text-muted-foreground mb-6 max-w-md mx-auto">
             Let's set up your profile in under 2 minutes. Upload your resume and we'll do the rest.
           </p>
-          <Button className="gradient-teal text-white shadow-teal hover:opacity-90" onClick={() => setStep("resume")}>
+          <Button className="gradient-brand text-white shadow-brand hover:opacity-90" onClick={() => setStep("resume")}>
             <ArrowRight className="w-4 h-4 mr-2" /> Let's Go
           </Button>
         </div>
@@ -198,7 +198,7 @@ export default function OnboardingWizard() {
           <input ref={fileRef} type="file" accept=".pdf,.doc,.docx" className="hidden" onChange={handleResumeUpload} />
           <div className="flex flex-col items-center gap-3">
             <Button
-              className="gradient-teal text-white shadow-teal hover:opacity-90 px-8"
+              className="gradient-brand text-white shadow-brand hover:opacity-90 px-8"
               onClick={() => fileRef.current?.click()}
               disabled={uploading || extracting}
             >
@@ -247,7 +247,7 @@ export default function OnboardingWizard() {
             </div>
           </div>
           <div className="flex justify-center mt-6">
-            <Button className="gradient-teal text-white shadow-teal hover:opacity-90 px-8" onClick={handleSavePreferences} disabled={saving}>
+            <Button className="gradient-brand text-white shadow-brand hover:opacity-90 px-8" onClick={handleSavePreferences} disabled={saving}>
               {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CheckCircle2 className="w-4 h-4 mr-2" />}
               Save & Continue
             </Button>
@@ -264,7 +264,7 @@ export default function OnboardingWizard() {
             Your profile is ready. Start analyzing job postings to see your fit score and get AI-optimized resumes.
           </p>
           <div className="flex gap-3 justify-center">
-            <Button className="gradient-teal text-white shadow-teal hover:opacity-90" onClick={() => { setDismissed(true); navigate("/job-seeker"); }}>
+            <Button className="gradient-brand text-white shadow-brand hover:opacity-90" onClick={() => { setDismissed(true); navigate("/job-seeker"); }}>
               <Target className="w-4 h-4 mr-2" /> Analyze a Job
             </Button>
             <Button variant="outline" onClick={() => setDismissed(true)}>

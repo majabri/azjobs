@@ -309,7 +309,7 @@ export default function AnalysisForm({ onAnalyze, isAnalyzing, isDemo, prefillJo
             <div className="flex items-center gap-2">
               <Button
                 variant="default" size="sm"
-                className="text-xs h-8 gradient-teal text-white shadow-teal hover:opacity-90"
+                className="text-xs h-8 gradient-brand text-white shadow-brand hover:opacity-90"
                 disabled={isUploadingResume || isDemo}
                 onClick={() => resumeFileRef.current?.click()}
               >
@@ -363,7 +363,7 @@ export default function AnalysisForm({ onAnalyze, isAnalyzing, isDemo, prefillJo
       <div className="flex justify-center">
         <Button
           size="lg"
-          className="gradient-teal text-white font-semibold text-lg px-12 py-6 rounded-xl shadow-teal hover:opacity-90"
+          className="gradient-brand text-white font-semibold text-lg px-12 py-6 rounded-xl shadow-brand hover:opacity-90"
           disabled={!jobDesc.trim() || !resume.trim() || isAnalyzing}
           onClick={() => onAnalyze(jobDesc, resume, jobLink)}
         >
@@ -378,7 +378,7 @@ export default function AnalysisForm({ onAnalyze, isAnalyzing, isDemo, prefillJo
       {isAnalyzing && (
         <div className="mt-6 max-w-sm mx-auto">
           <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
-            <div className="h-full gradient-teal rounded-full animate-pulse" style={{ width: "60%" }} />
+            <div className="h-full gradient-brand rounded-full animate-pulse" style={{ width: "60%" }} />
           </div>
           <p className="text-center text-muted-foreground text-sm mt-3">Matching skills and identifying gaps…</p>
         </div>

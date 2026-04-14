@@ -253,7 +253,7 @@ export default function AdminSettings() {
           </Button>
           <Button
             size="sm"
-            className="gradient-teal text-white"
+            className="gradient-brand text-white"
             onClick={saveAll}
             disabled={!isDirty || saving}
           >

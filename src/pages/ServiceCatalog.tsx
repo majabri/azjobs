@@ -274,7 +274,7 @@ export default function ServiceCatalog() {
                   {service.category && (
                     <Badge
                       variant="outline"
-                      className="border-teal-600 bg-teal-900/20 text-primary mb-3"
+                      className="border-indigo-600 bg-indigo-900/20 text-primary mb-3"
                     >
                       {service.category.name}
                     </Badge>

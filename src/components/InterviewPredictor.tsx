@@ -107,7 +107,7 @@ export default function InterviewPredictor({ jobDescription, resumeText }: Inter
             <p className="text-xs text-muted-foreground">Questions you'll likely face + where you'll struggle</p>
           </div>
         </div>
-        <Button className="gradient-teal text-white shadow-teal hover:opacity-90" onClick={generatePredictions} disabled={loading || !jobDescription || !resumeText}>
+        <Button className="gradient-brand text-white shadow-brand hover:opacity-90" onClick={generatePredictions} disabled={loading || !jobDescription || !resumeText}>
           {loading ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Predicting...</> : <><Sparkles className="w-4 h-4 mr-2" /> Predict Questions</>}
         </Button>
       </div>

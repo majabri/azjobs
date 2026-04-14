@@ -201,7 +201,7 @@ export default function ApplicationPackageGenerator({
 
       {/* Export */}
       <div className="flex flex-wrap gap-2 pt-2 border-t border-border">
-        <Button size="sm" onClick={handleCopyAll} className="gradient-teal text-white text-xs">
+        <Button size="sm" onClick={handleCopyAll} className="gradient-brand text-white text-xs">
           <Copy className="w-3.5 h-3.5 mr-1" /> Copy Full Package
         </Button>
         <Button size="sm" variant="outline" onClick={handleDownload} className="text-xs">

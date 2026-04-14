@@ -149,7 +149,7 @@ export default class ServiceHealthGuard extends React.Component<
                     Still having issues? Please contact{' '}
                     <a
                       href="mailto:support@icareer.os"
-                      className="text-primary hover:text-teal-300"
+                      className="text-primary hover:text-indigo-300"
                     >
                       support@icareer.os
                     </a>

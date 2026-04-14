@@ -82,7 +82,7 @@ export default function CareerPathIntelligence() {
         <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
           Get AI-powered recommendations for higher-paying roles, skills to learn, and career transitions based on your profile and market data.
         </p>
-        <Button className="gradient-teal text-white shadow-teal hover:opacity-90" onClick={analyze} disabled={loading}>
+        <Button className="gradient-brand text-white shadow-brand hover:opacity-90" onClick={analyze} disabled={loading}>
           {loading ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Analyzing...</> : <><Sparkles className="w-4 h-4 mr-2" /> Analyze My Career Path</>}
         </Button>
       </Card>

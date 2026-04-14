@@ -116,7 +116,7 @@ export default function Dashboard() {
                 <BarChart3 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                 <h3 className="font-display text-xl font-bold text-foreground mb-2">Start getting interviews</h3>
                 <p className="text-muted-foreground mb-6">Upload your resume and analyze a job posting.</p>
-                <Button className="gradient-teal text-white" onClick={() => navigate("/job-seeker")}>
+                <Button className="gradient-brand text-white" onClick={() => navigate("/job-seeker")}>
                   <Target className="w-4 h-4 mr-2" /> Analyze a Job
                 </Button>
               </div>
