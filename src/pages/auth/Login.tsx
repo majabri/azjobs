@@ -20,7 +20,7 @@ import DashboardModeDialog from "@/components/DashboardModeDialog";
 import { login, loginWithGoogle, loginWithApple } from "@/services/user/auth";
 import { normalizeError } from "@/lib/normalizeError";
 import { supabase } from "@/integrations/supabase/client";
-import { Logo } from '@/assets/Logo';
+import { ICareerOSLogo } from '@/components/ui/ICareerOSLogo';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -136,12 +136,13 @@ export default function LoginPage() {
     <div className="min-h-screen bg-background flex items-center justify-center px-6">
       <div className="w-full max-w-sm text-center space-y-8">
         {/* Branding */}
-        <div className="flex flex-col items-center gap-3">
-            <Logo size={48} />
-                        <h1 className="font-display text-3xl font-bold text-primary">
-                                      iCareer<span style={{ color: 'var(--brand)' }}>OS</span>
-                                                  </h1>
-                                                            <p className="text-muted-foreground text-sm">
+        <div className="flex flex-col items-center gap-3 mb-6">
+          <ICareerOSLogo size={52} />
+          <span className="text-2xl font-semibold tracking-tight">
+            <span className="text-primary">iCareer</span>
+            <span className="text-foreground">OS</span>
+          </span>
+          <p className="text-muted-foreground text-sm">
             Sign in to save your analyses and track your progress
           </p>
         </div>
