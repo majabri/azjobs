@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { useTheme } from '@/contexts/ThemeContext';
+import { useTheme } from '@/components/providers/ThemeProvider';
 
 const OPTIONS = [
   {
