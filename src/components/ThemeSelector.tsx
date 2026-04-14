@@ -4,7 +4,7 @@
  * Clicking a card calls setTheme() immediately (auto-saves to Supabase).
  */
 
-import { useTheme, type ThemePreference } from "@/contexts/ThemeContext";
+import { useTheme, type ThemePreference } from "@/components/providers/ThemeProvider";
 import { Monitor, Sun, Moon } from "lucide-react";
 
 const OPTIONS: { value: ThemePreference; label: string; icon: typeof Sun }[] = [
