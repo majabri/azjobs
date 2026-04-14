@@ -86,7 +86,7 @@ export default function JobSearchPage() {
   const [citations, setCitations] = useState<string[]>([]);
   const [searching, setSearching] = useState(false);
   const [profileLoaded, setProfileLoaded] = useState(false);
-  const [searchSource, setSearchSource] = useState<"all" | "ai" | "database">("all");
+  const [searchSource, setSearchSource] = useState<"all" | "ai" | "database">("database");
   const [sortBy, setSortBy] = useState<"relevance" | "probability" | "newest" | "decision">("decision");
   const [showFlagged, setShowFlagged] = useState(true);
   const [historicalOutcomes, setHistoricalOutcomes] = useState<HistoricalOutcomes | undefined>();
@@ -212,11 +212,9 @@ export default function JobSearchPage() {
             <div>
               <label className="text-sm font-semibold text-foreground mb-2 block">Search Source</label>
               <div className="flex gap-2">
-                {(["all", "database", "ai"] as const).map(src => (
-                  <Badge key={src} variant={searchSource === src ? "default" : "outline"} className={"cursor-pointer capitalize " + (searchSource === src ? "bg-primary text-primary-foreground" : "hover:bg-accent/10")} onClick={() => setSearchSource(src)}>
-                    {src === "all" ? <><Database className="w-3 h-3 mr-1" />All Sources</> : src === "database" ? <><Database className="w-3 h-3 mr-1" />Job Database</> : <><Search className="w-3 h-3 mr-1" />AI Search</>}
-                  </Badge>
-                ))}
+                <Badge variant="default" className="bg-primary text-primary-foreground">
+                  <Database className="w-3 h-3 mr-1" />Job Database
+                </Badge>
               </div>
             </div>
             <div>
