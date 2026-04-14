@@ -180,7 +180,7 @@ export default function InvitePage() {
   }
 
   const statusConfig: Record<string, { label: string; color: string; icon: typeof CheckCircle2 }> = {
-    pending: { label: "Pending", color: "bg-[#00B8A9]/10 text-[#00B8A9] border-[#00B8A9]/20", icon: Clock },
+    pending: { label: "Pending", color: "bg-[hsl(var(--primary))]/10 text-[hsl(var(--primary))] border-[hsl(var(--primary))]/20", icon: Clock },
     accepted: { label: "Accepted", color: "bg-green-500/10 text-green-600 border-green-500/20", icon: CheckCircle2 },
     expired: { label: "Expired", color: "bg-gray-500/10 text-gray-500 border-gray-500/20", icon: XCircle },
     revoked: { label: "Revoked", color: "bg-red-500/10 text-red-500 border-red-500/20", icon: XCircle },
@@ -189,7 +189,7 @@ export default function InvitePage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-[#00B8A9]" />
+        <Loader2 className="h-8 w-8 animate-spin text-[hsl(var(--primary))]" />
       </div>
     );
   }
@@ -214,7 +214,7 @@ export default function InvitePage() {
             <span className="text-sm font-medium">
               Invites Remaining Today
             </span>
-            <span className="text-2xl font-bold text-[#00B8A9]">
+            <span className="text-2xl font-bold text-[hsl(var(--primary))]">
               {invitesRemaining}
               <span className="text-sm font-normal text-muted-foreground"> / {DAILY_LIMIT}</span>
             </span>
@@ -234,7 +234,7 @@ export default function InvitePage() {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-lg flex items-center gap-2">
-              <Mail className="h-5 w-5 text-[#00B8A9]" />
+              <Mail className="h-5 w-5 text-[hsl(var(--primary))]" />
               Send Email Invite
             </CardTitle>
             <CardDescription>
@@ -252,7 +252,7 @@ export default function InvitePage() {
               />
               <Button
                 type="submit"
-                className="w-full bg-[#00B8A9] hover:bg-[#00A89A] text-white"
+                className="w-full bg-[hsl(var(--primary))] hover:bg-[#00A89A] text-white"
                 disabled={limitReached || isSendingEmail || !inviteEmail.trim()}
               >
                 {isSendingEmail ? (
@@ -347,7 +347,7 @@ export default function InvitePage() {
         </Card>
         <Card>
           <CardContent className="pt-6 text-center">
-            <div className="text-3xl font-bold text-[#00B8A9]">{referrals.length}</div>
+            <div className="text-3xl font-bold text-[hsl(var(--primary))]">{referrals.length}</div>
             <div className="text-sm text-muted-foreground">
               <Users className="h-3.5 w-3.5 inline mr-1" />
               Your Network

@@ -164,7 +164,7 @@ export default function CompensationDashboard() {
   return (
     <Card className="p-6">
       <div className="flex items-center gap-2 mb-6">
-        <div className="w-8 h-8 rounded-lg gradient-teal flex items-center justify-center">
+        <div className="w-8 h-8 rounded-lg gradient-indigo flex items-center justify-center">
           <DollarSign className="w-4 h-4 text-white" />
         </div>
         <h2 className="font-display font-bold text-primary text-lg flex items-center gap-1.5">Compensation Intelligence <HelpTooltip text="Compare your salary against market benchmarks, analyze job offers, get negotiation strategies, and generate ready-to-use scripts for salary discussions." /></h2>
@@ -201,7 +201,7 @@ export default function CompensationDashboard() {
 
         {/* ─── Benchmark Tab ──────────────────────────── */}
         <TabsContent value="benchmark" className="space-y-4">
-          <Button onClick={runBenchmark} disabled={loadingBenchmark} className="gradient-teal text-white w-full">
+          <Button onClick={runBenchmark} disabled={loadingBenchmark} className="gradient-indigo text-white w-full">
             {loadingBenchmark ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Analyzing Market...</> : <><Sparkles className="w-4 h-4 mr-2" />Run Salary Benchmark</>}
           </Button>
 
@@ -256,7 +256,7 @@ export default function CompensationDashboard() {
 
         {/* ─── Offer Analysis Tab ─────────────────────── */}
         <TabsContent value="offer" className="space-y-4">
-          <Button onClick={analyzeOffer} disabled={loadingOffer} className="gradient-teal text-white w-full">
+          <Button onClick={analyzeOffer} disabled={loadingOffer} className="gradient-indigo text-white w-full">
             {loadingOffer ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Analyzing Offer...</> : <><Target className="w-4 h-4 mr-2" />Analyze This Offer</>}
           </Button>
 
@@ -321,7 +321,7 @@ export default function CompensationDashboard() {
 
         {/* ─── Strategy Tab ──────────────────────────── */}
         <TabsContent value="strategy" className="space-y-4">
-          <Button onClick={generateStrategy} disabled={loadingStrategy} className="gradient-teal text-white w-full">
+          <Button onClick={generateStrategy} disabled={loadingStrategy} className="gradient-indigo text-white w-full">
             {loadingStrategy ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Generating Strategy...</> : <><Shield className="w-4 h-4 mr-2" />Generate Negotiation Plan</>}
           </Button>
 
@@ -369,7 +369,7 @@ export default function CompensationDashboard() {
 
         {/* ─── Scripts Tab ───────────────────────────── */}
         <TabsContent value="scripts" className="space-y-4">
-          <Button onClick={generateScripts} disabled={loadingScripts || !strategy} className="gradient-teal text-white w-full">
+          <Button onClick={generateScripts} disabled={loadingScripts || !strategy} className="gradient-indigo text-white w-full">
             {loadingScripts ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Generating Scripts...</> : <><FileText className="w-4 h-4 mr-2" />Generate Negotiation Scripts</>}
           </Button>
           {!strategy && <p className="text-xs text-muted-foreground text-center">Generate a strategy first to unlock scripts</p>}

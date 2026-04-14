@@ -110,8 +110,8 @@ export function InviteGate({ onValidated }: InviteGateProps) {
     <div className="w-full max-w-md mx-auto">
       <Card className="border-border/50 shadow-lg">
         <CardHeader className="text-center pb-4">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#00B8A9]/10">
-            <ShieldCheck className="h-7 w-7 text-[#00B8A9]" />
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[hsl(var(--primary))]/10">
+            <ShieldCheck className="h-7 w-7 text-[hsl(var(--primary))]" />
           </div>
           <CardTitle className="text-2xl font-bold">
             iCareerOS is Invite-Only
@@ -147,7 +147,7 @@ export function InviteGate({ onValidated }: InviteGateProps) {
 
             <Button
               type="submit"
-              className="w-full h-11 bg-[#00B8A9] hover:bg-[#00A89A] text-white"
+              className="w-full h-11 bg-[hsl(var(--primary))] hover:bg-[#00A89A] text-white"
               disabled={isValidating || !inviteCode.trim()}
             >
               {isValidating ? (
@@ -167,7 +167,7 @@ export function InviteGate({ onValidated }: InviteGateProps) {
             </p>
             <a
               href="https://icareeros.com"
-              className="inline-flex items-center gap-1 mt-1 text-sm text-[#00B8A9] hover:underline"
+              className="inline-flex items-center gap-1 mt-1 text-sm text-[hsl(var(--primary))] hover:underline"
             >
               <Mail className="h-3.5 w-3.5" />
               Join the waitlist
@@ -184,7 +184,7 @@ export function InvitedByBadge({ inviterName }: { inviterName: string }) {
   return (
     <Badge
       variant="secondary"
-      className="bg-[#00B8A9]/10 text-[#00B8A9] border-[#00B8A9]/20 hover:bg-[#00B8A9]/15"
+      className="bg-[hsl(var(--primary))]/10 text-[hsl(var(--primary))] border-[hsl(var(--primary))]/20 hover:bg-[hsl(var(--primary))]/15"
     >
       <ShieldCheck className="h-3 w-3 mr-1" />
       Invited by {inviterName}

@@ -279,7 +279,7 @@ export default function SignUpWithInvite() {
   if (regMode === "loading") {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-[#00B8A9]" />
+        <Loader2 className="h-8 w-8 animate-spin text-[hsl(var(--primary))]" />
       </div>
     );
   }
@@ -312,8 +312,8 @@ export default function SignUpWithInvite() {
         <div className="w-full max-w-md">
           <Card className="border-border/50 shadow-lg">
             <CardHeader className="text-center pb-4">
-              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#00B8A9]/10">
-                <Mail className="h-7 w-7 text-[#00B8A9]" />
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[hsl(var(--primary))]/10">
+                <Mail className="h-7 w-7 text-[hsl(var(--primary))]" />
               </div>
               {invitationData && (
                 <div className="flex justify-center mb-3">
@@ -360,7 +360,7 @@ export default function SignUpWithInvite() {
 
                 <Button
                   type="submit"
-                  className="w-full h-11 bg-[#00B8A9] hover:bg-[#00A89A] text-white"
+                  className="w-full h-11 bg-[hsl(var(--primary))] hover:bg-[#00A89A] text-white"
                   disabled={isMagicLinkProcessing || otpCode.length < 6}
                 >
                   {isMagicLinkProcessing ? (
@@ -575,7 +575,7 @@ export default function SignUpWithInvite() {
 
               <Button
                 type="submit"
-                className="w-full h-11 bg-[#00B8A9] hover:bg-[#00A89A] text-white"
+                className="w-full h-11 bg-[hsl(var(--primary))] hover:bg-[#00A89A] text-white"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? (
@@ -593,7 +593,7 @@ export default function SignUpWithInvite() {
               Already have an account?{" "}
               <Link
                 to="/auth/login"
-                className="text-[#00B8A9] hover:underline font-medium"
+                className="text-[hsl(var(--primary))] hover:underline font-medium"
               >
                 Log in
               </Link>

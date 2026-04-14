@@ -158,7 +158,7 @@ export default function ApplicationsPage() {
               </h3>
               <p className="text-xs text-muted-foreground mt-1">Save your offer details and launch the negotiation engine to maximize your compensation.</p>
             </div>
-            <Button size="sm" className="gradient-teal text-white" onClick={() => navigate("/offers")}>
+            <Button size="sm" className="gradient-indigo text-white" onClick={() => navigate("/offers")}>
               <ExternalLink className="w-3.5 h-3.5 mr-1" /> Manage Offers
             </Button>
           </div>

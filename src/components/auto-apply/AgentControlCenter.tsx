@@ -162,7 +162,7 @@ export default function AgentControlCenter() {
               </div>
             </div>
           </div>
-          <Button onClick={handleRun} disabled={running} className="w-full gradient-teal text-white">
+          <Button onClick={handleRun} disabled={running} className="w-full gradient-indigo text-white">
             {running ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Play className="w-4 h-4 mr-2" />}
             {running ? "Agents Running..." : "Run All Agents Now"}
           </Button>
