@@ -239,35 +239,41 @@
     color: var(--text-muted);
   }
 
-  /* Animations */
+  /* Animations — use forwards (not both) so elements are visible before animation fires */
   .animate-fade-up {
-    animation: fade-up 0.5s ease-out both;
+    animation: fade-up 0.5s ease-out forwards;
   }
   .animate-fade-in {
-    animation: fade-in 0.4s ease-out both;
+    animation: fade-in 0.4s ease-out forwards;
   }
   .animate-scale-in {
-    animation: scale-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    animation: scale-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
   }
   .animate-count-up {
-    animation: count-up 1.2s ease-out both;
+    animation: count-up 1.2s ease-out forwards;
   }
 }
 
+/* Ensure all landing sections are visible regardless of JS animation state */
+section {
+  opacity: 1 !important;
+  transform: none !important;
+}
+
 @keyframes fade-up {
-  from { opacity: 0; transform: translateY(20px); }
+  from { opacity: 0.01; transform: translateY(16px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 @keyframes fade-in {
-  from { opacity: 0; }
+  from { opacity: 0.01; }
   to   { opacity: 1; }
 }
 @keyframes scale-in {
-  from { opacity: 0; transform: scale(0.88); }
+  from { opacity: 0.01; transform: scale(0.88); }
   to   { opacity: 1; transform: scale(1); }
 }
 @keyframes count-up {
-  from { opacity: 0; }
+  from { opacity: 0.01; }
   to   { opacity: 1; }
 }
 @keyframes bar-grow {
