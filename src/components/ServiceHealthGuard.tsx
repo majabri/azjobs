@@ -90,21 +90,21 @@ export default class ServiceHealthGuard extends React.Component<
       } = this.state;
 
       const defaultFallback = (
-        <Card className="bg-gray-800 border-gray-700 m-4">
+        <Card className="bg-card border-border m-4">
           <div className="p-8">
             <div className="flex items-start gap-4">
               <AlertTriangle className="w-8 h-8 text-red-400 flex-shrink-0 mt-1" />
               <div className="flex-1">
-                <h2 className="text-lg font-semibold text-white mb-2">
+                <h2 className="text-lg font-semibold text-foreground mb-2">
                   {this.props.serviceName} Service Error
                 </h2>
-                <p className="text-gray-300 mb-4">
+                <p className="text-muted-foreground mb-4">
                   We encountered an error in the {this.props.serviceName} service.
                   Our team has been notified and is working on a fix.
                 </p>
 
                 {process.env.NODE_ENV === 'development' && (
-                  <details className="mb-4 p-3 bg-gray-700 rounded text-xs text-gray-200 font-mono">
+                  <details className="mb-4 p-3 bg-muted rounded text-xs text-muted-foreground/70 font-mono">
                     <summary className="cursor-pointer font-semibold mb-2">
                       Error Details (Development Only)
                     </summary>
@@ -129,7 +129,7 @@ export default class ServiceHealthGuard extends React.Component<
                 <div className="flex gap-3">
                   <Button
                     onClick={this.handleRetry}
-                    className="bg-teal-600 hover:bg-teal-700 text-white"
+                    className="bg-primary hover:bg-primary/90 text-foreground"
                   >
                     <RotateCcw className="w-4 h-4 mr-2" />
                     Try Again
@@ -137,7 +137,7 @@ export default class ServiceHealthGuard extends React.Component<
                   </Button>
                   <Button
                     variant="outline"
-                    className="border-gray-600 text-gray-300 hover:bg-gray-700"
+                    className="border-border text-muted-foreground hover:bg-muted"
                     onClick={() => window.location.href = '/'}
                   >
                     Back to Home
@@ -145,11 +145,11 @@ export default class ServiceHealthGuard extends React.Component<
                 </div>
 
                 {retryCount >= 3 && (
-                  <p className="text-sm text-gray-400 mt-4">
+                  <p className="text-sm text-muted-foreground mt-4">
                     Still having issues? Please contact{' '}
                     <a
                       href="mailto:support@icareer.os"
-                      className="text-teal-400 hover:text-teal-300"
+                      className="text-primary hover:text-primary"
                     >
                       support@icareer.os
                     </a>

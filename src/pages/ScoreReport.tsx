@@ -237,7 +237,7 @@ export default function ScoreReport() {
           <Button variant="outline" size="sm" onClick={copyLink}>
             <Copy className="w-4 h-4 mr-1" /> Copy Link
           </Button>
-          <Button size="sm" className="gradient-teal text-white" onClick={shareReport}>
+          <Button size="sm" className="gradient-indigo text-white" onClick={shareReport}>
             <Share2 className="w-4 h-4 mr-1" /> Share Report
           </Button>
         </div>
@@ -245,7 +245,7 @@ export default function ScoreReport() {
         {/* CTA */}
         <Card className="p-5 text-center border-accent/20 bg-accent/5">
           <p className="text-sm text-foreground mb-2">Want your own Career Report Card?</p>
-          <Button size="sm" className="gradient-teal text-white" onClick={() => window.location.href = "/"}>
+          <Button size="sm" className="gradient-indigo text-white" onClick={() => window.location.href = "/"}>
             <Target className="w-4 h-4 mr-1" /> Get Your Free Score
           </Button>
         </Card>

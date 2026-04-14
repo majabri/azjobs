@@ -103,13 +103,13 @@ export default function EmployerDashboard() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active':
-        return 'bg-green-900/30 text-green-300 border-green-700';
+        return 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/30';
       case 'paused':
-        return 'bg-yellow-900/30 text-yellow-300 border-yellow-700';
+        return 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/30';
       case 'closed':
-        return 'bg-red-900/30 text-red-300 border-red-700';
+        return 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/30';
       default:
-        return 'bg-gray-700 text-gray-300';
+        return 'bg-muted text-muted-foreground';
     }
   };
 
@@ -120,60 +120,60 @@ export default function EmployerDashboard() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-900">
+      <div className="flex items-center justify-center min-h-screen bg-background">
         <div className="text-center">
-          <Loader2 className="w-12 h-12 text-teal-500 animate-spin mx-auto mb-4" />
-          <p className="text-gray-300">Loading your dashboard...</p>
+          <Loader2 className="w-12 h-12 text-primary animate-spin mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading your dashboard...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className="min-h-screen bg-background">
       <div className="max-w-7xl mx-auto px-4 py-12">
         {error && (
-          <div className="mb-6 p-4 bg-red-900/30 border border-red-700 rounded-lg text-red-300">
+          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-lg text-red-600 dark:text-red-400">
             {error}
           </div>
         )}
 
         {/* Profile Section */}
         {profile && (
-          <Card className="mb-8 bg-gray-800 border-gray-700">
+          <Card className="mb-8 bg-card border-border">
             <div className="p-6">
               <div className="flex items-start gap-6">
                 {profile.company_logo_url && (
                   <img
                     src={profile.company_logo_url}
                     alt={profile.company_name}
-                    className="w-24 h-24 rounded-lg bg-gray-700 object-cover"
+                    className="w-24 h-24 rounded-lg bg-muted object-cover"
                   />
                 )}
                 <div className="flex-1">
-                  <h1 className="text-3xl font-bold text-white mb-2">
+                  <h1 className="text-3xl font-bold text-foreground mb-2">
                     {profile.company_name}
                   </h1>
-                  <p className="text-gray-400 mb-4">{profile.description}</p>
+                  <p className="text-muted-foreground mb-4">{profile.description}</p>
                   <div className="flex gap-4">
                     {profile.website && (
                       <a
                         href={profile.website}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-teal-400 hover:text-teal-300"
+                        className="text-primary hover:text-primary/80"
                       >
                         Visit Website
                       </a>
                     )}
-                    <span className="text-gray-400">
+                    <span className="text-muted-foreground">
                       {profile.total_jobs_posted} jobs posted
                     </span>
                   </div>
                 </div>
                 <Button
                   variant="outline"
-                  className="border-teal-500 text-teal-400 hover:bg-teal-500/10"
+                  className="border-primary text-primary hover:bg-primary/10"
                 >
                   Edit Profile
                 </Button>
@@ -184,21 +184,21 @@ export default function EmployerDashboard() {
 
         {/* Stats Section */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <Card className="bg-gray-800 border-gray-700 p-6">
-            <div className="text-gray-400 text-sm mb-2">Active Postings</div>
-            <div className="text-3xl font-bold text-white">
+          <Card className="bg-card border-border p-6">
+            <div className="text-muted-foreground text-sm mb-2">Active Postings</div>
+            <div className="text-3xl font-bold text-foreground">
               {jobPostings.filter(j => j.status === 'active').length}
             </div>
           </Card>
-          <Card className="bg-gray-800 border-gray-700 p-6">
-            <div className="text-gray-400 text-sm mb-2">Total Applications</div>
-            <div className="text-3xl font-bold text-white">
+          <Card className="bg-card border-border p-6">
+            <div className="text-muted-foreground text-sm mb-2">Total Applications</div>
+            <div className="text-3xl font-bold text-foreground">
               {jobPostings.reduce((sum, j) => sum + (j.application_count || 0), 0)}
             </div>
           </Card>
-          <Card className="bg-gray-800 border-gray-700 p-6">
-            <div className="text-gray-400 text-sm mb-2">Total Postings</div>
-            <div className="text-3xl font-bold text-white">
+          <Card className="bg-card border-border p-6">
+            <div className="text-muted-foreground text-sm mb-2">Total Postings</div>
+            <div className="text-3xl font-bold text-foreground">
               {jobPostings.length}
             </div>
           </Card>
@@ -207,9 +207,9 @@ export default function EmployerDashboard() {
         {/* Job Postings Section */}
         <div>
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-white">Your Job Postings</h2>
+            <h2 className="text-2xl font-bold text-foreground">Your Job Postings</h2>
             <Button
-              className="bg-teal-600 hover:bg-teal-700 text-white"
+              className="bg-primary hover:bg-primary/90 text-foreground"
               onClick={() => window.location.href = '/post-job'}
             >
               Post New Job
@@ -217,10 +217,10 @@ export default function EmployerDashboard() {
           </div>
 
           {jobPostings.length === 0 ? (
-            <Card className="bg-gray-800 border-gray-700 p-12 text-center">
-              <p className="text-gray-400 mb-4">You haven't posted any jobs yet</p>
+            <Card className="bg-card border-border p-12 text-center">
+              <p className="text-muted-foreground mb-4">You haven't posted any jobs yet</p>
               <Button
-                className="bg-teal-600 hover:bg-teal-700 text-white"
+                className="bg-primary hover:bg-primary/90 text-foreground"
                 onClick={() => window.location.href = '/post-job'}
               >
                 Create Your First Job Posting
@@ -231,12 +231,12 @@ export default function EmployerDashboard() {
               {jobPostings.map(job => (
                 <Card
                   key={job.id}
-                  className="bg-gray-800 border-gray-700 hover:border-teal-500/50 transition-colors"
+                  className="bg-card border-border hover:border-primary/50 transition-colors"
                 >
                   <div className="p-6">
                     <div className="flex justify-between items-start mb-4">
                       <div>
-                        <h3 className="text-xl font-semibold text-white mb-2">
+                        <h3 className="text-xl font-semibold text-foreground mb-2">
                           {job.title}
                         </h3>
                         <div className="flex flex-wrap gap-2 mb-3">
@@ -248,39 +248,39 @@ export default function EmployerDashboard() {
                           </Badge>
                           <Badge
                             variant="outline"
-                            className="border-gray-600 text-gray-300"
+                            className="border-border text-muted-foreground"
                           >
                             {job.job_type}
                           </Badge>
                           <Badge
                             variant="outline"
-                            className="border-gray-600 text-gray-300"
+                            className="border-border text-muted-foreground"
                           >
                             {job.location}
                           </Badge>
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="text-2xl font-bold text-teal-400 mb-1">
+                        <div className="text-2xl font-bold text-primary mb-1">
                           {job.application_count || 0}
                         </div>
-                        <div className="text-xs text-gray-400">applications</div>
+                        <div className="text-xs text-muted-foreground">applications</div>
                       </div>
                     </div>
 
-                    <p className="text-gray-400 text-sm mb-4 line-clamp-2">
+                    <p className="text-muted-foreground text-sm mb-4 line-clamp-2">
                       {job.description}
                     </p>
 
                     <div className="flex items-center justify-between">
-                      <div className="text-sm text-gray-400">
+                      <div className="text-sm text-muted-foreground">
                         {formatSalary(job.salary_min, job.salary_max)}
                       </div>
                       <div className="flex gap-2">
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="text-gray-400 hover:text-teal-400"
+                          className="text-muted-foreground hover:text-primary"
                         >
                           <Eye className="w-4 h-4 mr-2" />
                           View
@@ -288,7 +288,7 @@ export default function EmployerDashboard() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="text-gray-400 hover:text-teal-400"
+                          className="text-muted-foreground hover:text-primary"
                         >
                           <Edit2 className="w-4 h-4 mr-2" />
                           Edit
@@ -296,7 +296,7 @@ export default function EmployerDashboard() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="text-gray-400 hover:text-teal-400"
+                          className="text-muted-foreground hover:text-primary"
                         >
                           <BarChart3 className="w-4 h-4 mr-2" />
                           Analytics

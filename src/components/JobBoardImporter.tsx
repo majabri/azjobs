@@ -152,7 +152,7 @@ export default function JobBoardImporter() {
             rows={8}
           />
           <div className="flex gap-3">
-            <Button className="gradient-teal text-white shadow-teal hover:opacity-90" onClick={handleImport} disabled={!rawInput.trim()}>
+            <Button className="gradient-indigo text-white shadow-indigo-500/20 hover:opacity-90" onClick={handleImport} disabled={!rawInput.trim()}>
               <Target className="w-4 h-4 mr-2" /> Import & Parse
             </Button>
             <input ref={fileRef} type="file" accept=".txt,.csv,.json" className="hidden" onChange={handleFileUpload} />
@@ -179,7 +179,7 @@ export default function JobBoardImporter() {
           {/* Action buttons */}
           <div className="flex gap-3">
             {doneJobs.length === 0 && (
-              <Button className="gradient-teal text-white shadow-teal hover:opacity-90" onClick={analyzeAll} disabled={analyzing}>
+              <Button className="gradient-indigo text-white shadow-indigo-500/20 hover:opacity-90" onClick={analyzeAll} disabled={analyzing}>
                 {analyzing ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Analyzing {importedJobs.length} jobs...</> : <><Target className="w-4 h-4 mr-2" /> Re-Analyze All Jobs</>}
               </Button>
             )}

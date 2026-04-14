@@ -59,9 +59,9 @@ const STATES_BY_COUNTRY: Record<string, string[]> = {
   "United Kingdom": ["England","Scotland","Wales","Northern Ireland"],
   "Australia": ["New South Wales","Victoria","Queensland","South Australia","Western Australia","Tasmania","ACT","Northern Territory"],
   "India": ["Andhra Pradesh","Delhi","Gujarat","Karnataka","Maharashtra","Tamil Nadu","Telangana","Uttar Pradesh","West Bengal","Rajasthan","Kerala"],
-  "Germany": ["Bavaria","Berlin","Hamburg","Hesse","North Rhine-Westphalia","Baden-Württemberg","Saxony","Lower Saxony"],
-  "Brazil": ["São Paulo","Rio de Janeiro","Minas Gerais","Bahia","Paraná"],
-  "Mexico": ["Mexico City","Jalisco","Nuevo León","Puebla","Guanajuato"],
+  "Germany": ["Bavaria","Berlin","Hamburg","Hesse","North Rhine-Westphalia","Baden-WÃ¼rttemberg","Saxony","Lower Saxony"],
+  "Brazil": ["SÃ£o Paulo","Rio de Janeiro","Minas Gerais","Bahia","ParanÃ¡"],
+  "Mexico": ["Mexico City","Jalisco","Nuevo LeÃ³n","Puebla","Guanajuato"],
   "United Arab Emirates": ["Abu Dhabi","Dubai","Sharjah","Ajman"],
 };
 
@@ -240,38 +240,86 @@ export default function ProfileForm({ profile, setProfile, onSave, saving }: Pro
     if (!file) return;
     setImporting(true);
     try {
+      // Step 1: Parse the document (client-side PDF/DOCX extraction)
       const result = await parseDocument(file);
-      if (!result.success || !result.text) { toast.error(result.error || "Could not extract text"); return; }
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
-      if (!token) { toast.error("Please sign in"); return; }
-      const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extract-profile-fields`, {
-        method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ resumeText: result.text }),
-      });
-      if (!resp.ok) { toast.error("Failed to extract profile"); return; }
-      const { profile: extracted } = await resp.json();
-      const local = extractProfileFromResume(result.text);
-      if (extracted) {
-        setProfile(prev => ({
-          ...prev,
-          full_name: extracted.full_name || prev.full_name,
-          email: extracted.email || prev.email,
-          phone: extracted.phone || prev.phone,
-          location: extracted.location || prev.location,
-          summary: extracted.summary || prev.summary,
-          linkedin_url: extracted.linkedin_url || prev.linkedin_url,
-          skills: extracted.skills?.length ? extracted.skills : prev.skills,
-          work_experience: extracted.work_experience?.length ? extracted.work_experience : prev.work_experience,
-          education: extracted.education?.length ? extracted.education : prev.education,
-          certifications: extracted.certifications?.length ? extracted.certifications : prev.certifications,
-          career_level: local.careerLevel || prev.career_level,
-          target_job_titles: local.jobTitles.length ? local.jobTitles : prev.target_job_titles,
-        }));
-        toast.success("Profile fields extracted!");
+      if (!result.success || !result.text) {
+        toast.error(result.error || "Could not extract text");
+        return;
       }
-    } catch { toast.error("Failed to import resume"); }
-    finally { setImporting(false); if (fileRef.current) fileRef.current.value = ""; }
+
+      // Step 2: Always run client-side extraction as baseline
+      const local = extractProfileFromResume(result.text);
+
+      // Step 3: Try AI-powered extraction via edge function (with graceful fallback)
+      let extracted: any = null;
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
+        if (token) {
+          const resp = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extract-profile-fields`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({ resumeText: result.text }),
+            }
+          );
+          if (resp.ok) {
+            const data = await resp.json();
+            extracted = data.profile;
+          }
+        }
+      } catch (aiErr) {
+        // Edge function unavailable — continue with client-side extraction
+        console.warn("AI profile extraction unavailable, using local extraction:", aiErr);
+      }
+
+      // Step 4: Merge results — AI extraction takes priority, local fills gaps
+      setProfile(prev => ({
+        ...prev,
+        full_name: extracted?.full_name || prev.full_name,
+        email: extracted?.email || prev.email,
+        phone: extracted?.phone || prev.phone,
+        location: extracted?.location || prev.location,
+        summary: extracted?.summary || prev.summary,
+        linkedin_url: extracted?.linkedin_url || prev.linkedin_url,
+        skills: extracted?.skills?.length
+          ? extracted.skills
+          : local.skills?.length
+            ? local.skills
+            : prev.skills,
+        work_experience: extracted?.work_experience?.length
+          ? extracted.work_experience
+          : prev.work_experience,
+        education: extracted?.education?.length
+          ? extracted.education
+          : prev.education,
+        certifications: extracted?.certifications?.length
+          ? extracted.certifications
+          : local.certifications?.length
+            ? local.certifications
+            : prev.certifications,
+        career_level: local.careerLevel || prev.career_level,
+        target_job_titles: local.jobTitles.length
+          ? local.jobTitles
+          : prev.target_job_titles,
+      }));
+
+      if (extracted) {
+        toast.success("Profile fields extracted!");
+      } else {
+        toast.success("Basic profile info extracted \u2014 AI enhancement unavailable.");
+      }
+    } catch (err) {
+      console.error("Resume import error:", err);
+      toast.error("Failed to import resume. Please try again.");
+    } finally {
+      setImporting(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
   };
 
   const addSkill = () => { const s = skillInput.trim(); if (s && !profile.skills.includes(s)) { setProfile({ ...profile, skills: [...profile.skills, s] }); setSkillInput(""); } };
@@ -370,9 +418,9 @@ export default function ProfileForm({ profile, setProfile, onSave, saving }: Pro
         </div>
       </section>
 
-      {/* ═══════════════════════════════════════════════════════════════════
-          SEARCH & MATCH CRITERIA — the core new section
-          ═══════════════════════════════════════════════════════════════════ */}
+      {/* âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+          SEARCH & MATCH CRITERIA â the core new section
+          âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ */}
       <Collapsible open={searchOpen} onOpenChange={setSearchOpen}>
         <Card className="border-2 border-primary/20 bg-primary/5">
           <CollapsibleTrigger className="w-full p-5 flex items-center justify-between cursor-pointer hover:bg-primary/10 rounded-t-lg transition-colors">
@@ -447,7 +495,7 @@ export default function ProfileForm({ profile, setProfile, onSave, saving }: Pro
               </div>
             </div>
 
-            {/* Location — cascading Country → State → City */}
+            {/* Location â cascading Country â State â City */}
             <div>
               <h3 className="text-sm font-semibold text-foreground flex items-center gap-2 mb-2">
                 <MapPin className="w-4 h-4 text-primary" /> Location
@@ -466,7 +514,7 @@ export default function ProfileForm({ profile, setProfile, onSave, saving }: Pro
                       <SelectValue placeholder="Select country" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="__clear__" className="text-muted-foreground italic">— Clear —</SelectItem>
+                      <SelectItem value="__clear__" className="text-muted-foreground italic">â Clear â</SelectItem>
                       {COUNTRIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
                     </SelectContent>
                   </Select>
@@ -485,7 +533,7 @@ export default function ProfileForm({ profile, setProfile, onSave, saving }: Pro
                         <SelectValue placeholder="Select state / province" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="__clear__" className="text-muted-foreground italic">— Clear —</SelectItem>
+                        <SelectItem value="__clear__" className="text-muted-foreground italic">â Clear â</SelectItem>
                         {STATES_BY_COUNTRY[loc.country].map(s => <SelectItem key={s} value={s}>{s}</SelectItem>)}
                       </SelectContent>
                     </Select>
@@ -546,7 +594,7 @@ export default function ProfileForm({ profile, setProfile, onSave, saving }: Pro
               {salaryGuide && (
                 <p className="text-xs text-accent mb-2 flex items-center gap-1">
                   <Lightbulb className="w-3 h-3" />
-                  Suggested: ${salaryGuide.min.toLocaleString()}–${salaryGuide.max.toLocaleString()} based on your level
+                  Suggested: ${salaryGuide.min.toLocaleString()}â${salaryGuide.max.toLocaleString()} based on your level
                 </p>
               )}
               <div className="grid grid-cols-2 gap-3">
@@ -575,7 +623,7 @@ export default function ProfileForm({ profile, setProfile, onSave, saving }: Pro
                   <Tooltip>
                     <TooltipTrigger><Info className="w-4 h-4 text-muted-foreground" /></TooltipTrigger>
                     <TooltipContent className="max-w-xs">
-                      <p>Lower score = more job opportunities shown. Higher score = better fit, fewer results. We recommend 50–70% for most searches.</p>
+                      <p>Lower score = more job opportunities shown. Higher score = better fit, fewer results. We recommend 50â70% for most searches.</p>
                     </TooltipContent>
                   </Tooltip>
                 </div>

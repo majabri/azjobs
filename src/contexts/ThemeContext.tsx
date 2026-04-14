@@ -1,7 +1,7 @@
 /**
  * ThemeContext — manages light / dark / system theme preference.
  *
- * On mount it reads the user's saved preference from `user_profiles.theme`.
+ * On mount it reads the user's saved preference from `profiles.theme`.
  * When the preference is "system", it mirrors the OS setting via
  * `window.matchMedia('(prefers-color-scheme: dark)')`.
  *
@@ -73,7 +73,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     (async () => {
       try {
         const { data, error } = await supabase
-          .from("user_profiles")
+          .from("profiles")
           .select("theme")
           .eq("id", user.id)
           .maybeSingle();
@@ -127,7 +127,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       // Persist to Supabase (fire-and-forget)
       if (user) {
         supabase
-          .from("user_profiles")
+          .from("profiles")
           .update({ theme: next } as any)
           .eq("id", user.id)
           .then(({ error }) => {

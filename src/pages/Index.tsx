@@ -13,8 +13,8 @@ import heroBg from "@/assets/hero-bg.jpg";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { analyzeJobFit } from "@/lib/analysisEngine";
-import { AUTH_LOGIN } from "@/lib/routes";
-
+import { AUTH_LOGIN, AUTH_SIGNUP } from "@/lib/routes";
+import { ICareerOSLogo } from '@/components/ui/ICareerOSLogo';
 /* ────────────────────── DATA ────────────────────── */
 
 const stats = [
@@ -179,16 +179,15 @@ export default function Index() {
   return (
     <div className="min-h-screen flex flex-col">
       {/* ═══════════════ NAV ═══════════════ */}
-      <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-3 bg-primary/95 backdrop-blur-sm border-b border-white/10">
+      <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-3 bg-card/95 backdrop-blur-sm border-b border-border">
         <div
-          className="flex items-center gap-2 cursor-pointer"
+          className="flex items-center gap-2 cursor-pointer select-none"
           onClick={() => navigate("/")}
         >
-          <div className="w-8 h-8 gradient-teal rounded-lg flex items-center justify-center shadow-teal">
-            <Target className="w-4 h-4 text-white" />
-          </div>
-          <span className="font-display text-lg font-bold text-primary-foreground">
-            iCareerOS
+          <ICareerOSLogo size={28} />
+          <span className="text-sm font-medium tracking-tight">
+            <span className="text-primary">iCareer</span>
+            <span className="text-foreground">OS</span>
           </span>
         </div>
 
@@ -199,11 +198,11 @@ export default function Index() {
               <NavBtn icon={<Search className="w-4 h-4" />} label="Find Jobs" onClick={() => navigate("/job-search")} />
               <NavBtn icon={<ClipboardList className="w-4 h-4" />} label="Applications" onClick={() => navigate("/applications")} />
               <NavBtn icon={<UserCircle className="w-4 h-4" />} label="Profile" onClick={() => navigate("/profile")} />
-              <div className="w-px h-6 bg-white/20 mx-1" />
+              <div className="w-px h-6 bg-border mx-1" />
               <Button
                 size="sm"
                 variant="ghost"
-                className="text-primary-foreground/60 hover:text-primary-foreground hover:bg-white/10 text-xs"
+                className="text-muted-foreground hover:text-foreground text-xs"
                 onClick={async () => { await supabase.auth.signOut(); }}
               >
                 <LogOut className="w-3.5 h-3.5" />
@@ -213,14 +212,14 @@ export default function Index() {
             <>
               <Button
                 variant="ghost"
-                className="text-primary-foreground/80 hover:text-primary-foreground hover:bg-white/10 text-sm"
+                className="text-muted-foreground hover:text-foreground border border-border hover:border-primary/50 text-sm"
                 onClick={() => navigate("/job-seeker?demo=true")}
               >
                 Try Demo
               </Button>
               <Button
                 size="sm"
-                className="gradient-teal text-white font-semibold shadow-teal hover:opacity-90 ml-2"
+                className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold ml-2"
                 onClick={() => navigate(AUTH_LOGIN)}
               >
                 Sign In
@@ -236,7 +235,7 @@ export default function Index() {
           className="absolute inset-0 bg-cover bg-center"
           style={{ backgroundImage: `url(${heroBg})` }}
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-navy-900/90 via-navy-800/80 to-navy-900/95" />
+        <div className="absolute inset-0 bg-gradient-to-b from-indigo-900/90 via-indigo-800/80 to-indigo-900/95" />
 
         <div className="relative z-10 max-w-5xl mx-auto px-6 text-center">
           {/* Personalized welcome */}
@@ -248,7 +247,7 @@ export default function Index() {
           )}
 
           {!user && (
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass border border-teal-500/30 text-teal-400 text-sm font-medium mb-8 animate-fade-up">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass border border-primary/30 text-primary text-sm font-medium mb-8 animate-fade-up">
               <Rocket className="w-3.5 h-3.5" />
               Your Intelligent Career Operating System
             </div>
@@ -260,7 +259,7 @@ export default function Index() {
           >
             Stop Applying to Jobs.
             <br />
-            <span className="text-gradient-teal">Your AI Does It For You.</span>
+            <span className="text-gradient-indigo">Your AI Does It For You.</span>
           </h1>
 
           <p
@@ -277,8 +276,8 @@ export default function Index() {
           >
             <Button
               size="lg"
-              className="gradient-teal text-white font-semibold text-lg px-8 py-6 rounded-xl shadow-teal hover:opacity-90 transition-opacity animate-pulse-glow"
-              onClick={() => navigate(user ? "/dashboard" : AUTH_LOGIN)}
+              className="gradient-indigo text-white font-semibold text-lg px-8 py-6 rounded-xl shadow-indigo-500/20 hover:opacity-90 transition-opacity animate-pulse-glow"
+              onClick={() => navigate(user ? "/dashboard" : AUTH_SIGNUP)}
             >
               <Bot className="mr-2 w-5 h-5" />
               {user ? "Go to Dashboard" : "Activate My Job Agent"}
@@ -304,7 +303,7 @@ export default function Index() {
                 key={stat.value}
                 className="glass rounded-2xl p-6 border border-white/10"
               >
-                <div className="text-3xl font-display font-bold text-teal-400 mb-2">
+                <div className="text-3xl font-display font-bold text-primary mb-2">
                   {stat.value}
                 </div>
                 <div className="text-white/60 text-sm leading-snug">
@@ -338,7 +337,7 @@ export default function Index() {
           <div className="text-center mb-16">
             <h2 className="text-4xl font-display font-bold text-primary mb-4">
               Three Steps to{" "}
-              <span className="text-gradient-teal">Your Next Interview</span>
+              <span className="text-gradient-indigo">Your Next Interview</span>
             </h2>
             <p className="text-muted-foreground text-lg">
               Zero manual effort. Your AI agent handles everything.
@@ -348,7 +347,7 @@ export default function Index() {
           <div className="grid md:grid-cols-3 gap-8">
             {howItWorks.map((step, i) => (
               <div key={i} className="relative text-center group">
-                <div className="w-16 h-16 gradient-teal rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-teal group-hover:scale-110 transition-transform">
+                <div className="w-16 h-16 gradient-indigo rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-indigo-500/20 group-hover:scale-110 transition-transform">
                   <step.icon className="w-7 h-7 text-white" />
                 </div>
                 <div className="absolute -top-2 -right-2 md:right-4 w-8 h-8 rounded-full bg-primary text-primary-foreground text-sm font-bold flex items-center justify-center">
@@ -370,7 +369,7 @@ export default function Index() {
           <div className="text-center mt-12">
             <Button
               size="lg"
-              className="gradient-teal text-white font-semibold shadow-teal hover:opacity-90 px-8 py-6 text-lg"
+              className="gradient-indigo text-white font-semibold shadow-indigo-500/20 hover:opacity-90 px-8 py-6 text-lg"
               onClick={() => navigate(user ? "/job-seeker" : AUTH_LOGIN)}
             >
               <Upload className="mr-2 w-5 h-5" />
@@ -385,7 +384,7 @@ export default function Index() {
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-10">
             <h2 className="text-4xl font-display font-bold text-primary mb-4">
-              Try It <span className="text-gradient-teal">Right Now</span>
+              Try It <span className="text-gradient-indigo">Right Now</span>
             </h2>
             <p className="text-muted-foreground text-lg">
               Paste any job description and instantly see your fit score and
@@ -401,7 +400,7 @@ export default function Index() {
               className="min-h-[120px] resize-none"
             />
             <Button
-              className="gradient-teal text-white shadow-teal hover:opacity-90 w-full"
+              className="gradient-indigo text-white shadow-indigo-500/20 hover:opacity-90 w-full"
               disabled={demoLoading || !demoJobDesc.trim()}
               onClick={handleDemoAnalyze}
             >
@@ -473,7 +472,7 @@ export default function Index() {
                 )}
 
                 <Button
-                  className="gradient-teal text-white shadow-teal hover:opacity-90 w-full"
+                  className="gradient-indigo text-white shadow-indigo-500/20 hover:opacity-90 w-full"
                   onClick={() => navigate(user ? "/job-seeker" : AUTH_LOGIN)}
                 >
                   <Sparkles className="w-4 h-4 mr-2" />
@@ -490,7 +489,7 @@ export default function Index() {
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-display font-bold text-primary mb-4">
-              See the <span className="text-gradient-teal">AI Difference</span>
+              See the <span className="text-gradient-indigo">AI Difference</span>
             </h2>
             <p className="text-muted-foreground text-lg">
               One click transforms your resume from generic to interview-ready.
@@ -567,7 +566,7 @@ export default function Index() {
           <div className="text-center mt-10">
             <Button
               size="lg"
-              className="gradient-teal text-white font-semibold shadow-teal hover:opacity-90 px-8 py-6 text-lg"
+              className="gradient-indigo text-white font-semibold shadow-indigo-500/20 hover:opacity-90 px-8 py-6 text-lg"
               onClick={() => navigate(user ? "/job-seeker" : AUTH_LOGIN)}
             >
               <Sparkles className="mr-2 w-5 h-5" />
@@ -583,7 +582,7 @@ export default function Index() {
           <div className="text-center mb-16">
             <h2 className="text-4xl font-display font-bold text-primary mb-4">
               Everything to{" "}
-              <span className="text-gradient-teal">Get You Hired Faster</span>
+              <span className="text-gradient-indigo">Get You Hired Faster</span>
             </h2>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
               From discovering opportunities to landing offers — iCareerOS
@@ -599,7 +598,7 @@ export default function Index() {
                 style={{ animationDelay: `${i * 0.1}s` }}
                 onClick={() => navigate(user ? f.link : AUTH_LOGIN)}
               >
-                <div className="w-11 h-11 gradient-teal rounded-xl flex items-center justify-center mb-5 shadow-teal group-hover:scale-110 transition-transform">
+                <div className="w-11 h-11 gradient-indigo rounded-xl flex items-center justify-center mb-5 shadow-indigo-500/20 group-hover:scale-110 transition-transform">
                   <f.icon className="w-5 h-5 text-white" />
                 </div>
                 <h3 className="font-display text-lg font-bold text-primary mb-2">
@@ -623,7 +622,7 @@ export default function Index() {
           <div className="text-center mb-12">
             <h2 className="text-4xl font-display font-bold text-primary mb-4">
               Why We're{" "}
-              <span className="text-gradient-teal">
+              <span className="text-gradient-indigo">
                 Better Than Job Boards
               </span>
             </h2>
@@ -641,7 +640,7 @@ export default function Index() {
               </div>
               <div className="p-4 border-b border-border text-center">
                 <div className="inline-flex items-center gap-1.5">
-                  <div className="w-5 h-5 gradient-teal rounded flex items-center justify-center">
+                  <div className="w-5 h-5 gradient-indigo rounded flex items-center justify-center">
                     <Target className="w-3 h-3 text-white" />
                   </div>
                   <span className="font-display font-bold text-primary text-sm">
@@ -719,7 +718,7 @@ export default function Index() {
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-4xl md:text-5xl font-display font-bold text-white mb-6">
             Ready to Let AI{" "}
-            <span className="text-gradient-teal">Land Your Next Job?</span>
+            <span className="text-gradient-indigo">Land Your Next Job?</span>
           </h2>
           <p className="text-xl text-white/60 mb-10 max-w-2xl mx-auto">
             Upload your resume once. Wake up to interview invitations. It's that simple.
@@ -728,7 +727,7 @@ export default function Index() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-6">
             <Button
               size="lg"
-              className="gradient-teal text-white font-semibold text-lg px-10 py-6 rounded-xl shadow-teal hover:opacity-90 animate-pulse-glow"
+              className="gradient-indigo text-white font-semibold text-lg px-10 py-6 rounded-xl shadow-indigo-500/20 hover:opacity-90 animate-pulse-glow"
               onClick={() => navigate(user ? "/dashboard" : AUTH_LOGIN)}
             >
               <Bot className="mr-2 w-5 h-5" />
@@ -753,10 +752,10 @@ export default function Index() {
       </section>
 
       {/* ═══════════════ MOBILE STICKY CTA ═══════════════ */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-primary/95 backdrop-blur-sm border-t border-white/10 px-4 py-3 flex items-center justify-center gap-3 sm:hidden">
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-sm border-t border-border px-4 py-3 flex items-center justify-center gap-3 sm:hidden">
         <Button
           size="sm"
-          className="gradient-teal text-white font-semibold shadow-teal text-xs flex-1"
+          className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold text-xs flex-1"
           onClick={() => navigate(user ? "/job-seeker" : AUTH_LOGIN)}
         >
           <Upload className="w-3.5 h-3.5 mr-1" />
@@ -765,7 +764,7 @@ export default function Index() {
         <Button
           size="sm"
           variant="outline"
-          className="border-white/30 text-white bg-white/10 text-xs flex-1"
+          className="border-border text-foreground bg-muted text-xs flex-1"
           onClick={() => navigate(user ? "/job-search" : AUTH_LOGIN)}
         >
           <Search className="w-3.5 h-3.5 mr-1" />
@@ -778,7 +777,7 @@ export default function Index() {
         <div className="max-w-5xl mx-auto">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 gradient-teal rounded-md flex items-center justify-center">
+              <div className="w-6 h-6 gradient-indigo rounded-md flex items-center justify-center">
                 <Target className="w-3 h-3 text-white" />
               </div>
               <span className="font-display font-bold text-primary-foreground">
@@ -839,7 +838,7 @@ function NavBtn({
     <Button
       size="sm"
       variant="ghost"
-      className="text-primary-foreground/70 hover:text-primary-foreground hover:bg-white/10 text-xs gap-1 px-2.5"
+      className="text-muted-foreground hover:text-foreground hover:bg-accent text-xs gap-1 px-2.5"
       onClick={onClick}
     >
       {icon}
