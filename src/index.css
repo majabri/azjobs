@@ -77,6 +77,7 @@
     --bg-page: #F5F6FA;
     --bg-surface: #FFFFFF;
     --bg-surface-2: #EEF0FD;
+    --badge-tint: #EEF0FD;
     --border-theme: #E2E4EC;
     --brand: #3B5BDB;
     --brand-text: #FFFFFF;
@@ -136,6 +137,7 @@
     --bg-page: #0F1117;
     --bg-surface: #161B27;
     --bg-surface-2: #1E2340;
+    --badge-tint: #1E2340;
     --border-theme: #2A2F3E;
     --brand: #748FFC;
     --brand-text: #0F1117;
