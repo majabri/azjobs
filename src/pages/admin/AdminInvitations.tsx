@@ -128,7 +128,7 @@ export default function AdminInvitations() {
   }
 
   const statusColors: Record<string, string> = {
-    pending: "bg-[#00B8A9]/10 text-[#00B8A9] border-[#00B8A9]/20",
+    pending: "bg-accent/10 text-accent border-accent/20",
     accepted: "bg-green-500/10 text-green-600 border-green-500/20",
     expired: "bg-gray-500/10 text-gray-500 border-gray-500/20",
     revoked: "bg-red-500/10 text-red-500 border-red-500/20",
@@ -137,7 +137,7 @@ export default function AdminInvitations() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-[#00B8A9]" />
+        <Loader2 className="h-8 w-8 animate-spin text-accent" />
       </div>
     );
   }
@@ -166,7 +166,7 @@ export default function AdminInvitations() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Shield className="h-6 w-6 text-[#00B8A9]" />
+            <Shield className="h-6 w-6 text-accent" />
             Invite Management
           </h1>
           <p className="text-muted-foreground mt-1">
@@ -200,7 +200,7 @@ export default function AdminInvitations() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-2 mb-1">
-              <TrendingUp className="h-4 w-4 text-[#F5A623]" />
+              <TrendingUp className="h-4 w-4 text-brand-gold" />
               <span className="text-sm text-muted-foreground">Conversion</span>
             </div>
             <div className="text-3xl font-bold">
@@ -211,10 +211,10 @@ export default function AdminInvitations() {
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-2 mb-1">
-              <Clock className="h-4 w-4 text-[#00B8A9]" />
+              <Clock className="h-4 w-4 text-accent" />
               <span className="text-sm text-muted-foreground">Pending</span>
             </div>
-            <div className="text-3xl font-bold text-[#00B8A9]">
+            <div className="text-3xl font-bold text-accent">
               {dashboard.active_pending}
             </div>
           </CardContent>
@@ -227,7 +227,7 @@ export default function AdminInvitations() {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-lg flex items-center gap-2">
-              <GitBranch className="h-5 w-5 text-[#00B8A9]" />
+              <GitBranch className="h-5 w-5 text-accent" />
               Referral Chain Stats
             </CardTitle>
           </CardHeader>
@@ -253,7 +253,7 @@ export default function AdminInvitations() {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-lg flex items-center gap-2">
-              <Shield className="h-5 w-5 text-[#F5A623]" />
+              <Shield className="h-5 w-5 text-brand-gold" />
               Admin Invite (No Limit)
             </CardTitle>
           </CardHeader>
@@ -268,7 +268,7 @@ export default function AdminInvitations() {
               />
               <Button
                 type="submit"
-                className="bg-[#F5A623] hover:bg-[#E5961B] text-white shrink-0"
+                className="bg-brand-gold hover:bg-brand-gold/85 text-white shrink-0"
                 disabled={isSendingAdmin || !adminInviteEmail.trim()}
               >
                 {isSendingAdmin ? (
@@ -289,7 +289,7 @@ export default function AdminInvitations() {
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-lg flex items-center gap-2">
-            <BarChart3 className="h-5 w-5 text-[#00B8A9]" />
+            <BarChart3 className="h-5 w-5 text-accent" />
             Top Inviters
           </CardTitle>
         </CardHeader>

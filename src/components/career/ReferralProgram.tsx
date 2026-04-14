@@ -201,7 +201,7 @@ export default function ReferralProgram() {
   > = {
     pending: {
       label: "Pending",
-      color: "bg-[#00B8A9]/10 text-[#00B8A9] border-[#00B8A9]/20",
+      color: "bg-accent/10 text-accent border-accent/20",
       icon: Clock,
     },
     accepted: {
@@ -224,7 +224,7 @@ export default function ReferralProgram() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[200px]">
-        <Loader2 className="h-6 w-6 animate-spin text-[#00B8A9]" />
+        <Loader2 className="h-6 w-6 animate-spin text-accent" />
       </div>
     );
   }
@@ -242,8 +242,8 @@ export default function ReferralProgram() {
       {/* Section Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#00B8A9]/10">
-            <Gift className="h-5 w-5 text-[#00B8A9]" />
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent/10">
+            <Gift className="h-5 w-5 text-accent" />
           </div>
           <div>
             <h2 className="text-xl font-semibold">Referral Program</h2>
@@ -255,7 +255,7 @@ export default function ReferralProgram() {
         {userReferralCode && (
           <Badge
             variant="outline"
-            className="bg-[#F5A623]/10 text-[#F5A623] border-[#F5A623]/20 font-mono"
+            className="bg-brand-gold/10 text-brand-gold border-brand-gold/20 font-mono"
           >
             Your Code: {userReferralCode}
           </Badge>
@@ -280,7 +280,7 @@ export default function ReferralProgram() {
         </Card>
         <Card>
           <CardContent className="pt-5 pb-4 text-center">
-            <div className="text-2xl font-bold text-[#F5A623]">
+            <div className="text-2xl font-bold text-brand-gold">
               {pendingCount}
             </div>
             <div className="text-xs text-muted-foreground mt-1">Pending</div>
@@ -288,7 +288,7 @@ export default function ReferralProgram() {
         </Card>
         <Card>
           <CardContent className="pt-5 pb-4 text-center">
-            <div className="text-2xl font-bold text-[#00B8A9]">
+            <div className="text-2xl font-bold text-accent">
               {referralCount}
             </div>
             <div className="text-xs text-muted-foreground mt-1 flex items-center justify-center gap-1">
@@ -304,7 +304,7 @@ export default function ReferralProgram() {
         <CardContent className="pt-5 pb-4">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium">Daily Invites Remaining</span>
-            <span className="text-lg font-bold text-[#00B8A9]">
+            <span className="text-lg font-bold text-accent">
               {invitesRemaining}
               <span className="text-xs font-normal text-muted-foreground">
                 {" "}
@@ -337,7 +337,7 @@ export default function ReferralProgram() {
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
-                <UserPlus className="h-4 w-4 text-[#00B8A9]" />
+                <UserPlus className="h-4 w-4 text-accent" />
                 Send Email Invitation
               </CardTitle>
               <CardDescription>
@@ -357,7 +357,7 @@ export default function ReferralProgram() {
                 />
                 <Button
                   type="submit"
-                  className="bg-[#00B8A9] hover:bg-[#00A89A] text-white shrink-0"
+                  className="bg-accent hover:bg-accent/90 text-white shrink-0"
                   disabled={
                     limitReached || isSendingEmail || !inviteEmail.trim()
                   }
@@ -381,7 +381,7 @@ export default function ReferralProgram() {
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
-                <LinkIcon className="h-4 w-4 text-[#F5A623]" />
+                <LinkIcon className="h-4 w-4 text-brand-gold" />
                 Shareable Invite Code
               </CardTitle>
               <CardDescription>

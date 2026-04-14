@@ -305,7 +305,7 @@ export default function AdminSettings() {
                           className="max-w-sm text-xs leading-relaxed p-3"
                         >
                           <p className="mb-1.5">{meta.help}</p>
-                          <p className="text-[#00B8A9] font-medium">
+                          <p className="text-accent font-medium">
                             {meta.recommendation}
                           </p>
                         </TooltipContent>

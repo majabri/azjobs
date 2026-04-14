@@ -118,7 +118,7 @@ serve(async (req: Request) => {
               html: `
                 <div style="font-family: Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 40px 20px;">
                   <div style="text-align: center; margin-bottom: 32px;">
-                    <h1 style="color: #00B8A9; font-size: 24px; margin: 0;">iCareerOS</h1>
+                    <h1 style="color: #3B5BDB; font-size: 24px; margin: 0;">iCareerOS</h1>
                   </div>
                   <p style="font-size: 16px; color: #333;">
                     Great news &mdash; <strong>${inviteeName}</strong> just joined iCareerOS
@@ -130,7 +130,7 @@ serve(async (req: Request) => {
                   </p>
                   <div style="text-align: center; margin: 32px 0;">
                     <a href="https://icareeros.com/invite"
-                       style="background-color: #00B8A9; color: white; padding: 14px 32px;
+                       style="background-color: #3B5BDB; color: white; padding: 14px 32px;
                               border-radius: 8px; text-decoration: none; font-size: 16px;
                               font-weight: 600; display: inline-block;">
                       Send More Invites
