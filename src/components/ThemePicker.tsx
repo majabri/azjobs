@@ -1,9 +1,9 @@
-import { useTheme, type ThemePreference } from '@/components/providers/ThemeProvider';
+import { useTheme, type ThemeOption } from '@/context/ThemeContext';
 
-const OPTIONS: { value: ThemePreference; label: string; desc: string }[] = [
-  { value: 'light',  label: 'Light',     desc: 'Clean white interface' },
-  { value: 'dark',   label: 'Dark',       desc: 'Easy on the eyes'      },
-  { value: 'system', label: 'Automatic',  desc: 'Follows system setting' },
+const OPTIONS: { value: ThemeOption; label: string; desc: string }[] = [
+  { value: 'light',  label: 'Light',      desc: 'Clean white interface'  },
+  { value: 'dark',   label: 'Dark',        desc: 'Easy on the eyes'       },
+  { value: 'system', label: 'Automatic',   desc: 'Follows system setting' },
 ];
 
 export function ThemePicker() {
