@@ -729,13 +729,13 @@ export default function JobSearchPage() {
               <>
                 <p className="text-lg mb-2">No jobs matched your filters</p>
                 <p className="text-sm mb-4">Try lowering the minimum fit score, removing location, or broadening job types</p>
-                <Button variant="outline" onClick={() => handleSearch({ minFitScore: 0, showFlagged: true })}>Browse all jobs</Button>
+                <Button variant="outline" onClick={() => handleSearch({ minFitScore: 0, showFlagged: true, careerLevel: "" })}>Browse all jobs</Button>
               </>
             ) : (
               <>
                 <p className="text-lg mb-2">Set up your profile to get personalized results</p>
                 <p className="text-sm mb-4">Add skills and target titles to your <button className="text-accent hover:underline" onClick={() => navigate("/profile")}>Career Profile</button>, or browse everything below</p>
-                <Button variant="outline" onClick={() => handleSearch({ skills: [], targetTitles: [], minFitScore: 0 })}>Browse all →</Button>
+                <Button variant="outline" onClick={() => handleSearch({ skills: [], targetTitles: [], minFitScore: 0, careerLevel: "" })}>Browse all →</Button>
               </>
             )}
           </div>

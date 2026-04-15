@@ -255,11 +255,10 @@ export async function searchDatabaseJobsFallback(filters: JobSearchFilters): Pro
     if (filters.jobTypes.includes("remote")) query = query.eq("is_remote", true);
     const structuredTypes = filters.jobTypes.filter(t => !["remote","hybrid","in-office"].includes(t)).flatMap(t => JOB_TYPE_MAP[t] ?? [t]);
     if (structuredTypes.length > 0) query = query.or(structuredTypes.map(t => `job_type.ilike.%${t}%`).join(","));
-    if (filters.careerLevel) {
-      const levels = filters.careerLevel.split(",").map(s => s.trim()).filter(Boolean);
-      const seniorityValues = levels.flatMap(l => CAREER_LEVEL_TO_SENIORITY[l] ?? []);
-      if (seniorityValues.length > 0) query = query.or(seniorityValues.map(s => `seniority.ilike.%${s}%`).join(","));
-    }
+    // NOTE: seniority filter intentionally omitted in fallback.
+    // Scraped jobs from external feeds don't have experience_level populated,
+    // so a seniority filter would AND with the title filter and return 0 results.
+    // Career-level matching is handled by the AI fit score instead.
     const salaryMinNum = filters.salaryMin ? parseInt(filters.salaryMin.replace(/\D/g, ""), 10) : null;
     const salaryMaxNum = filters.salaryMax ? parseInt(filters.salaryMax.replace(/\D/g, ""), 10) : null;
     if (salaryMinNum && !isNaN(salaryMinNum)) query = query.gte("market_rate", salaryMinNum);
