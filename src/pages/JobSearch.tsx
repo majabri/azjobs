@@ -127,7 +127,7 @@ export default function JobSearchPage() {
       if (data) {
         if (data.skills) setSkills(data.skills as string[]);
         if (data.preferred_job_types) setJobTypes(data.preferred_job_types as string[]);
-        if (data.location) setLocation(data.location);
+        if (data.location && data.location !== '<UNKNOWN>') setLocation(data.location);
         if (data.career_level) setCareerLevel(data.career_level);
         if (data.target_job_titles) setTargetTitles(data.target_job_titles as string[]);
         if (data.salary_min) setSalaryMin(data.salary_min);

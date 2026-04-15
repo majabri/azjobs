@@ -165,10 +165,20 @@ export default function AnalysisForm({ onAnalyze, isAnalyzing, isDemo, prefillJo
       if (result.success && result.text) {
         setResume(result.text);
         toast.success("Resume extracted!");
-        // Sync skills to profile
+        // Sync skills to profile and save to vault
         try {
           const { data: { session } } = await supabase.auth.getSession();
           if (session) {
+            // Save to resume vault so it can be loaded via the Vault button
+            const versionName = file.name.replace(/\.[^.]+$/, "") || "Uploaded Resume";
+            await supabase.from("resume_versions").insert({
+              user_id: session.user.id,
+              version_name: versionName,
+              job_type: null,
+              resume_text: result.text,
+            } as any);
+
+            // Sync skills
             const extracted = extractProfileFromResume(result.text);
             if (extracted.skills.length) {
               const { data } = await supabase
@@ -239,6 +249,19 @@ export default function AnalysisForm({ onAnalyze, isAnalyzing, isDemo, prefillJo
           id: v.id, version_name: v.version_name, job_type: v.job_type || "", resume_text: v.resume_text,
         })));
         setShowVersionPicker(true);
+      } else if (resume.trim()) {
+        // Resume is loaded (auto-built from profile) but never saved to vault.
+        // Save it now so the vault is populated going forward.
+        const { data: saved } = await supabase
+          .from("resume_versions")
+          .insert({ user_id: session.user.id, version_name: "My Resume", job_type: null, resume_text: resume } as any)
+          .select()
+          .single();
+        if (saved) {
+          setResumeVersions([{ id: saved.id, version_name: "My Resume", job_type: "", resume_text: resume }]);
+          setShowVersionPicker(true);
+          toast.success("Resume saved to vault automatically!");
+        }
       } else {
         toast.info("No resume versions found. Upload one in your Profile.");
       }

@@ -1,0 +1,32 @@
+name: Fix PR 144 Merge Conflicts
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fix-pr-144-conflicts:
+    name: Rebase PR 144 against dev
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/theme-system-v2
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+      - name: Merge dev into feature/theme-system-v2
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch origin dev
+          git merge origin/dev --no-edit || (
+            git checkout --theirs -- . 2>/dev/null || true
+            git checkout HEAD -- src/context/ src/theme.css src/assets/Logo.tsx 2>/dev/null || true
+            git checkout HEAD -- src/components/ThemePicker.tsx public/favicon.svg 2>/dev/null || true
+            git checkout HEAD -- supabase/migrations/ 2>/dev/null || true
+            git add -A
+            git commit -m 'chore: merge dev into feature/theme-system-v2'
+          )
+          git push origin feature/theme-system-v2
