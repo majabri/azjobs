@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { checkRateLimit } from "../_shared/rate-limit.ts";
+import { withRetryText } from "../_shared/retry.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -84,20 +85,25 @@ function htmlToText(html: string): string {
 
 async function scrapeCareerPage(url: string, companyName: string): Promise<NormalizedJob[]> {
   try {
-    const res = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; iCareerOS/1.0; +https://icareeros.com)',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.9',
-      },
-      signal: AbortSignal.timeout(15_000),
-    });
-    if (!res.ok) return [];
+    // Fetch with retry + exponential backoff (3 attempts, 500ms base, 12s timeout).
+    const fetchResult = await withRetryText(
+      (signal) => fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; iCareerOS/1.0; +https://icareeros.com)',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.9',
+        },
+        signal,
+      }),
+      { maxAttempts: 3, baseDelayMs: 500, timeoutMs: 12_000, label: url }
+    );
 
-    const contentType = res.headers.get('content-type') ?? '';
-    if (!contentType.includes('text/html') && !contentType.includes('text/plain')) return [];
+    if (!fetchResult.ok || !fetchResult.value) {
+      console.warn(`[scrape-jobs-ats] Failed to fetch ${url}: ${fetchResult.error}`);
+      return [];
+    }
 
-    const html = await res.text();
+    const html = fetchResult.value;
 
     // Prefer <main> or <article> for cleaner signal
     const mainMatch =
