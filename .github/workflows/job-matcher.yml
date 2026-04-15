@@ -1,0 +1,42 @@
+name: iCareerOS Job Matcher
+
+on:
+  schedule:
+    - cron: '0 5 * * *'
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: 'Max jobs to score (default: 1000)'
+        required: false
+        default: '1000'
+
+jobs:
+  match-jobs:
+    name: Score Jobs x User Profiles
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: |
+          cd src/job-discovery-v2
+          bun install
+
+      - name: Run matching batch
+        run: |
+          cd src/job-discovery-v2
+          bun run scripts/run-matching.ts
+        env:
+          SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          MATCHING_LIMIT: ${{ github.event.inputs.limit || '1000' }}
+
+      - name: Done
+        if: always()
+        run: echo "Matching finished at $(date -u)"
