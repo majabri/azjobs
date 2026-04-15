@@ -382,7 +382,6 @@ async function upsertJobs(
       salary_max: j.salary_max,
       date_posted: j.date_posted,
       scraped_at: new Date().toISOString(),
-      status: "active",
     }));
 
   // Get existing external_ids to distinguish new vs updated
