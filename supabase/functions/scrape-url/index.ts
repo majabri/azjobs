@@ -1,36 +1,41 @@
 /**
- * scrape-url — Supabase Edge Function (Deno)
+ * scrape-url — Adaptive Scraping Agent (Supabase Edge Function, Deno)
  *
- * Extraction pipeline (in priority order):
+ * An agent that gets smarter on every run by:
  *
- *  1. ATS JSON APIs — for JS-rendered boards with free public APIs:
- *       Greenhouse     → boards-api.greenhouse.io     (no auth)
- *       Lever          → api.lever.co                 (no auth)
- *       SmartRecruiters→ api.smartrecruiters.com      (no auth)
- *       Breezy HR      → {company}.breezy.hr/json/    (no auth)
- *       Ashby          → __NEXT_DATA__ SSR extraction
+ *  1. Reading the domain_extraction_hints table to see what worked before
+ *  2. Trying strategies in priority order (winners first)
+ *  3. Writing outcomes back so future runs skip failed strategies
  *
- *  2. Login-wall detection — sites that require auth (server-side scraping
- *     is technically impossible for these):
- *       LinkedIn, Indeed, Glassdoor, ZipRecruiter, Monster, Facebook,
- *       Upwork, Fiverr, FlexJobs, Handshake, WayUp,
- *       Workday, iCIMS, Taleo (IP-block cloud servers)
- *       → Returns a specific, helpful message per site
+ * Extraction strategies (tried in adaptive order):
+ *   A) ATS JSON APIs        — Greenhouse, Lever, SmartRecruiters, Breezy HR, Ashby
+ *   B) HTML fetch + Cheerio — Chrome 124 UA with 403-retry fallback
  *
- *  3. Direct HTML fetch → Cheerio DOM extraction
- *       Attempt A: Chrome 124 headers (full Sec-Fetch-* set)
- *       Attempt B: Minimal headers (WAF bypass on 403/429)
+ * Post-processing:
+ *   • extractJobBlock()     — Lovable's proven section isolation
+ *   • cleanJobMarkdown()    — Lovable's noise-pattern filtering
+ *   • parseJobDescription() — Section-aware parser strips benefits, EEO,
+ *                             apply instructions, company marketing so the
+ *                             AI analysis engine only receives skills-relevant content
  *
- *  4. Post-processing (Lovable pipeline, preserved):
- *       extractJobBlock → cleanJobMarkdown → quality gate
+ * Login-wall / IP-block detection:
+ *   Recognized per-site with helpful copy-paste tips (LinkedIn, Indeed, etc.)
+ *   Stored in the learning DB so repeat visits skip the attempt immediately.
  *
- * Security: SSRF protection, 20 req/min/user, 15s timeout
+ * Security: SSRF protection, 20 req/min/user, 15s per-attempt timeout
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { checkRateLimit } from "../_shared/rate-limit.ts";
 import { validatePublicUrl } from "../_shared/validate-url.ts";
 import { extractWithCheerio } from "../_shared/cheerio-fallback.ts";
+import { cleanJobText } from "../_shared/job-parser.ts";
+import {
+  domainKey,
+  getDomainHint,
+  recordOutcome,
+  rankedStrategies,
+} from "../_shared/extraction-cache.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -62,204 +67,167 @@ const HEADERS_MINIMAL: Record<string, string> = {
 };
 
 // ---------------------------------------------------------------------------
-// Login-wall / IP-block detection
-// Sites where server-side scraping is technically impossible.
-// Returns a site-specific helpful message.
+// Login-wall / IP-block registry
 // ---------------------------------------------------------------------------
 
 interface LoginWallEntry {
   pattern: RegExp;
   name: string;
   reason: "login" | "ip-block";
-  tip?: string;
+  tip: string;
 }
 
 const LOGIN_WALL_SITES: LoginWallEntry[] = [
-  // Login-required job boards
-  { pattern: /linkedin\.com/i,         name: "LinkedIn",       reason: "login",    tip: "Open the job, click 'See more' to expand, then copy the full description." },
-  { pattern: /indeed\.com/i,           name: "Indeed",         reason: "login",    tip: "Open the job in your browser and copy the description from the page." },
-  { pattern: /glassdoor\.com/i,        name: "Glassdoor",      reason: "login",    tip: "Sign in to Glassdoor, open the job, and copy the description." },
-  { pattern: /ziprecruiter\.com/i,     name: "ZipRecruiter",   reason: "login",    tip: "Open the job in your browser and copy the description." },
-  { pattern: /monster\.com/i,          name: "Monster",        reason: "login",    tip: "Open the job in your browser and copy the description." },
-  { pattern: /facebook\.com\/jobs/i,   name: "Facebook Jobs",  reason: "login",    tip: "Open Facebook, find the job posting, and copy the description." },
-  { pattern: /upwork\.com/i,           name: "Upwork",         reason: "login",    tip: "Sign in to Upwork, open the job, and copy the description." },
-  { pattern: /fiverr\.com/i,           name: "Fiverr",         reason: "login",    tip: "Open the listing in your browser and copy the description." },
-  { pattern: /flexjobs\.com/i,         name: "FlexJobs",       reason: "login",    tip: "Sign in to FlexJobs, open the job, and copy the description." },
-  { pattern: /joinhandshake\.com/i,    name: "Handshake",      reason: "login",    tip: "Sign in to Handshake, open the job, and copy the description." },
-  { pattern: /wayup\.com/i,            name: "WayUp",          reason: "login",    tip: "Open the job in your browser and copy the description." },
-  { pattern: /careerbuilder\.com/i,    name: "CareerBuilder",  reason: "login" },
-  // IP-blocked ATS platforms
-  { pattern: /myworkdayjobs\.com/i,    name: "Workday",        reason: "ip-block", tip: "Copy the job description text from the page and paste it below." },
-  { pattern: /icims\.com/i,            name: "iCIMS",          reason: "ip-block", tip: "Copy the job description text from the page and paste it below." },
-  { pattern: /taleo\.net/i,            name: "Taleo",          reason: "ip-block", tip: "Copy the job description text from the page and paste it below." },
+  { pattern: /linkedin\.com/i,       name: "LinkedIn",       reason: "login",    tip: "Open the job, click 'See more' to expand the description, then copy and paste it below." },
+  { pattern: /indeed\.com/i,         name: "Indeed",         reason: "login",    tip: "Open the job in your browser and copy the full description from the page." },
+  { pattern: /glassdoor\.com/i,      name: "Glassdoor",      reason: "login",    tip: "Sign in to Glassdoor, open the job, and copy the description." },
+  { pattern: /ziprecruiter\.com/i,   name: "ZipRecruiter",   reason: "login",    tip: "Open the job in your browser and copy the description." },
+  { pattern: /monster\.com/i,        name: "Monster",        reason: "login",    tip: "Open the job in your browser and copy the description." },
+  { pattern: /facebook\.com\/jobs/i, name: "Facebook Jobs",  reason: "login",    tip: "Open the job on Facebook and copy the description." },
+  { pattern: /upwork\.com/i,         name: "Upwork",         reason: "login",    tip: "Sign in to Upwork, open the job, and copy the description." },
+  { pattern: /fiverr\.com/i,         name: "Fiverr",         reason: "login",    tip: "Open the listing in your browser and copy the description." },
+  { pattern: /flexjobs\.com/i,       name: "FlexJobs",       reason: "login",    tip: "Sign in to FlexJobs, open the job, and copy the description." },
+  { pattern: /joinhandshake\.com/i,  name: "Handshake",      reason: "login",    tip: "Sign in to Handshake, open the job, and copy the description." },
+  { pattern: /wayup\.com/i,          name: "WayUp",          reason: "login",    tip: "Open the job in your browser and copy the description." },
+  { pattern: /myworkdayjobs\.com/i,  name: "Workday",        reason: "ip-block", tip: "Open the job in your browser, copy the job description section, and paste it below." },
+  { pattern: /icims\.com/i,          name: "iCIMS",          reason: "ip-block", tip: "Open the job in your browser and copy the description." },
+  { pattern: /taleo\.net/i,          name: "Taleo",          reason: "ip-block", tip: "Open the job in your browser and copy the description." },
 ];
 
 function getLoginWallMessage(url: string): string | null {
   for (const site of LOGIN_WALL_SITES) {
     if (site.pattern.test(url)) {
-      const base = site.reason === "login"
-        ? `${site.name} requires sign-in to view job descriptions — automated access isn't possible.`
-        : `${site.name} blocks automated server access.`;
-      const tip = site.tip ?? "Open the job in your browser, copy the description, and paste it below.";
-      return `${base} ${tip}`;
+      const why = site.reason === "login"
+        ? `${site.name} requires sign-in — automated access is not possible.`
+        : `${site.name} blocks server-side access.`;
+      return `${why} ${site.tip}`;
     }
   }
   return null;
 }
 
-// ---------------------------------------------------------------------------
-// ATS JSON APIs — free, no auth required
-// ---------------------------------------------------------------------------
-
-interface AtsResult {
-  ok: boolean;
-  text?: string;
-  title?: string;
-  error?: string;
+function isKnownLoginWall(url: string): boolean {
+  return LOGIN_WALL_SITES.some((s) => s.pattern.test(url));
 }
 
-/** Greenhouse: boards-api.greenhouse.io/v1/boards/{board}/jobs/{id} */
+// ---------------------------------------------------------------------------
+// ATS JSON APIs
+// ---------------------------------------------------------------------------
+
+interface AtsResult { ok: boolean; text?: string; title?: string; strategy?: string; error?: string; }
+
+function stripHtml(html: string): string {
+  return html
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+    .replace(/[ \t]+/g, " ").replace(/\n{3,}/g, "\n\n").trim();
+}
+
 async function fetchGreenhouse(url: string): Promise<AtsResult | null> {
-  let board: string, jobId: string;
   let m = url.match(/boards\.greenhouse\.io\/([^/?#]+)\/jobs\/(\d+)/i);
-  if (m) { [, board, jobId] = m; }
-  else {
-    m = url.match(/([^./]+)\.greenhouse\.io\/jobs\/(\d+)/i);
-    if (m) { [, board, jobId] = m; } else return null;
-  }
-  const apiUrl = `https://boards-api.greenhouse.io/v1/boards/${board}/jobs/${jobId}`;
-  console.log(`[scrape-url] Greenhouse API: ${apiUrl}`);
+  if (!m) m = url.match(/([^./]+)\.greenhouse\.io\/jobs\/(\d+)/i);
+  if (!m) return null;
+  const [, board, jobId] = m;
   try {
-    const res = await fetch(apiUrl, { headers: { Accept: "application/json" }, signal: AbortSignal.timeout(10_000) });
-    if (!res.ok) return { ok: false, error: `Greenhouse API ${res.status}` };
-    const data = await res.json();
-    const title: string = data.title ?? "";
-    const text = stripHtml(data.content ?? "");
-    const location = data.location?.name ?? "";
-    const dept = data.departments?.[0]?.name ?? "";
+    const r = await fetch(`https://boards-api.greenhouse.io/v1/boards/${board}/jobs/${jobId}`, {
+      headers: { Accept: "application/json" }, signal: AbortSignal.timeout(10_000),
+    });
+    if (!r.ok) return { ok: false, strategy: "greenhouse-api", error: `API ${r.status}` };
+    const d = await r.json();
+    const text = stripHtml(d.content ?? "");
+    const location = d.location?.name ?? "";
+    const dept = d.departments?.[0]?.name ?? "";
     const meta = [dept && `Department: ${dept}`, location && `Location: ${location}`].filter(Boolean).join("\n");
-    return { ok: true, text: meta ? `${text}\n\n${meta}` : text, title };
-  } catch (e) { return { ok: false, error: String(e) }; }
+    return { ok: true, text: meta ? `${text}\n\n${meta}` : text, title: d.title ?? "", strategy: "greenhouse-api" };
+  } catch (e) { return { ok: false, strategy: "greenhouse-api", error: String(e) }; }
 }
 
-/** Lever: api.lever.co/v0/postings/{company}/{job_id} */
 async function fetchLever(url: string): Promise<AtsResult | null> {
   const m = url.match(/jobs\.lever\.co\/([^/?#]+)\/([a-f0-9-]{36})/i);
   if (!m) return null;
   const [, company, jobId] = m;
-  const apiUrl = `https://api.lever.co/v0/postings/${company}/${jobId}`;
-  console.log(`[scrape-url] Lever API: ${apiUrl}`);
   try {
-    const res = await fetch(apiUrl, { headers: { Accept: "application/json" }, signal: AbortSignal.timeout(10_000) });
-    if (!res.ok) return { ok: false, error: `Lever API ${res.status}` };
-    const data = await res.json();
-    const title: string = data.text ?? "";
-    const desc = data.descriptionPlain ?? stripHtml(data.description ?? "");
-    const additional = stripHtml(data.additional ?? data.additionalPlain ?? "");
-    const lists = (data.lists ?? [])
-      .map((l: any) => `${l.text}:\n${stripHtml(l.content ?? "").replace(/\n/g, "\n- ")}`)
-      .join("\n\n");
+    const r = await fetch(`https://api.lever.co/v0/postings/${company}/${jobId}`, {
+      headers: { Accept: "application/json" }, signal: AbortSignal.timeout(10_000),
+    });
+    if (!r.ok) return { ok: false, strategy: "lever-api", error: `API ${r.status}` };
+    const d = await r.json();
+    const desc = d.descriptionPlain ?? stripHtml(d.description ?? "");
+    const lists = (d.lists ?? []).map((l: any) => `${l.text}:\n${stripHtml(l.content ?? "")}`).join("\n\n");
+    const additional = stripHtml(d.additional ?? "");
     const meta = [
-      data.categories?.location && `Location: ${data.categories.location}`,
-      data.categories?.team && `Team: ${data.categories.team}`,
-      data.categories?.commitment && `Type: ${data.categories.commitment}`,
+      d.categories?.location && `Location: ${d.categories.location}`,
+      d.categories?.team && `Team: ${d.categories.team}`,
+      d.categories?.commitment && `Type: ${d.categories.commitment}`,
     ].filter(Boolean).join("\n");
-    return { ok: true, text: [desc, lists, additional, meta].filter(Boolean).join("\n\n").trim(), title };
-  } catch (e) { return { ok: false, error: String(e) }; }
+    return { ok: true, text: [desc, lists, additional, meta].filter(Boolean).join("\n\n").trim(), title: d.text ?? "", strategy: "lever-api" };
+  } catch (e) { return { ok: false, strategy: "lever-api", error: String(e) }; }
 }
 
-/** SmartRecruiters: api.smartrecruiters.com/v1/companies/{company}/postings/{id} */
 async function fetchSmartRecruiters(url: string): Promise<AtsResult | null> {
-  // URL patterns: jobs.smartrecruiters.com/{company}/{id} or smartrecruiters.com/job/{company}/{id}
-  let m = url.match(/(?:jobs\.)?smartrecruiters\.com\/([^/?#]+)\/([^/?#]+)/i);
+  const m = url.match(/(?:jobs\.)?smartrecruiters\.com\/([^/?#]+)\/([^/?#]+)/i);
   if (!m) return null;
   const [, company, jobId] = m;
   if (!jobId || jobId.length < 5) return null;
-  const apiUrl = `https://api.smartrecruiters.com/v1/companies/${company}/postings/${jobId}`;
-  console.log(`[scrape-url] SmartRecruiters API: ${apiUrl}`);
   try {
-    const res = await fetch(apiUrl, { headers: { Accept: "application/json" }, signal: AbortSignal.timeout(10_000) });
-    if (!res.ok) return { ok: false, error: `SmartRecruiters API ${res.status}` };
-    const data = await res.json();
-    const title: string = data.name ?? "";
-    const sections = (data.jobAd?.sections ?? {});
+    const r = await fetch(`https://api.smartrecruiters.com/v1/companies/${company}/postings/${jobId}`, {
+      headers: { Accept: "application/json" }, signal: AbortSignal.timeout(10_000),
+    });
+    if (!r.ok) return { ok: false, strategy: "smartrecruiters-api", error: `API ${r.status}` };
+    const d = await r.json();
+    const sections = d.jobAd?.sections ?? {};
     const parts = [
       sections.companyDescription?.text && stripHtml(sections.companyDescription.text),
       sections.jobDescription?.text && stripHtml(sections.jobDescription.text),
       sections.qualifications?.text && stripHtml(sections.qualifications.text),
       sections.additionalInformation?.text && stripHtml(sections.additionalInformation.text),
     ].filter(Boolean);
-    const location = data.location?.city ?? data.location?.country ?? "";
-    const dept = data.department?.label ?? "";
-    const meta = [dept && `Department: ${dept}`, location && `Location: ${location}`].filter(Boolean).join("\n");
-    return { ok: true, text: [...parts, meta].filter(Boolean).join("\n\n").trim(), title };
-  } catch (e) { return { ok: false, error: String(e) }; }
+    const loc = d.location?.city ?? d.location?.country ?? "";
+    const dept = d.department?.label ?? "";
+    const meta = [dept && `Department: ${dept}`, loc && `Location: ${loc}`].filter(Boolean).join("\n");
+    return { ok: true, text: [...parts, meta].filter(Boolean).join("\n\n").trim(), title: d.name ?? "", strategy: "smartrecruiters-api" };
+  } catch (e) { return { ok: false, strategy: "smartrecruiters-api", error: String(e) }; }
 }
 
-/** Breezy HR: {company}.breezy.hr — uses /json/ API endpoint */
 async function fetchBreezyHR(url: string): Promise<AtsResult | null> {
   const m = url.match(/([^.]+)\.breezy\.hr(?:\/p\/([^/?#]+))?/i);
-  if (!m) return null;
+  if (!m || !m[2]) return null;
   const [, company, slug] = m;
-  if (!slug) return null;
-  const apiUrl = `https://${company}.breezy.hr/json/${slug}`;
-  console.log(`[scrape-url] Breezy HR API: ${apiUrl}`);
   try {
-    const res = await fetch(apiUrl, { headers: { Accept: "application/json" }, signal: AbortSignal.timeout(10_000) });
-    if (!res.ok) return { ok: false, error: `Breezy API ${res.status}` };
-    const data = await res.json();
-    const title: string = data.name ?? "";
-    const text = stripHtml(data.description ?? "");
-    const location = data.location?.name ?? "";
-    const dept = data.department?.name ?? "";
-    const meta = [dept && `Department: ${dept}`, location && `Location: ${location}`].filter(Boolean).join("\n");
-    return { ok: true, text: meta ? `${text}\n\n${meta}` : text, title };
-  } catch (e) { return { ok: false, error: String(e) }; }
+    const r = await fetch(`https://${company}.breezy.hr/json/${slug}`, {
+      headers: { Accept: "application/json" }, signal: AbortSignal.timeout(10_000),
+    });
+    if (!r.ok) return { ok: false, strategy: "breezy-api", error: `API ${r.status}` };
+    const d = await r.json();
+    const text = stripHtml(d.description ?? "");
+    const loc = d.location?.name ?? "";
+    const dept = d.department?.name ?? "";
+    const meta = [dept && `Department: ${dept}`, loc && `Location: ${loc}`].filter(Boolean).join("\n");
+    return { ok: true, text: meta ? `${text}\n\n${meta}` : text, title: d.name ?? "", strategy: "breezy-api" };
+  } catch (e) { return { ok: false, strategy: "breezy-api", error: String(e) }; }
 }
 
-/** Ashby — extracts job data from __NEXT_DATA__ embedded JSON */
 async function fetchAshby(url: string): Promise<AtsResult | null> {
   if (!/jobs\.ashbyhq\.com/i.test(url)) return null;
-  console.log(`[scrape-url] Ashby __NEXT_DATA__: ${url}`);
   try {
-    const res = await fetch(url, { headers: HEADERS_CHROME, signal: AbortSignal.timeout(12_000) });
-    if (!res.ok) return { ok: false, error: `Ashby ${res.status}` };
-    const html = await res.text();
+    const r = await fetch(url, { headers: HEADERS_CHROME, signal: AbortSignal.timeout(12_000) });
+    if (!r.ok) return { ok: false, strategy: "ashby-ssr", error: `HTTP ${r.status}` };
+    const html = await r.text();
     const m = html.match(/<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/i);
-    if (!m) return null;
+    if (!m) return { ok: false, strategy: "ashby-ssr", error: "no __NEXT_DATA__" };
     const json = JSON.parse(m[1]);
     const job = json?.props?.pageProps?.jobPosting ?? json?.props?.pageProps?.posting ?? null;
-    if (!job) return null;
-    const title: string = job.title ?? "";
-    const text = stripHtml(job.descriptionHtml ?? job.content ?? "");
-    return { ok: true, text, title };
-  } catch (e) { return { ok: false, error: String(e) }; }
-}
-
-/** Route to the correct ATS API. Returns null → fall through to HTML fetch. */
-async function tryAtsApi(url: string): Promise<AtsResult | null> {
-  return (
-    await fetchGreenhouse(url) ??
-    await fetchLever(url) ??
-    await fetchSmartRecruiters(url) ??
-    await fetchBreezyHR(url) ??
-    await fetchAshby(url)
-  );
+    if (!job) return { ok: false, strategy: "ashby-ssr", error: "no job in __NEXT_DATA__" };
+    return { ok: true, text: stripHtml(job.descriptionHtml ?? job.content ?? ""), title: job.title ?? "", strategy: "ashby-ssr" };
+  } catch (e) { return { ok: false, strategy: "ashby-ssr", error: String(e) }; }
 }
 
 // ---------------------------------------------------------------------------
-// Generic HTML fetch (with 403 retry)
+// HTML fetch with 403 retry
 // ---------------------------------------------------------------------------
 
-interface FetchResult {
-  ok: boolean;
-  html?: string;
-  contentType?: string;
-  status?: number;
-  error?: string;
-}
-
-async function fetchWithFallback(url: string): Promise<FetchResult> {
+async function fetchHtml(url: string): Promise<{ ok: boolean; html?: string; contentType?: string; status?: number; error?: string }> {
   const go = (h: Record<string, string>) =>
     fetch(url, { headers: h, signal: AbortSignal.timeout(15_000), redirect: "follow" });
   try {
@@ -267,7 +235,6 @@ async function fetchWithFallback(url: string): Promise<FetchResult> {
     if (r.ok) return { ok: true, html: await r.text(), contentType: r.headers.get("content-type") ?? "", status: r.status };
     if (r.status === 403 || r.status === 429) {
       await r.body?.cancel();
-      console.log(`[scrape-url] ${r.status}, retrying minimal headers: ${url}`);
       const r2 = await go(HEADERS_MINIMAL);
       if (r2.ok) return { ok: true, html: await r2.text(), contentType: r2.headers.get("content-type") ?? "", status: r2.status };
       await r2.body?.cancel();
@@ -279,7 +246,7 @@ async function fetchWithFallback(url: string): Promise<FetchResult> {
 }
 
 // ---------------------------------------------------------------------------
-// Post-processing — Lovable's pipeline (preserved exactly)
+// Lovable's post-processing pipeline (preserved)
 // ---------------------------------------------------------------------------
 
 const NOISE_PATTERNS = [
@@ -346,21 +313,18 @@ function extractJobBlock(markdown: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Full processing pipeline
 // ---------------------------------------------------------------------------
 
-function stripHtml(html: string): string {
-  return html
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/[ \t]+/g, " ")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
+/**
+ * Given raw extracted text, apply the full post-processing stack:
+ * Lovable's extractJobBlock + cleanJobMarkdown + smart job-parser.
+ */
+function processText(rawText: string, titleHint?: string): string {
+  const jobBlock = extractJobBlock(rawText);
+  const cleaned = cleanJobMarkdown(jobBlock);
+  // Final pass: section-aware parser strips benefits, EEO, apply instructions
+  return cleanJobText(cleaned, titleHint);
 }
 
 // ---------------------------------------------------------------------------
@@ -374,51 +338,138 @@ Deno.serve(async (req) => {
     // ── Auth ─────────────────────────────────────────────────────────────────
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) return res({ success: false, error: "Missing authorization header" }, 401);
-    const supabase = createClient(
+
+    const supabaseAnon = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? "",
       { global: { headers: { Authorization: authHeader } } }
     );
-    const { data, error: authError } = await (supabase.auth as any).getClaims(authHeader.replace("Bearer ", ""));
+    const { data, error: authError } = await (supabaseAnon.auth as any).getClaims(authHeader.replace("Bearer ", ""));
     if (authError || !data?.claims) return res({ success: false, error: "Invalid or expired token" }, 401);
     const userId: string = data.claims.sub;
 
-    // ── Rate limit (20/min) ───────────────────────────────────────────────────
-    if (!checkRateLimit(`scrape-url:${userId}`, 20, 60_000)) return res({ success: false, error: "Too many requests – please slow down" }, 429);
+    // Admin client for cache reads/writes (service role bypasses RLS)
+    const supabaseAdmin = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+    );
+
+    // ── Rate limit ────────────────────────────────────────────────────────────
+    if (!checkRateLimit(`scrape-url:${userId}`, 20, 60_000)) {
+      return res({ success: false, error: "Too many requests – please slow down" }, 429);
+    }
 
     // ── Validate URL ──────────────────────────────────────────────────────────
     const body = await req.json();
     const { url } = body;
     if (!url) return res({ success: false, error: "URL is required" }, 400);
+
     const validated = validatePublicUrl(url);
     if (!validated.ok) return res({ success: false, error: validated.error }, 400);
     const validUrl = validated.url;
+    const domain = domainKey(validUrl);
 
-    // ── Step 1: Login-wall check ──────────────────────────────────────────────
+    // ── Step 1: Login-wall fast-path ──────────────────────────────────────────
     const loginMsg = getLoginWallMessage(validUrl);
     if (loginMsg) {
+      // Record to DB so repeat visits are instant
+      await recordOutcome(supabaseAdmin, domain, {
+        success: false, strategy: "login-wall", notes: "login-wall detected at validation",
+      });
       return res({ success: false, extractionFailed: true, error: loginMsg });
     }
 
-    // ── Step 2: ATS JSON API ──────────────────────────────────────────────────
-    const atsResult = await tryAtsApi(validUrl);
-    if (atsResult?.ok && (atsResult.text?.length ?? 0) >= 100) {
-      const cleaned = cleanJobMarkdown(extractJobBlock(atsResult.text!));
-      if (cleaned.length >= 200) {
-        console.log(`[scrape-url] ATS API success (${cleaned.length} chars): ${validUrl}`);
-        return res({ success: true, markdown: cleaned.slice(0, 8_000), title: atsResult.title });
+    // ── Step 2: Read domain hint (adaptive learning) ───────────────────────────
+    const hint = await getDomainHint(supabaseAdmin, domain);
+    if (hint) {
+      console.log(`[scrape-url] Domain hint for ${domain}: strategy=${hint.bestStrategy}, success=${hint.successCount}, fail=${hint.failureCount}`);
+    }
+
+    // If the domain was previously found to be login-wall or ip-blocked, short-circuit
+    if (hint?.bestStrategy === "login-wall" || hint?.bestStrategy === "ip-blocked") {
+      return res({
+        success: false, extractionFailed: true,
+        error: `This site has previously blocked automated access. Please copy the job description and paste it below.`,
+      });
+    }
+
+    // ── Step 3: ATS JSON APIs ─────────────────────────────────────────────────
+    const atsApis: Array<() => Promise<AtsResult | null>> = [
+      () => fetchGreenhouse(validUrl),
+      () => fetchLever(validUrl),
+      () => fetchSmartRecruiters(validUrl),
+      () => fetchBreezyHR(validUrl),
+      () => fetchAshby(validUrl),
+    ];
+
+    // If we know this domain works with a specific ATS API, try it first
+    const preferredStrategy = hint?.bestStrategy;
+    const strategyOrder = rankedStrategies(hint, [
+      "greenhouse-api", "lever-api", "smartrecruiters-api", "breezy-api", "ashby-ssr", "html-fetch",
+    ]);
+
+    let atsText: string | null = null;
+    let atsTitle: string | null = null;
+    let atsStrategy: string | null = null;
+
+    // Try ATS APIs in ranked order
+    for (const strategyName of strategyOrder) {
+      if (strategyName === "html-fetch") break; // handled separately below
+
+      const apiFn = atsApis.find((fn) => {
+        const testResult = fn.toString();
+        return testResult.includes(strategyName.split("-")[0]);
+      });
+
+      // Run the matching API
+      let result: AtsResult | null = null;
+      if (strategyName === "greenhouse-api") result = await fetchGreenhouse(validUrl);
+      else if (strategyName === "lever-api") result = await fetchLever(validUrl);
+      else if (strategyName === "smartrecruiters-api") result = await fetchSmartRecruiters(validUrl);
+      else if (strategyName === "breezy-api") result = await fetchBreezyHR(validUrl);
+      else if (strategyName === "ashby-ssr") result = await fetchAshby(validUrl);
+
+      if (result === null) continue; // this ATS API doesn't match the URL pattern
+
+      if (result.ok && (result.text?.length ?? 0) >= 100) {
+        atsText = result.text!;
+        atsTitle = result.title ?? null;
+        atsStrategy = result.strategy ?? strategyName;
+        break;
       }
     }
 
-    // ── Step 3: HTML fetch + Cheerio ──────────────────────────────────────────
-    const fetched = await fetchWithFallback(validUrl);
-    if (!fetched.ok) {
-      if (fetched.error) {
-        const isTimeout = /timeout|abort/i.test(fetched.error);
-        return res({ success: false, extractionFailed: true, error: isTimeout ? "The page took too long to load. Please paste the job description manually." : "Unable to reach the page. Please paste the job description manually." });
+    if (atsText && atsText.length >= 100) {
+      const processed = processText(atsText, atsTitle ?? undefined);
+      if (processed.length >= 150) {
+        await recordOutcome(supabaseAdmin, domain, { success: true, strategy: atsStrategy! });
+        console.log(`[scrape-url] ATS API success via ${atsStrategy} (${processed.length} chars): ${validUrl}`);
+        return res({ success: true, markdown: processed.slice(0, 8_000), title: atsTitle ?? "" });
       }
-      // One last login-wall check on the actual HTTP status
-      return res({ success: false, extractionFailed: true, error: `Could not load the page (HTTP ${fetched.status}). Please paste the job description manually.` });
+    }
+
+    // ── Step 4: HTML fetch + Cheerio ──────────────────────────────────────────
+    const fetched = await fetchHtml(validUrl);
+
+    if (!fetched.ok) {
+      const isTimeout = /timeout|abort/i.test(fetched.error ?? "");
+      const isIpBlock = fetched.status === 403;
+
+      // Learn from failure
+      await recordOutcome(supabaseAdmin, domain, {
+        success: false,
+        strategy: isIpBlock ? "ip-blocked" : "html-fetch",
+        notes: isIpBlock ? `HTTP 403 — likely IP-blocked` : `HTTP ${fetched.status ?? "error"}: ${fetched.error ?? ""}`,
+      });
+
+      return res({
+        success: false, extractionFailed: true,
+        error: isTimeout
+          ? "The page took too long to load. Please paste the job description manually."
+          : isIpBlock
+          ? "This site is blocking automated access. Please copy the job description from your browser and paste it below."
+          : "Unable to reach the page. Please paste the job description manually.",
+      });
     }
 
     const { html = "", contentType = "" } = fetched;
@@ -427,20 +478,32 @@ Deno.serve(async (req) => {
     }
 
     const extraction = await extractWithCheerio(html, validUrl);
-    const jobBlock = extractJobBlock(extraction.text ?? "");
-    const cleaned = cleanJobMarkdown(jobBlock);
+    const rawText = extraction.text ?? "";
     const pageTitle = extraction.title ?? "";
 
-    if (cleaned.length < 300) {
-      return res({ success: false, extractionFailed: true, error: "We couldn't extract enough content from this URL. Please paste the job description manually.", partialText: cleaned || undefined });
+    const processed = processText(rawText, pageTitle || undefined);
+
+    if (processed.length < 300) {
+      await recordOutcome(supabaseAdmin, domain, { success: false, strategy: "html-fetch", notes: `too short: ${processed.length} chars after processing` });
+      return res({ success: false, extractionFailed: true, error: "We couldn't extract enough content from this URL. Please paste the job description manually.", partialText: processed || undefined });
     }
 
-    const hasJobSignals = /\b(experience|requirements?|qualifications?|responsibilities|skills?|salary|compensation|benefits?|about\s*(the\s*)?(role|position|company)|what\s*you)\b/i.test(cleaned);
+    const hasJobSignals = /\b(experience|requirements?|qualifications?|responsibilities|skills?|salary|compensation|benefits?|about\s*(the\s*)?(role|position|company)|what\s*you)\b/i.test(processed);
     if (!hasJobSignals) {
-      return res({ success: false, extractionFailed: true, error: "The extracted content doesn't appear to be a job description. Please paste it manually.", partialText: cleaned.slice(0, 500) || undefined });
+      await recordOutcome(supabaseAdmin, domain, { success: false, strategy: "html-fetch", notes: "no job signals in extracted text" });
+      return res({ success: false, extractionFailed: true, error: "The extracted content doesn't appear to be a job description. Please paste it manually.", partialText: processed.slice(0, 500) || undefined });
     }
 
-    return res({ success: true, markdown: cleaned.slice(0, 8_000), title: pageTitle });
+    // Learn the successful selector from Cheerio extraction
+    const successfulSelector = extraction.strategy ?? "html-fetch";
+    await recordOutcome(supabaseAdmin, domain, {
+      success: true,
+      strategy: successfulSelector.startsWith("ats:") || successfulSelector.startsWith("generic:") ? `cheerio:${successfulSelector}` : "html-fetch",
+      selector: successfulSelector,
+    });
+
+    console.log(`[scrape-url] HTML success via ${successfulSelector} (${processed.length} chars): ${validUrl}`);
+    return res({ success: true, markdown: processed.slice(0, 8_000), title: pageTitle });
 
   } catch (error) {
     console.error("[scrape-url] Unhandled error:", error);
