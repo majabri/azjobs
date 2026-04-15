@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
   Target, Sparkles, Link2, Download, Loader2, Upload, FileText, User,
+  AlertCircle, AlertTriangle, Info, X, Clock,
 } from "lucide-react";
 import { scrapeUrl } from "@/lib/api/scrapeUrl";
 import { parseDocument } from "@/lib/api/parseDocument";
@@ -27,6 +28,23 @@ interface AnalysisFormProps {
   prefillJob?: string;
   prefillJobLink?: string;
 }
+
+// ---------------------------------------------------------------------------
+// Inline alert types
+// ---------------------------------------------------------------------------
+
+type AlertVariant = "info" | "warning" | "error";
+
+interface InlineAlert {
+  variant: AlertVariant;
+  message: string;
+  showPartialActions?: boolean;
+  rateLimitSecondsLeft?: number;
+}
+
+// ---------------------------------------------------------------------------
+// Demo content
+// ---------------------------------------------------------------------------
 
 const DEMO_JOB = `Senior Cybersecurity Engineer — Cloud Security
 
@@ -64,6 +82,66 @@ Cloud Security, AWS, Azure, SIEM, Splunk, Vulnerability Management, Penetration 
 EDUCATION
 B.S. Computer Science — University of California, Berkeley (2017)`;
 
+// ---------------------------------------------------------------------------
+// Inline alert banner
+// ---------------------------------------------------------------------------
+
+const ALERT_STYLES: Record<AlertVariant, { container: string; icon: string; IconEl: typeof Info }> = {
+  info:    { container: "bg-muted/60 border-border text-muted-foreground", icon: "text-muted-foreground", IconEl: Info },
+  warning: { container: "bg-yellow-500/10 border-yellow-500/30 text-yellow-700 dark:text-yellow-400", icon: "text-yellow-500", IconEl: AlertTriangle },
+  error:   { container: "bg-destructive/10 border-destructive/30 text-destructive", icon: "text-destructive", IconEl: AlertCircle },
+};
+
+function InlineAlertBanner({
+  alert, onDismiss, onKeep, onClear, onFocusTextarea,
+}: {
+  alert: InlineAlert;
+  onDismiss: () => void;
+  onKeep?: () => void;
+  onClear?: () => void;
+  onFocusTextarea?: () => void;
+}) {
+  const s = ALERT_STYLES[alert.variant];
+  const Icon = s.IconEl;
+  return (
+    <div className={`mt-2 flex items-start gap-2.5 rounded-lg border px-3 py-2.5 text-sm ${s.container}`}>
+      <Icon className={`mt-0.5 h-4 w-4 flex-shrink-0 ${s.icon}`} />
+      <div className="flex-1 min-w-0">
+        <p className="leading-snug">{alert.message}</p>
+        {(alert.rateLimitSecondsLeft ?? 0) > 0 && (
+          <p className="mt-1 flex items-center gap-1 text-xs font-medium">
+            <Clock className="h-3 w-3" /> Try again in {alert.rateLimitSecondsLeft}s…
+          </p>
+        )}
+        {alert.showPartialActions && (
+          <div className="mt-2 flex gap-2">
+            <button onClick={onKeep} className="rounded-md bg-current/10 px-2.5 py-1 text-xs font-medium hover:bg-current/20 transition-colors">
+              Looks good, keep it
+            </button>
+            <button onClick={onClear} className="rounded-md px-2.5 py-1 text-xs font-medium opacity-70 hover:opacity-100 transition-opacity">
+              Clear and paste manually
+            </button>
+          </div>
+        )}
+        {alert.variant === "error" && !alert.showPartialActions && onFocusTextarea && (
+          <button onClick={onFocusTextarea} className="mt-1 text-xs font-medium underline underline-offset-2 hover:opacity-80">
+            Paste manually ↓
+          </button>
+        )}
+      </div>
+      <button onClick={onDismiss} aria-label="Dismiss" className="flex-shrink-0 rounded p-0.5 hover:opacity-70 transition-opacity">
+        <X className="h-3.5 w-3.5" />
+      </button>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Main component
+// ---------------------------------------------------------------------------
+
+const RATE_LIMIT_SECONDS = 60;
+
 export default function AnalysisForm({ onAnalyze, isAnalyzing, isDemo, prefillJob, prefillJobLink }: AnalysisFormProps) {
   const [jobDesc, setJobDesc] = useState("");
   const [resume, setResume] = useState("");
@@ -74,75 +152,107 @@ export default function AnalysisForm({ onAnalyze, isAnalyzing, isDemo, prefillJo
   const [resumeVersions, setResumeVersions] = useState<ResumeVersionOption[]>([]);
   const [showVersionPicker, setShowVersionPicker] = useState(false);
   const [autoLoaded, setAutoLoaded] = useState(false);
+  const [urlAlert, setUrlAlert] = useState<InlineAlert | null>(null);
+  const [rateLimitSeconds, setRateLimitSeconds] = useState(0);
+
   const resumeFileRef = useRef<HTMLInputElement>(null);
+  const jobDescRef = useRef<HTMLTextAreaElement>(null);
+  const rateLimitTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Auto-load resume from vault on mount & handle prefill from navigation
+  useEffect(() => () => { if (rateLimitTimer.current) clearInterval(rateLimitTimer.current); }, []);
+
+  const startRateLimitCountdown = useCallback(() => {
+    setRateLimitSeconds(RATE_LIMIT_SECONDS);
+    if (rateLimitTimer.current) clearInterval(rateLimitTimer.current);
+    rateLimitTimer.current = setInterval(() => {
+      setRateLimitSeconds((s) => {
+        const next = s - 1;
+        if (next <= 0) {
+          clearInterval(rateLimitTimer.current!);
+          rateLimitTimer.current = null;
+          setUrlAlert(null);
+          return 0;
+        }
+        setUrlAlert((prev) => prev ? { ...prev, rateLimitSecondsLeft: next } : prev);
+        return next;
+      });
+    }, 1000);
+  }, []);
+
+  const handleScrapeResult = useCallback(
+    (result: Awaited<ReturnType<typeof scrapeUrl>>) => {
+      if (result.success && result.markdown) {
+        setJobDesc(result.markdown);
+        if (result.usedFallback) {
+          setUrlAlert({ variant: "info", message: "Content extracted using enhanced parsing. Please review and edit as needed." });
+          setTimeout(() => setUrlAlert(null), 6_000);
+        } else {
+          setUrlAlert(null);
+        }
+        return;
+      }
+
+      const err = result.error ?? "Could not fetch the job posting.";
+
+      if (err.toLowerCase().includes("too many requests")) {
+        setUrlAlert({ variant: "warning", message: "You've made too many requests. Please wait 60 seconds before trying again.", rateLimitSecondsLeft: RATE_LIMIT_SECONDS });
+        startRateLimitCountdown();
+        return;
+      }
+
+      if (err.toLowerCase().includes("security") || err.toLowerCase().includes("cannot be fetched")) {
+        setUrlAlert({ variant: "error", message: "This URL type isn't supported for security reasons. Please paste the job description manually." });
+        return;
+      }
+
+      if (result.extractionFailed && result.partialText) {
+        setJobDesc(result.partialText);
+        setUrlAlert({ variant: "warning", message: "We couldn't confirm this is a job listing. We've filled in what we found — please review and edit before saving.", showPartialActions: true });
+        return;
+      }
+
+      setUrlAlert({ variant: "error", message: err });
+    },
+    [startRateLimitCountdown]
+  );
+
+  // Auto-load on mount
   useEffect(() => {
-    if (isDemo) {
-      setJobDesc(DEMO_JOB);
-      setResume(DEMO_RESUME);
-      return;
-    }
-
-    // Handle prefill from navigation state (e.g. from Job Search "Check My Chances")
+    if (isDemo) { setJobDesc(DEMO_JOB); setResume(DEMO_RESUME); return; }
     if (prefillJob) setJobDesc(prefillJob);
     if (prefillJobLink) {
       setJobLink(prefillJobLink);
       (async () => {
         setIsFetchingJob(true);
-        try {
-          const result = await scrapeUrl(prefillJobLink);
-          if (result.success && result.markdown) {
-            setJobDesc(result.markdown);
-            toast.success("Job description fetched from link!");
-          } else if (result.extractionFailed) {
-            toast.warning(result.error || "Could not extract job description. Please paste it manually.", { duration: 6000 });
-            if (result.partialText) setJobDesc(result.partialText);
-          }
-        } catch {}
+        try { handleScrapeResult(await scrapeUrl(prefillJobLink)); }
+        catch { setUrlAlert({ variant: "error", message: "Failed to fetch the job posting. Please paste the description manually." }); }
         finally { setIsFetchingJob(false); }
       })();
     }
-
-    const params = new URLSearchParams(window.location.search);
-    const prefillFromUrl = params.get("prefillJob");
+    const prefillFromUrl = new URLSearchParams(window.location.search).get("prefillJob");
     if (prefillFromUrl) setJobDesc(prefillFromUrl);
-
-    if (!autoLoaded) {
-      autoLoadResume();
-      setAutoLoaded(true);
-    }
+    if (!autoLoaded) { autoLoadResume(); setAutoLoaded(true); }
   }, [isDemo, prefillJob, prefillJobLink]);
+
+  const handleFetchJobLink = async () => {
+    if (!jobLink.trim() || isFetchingJob || rateLimitSeconds > 0) return;
+    setUrlAlert(null);
+    setIsFetchingJob(true);
+    try { handleScrapeResult(await scrapeUrl(jobLink)); }
+    catch { setUrlAlert({ variant: "error", message: "The request timed out. Please try again or paste the description manually." }); }
+    finally { setIsFetchingJob(false); }
+  };
 
   const autoLoadResume = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
-
-      // Try resume vault first
-      const { data: versions } = await supabase
-        .from("resume_versions")
-        .select("resume_text, version_name")
-        .eq("user_id", session.user.id)
-        .order("created_at", { ascending: false })
-        .limit(1);
-
-      if (versions?.[0]?.resume_text) {
-        setResume(versions[0].resume_text);
-        toast.success(`Resume "${versions[0].version_name}" loaded from vault`);
-        return;
-      }
-
-      // Fallback: build from profile
-      const { data: profile } = await supabase
-        .from("job_seeker_profiles")
-        .select("*")
-        .eq("user_id", session.user.id)
-        .maybeSingle();
-
+      const { data: versions } = await supabase.from("resume_versions").select("resume_text, version_name").eq("user_id", session.user.id).order("created_at", { ascending: false }).limit(1);
+      if (versions?.[0]?.resume_text) { setResume(versions[0].resume_text); toast.success(`Resume "${versions[0].version_name}" loaded from vault`); return; }
+      const { data: profile } = await supabase.from("job_seeker_profiles").select("*").eq("user_id", session.user.id).maybeSingle();
       if (profile?.full_name) {
         const lines: string[] = [];
-        if (profile.full_name) lines.push(profile.full_name);
+        lines.push(profile.full_name);
         const contact = [profile.email, profile.phone, profile.location].filter(Boolean).join(" | ");
         if (contact) lines.push(contact);
         if (profile.summary) { lines.push(""); lines.push("PROFESSIONAL SUMMARY"); lines.push(profile.summary); }
@@ -151,9 +261,7 @@ export default function AnalysisForm({ onAnalyze, isAnalyzing, isDemo, prefillJo
         setResume(lines.join("\n"));
         toast.info("Resume built from your profile. Upload a full resume for better results.");
       }
-    } catch (e) {
-      console.error("Auto-load resume failed:", e);
-    }
+    } catch (e) { console.error("Auto-load resume failed:", e); }
   };
 
   const handleResumeUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -165,73 +273,26 @@ export default function AnalysisForm({ onAnalyze, isAnalyzing, isDemo, prefillJo
       if (result.success && result.text) {
         setResume(result.text);
         toast.success("Resume extracted!");
-        // Sync skills to profile and save to vault
         try {
           const { data: { session } } = await supabase.auth.getSession();
           if (session) {
-            // Save to resume vault so it can be loaded via the Vault button
             const versionName = file.name.replace(/\.[^.]+$/, "") || "Uploaded Resume";
-            await supabase.from("resume_versions").insert({
-              user_id: session.user.id,
-              version_name: versionName,
-              job_type: null,
-              resume_text: result.text,
-            } as any);
-
-            // Sync skills
+            await supabase.from("resume_versions").insert({ user_id: session.user.id, version_name: versionName, job_type: null, resume_text: result.text } as any);
             const extracted = extractProfileFromResume(result.text);
             if (extracted.skills.length) {
-              const { data } = await supabase
-                .from("job_seeker_profiles")
-                .select("skills")
-                .eq("user_id", session.user.id)
-                .maybeSingle();
+              const { data } = await supabase.from("job_seeker_profiles").select("skills").eq("user_id", session.user.id).maybeSingle();
               const current = (data?.skills as string[]) || [];
               const newSkills = extracted.skills.filter(s => !current.map(c => c.toLowerCase()).includes(s.toLowerCase()));
               if (newSkills.length) {
-                await supabase.from("job_seeker_profiles").upsert({
-                  user_id: session.user.id,
-                  skills: [...current, ...newSkills],
-                  updated_at: new Date().toISOString(),
-                } as any, { onConflict: "user_id" });
+                await supabase.from("job_seeker_profiles").upsert({ user_id: session.user.id, skills: [...current, ...newSkills], updated_at: new Date().toISOString() } as any, { onConflict: "user_id" });
                 toast.success(`${newSkills.length} new skill(s) synced to profile`);
               }
             }
           }
         } catch {}
-      } else {
-        toast.error(result.error || "Could not extract text");
-      }
-    } catch {
-      toast.error("Failed to parse document");
-    } finally {
-      setIsUploadingResume(false);
-      if (resumeFileRef.current) resumeFileRef.current.value = "";
-    }
-  };
-
-  const handleFetchJobLink = async () => {
-    if (!jobLink.trim()) return;
-    setIsFetchingJob(true);
-    try {
-      const result = await scrapeUrl(jobLink);
-      if (result.success && result.markdown) {
-        setJobDesc(result.markdown);
-        toast.success("Job description fetched!");
-      } else if (result.extractionFailed) {
-        toast.warning(
-          result.error || "Could not extract the job description. Please paste it below instead.",
-          { duration: 6000 }
-        );
-        if (result.partialText) setJobDesc(result.partialText);
-      } else {
-        toast.error(result.error || "Could not fetch");
-      }
-    } catch {
-      toast.error("Failed to fetch job posting. Try pasting the description manually.");
-    } finally {
-      setIsFetchingJob(false);
-    }
+      } else { toast.error(result.error || "Could not extract text"); }
+    } catch { toast.error("Failed to parse document"); }
+    finally { setIsUploadingResume(false); if (resumeFileRef.current) resumeFileRef.current.value = ""; }
   };
 
   const handleLoadFromProfile = async () => {
@@ -239,48 +300,26 @@ export default function AnalysisForm({ onAnalyze, isAnalyzing, isDemo, prefillJo
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { toast.error("Please sign in"); return; }
-      const { data: versionData } = await supabase
-        .from("resume_versions")
-        .select("*")
-        .eq("user_id", session.user.id)
-        .order("created_at", { ascending: false });
+      const { data: versionData } = await supabase.from("resume_versions").select("*").eq("user_id", session.user.id).order("created_at", { ascending: false });
       if (versionData?.length) {
-        setResumeVersions(versionData.map((v: any) => ({
-          id: v.id, version_name: v.version_name, job_type: v.job_type || "", resume_text: v.resume_text,
-        })));
+        setResumeVersions(versionData.map((v: any) => ({ id: v.id, version_name: v.version_name, job_type: v.job_type || "", resume_text: v.resume_text })));
         setShowVersionPicker(true);
       } else if (resume.trim()) {
-        // Resume is loaded (auto-built from profile) but never saved to vault.
-        // Save it now so the vault is populated going forward.
-        const { data: saved } = await supabase
-          .from("resume_versions")
-          .insert({ user_id: session.user.id, version_name: "My Resume", job_type: null, resume_text: resume } as any)
-          .select()
-          .single();
-        if (saved) {
-          setResumeVersions([{ id: saved.id, version_name: "My Resume", job_type: "", resume_text: resume }]);
-          setShowVersionPicker(true);
-          toast.success("Resume saved to vault automatically!");
-        }
-      } else {
-        toast.info("No resume versions found. Upload one in your Profile.");
-      }
-    } catch {
-      toast.error("Failed to load versions");
-    } finally {
-      setIsLoadingProfile(false);
-    }
+        const { data: saved } = await supabase.from("resume_versions").insert({ user_id: session.user.id, version_name: "My Resume", job_type: null, resume_text: resume } as any).select().single();
+        if (saved) { setResumeVersions([{ id: saved.id, version_name: "My Resume", job_type: "", resume_text: resume }]); setShowVersionPicker(true); toast.success("Resume saved to vault automatically!"); }
+      } else { toast.info("No resume versions found. Upload one in your Profile."); }
+    } catch { toast.error("Failed to load versions"); }
+    finally { setIsLoadingProfile(false); }
   };
+
+  const fetchDisabled = !jobLink.trim() || isFetchingJob || rateLimitSeconds > 0;
 
   return (
     <div className="animate-fade-up">
+      {/* Header */}
       <div className="text-center mb-8">
         <h1 className="font-display text-3xl font-bold text-foreground mb-2">
-          {isDemo ? (
-            <>See how <span className="text-accent">iCareerOS</span> works</>
-          ) : (
-            <>Analyze Your <span className="text-accent">Job Fit</span></>
-          )}
+          {isDemo ? (<>See how <span className="text-accent">iCareerOS</span> works</>) : (<>Analyze Your <span className="text-accent">Job Fit</span></>)}
         </h1>
         <p className="text-muted-foreground max-w-xl mx-auto">
           Paste a job description and your resume. Get your fit score, gaps, and AI-optimized resume in seconds.
@@ -292,7 +331,7 @@ export default function AnalysisForm({ onAnalyze, isAnalyzing, isDemo, prefillJo
         )}
       </div>
 
-      {/* Job link fetch */}
+      {/* URL fetch row */}
       <div className="mb-4">
         <label className="text-sm font-semibold text-foreground flex items-center gap-1.5 mb-1.5">
           <Link2 className="w-3.5 h-3.5 text-accent" /> Job Posting URL <span className="text-muted-foreground font-normal">(optional)</span>
@@ -303,23 +342,42 @@ export default function AnalysisForm({ onAnalyze, isAnalyzing, isDemo, prefillJo
             placeholder="https://company.com/jobs/..."
             value={jobLink}
             onChange={(e) => setJobLink(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") handleFetchJobLink(); }}
+            disabled={isFetchingJob}
             type="url"
           />
-          <Button variant="outline" size="sm" disabled={!jobLink.trim() || isFetchingJob} onClick={handleFetchJobLink}>
-            {isFetchingJob ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-            <span className="ml-1.5">Fetch</span>
+          <Button variant="outline" size="sm" disabled={fetchDisabled} onClick={handleFetchJobLink}
+            title={rateLimitSeconds > 0 ? `Rate limited — try again in ${rateLimitSeconds}s` : undefined}>
+            {isFetchingJob ? <Loader2 className="w-4 h-4 animate-spin" /> : rateLimitSeconds > 0 ? <Clock className="w-4 h-4" /> : <Download className="w-4 h-4" />}
+            <span className="ml-1.5">{rateLimitSeconds > 0 ? `${rateLimitSeconds}s` : "Fetch"}</span>
           </Button>
         </div>
+
+        {/* Inline alert directly below URL row */}
+        {urlAlert && (
+          <InlineAlertBanner
+            alert={urlAlert}
+            onDismiss={() => setUrlAlert(null)}
+            onKeep={() => setUrlAlert(null)}
+            onClear={() => { setJobDesc(""); setUrlAlert(null); jobDescRef.current?.focus(); }}
+            onFocusTextarea={() => { jobDescRef.current?.focus(); setUrlAlert(null); }}
+          />
+        )}
       </div>
 
+      {/* Content grid */}
       <div className="grid md:grid-cols-2 gap-6 mb-6">
         <div className="space-y-2">
           <label className="text-sm font-semibold text-foreground">Job Description</label>
           <Textarea
+            ref={jobDescRef}
             className="h-64 resize-none bg-card border-border text-sm"
             placeholder="Paste the full job description here..."
             value={jobDesc}
-            onChange={(e) => setJobDesc(e.target.value)}
+            onChange={(e) => {
+              setJobDesc(e.target.value);
+              if (urlAlert?.variant === "info") setUrlAlert(null); // dismiss info on first edit
+            }}
           />
           <p className="text-xs text-muted-foreground">{jobDesc.length} characters</p>
         </div>
@@ -330,20 +388,13 @@ export default function AnalysisForm({ onAnalyze, isAnalyzing, isDemo, prefillJo
               <FileText className="w-3.5 h-3.5 text-accent" /> Your Resume
             </label>
             <div className="flex items-center gap-2">
-              <Button
-                variant="default" size="sm"
-                className="text-xs h-8 gradient-indigo text-white shadow-indigo-500/20 hover:opacity-90"
-                disabled={isUploadingResume || isDemo}
-                onClick={() => resumeFileRef.current?.click()}
-              >
-                {isUploadingResume ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Upload className="w-3 h-3 mr-1" />}
-                Upload
+              <Button variant="default" size="sm" className="text-xs h-8 gradient-indigo text-white shadow-indigo-500/20 hover:opacity-90" disabled={isUploadingResume || isDemo} onClick={() => resumeFileRef.current?.click()}>
+                {isUploadingResume ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Upload className="w-3 h-3 mr-1" />} Upload
               </Button>
               <input ref={resumeFileRef} type="file" accept=".pdf,.doc,.docx" className="hidden" onChange={handleResumeUpload} />
               {!isDemo && (
                 <Button variant="outline" size="sm" className="text-xs h-7" disabled={isLoadingProfile} onClick={handleLoadFromProfile}>
-                  {isLoadingProfile ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <User className="w-3 h-3 mr-1" />}
-                  Vault
+                  {isLoadingProfile ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <User className="w-3 h-3 mr-1" />} Vault
                 </Button>
               )}
             </div>
@@ -358,18 +409,15 @@ export default function AnalysisForm({ onAnalyze, isAnalyzing, isDemo, prefillJo
         </div>
       </div>
 
-      {/* Version Picker Modal */}
+      {/* Version picker modal */}
       {showVersionPicker && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
           <div className="bg-card border border-border rounded-2xl p-6 max-w-md w-full mx-4 shadow-xl">
             <h3 className="font-display font-bold text-foreground text-lg mb-4">Choose a Resume Version</h3>
             <div className="space-y-2 mb-4">
               {resumeVersions.map((v) => (
-                <button
-                  key={v.id}
-                  className="w-full text-left p-3 rounded-xl border border-border hover:border-accent transition-colors"
-                  onClick={() => { setResume(v.resume_text); setShowVersionPicker(false); toast.success(`Loaded "${v.version_name}"`); }}
-                >
+                <button key={v.id} className="w-full text-left p-3 rounded-xl border border-border hover:border-accent transition-colors"
+                  onClick={() => { setResume(v.resume_text); setShowVersionPicker(false); toast.success(`Loaded "${v.version_name}"`); }}>
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-foreground">{v.version_name}</span>
                     {v.job_type && <Badge variant="outline" className="text-xs capitalize">{v.job_type}</Badge>}
@@ -383,18 +431,11 @@ export default function AnalysisForm({ onAnalyze, isAnalyzing, isDemo, prefillJo
         </div>
       )}
 
+      {/* Analyze button */}
       <div className="flex justify-center">
-        <Button
-          size="lg"
-          className="gradient-indigo text-white font-semibold text-lg px-12 py-6 rounded-xl shadow-indigo-500/20 hover:opacity-90"
-          disabled={!jobDesc.trim() || !resume.trim() || isAnalyzing}
-          onClick={() => onAnalyze(jobDesc, resume, jobLink)}
-        >
-          {isAnalyzing ? (
-            <><Sparkles className="w-5 h-5 mr-2 animate-spin" /> Analyzing…</>
-          ) : (
-            <><Target className="w-5 h-5 mr-2" /> Analyze My Fit</>
-          )}
+        <Button size="lg" className="gradient-indigo text-white font-semibold text-lg px-12 py-6 rounded-xl shadow-indigo-500/20 hover:opacity-90"
+          disabled={!jobDesc.trim() || !resume.trim() || isAnalyzing} onClick={() => onAnalyze(jobDesc, resume, jobLink)}>
+          {isAnalyzing ? (<><Sparkles className="w-5 h-5 mr-2 animate-spin" /> Analyzing…</>) : (<><Target className="w-5 h-5 mr-2" /> Analyze My Fit</>)}
         </Button>
       </div>
 
