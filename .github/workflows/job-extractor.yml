@@ -1,0 +1,44 @@
+name: iCareerOS Job Extractor
+
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: 'Max jobs to extract (default: 500)'
+        required: false
+        default: '500'
+
+jobs:
+  extract-jobs:
+    name: Extract Jobs (Claude Haiku)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: |
+          cd src/job-discovery-v2
+          bun install
+
+      - name: Run extraction batch
+        run: |
+          cd src/job-discovery-v2
+          bun run scripts/run-extraction.ts
+        env:
+          SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OLLAMA_API_URL: ''
+          EXTRACTION_LIMIT: ${{ github.event.inputs.limit || '500' }}
+
+      - name: Done
+        if: always()
+        run: echo "Extraction finished at $(date -u)"
