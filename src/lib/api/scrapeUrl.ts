@@ -9,6 +9,8 @@ export interface ScrapeResult {
   extractionFailed?: boolean;
   /** Partial text extracted before validation failed */
   partialText?: string;
+  /** True when the Cheerio fallback extractor was used instead of the primary */
+  usedFallback?: boolean;
 }
 
 export async function scrapeUrl(url: string): Promise<ScrapeResult> {
