@@ -164,7 +164,6 @@ Deno.serve(async (req) => {
 
     const filters: string[] = [
       `select=${selectCols}`,
-      `status=eq.active`,
       `scraped_at=gte.${cutoff}`,
       `or=(title.ilike.*${encodeURIComponent(term)}*,company.ilike.*${encodeURIComponent(term)}*,description.ilike.*${encodeURIComponent(term)}*)`,
       `order=scraped_at.desc`,

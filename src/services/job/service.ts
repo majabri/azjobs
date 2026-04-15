@@ -230,21 +230,27 @@ export async function searchDatabaseJobsFallback(filters: JobSearchFilters): Pro
       .order("quality_score", { ascending: false })
       .range(offset, offset + limit - 1);
 
+    // Reserved words that break PostgREST's OR filter parser
+    const POSTGREST_RESERVED = new Set(["and","or","not","in","is","null","true","false","eq","neq","gt","gte","lt","lte","like","ilike","cs","cd","sl","sr","nxr","nxl","adj","ov","fts","plfts","phfts","wfts"]);
+
     const orParts: string[] = [];
     for (const t of filters.targetTitles) {
-      const escaped = t.replace(/%/g, "\\%").replace(/_/g, "\\_");
-      orParts.push(`title.ilike.%${escaped}%`);
+      // Strip special chars that break PostgREST parser (commas, &, parens)
+      const safe = t.replace(/[,&()]/g, " ").replace(/%/g, "").replace(/_/g, " ").trim();
+      if (safe.length >= 3) orParts.push(`title.ilike.%${safe}%`);
     }
     const keywords = [filters.query, ...filters.skills]
-      .flatMap(s => (s || "").split(/[\s,]+/))
-      .map(s => s.replace(/[%_]/g, "").trim())
-      .filter(s => s.length >= 3);
+      .flatMap(s => (s || "").split(/[\s,&]+/))
+      .map(s => s.replace(/[%_()\[\]]/g, "").trim())
+      .filter(s => s.length >= 4 && !POSTGREST_RESERVED.has(s.toLowerCase()));
     const uniqueKeywords = [...new Set(keywords)];
-    for (const kw of uniqueKeywords.slice(0, 10)) {
+    // Cap at 8 keywords to keep OR clause manageable
+    for (const kw of uniqueKeywords.slice(0, 8)) {
       orParts.push(`title.ilike.%${kw}%`);
-      if (kw.length >= 4) orParts.push(`description.ilike.%${kw}%`);
+      orParts.push(`description.ilike.%${kw}%`);
     }
-    if (orParts.length > 0) query = query.or(orParts.join(","));
+    // Hard cap at 20 OR parts to prevent parser overflow
+    if (orParts.length > 0) query = query.or(orParts.slice(0, 20).join(","));
     if (filters.location && !/^\s*remote\s*$/i.test(filters.location)) query = query.ilike("location", `%${filters.location}%`);
     if (filters.jobTypes.includes("remote")) query = query.eq("is_remote", true);
     const structuredTypes = filters.jobTypes.filter(t => !["remote","hybrid","in-office"].includes(t)).flatMap(t => JOB_TYPE_MAP[t] ?? [t]);
