@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { checkRateLimit } from "../_shared/rate-limit.ts";
+import { withRetryText } from "../_shared/retry.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -84,20 +85,25 @@ function htmlToText(html: string): string {
 
 async function scrapeCareerPage(url: string, companyName: string): Promise<NormalizedJob[]> {
   try {
-    const res = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; iCareerOS/1.0; +https://icareeros.com)',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.9',
-      },
-      signal: AbortSignal.timeout(15_000),
-    });
-    if (!res.ok) return [];
+    // Fetch with retry + exponential backoff (3 attempts, 500ms base, 12s timeout).
+    const fetchResult = await withRetryText(
+      (signal) => fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; iCareerOS/1.0; +https://icareeros.com)',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.9',
+        },
+        signal,
+      }),
+      { maxAttempts: 3, baseDelayMs: 500, timeoutMs: 12_000, label: url }
+    );
 
-    const contentType = res.headers.get('content-type') ?? '';
-    if (!contentType.includes('text/html') && !contentType.includes('text/plain')) return [];
+    if (!fetchResult.ok || !fetchResult.value) {
+      console.warn(`[scrape-jobs-ats] Failed to fetch ${url}: ${fetchResult.error}`);
+      return [];
+    }
 
-    const html = await res.text();
+    const html = fetchResult.value;
 
     // Prefer <main> or <article> for cleaner signal
     const mainMatch =
@@ -218,7 +224,6 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
   try {
-    // Explicit auth check (defense in depth – verify_jwt=true is the first gate)
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return new Response(
@@ -242,7 +247,6 @@ Deno.serve(async (req) => {
 
     const userId: string = user.id;
 
-    // Rate limit: 10 scrape requests per user per minute
     if (!checkRateLimit(`scrape-jobs-ats:${userId}`, 10, 60_000)) {
       return new Response(
         JSON.stringify({ success: false, error: 'Too many requests – please slow down' }),
@@ -256,7 +260,6 @@ Deno.serve(async (req) => {
     );
 
     const { targets } = await req.json();
-    // targets: Array<{ type: 'greenhouse' | 'lever' | 'career_page', identifier: string, company?: string }>
 
     let allJobs: NormalizedJob[] = [];
 
@@ -276,7 +279,6 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Deduplicate by source_id
     const seen = new Set<string>();
     const unique = allJobs.filter(j => {
       if (!j.source_id || seen.has(j.source_id)) return false;
@@ -284,7 +286,6 @@ Deno.serve(async (req) => {
       return true;
     });
 
-    // Score and upsert
     let inserted = 0;
     for (const job of unique) {
       const quality = scoreJobQuality(job);
