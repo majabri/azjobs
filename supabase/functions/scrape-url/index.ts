@@ -1,47 +1,35 @@
 /**
  * scrape-url — Supabase Edge Function (Deno)
  *
- * Fetches a job posting URL and returns its content as plain text / Markdown.
- *
- * Extraction strategy (cascading — stops at first success):
- *  1. Primary: direct HTTP fetch + lightweight regex HTML stripper (fast, zero deps)
- *  2. Fallback: Cheerio-based structured DOM extraction (handles ATS boards,
- *     JS-heavy pages, and complex layouts that defeat regex stripping)
+ * Replaces Firecrawl with free direct-fetch + Cheerio extraction.
+ * Preserves Lovable's cleanJobMarkdown / extractJobBlock post-processing pipeline.
  *
  * Fetch strategy:
- *  - Attempt 1: full browser headers (Chrome 124 UA)
- *  - Attempt 2 on 403/429: stripped headers (no Sec-* / Cookie pressure)
- *  Both attempts share the same extraction pipeline.
+ *  Attempt 1 — full Chrome 124 browser headers
+ *  Attempt 2 — minimal headers (bypasses some WAF/Cloudflare rules on 403/429)
+ *
+ * Extraction pipeline:
+ *  raw HTML → Cheerio DOM extraction → extractJobBlock → cleanJobMarkdown → quality gate
  *
  * Security:
- *  - SSRF protection via validatePublicUrl (blocks private IPs, loopback, etc.)
- *  - Rate limited: 10 requests / minute / user (in-memory, best-effort)
- *  - 15-second per-attempt timeout
- *
- * Response shape:
- *  { success: true,  markdown: string, title?: string, usedFallback?: boolean }
- *  { success: false, error: string, extractionFailed?: boolean, partialText?: string }
+ *  SSRF protection, rate limit 20 req/min/user, 15s timeout per attempt
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { checkRateLimit } from "../_shared/rate-limit.ts";
 import { validatePublicUrl } from "../_shared/validate-url.ts";
-import {
-  extractWithCheerio,
-  looksLikeJobDescription,
-} from "../_shared/cheerio-fallback.ts";
+import { extractWithCheerio } from "../_shared/cheerio-fallback.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 // ---------------------------------------------------------------------------
 // Browser header presets
 // ---------------------------------------------------------------------------
 
-/** Full Chrome 124 headers — works for most public ATS boards. */
 const HEADERS_CHROME: Record<string, string> = {
   "User-Agent":
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
@@ -58,10 +46,6 @@ const HEADERS_CHROME: Record<string, string> = {
   "Pragma": "no-cache",
 };
 
-/**
- * Stripped fallback headers — no Sec-* headers, minimal footprint.
- * Some CDNs (Cloudflare) let this through when the full set triggers a WAF rule.
- */
 const HEADERS_MINIMAL: Record<string, string> = {
   "User-Agent":
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
@@ -69,122 +53,152 @@ const HEADERS_MINIMAL: Record<string, string> = {
   "Accept-Language": "en-US,en;q=0.5",
 };
 
-// Sites that require login — we can't scrape them server-side.
-// Return a helpful, specific message instead of a generic 403.
+// Sites that need a login — give a helpful specific message
 const LOGIN_WALL_PATTERNS: Array<{ pattern: RegExp; name: string }> = [
-  { pattern: /linkedin\.com/i,  name: "LinkedIn" },
-  { pattern: /indeed\.com/i,    name: "Indeed" },
-  { pattern: /glassdoor\.com/i, name: "Glassdoor" },
+  { pattern: /linkedin\.com/i,     name: "LinkedIn" },
+  { pattern: /indeed\.com/i,       name: "Indeed" },
+  { pattern: /glassdoor\.com/i,    name: "Glassdoor" },
   { pattern: /ziprecruiter\.com/i, name: "ZipRecruiter" },
-  { pattern: /monster\.com/i,   name: "Monster" },
+  { pattern: /monster\.com/i,      name: "Monster" },
 ];
 
 function loginWallMessage(url: string): string | null {
   for (const { pattern, name } of LOGIN_WALL_PATTERNS) {
     if (pattern.test(url)) {
-      return `${name} blocks server-side access to job postings. Please open the job page in your browser, copy the description, and paste it below.`;
+      return `${name} blocks automated access to job postings. Open the job in your browser, copy the description, and paste it below.`;
     }
   }
   return null;
 }
 
 // ---------------------------------------------------------------------------
-// HTML extractor helpers
+// Post-processing — Lovable's proven cleaning pipeline (preserved exactly)
 // ---------------------------------------------------------------------------
 
-function htmlToText(html: string): string {
-  return html
-    .replace(/<script[\s\S]*?<\/script>/gi, " ")
-    .replace(/<style[\s\S]*?<\/style>/gi, " ")
-    .replace(/<br\s*\/?>/gi, "\n")
-    .replace(/<\/p>/gi, "\n\n")
-    .replace(/<\/li>/gi, "\n")
-    .replace(/<\/h[1-6]>/gi, "\n\n")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/[ \t]+/g, " ")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
+const NOISE_PATTERNS = [
+  /^(apply\s*(now|here|today|online)?|save\s*job|share\s*(this\s*)?job|print|report\s*(this\s*)?job|sign\s*in|log\s*in|create\s*account|sign\s*up|register|back\s*to\s*(search|results|jobs)|view\s*all\s*jobs|similar\s*jobs|more\s*jobs)/i,
+  /^(home|about\s*us|careers|contact|blog|press|privacy|terms|cookie|sitemap|faq|help|support|accessibility)/i,
+  /^(follow\s*us|connect\s*with\s*us|stay\s*connected|join\s*our\s*(team|talent)|newsletter)/i,
+  /^(©|copyright|all\s*rights\s*reserved)/i,
+  /^\[.*?\]\(.*?\)$/,
+  /^!\[.*?\]\(.*?\)$/,
+  /^(skip\s*to\s*content|main\s*navigation|breadcrumb)/i,
+  /^(posted|updated|published|closes?|deadline|date\s*posted)\s*:?\s*\d/i,
+  /^(job\s*(id|number|code|ref|reference))\s*:?\s*/i,
+  /^[\w\s]{1,15}\s*\|\s*[\w\s]{1,15}\s*\|\s*[\w\s]{1,15}/,
+  /^#{1,6}\s*(menu|navigation|footer|header|sidebar)/i,
+];
+
+const TRAILING_SECTION_HEADERS = [
+  /^#{1,4}\s*(similar\s*jobs|related\s*jobs|you\s*may\s*also|recommended|other\s*openings|explore\s*more)/i,
+  /^#{1,4}\s*(share\s*this|social\s*media|follow\s*us)/i,
+];
+
+function cleanJobMarkdown(raw: string): string {
+  const lines = raw.split("\n");
+  const cleaned: string[] = [];
+  let consecutiveEmpty = 0;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+
+    if (TRAILING_SECTION_HEADERS.some((p) => p.test(trimmed))) break;
+    if (trimmed && NOISE_PATTERNS.some((p) => p.test(trimmed))) continue;
+    if (/^https?:\/\/\S+$/.test(trimmed)) continue;
+    if (/^!\[.*?\]\(.*?(tracking|pixel|beacon|1x1).*?\)$/i.test(trimmed)) continue;
+
+    if (!trimmed) {
+      consecutiveEmpty++;
+      if (consecutiveEmpty <= 2) cleaned.push("");
+      continue;
+    }
+    consecutiveEmpty = 0;
+
+    const stripped = trimmed
+      .replace(/\[apply\s*(now|here|today)?\]\(.*?\)/gi, "")
+      .replace(/\[save\s*job\]\(.*?\)/gi, "")
+      .replace(/\[share\]\(.*?\)/gi, "")
+      .trim();
+
+    if (stripped) cleaned.push(stripped);
+  }
+
+  return cleaned.join("\n").trim();
 }
 
-function extractPrimary(html: string): { text: string; title?: string } | null {
-  const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-  const title = titleMatch?.[1]?.trim();
-  const mainMatch =
-    html.match(/<main[\s\S]*?<\/main>/i) ||
-    html.match(/<article[\s\S]*?<\/article>/i);
-  const rawText = htmlToText(mainMatch?.[0] ?? html);
-  if (!rawText || rawText.length < 150) return null;
-  return { text: rawText.slice(0, 8_000), title };
+function extractJobBlock(markdown: string): string {
+  const lines = markdown.split("\n");
+  const jobStartPatterns = [
+    /^#{1,4}\s*(job\s*description|about\s*(the\s*)?(role|position|opportunity)|role\s*summary|position\s*overview|the\s*role|overview)/i,
+    /^#{1,4}\s*(what\s*you.?ll\s*do|responsibilities|key\s*responsibilities)/i,
+    /^\*\*(job\s*description|about\s*(the\s*)?(role|position))\*\*/i,
+  ];
+
+  let jobStartIdx = -1;
+  for (let i = 0; i < lines.length; i++) {
+    if (jobStartPatterns.some((p) => p.test(lines[i].trim()))) {
+      jobStartIdx = i;
+      break;
+    }
+  }
+
+  const hasJobContent =
+    /\b(requirements?|qualifications?|responsibilities|experience|what\s*you.?ll\s*(do|need|bring)|about\s*(the\s*)?(role|position))\b/i.test(
+      markdown
+    );
+
+  if (jobStartIdx > 10 && hasJobContent) {
+    let actualStart = jobStartIdx;
+    for (let i = jobStartIdx - 1; i >= Math.max(0, jobStartIdx - 5); i--) {
+      const t = lines[i].trim();
+      if (t && (t.startsWith("#") || t.startsWith("**"))) {
+        actualStart = i;
+        break;
+      }
+    }
+    return lines.slice(actualStart).join("\n");
+  }
+
+  return markdown;
 }
 
 // ---------------------------------------------------------------------------
-// Fetch with automatic retry on 403 / 429
+// Fetch with 403 retry
 // ---------------------------------------------------------------------------
 
-interface FetchAttempt {
+interface FetchResult {
   ok: boolean;
-  status?: number;
   html?: string;
   contentType?: string;
+  status?: number;
   error?: string;
 }
 
-async function fetchWithFallback(url: string): Promise<FetchAttempt> {
-  // Attempt 1 — full Chrome headers
-  try {
-    const res = await fetch(url, {
-      headers: HEADERS_CHROME,
-      signal: AbortSignal.timeout(15_000),
-      redirect: "follow",
-    });
+async function fetchWithFallback(url: string): Promise<FetchResult> {
+  const attempt = async (headers: Record<string, string>): Promise<Response> =>
+    fetch(url, { headers, signal: AbortSignal.timeout(15_000), redirect: "follow" });
 
+  try {
+    const res = await attempt(HEADERS_CHROME);
     if (res.ok) {
-      return {
-        ok: true,
-        status: res.status,
-        html: await res.text(),
-        contentType: res.headers.get("content-type") ?? "",
-      };
+      return { ok: true, html: await res.text(), contentType: res.headers.get("content-type") ?? "", status: res.status };
     }
 
-    // On 403/429 try a second attempt with minimal headers
     if (res.status === 403 || res.status === 429) {
       await res.body?.cancel();
-      console.log(`[scrape-url] ${res.status} on attempt 1, retrying with minimal headers: ${url}`);
-
-      const res2 = await fetch(url, {
-        headers: HEADERS_MINIMAL,
-        signal: AbortSignal.timeout(15_000),
-        redirect: "follow",
-      });
-
+      console.log(`[scrape-url] ${res.status} with Chrome headers, retrying minimal: ${url}`);
+      const res2 = await attempt(HEADERS_MINIMAL);
       if (res2.ok) {
-        return {
-          ok: true,
-          status: res2.status,
-          html: await res2.text(),
-          contentType: res2.headers.get("content-type") ?? "",
-        };
+        return { ok: true, html: await res2.text(), contentType: res2.headers.get("content-type") ?? "", status: res2.status };
       }
-
-      // Both attempts failed — return the second status
       await res2.body?.cancel();
       return { ok: false, status: res2.status };
     }
 
-    // Other non-OK status (404, 500, etc.) — no retry
     await res.body?.cancel();
     return { ok: false, status: res.status };
-
   } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    return { ok: false, error: msg };
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
   }
 }
 
@@ -197,143 +211,123 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // ── Auth ──────────────────────────────────────────────────────────────────
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
-    return json({ success: false, error: "Missing authorization header" }, 401);
-  }
-
-  const supabase = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-    { global: { headers: { Authorization: authHeader } } }
-  );
-
-  const token = authHeader.replace("Bearer ", "");
-  const { data, error: authError } = await supabase.auth.getClaims(token);
-  if (authError || !data?.claims) {
-    return json({ success: false, error: "Invalid or expired token" }, 401);
-  }
-
-  const userId: string = data.claims.sub as string;
-
-  // ── Rate limit ────────────────────────────────────────────────────────────
-  if (!checkRateLimit(`scrape-url:${userId}`, 10, 60_000)) {
-    return json(
-      { success: false, error: "Too many requests – please wait a moment and try again." },
-      429
-    );
-  }
-
-  // ── Parse body ────────────────────────────────────────────────────────────
-  let body: { url?: unknown };
   try {
-    body = await req.json();
-  } catch {
-    return json({ success: false, error: "Invalid JSON body" }, 400);
-  }
+    // ── Auth ────────────────────────────────────────────────────────────────
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return res({ success: false, error: "Missing authorization header" }, 401);
+    }
 
-  // ── Validate URL (SSRF protection) ────────────────────────────────────────
-  const urlValidation = validatePublicUrl(body.url);
-  if (!urlValidation.ok) {
-    return json({ success: false, error: urlValidation.error }, 400);
-  }
-  const url = urlValidation.url;
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { global: { headers: { Authorization: authHeader } } }
+    );
 
-  // ── Fetch (with 403 retry) ────────────────────────────────────────────────
-  const attempt = await fetchWithFallback(url);
+    const token = authHeader.replace("Bearer ", "");
+    const { data, error: authError } = await (supabase.auth as any).getClaims(token);
+    if (authError || !data?.claims) {
+      return res({ success: false, error: "Invalid or expired token" }, 401);
+    }
 
-  if (!attempt.ok) {
-    // Check if it's a known login-wall site before giving a generic error
-    const loginMsg = loginWallMessage(url);
+    const userId: string = data.claims.sub as string;
 
-    if (attempt.error) {
-      const isTimeout =
-        attempt.error.toLowerCase().includes("timeout") ||
-        attempt.error.toLowerCase().includes("abort");
-      return json({
+    // ── Rate limit (20/min — matches Lovable) ────────────────────────────────
+    if (!checkRateLimit(`scrape-url:${userId}`, 20, 60_000)) {
+      return res({ success: false, error: "Too many requests – please slow down" }, 429);
+    }
+
+    // ── Parse & validate URL ─────────────────────────────────────────────────
+    const body = await req.json();
+    const { url } = body;
+    if (!url) return res({ success: false, error: "URL is required" }, 400);
+
+    const urlValidation = validatePublicUrl(url);
+    if (!urlValidation.ok) return res({ success: false, error: urlValidation.error }, 400);
+    const validatedUrl = urlValidation.url;
+
+    // ── Fetch ────────────────────────────────────────────────────────────────
+    const fetched = await fetchWithFallback(validatedUrl);
+
+    if (!fetched.ok) {
+      const loginMsg = loginWallMessage(validatedUrl);
+      if (fetched.error) {
+        const isTimeout = fetched.error.toLowerCase().includes("timeout") || fetched.error.toLowerCase().includes("abort");
+        return res({
+          success: false,
+          extractionFailed: true,
+          error: isTimeout
+            ? "The page took too long to load. Please paste the job description manually."
+            : "Unable to reach the page. Please paste the job description manually.",
+        });
+      }
+      return res({
         success: false,
         extractionFailed: true,
-        error: isTimeout
-          ? "The page took too long to load. Please paste the job description manually."
-          : `Unable to reach the page. Please paste the job description manually.`,
+        error: loginMsg ?? `Could not load the page (HTTP ${fetched.status}). Please paste the job description manually.`,
       });
     }
 
-    return json({
+    const { html = "", contentType = "" } = fetched;
+
+    if (!contentType.includes("text/html") && !contentType.includes("text/plain")) {
+      return res({
+        success: false,
+        extractionFailed: true,
+        error: "The page returned a non-HTML response. Please paste the job description manually.",
+      });
+    }
+
+    // ── Extract via Cheerio ──────────────────────────────────────────────────
+    const extraction = await extractWithCheerio(html, validatedUrl);
+    const rawText = extraction.text ?? "";
+    const title = extraction.title ?? "";
+
+    // ── Post-process (Lovable's pipeline) ────────────────────────────────────
+    const jobBlock = extractJobBlock(rawText);
+    const cleaned = cleanJobMarkdown(jobBlock);
+
+    // ── Quality gate (matches Lovable's thresholds) ──────────────────────────
+    if (cleaned.length < 300) {
+      return res({
+        success: false,
+        extractionFailed: true,
+        error: "We couldn't extract enough content from this URL. Please paste the job description manually.",
+        partialText: cleaned || undefined,
+      });
+    }
+
+    const hasJobSignals =
+      /\b(experience|requirements?|qualifications?|responsibilities|skills?|salary|compensation|benefits?|about\s*(the\s*)?(role|position|company)|what\s*you)\b/i.test(
+        cleaned
+      );
+
+    if (!hasJobSignals) {
+      return res({
+        success: false,
+        extractionFailed: true,
+        error: "The extracted content doesn't appear to be a job description. Please paste it manually.",
+        partialText: cleaned.slice(0, 500) || undefined,
+      });
+    }
+
+    return res({ success: true, markdown: cleaned.slice(0, 8_000), title });
+
+  } catch (error) {
+    console.error("[scrape-url] Unhandled error:", error);
+    return res({
       success: false,
       extractionFailed: true,
-      error: loginMsg ??
-        `Could not load the page (HTTP ${attempt.status}). Please paste the job description manually.`,
-    });
+      error: error instanceof Error ? error.message : "Failed to scrape",
+    }, 500);
   }
-
-  const { html, contentType = "" } = attempt;
-
-  if (!html) {
-    return json({
-      success: false,
-      extractionFailed: true,
-      error: "The page returned no content. Please paste the job description manually.",
-    });
-  }
-
-  if (!contentType.includes("text/html") && !contentType.includes("text/plain")) {
-    return json({
-      success: false,
-      extractionFailed: true,
-      error: "The page returned a non-HTML response. Please paste the job description manually.",
-    });
-  }
-
-  // ── Extraction pass 1: primary regex extractor ────────────────────────────
-  const primary = extractPrimary(html);
-
-  if (primary && looksLikeJobDescription(primary.text)) {
-    console.log(`[scrape-url] Primary OK (${primary.text.length} chars): ${url}`);
-    return json({ success: true, markdown: primary.text, title: primary.title, usedFallback: false });
-  }
-
-  // ── Extraction pass 2: Cheerio fallback ───────────────────────────────────
-  console.log(`[scrape-url] Primary insufficient — Cheerio fallback: ${url}`);
-  const fallback = await extractWithCheerio(html, url);
-
-  if (fallback.ok && looksLikeJobDescription(fallback.text)) {
-    console.log(`[scrape-url] Cheerio OK via "${fallback.strategy}" (${fallback.text.length} chars): ${url}`);
-    return json({
-      success: true,
-      markdown: fallback.text,
-      title: fallback.title ?? primary?.title,
-      usedFallback: true,
-    });
-  }
-
-  // ── Both extractors produced no usable content ────────────────────────────
-  const bestText = (fallback.text || primary?.text) ?? "";
-
-  if (bestText.length > 0) {
-    return json({
-      success: false,
-      extractionFailed: true,
-      error:
-        "The page content doesn't look like a job description. " +
-        "Please paste the job details manually or try a different URL.",
-      partialText: bestText.slice(0, 8_000),
-    });
-  }
-
-  return json({
-    success: false,
-    extractionFailed: true,
-    error: "Could not extract meaningful text from this page. Please paste the job description manually.",
-  });
 });
 
 // ---------------------------------------------------------------------------
 // Helper
 // ---------------------------------------------------------------------------
 
-function json(body: unknown, status = 200): Response {
+function res(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
