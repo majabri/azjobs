@@ -1,0 +1,42 @@
+name: iCareerOS Job Deduplicator
+
+on:
+  schedule:
+    - cron: '0 4 * * *'
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: 'Max jobs to dedup (default: 2000)'
+        required: false
+        default: '2000'
+
+jobs:
+  dedup-jobs:
+    name: Deduplicate Jobs
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: |
+          cd src/job-discovery-v2
+          bun install
+
+      - name: Run deduplication batch
+        run: |
+          cd src/job-discovery-v2
+          bun run scripts/run-deduplication.ts
+        env:
+          SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          DEDUP_LIMIT: ${{ github.event.inputs.limit || '2000' }}
+
+      - name: Done
+        if: always()
+        run: echo "Deduplication finished at $(date -u)"
