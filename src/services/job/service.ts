@@ -76,24 +76,19 @@ export async function searchJobs(
   const userId = session?.user?.id ?? null;
 
   try {
-    // Build search term from titles + skills + query
-    const searchTermParts = [
-      ...filters.targetTitles,
-      ...(filters.query ? [filters.query] : []),
-      // Include top 3 skills as keyword search
-      ...filters.skills.slice(0, 3),
-    ].filter(Boolean);
-
-    const searchTerm = searchTermParts.join(" ") || "software engineer";
-
+    // Pass targetTitles and skills as separate arrays so the edge function
+    // can build proper per-term OR filters instead of one giant ilike string.
+    // searchTerm is just the free-text query (if any).
     const payload: Record<string, unknown> = {
-      searchTerm,
+      searchTerm: filters.query || "",           // free-text only, not titles
+      targetTitles: filters.targetTitles,        // matched against job title field
+      skills: filters.skills.slice(0, 10),       // matched as full phrases in description
       userId,
       location: filters.location || undefined,
       isRemote: filters.jobTypes.includes("remote") || undefined,
       jobType: buildJobTypeFilter(filters.jobTypes),
       minFitScore: filters.minFitScore > 0 ? filters.minFitScore : undefined,
-      hoursOld: filters.days_old ? filters.days_old * 24 : 48,
+      daysOld: filters.days_old || 7,            // default 7 days (edge fn handles this)
       limit: filters.search_mode === "volume" ? 200 : 100,
       offset: filters.offset ?? 0,
       triggerMatch: !!userId,
@@ -242,10 +237,10 @@ export async function searchDatabaseJobsFallback(filters: JobSearchFilters): Pro
       const salaryMax = filters.salaryMax ? parseInt(filters.salaryMax.replace(/\D/g,""), 10) : null;
       if (salaryMin && !isNaN(salaryMin)) q = (q as any).gte("market_rate", salaryMin);
       if (salaryMax && !isNaN(salaryMax)) q = (q as any).lte("market_rate", salaryMax);
-      if (filters.days_old) {
-        const cutoff = new Date(Date.now() - filters.days_old * 86400000).toISOString();
-        q = (q as any).gte("first_seen_at", cutoff);
-      }
+      // Default to 7 days if not specified (48h was too aggressive — jobs stay fresh for a week)
+      const daysOld = filters.days_old || 7;
+      const cutoff = new Date(Date.now() - daysOld * 86400000).toISOString();
+      q = (q as any).gte("first_seen_at", cutoff);
       if (!filters.showFlagged) q = (q as any).eq("is_flagged", false);
       return q;
     };

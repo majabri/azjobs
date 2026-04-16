@@ -1,35 +1,24 @@
 /**
  * discover-jobs — Job Search + AI Match Enrichment (Supabase Edge Function, Deno)
  *
- * Queries job_postings with filters and enriches results with AI fit scores
- * from user_job_matches. If the user has unscored jobs, triggers background
- * matching (fire-and-forget) so the next search returns enriched results.
- *
- * Zero-dependency: uses inline PostgREST fetch (no npm/jsr imports).
- * This keeps cold-start time minimal.
+ * Queries scraped_jobs view with multi-term OR filters and enriches results
+ * with AI fit scores from user_job_matches.
  *
  * POST body:
  *  {
- *    searchTerm: string,       required — keywords to search
- *    userId?: string,          — enrich with AI fit scores for this user
+ *    searchTerm?: string,       — free-text keyword (optional when targetTitles provided)
+ *    targetTitles?: string[],   — user's target job titles (matched against job title)
+ *    skills?: string[],         — user's skills (matched as full phrases against description)
+ *    userId?: string,
  *    location?: string,
  *    isRemote?: boolean,
- *    jobType?: string,         — 'fulltime' | 'parttime' | 'contract' | 'internship'
+ *    jobType?: string,
  *    salaryMin?: number,
- *    minFitScore?: number,     — filter out jobs below this score (0-100)
- *    hoursOld?: number,        — max age in hours (default 48)
- *    limit?: number,           — max results (default 50)
- *    offset?: number,          — pagination (default 0)
- *    triggerMatch?: boolean,   — fire background match-jobs if unscored jobs exist
- *  }
- *
- * Response:
- *  {
- *    jobs: JobResult[],
- *    total: number,
- *    searchTerm: string,
- *    matchingTriggered: boolean,
- *    source: "icareeros-native-v6"
+ *    minFitScore?: number,
+ *    daysOld?: number,          — max age in days (default 7)
+ *    limit?: number,            — max results (default 50)
+ *    offset?: number,
+ *    triggerMatch?: boolean,
  *  }
  */
 
@@ -41,6 +30,16 @@ const corsHeaders = {
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY  = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ANON_KEY     = Deno.env.get("SUPABASE_ANON_KEY")!;
+
+// Words that are too generic to be useful as search terms
+const NOISE = new Set([
+  "and","the","for","with","that","from","this","have","will","your",
+  "our","their","team","work","role","level","years","experience",
+  "business","process","operations","services","enterprise","solutions",
+  "digital","strategy","development","information","improvement",
+  "regulatory","service","change","employee","cloud","customer","product",
+  "data","people","support","using","strong","ability","skills",
+]);
 
 // ---------------------------------------------------------------------------
 // Inline PostgREST helper (zero deps)
@@ -98,7 +97,20 @@ function triggerBackgroundMatch(authToken: string, userId: string): void {
     },
     body: JSON.stringify({ userId, limit: 50 }),
   }).catch((e) => console.warn("[discover-jobs] Background match trigger failed:", e));
-  // fire-and-forget — response ignored
+}
+
+// ---------------------------------------------------------------------------
+// Build multi-term PostgREST OR filter
+// Returns null if no valid terms found
+// ---------------------------------------------------------------------------
+
+function buildOrFilter(terms: string[]): string | null {
+  const parts = terms
+    .map(t => t.replace(/[%*]/g, "").trim())
+    .filter(t => t.length >= 3);
+  if (!parts.length) return null;
+  // PostgREST ilike uses * as wildcard in URL params
+  return `or=(${parts.map(t => `title.ilike.*${encodeURIComponent(t)}*`).join(",")})`;
 }
 
 // ---------------------------------------------------------------------------
@@ -118,36 +130,38 @@ Deno.serve(async (req) => {
     }
 
     // ── Parse body ────────────────────────────────────────────────────────────
+    const body = await req.json();
     const {
-      searchTerm,
+      searchTerm = "",
+      targetTitles = [],
+      skills = [],
       userId: requestedUserId,
       location,
       isRemote,
       jobType,
       salaryMin,
       minFitScore,
-      hoursOld = 48,
+      daysOld = 7,          // default: 7 days (was 48 hours — too short)
+      hoursOld,             // legacy: if provided, takes precedence
       limit = 50,
       offset = 0,
       triggerMatch = true,
-    } = await req.json();
+    } = body;
 
-    if (!searchTerm?.trim()) {
-      return jsonRes({ error: "searchTerm is required" }, 400);
-    }
-
-    // Use authenticated userId, fall back to requested (for service-role calls)
     const userId = authenticatedUserId ?? requestedUserId ?? null;
-    const term = searchTerm.trim();
-    const cutoff = new Date(Date.now() - hoursOld * 60 * 60 * 1000).toISOString();
+
+    // Resolve time window: prefer daysOld, but accept legacy hoursOld
+    const effectiveDays = hoursOld ? Math.ceil(hoursOld / 24) : (daysOld || 7);
+    const cutoff = new Date(Date.now() - effectiveDays * 86400000).toISOString();
 
     // ── Log search (fire-and-forget) ──────────────────────────────────────────
-    if (userId) {
+    const logTerm = targetTitles[0] || searchTerm || "";
+    if (userId && logTerm) {
       pgrest("search_queries", "", {
         method: "POST",
         body: JSON.stringify({
           user_id: userId,
-          search_term: term,
+          search_term: logTerm,
           location: location ?? null,
           is_remote: isRemote ?? null,
         }),
@@ -155,40 +169,104 @@ Deno.serve(async (req) => {
       }).catch(() => {});
     }
 
-    // ── Query job_postings ────────────────────────────────────────────────────
+    // ── scraped_jobs column list ──────────────────────────────────────────────
+    // Uses the compatibility view: maps jobs → old frontend column names
     const selectCols = [
-      "id", "external_id", "title", "company", "location", "is_remote",
-      "job_type", "salary_min", "salary_max", "salary_currency",
-      "description", "job_url", "apply_url", "source", "date_posted", "scraped_at",
+      "id", "title", "company", "location", "is_remote",
+      "job_type", "salary", "description", "job_url",
+      "source", "date_posted", "first_seen_at", "quality_score",
+      "is_flagged", "flag_reasons", "seniority",
     ].join(",");
 
-    const filters: string[] = [
+    // ── Build two-pass search (title-first, then description) ─────────────────
+
+    // PASS 1: Title matches from user's target titles + free-text query keywords
+    const titleTerms: string[] = [
+      ...targetTitles.map((t: string) =>
+        t.replace(/[,&()]/g, " ").replace(/[%*]/g, "").replace(/\s+/g, " ").trim()
+      ).filter((t: string) => t.length >= 3),
+    ];
+
+    // Add meaningful words from the free-text searchTerm to title pass
+    if (searchTerm && searchTerm.trim()) {
+      const queryWords = searchTerm.split(/\s+/)
+        .map((w: string) => w.replace(/[^a-zA-Z0-9\-]/g, "").trim())
+        .filter((w: string) => w.length >= 4 && !NOISE.has(w.toLowerCase()));
+      titleTerms.push(...queryWords.slice(0, 4));
+    }
+
+    // PASS 2: Skill phrases matched in description
+    const skillPhrases = skills
+      .map((s: string) => s.replace(/[%*()\[\]]/g, "").replace(/[,&]/g, " ").replace(/\s+/g, " ").trim())
+      .filter((s: string) => s.length >= 5);
+
+    let pass1Jobs: any[] = [];
+    let pass2Jobs: any[] = [];
+
+    const baseParams = [
       `select=${selectCols}`,
-      `scraped_at=gte.${cutoff}`,
-      `or=(title.ilike.*${encodeURIComponent(term)}*,company.ilike.*${encodeURIComponent(term)}*,description.ilike.*${encodeURIComponent(term)}*)`,
-      `order=scraped_at.desc`,
+      `first_seen_at=gte.${cutoff}`,       // correct column for scraped_jobs
+      `order=quality_score.desc`,
       `offset=${offset}`,
       `limit=${Math.min(limit, 200)}`,
     ];
-
-    if (location && location.toLowerCase() !== "remote") {
-      filters.push(`location=ilike.*${encodeURIComponent(location)}*`);
+    if (location && !/^\s*remote\s*$/i.test(location)) {
+      baseParams.push(`location=ilike.*${encodeURIComponent(location)}*`);
     }
-    if (isRemote) filters.push(`is_remote=eq.true`);
-    if (jobType)  filters.push(`job_type=eq.${encodeURIComponent(jobType)}`);
-    if (salaryMin) filters.push(`salary_min=gte.${salaryMin}`);
+    if (isRemote) baseParams.push(`is_remote=eq.true`);
+    if (jobType)  baseParams.push(`job_type=eq.${encodeURIComponent(jobType)}`);
+    if (salaryMin) baseParams.push(`salary_min=gte.${salaryMin}`);
 
-    const jobs: any[] = (await pgrest("job_postings", filters.join("&"))) ?? [];
+    // ── PASS 1 query ──────────────────────────────────────────────────────────
+    if (titleTerms.length > 0) {
+      const titleOr = titleTerms.slice(0, 20)
+        .map((t: string) => `title.ilike.*${encodeURIComponent(t)}*`)
+        .join(",");
+      const p1Params = [...baseParams, `or=(${titleOr})`];
+      try {
+        pass1Jobs = (await pgrest("scraped_jobs", p1Params.join("&"))) ?? [];
+      } catch (e) {
+        console.warn("[discover-jobs] Pass 1 error:", e instanceof Error ? e.message : e);
+      }
+    }
+
+    const pass1Ids = new Set(pass1Jobs.map((j: any) => j.id));
+
+    // ── PASS 2 query ──────────────────────────────────────────────────────────
+    if (skillPhrases.length > 0) {
+      const descOr = skillPhrases.slice(0, 8)
+        .map((p: string) => `description.ilike.*${encodeURIComponent(p)}*`)
+        .join(",");
+      const p2Params = [...baseParams, `or=(${descOr})`];
+      try {
+        const raw = (await pgrest("scraped_jobs", p2Params.join("&"))) ?? [];
+        // Exclude jobs already in pass 1
+        pass2Jobs = raw.filter((j: any) => !pass1Ids.has(j.id));
+      } catch (e) {
+        console.warn("[discover-jobs] Pass 2 error:", e instanceof Error ? e.message : e);
+      }
+    }
+
+    // If no target titles but there's a searchTerm, fall back to broad description match
+    if (pass1Jobs.length === 0 && pass2Jobs.length === 0 && searchTerm.trim()) {
+      const fallbackOr = `or=(title.ilike.*${encodeURIComponent(searchTerm.trim())}*,description.ilike.*${encodeURIComponent(searchTerm.trim())}*)`;
+      try {
+        pass1Jobs = (await pgrest("scraped_jobs", [...baseParams, fallbackOr].join("&"))) ?? [];
+      } catch (e) {
+        console.warn("[discover-jobs] Fallback query error:", e instanceof Error ? e.message : e);
+      }
+    }
+
+    // Combine: title matches first, then skill matches
+    let jobs: any[] = [...pass1Jobs, ...pass2Jobs].slice(0, Math.min(limit, 200));
 
     // ── Enrich with AI fit scores ─────────────────────────────────────────────
-    let jobsWithScores = jobs;
     let matchingTriggered = false;
 
-    if (userId && jobsWithScores.length > 0) {
-      const jobIds = jobsWithScores.map((j: any) => j.id);
+    if (userId && jobs.length > 0) {
+      const jobIds = jobs.map((j: any) => j.id);
 
       try {
-        // Fetch cached matches for these specific jobs
         const matches: any[] = await pgrest(
           "user_job_matches",
           `select=job_id,fit_score,matched_skills,skill_gaps,strengths,red_flags,match_summary,effort_level,response_prob,smart_tag,is_saved,is_ignored,is_applied` +
@@ -200,10 +278,10 @@ Deno.serve(async (req) => {
         if (matches?.length) {
           const matchMap = new Map(matches.map((m: any) => [m.job_id, m]));
 
-          jobsWithScores = jobsWithScores
+          jobs = jobs
             .filter((j: any) => {
               const m = matchMap.get(j.id);
-              return !m?.is_ignored; // hide ignored jobs
+              return !m?.is_ignored;
             })
             .map((job: any) => {
               const m = matchMap.get(job.id);
@@ -223,15 +301,20 @@ Deno.serve(async (req) => {
               } : { ...job, fit_score: null };
             });
 
-          // Apply minFitScore filter (only to jobs that have been scored)
+          // Apply minFitScore filter (only scored jobs)
           if (minFitScore && minFitScore > 0) {
-            jobsWithScores = jobsWithScores.filter(
+            jobs = jobs.filter(
               (j: any) => j.fit_score === null || j.fit_score >= minFitScore
             );
           }
 
-          // Sort: scored jobs first (by score desc), then unscored
-          jobsWithScores.sort((a: any, b: any) => {
+          // Re-sort: title-pass jobs (earlier in array) stay first,
+          // within each group sort scored jobs by fit_score
+          const pass1Set = new Set(pass1Jobs.map((j: any) => j.id));
+          jobs.sort((a: any, b: any) => {
+            const aIsTitle = pass1Set.has(a.id) ? 0 : 1;
+            const bIsTitle = pass1Set.has(b.id) ? 0 : 1;
+            if (aIsTitle !== bIsTitle) return aIsTitle - bIsTitle;
             if (a.fit_score === null && b.fit_score === null) return 0;
             if (a.fit_score === null) return 1;
             if (b.fit_score === null) return -1;
@@ -239,21 +322,16 @@ Deno.serve(async (req) => {
           });
         }
 
-        // Trigger background matching if there are unscored jobs
+        // Trigger background matching for unscored jobs
         const scoredIds = new Set(matches?.map((m: any) => m.job_id) ?? []);
         const unscoredCount = jobIds.filter((id: string) => !scoredIds.has(id)).length;
-
         if (triggerMatch && unscoredCount > 0 && token) {
           triggerBackgroundMatch(token, userId);
           matchingTriggered = true;
-          console.log(`[discover-jobs] Triggered background match for ${unscoredCount} unscored jobs (user ${userId})`);
         }
 
       } catch (enrichErr) {
-        // user_job_matches may not exist yet — skip enrichment gracefully
         console.warn("[discover-jobs] Enrichment skipped:", enrichErr instanceof Error ? enrichErr.message : enrichErr);
-
-        // Still trigger matching so the table gets populated
         if (triggerMatch && token) {
           triggerBackgroundMatch(token, userId);
           matchingTriggered = true;
@@ -262,11 +340,11 @@ Deno.serve(async (req) => {
     }
 
     return jsonRes({
-      jobs: jobsWithScores,
-      total: jobsWithScores.length,
-      searchTerm: term,
+      jobs,
+      total: jobs.length,
+      searchTerm: targetTitles[0] || searchTerm || "",
       matchingTriggered,
-      source: "icareeros-native-v6",
+      source: "icareeros-native-v7",
     });
 
   } catch (err) {
