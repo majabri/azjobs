@@ -234,21 +234,55 @@ export async function searchDatabaseJobsFallback(filters: JobSearchFilters): Pro
     const POSTGREST_RESERVED = new Set(["and","or","not","in","is","null","true","false","eq","neq","gt","gte","lt","lte","like","ilike","cs","cd","sl","sr","nxr","nxl","adj","ov","fts","plfts","phfts","wfts"]);
 
     const orParts: string[] = [];
+
+    // 1. Target titles → exact phrase match in title (most specific signal)
     for (const t of filters.targetTitles) {
-      // Strip special chars that break PostgREST parser (commas, &, parens)
       const safe = t.replace(/[,&()]/g, " ").replace(/%/g, "").replace(/_/g, " ").trim();
       if (safe.length >= 3) orParts.push(`title.ilike.%${safe}%`);
     }
-    const keywords = [filters.query, ...filters.skills]
-      .flatMap(s => (s || "").split(/[\s,&]+/))
-      .map(s => s.replace(/[%_()\[\]]/g, "").trim())
-      .filter(s => s.length >= 4 && !POSTGREST_RESERVED.has(s.toLowerCase()));
-    const uniqueKeywords = [...new Set(keywords)];
-    // Cap at 8 keywords to keep OR clause manageable
-    for (const kw of uniqueKeywords.slice(0, 8)) {
-      orParts.push(`title.ilike.%${kw}%`);
-      orParts.push(`description.ilike.%${kw}%`);
+
+    // 2. Skills — match as WHOLE PHRASES in description (not split into individual words).
+    //    Splitting "Business Process Improvement" into ["Business","Process","Improvement"]
+    //    caused every generic job to match. Full-phrase matching is far more precise.
+    const skillPhrases = filters.skills
+      .map(s => s.replace(/[%_()\[\]]/g, "").replace(/[,&]/g, " ").replace(/\s+/g, " ").trim())
+      .filter(s => s.length >= 5);
+
+    for (const phrase of skillPhrases.slice(0, 6)) {
+      orParts.push(`description.ilike.%${phrase}%`);
     }
+
+    // Also add domain-specific single keywords from skills to title matching.
+    // Skip generic noise words that would match every job posting.
+    const NOISE_WORDS = new Set([
+      "and","the","for","with","that","from","business","process","management",
+      "digital","strategy","operations","development","services","enterprise",
+      "information","improvement","regulatory","service","change","employee",
+      "cloud","customer","product","data","team","people","work","support",
+    ]);
+    const titleKws = [...new Set(
+      skillPhrases
+        .flatMap(s => s.split(/\s+/))
+        .map(w => w.replace(/[^a-zA-Z0-9\-]/g, "").trim())
+        .filter(w => w.length >= 7 && !NOISE_WORDS.has(w.toLowerCase()) && !POSTGREST_RESERVED.has(w.toLowerCase()))
+    )].slice(0, 5);
+    for (const kw of titleKws) {
+      orParts.push(`title.ilike.%${kw}%`);
+    }
+
+    // 3. Free-text query keywords (user-typed search only — split is fine here)
+    if (filters.query) {
+      const queryKws = [...new Set(
+        filters.query.split(/[\s,&]+/)
+          .map(s => s.replace(/[%_()\[\]]/g, "").trim())
+          .filter(s => s.length >= 4 && !POSTGREST_RESERVED.has(s.toLowerCase()))
+      )];
+      for (const kw of queryKws.slice(0, 4)) {
+        orParts.push(`title.ilike.%${kw}%`);
+        orParts.push(`description.ilike.%${kw}%`);
+      }
+    }
+
     // Hard cap at 20 OR parts to prevent parser overflow
     if (orParts.length > 0) query = query.or(orParts.slice(0, 20).join(","));
     if (filters.location && !/^\s*remote\s*$/i.test(filters.location)) query = query.ilike("location", `%${filters.location}%`);
