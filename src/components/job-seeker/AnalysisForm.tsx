@@ -39,6 +39,7 @@ interface InlineAlert {
   variant: AlertVariant;
   message: string;
   showPartialActions?: boolean;
+  showBrowserExtract?: boolean;
   rateLimitSecondsLeft?: number;
 }
 
@@ -93,13 +94,15 @@ const ALERT_STYLES: Record<AlertVariant, { container: string; icon: string; Icon
 };
 
 function InlineAlertBanner({
-  alert, onDismiss, onKeep, onClear, onFocusTextarea,
+  alert, onDismiss, onKeep, onClear, onFocusTextarea, onOpenTab, onPasteClipboard,
 }: {
   alert: InlineAlert;
   onDismiss: () => void;
   onKeep?: () => void;
   onClear?: () => void;
   onFocusTextarea?: () => void;
+  onOpenTab?: () => void;
+  onPasteClipboard?: () => void;
 }) {
   const s = ALERT_STYLES[alert.variant];
   const Icon = s.IconEl;
@@ -123,7 +126,13 @@ function InlineAlertBanner({
             </button>
           </div>
         )}
-        {alert.variant === "error" && !alert.showPartialActions && onFocusTextarea && (
+        {alert.showBrowserExtract && onOpenTab && onPasteClipboard && (
+          <div className="mt-2 flex gap-2 flex-wrap">
+            <button onClick={onOpenTab} className="rounded-md bg-current/10 px-2.5 py-1 text-xs font-medium hover:bg-current/20 transition-colors">Open job tab ↗</button>
+            <button onClick={onPasteClipboard} className="rounded-md bg-current/10 px-2.5 py-1 text-xs font-medium hover:bg-current/20 transition-colors">Paste from clipboard ↓</button>
+          </div>
+        )}
+        {alert.variant === "error" && !alert.showPartialActions && !alert.showBrowserExtract && onFocusTextarea && (
           <button onClick={onFocusTextarea} className="mt-1 text-xs font-medium underline underline-offset-2 hover:opacity-80">
             Paste manually ↓
           </button>
@@ -211,10 +220,34 @@ export default function AnalysisForm({ onAnalyze, isAnalyzing, isDemo, prefillJo
         return;
       }
 
-      setUrlAlert({ variant: "error", message: err });
+      const needsBrowser = err.toLowerCase().includes("browser") || err.toLowerCase().includes("blocks server") || err.toLowerCase().includes("requires a browser") || err.toLowerCase().includes("ip-block");
+      setUrlAlert({ variant: "error", message: err, showBrowserExtract: needsBrowser });
     },
     [startRateLimitCountdown]
   );
+
+  const handleOpenTab = () => {
+    if (jobLink.trim()) {
+      window.open(jobLink.trim(), '_blank', 'noopener,noreferrer');
+      setUrlAlert({ variant: 'warning', message: 'Job opened in new tab — press Ctrl+A then Ctrl+C on that tab to select all and copy, then click "Paste from clipboard" below.', showBrowserExtract: true });
+    }
+  };
+
+  const handlePasteClipboard = async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text && text.trim().length > 100) {
+        setJobDesc(text.slice(0, 8000));
+        setUrlAlert(null);
+        setTimeout(() => jobDescRef.current?.focus(), 50);
+      } else {
+        setUrlAlert({ variant: 'error', message: 'Clipboard is empty. Copy the job page text first (Ctrl+A, Ctrl+C), then try again.' });
+      }
+    } catch {
+      setUrlAlert({ variant: 'error', message: 'Clipboard access denied. Please paste the job description directly into the text box.' });
+      setTimeout(() => jobDescRef.current?.focus(), 50);
+    }
+  };
 
   // Auto-load on mount
   useEffect(() => {
@@ -237,6 +270,7 @@ export default function AnalysisForm({ onAnalyze, isAnalyzing, isDemo, prefillJo
   const handleFetchJobLink = async () => {
     if (!jobLink.trim() || isFetchingJob || rateLimitSeconds > 0) return;
     setUrlAlert(null);
+    setJobDesc(""); // clear stale content
     setIsFetchingJob(true);
     try { handleScrapeResult(await scrapeUrl(jobLink)); }
     catch { setUrlAlert({ variant: "error", message: "The request timed out. Please try again or paste the description manually." }); }
@@ -361,6 +395,8 @@ export default function AnalysisForm({ onAnalyze, isAnalyzing, isDemo, prefillJo
             onKeep={() => setUrlAlert(null)}
             onClear={() => { setJobDesc(""); setUrlAlert(null); jobDescRef.current?.focus(); }}
             onFocusTextarea={() => { jobDescRef.current?.focus(); setUrlAlert(null); }}
+            onOpenTab={handleOpenTab}
+            onPasteClipboard={handlePasteClipboard}
           />
         )}
       </div>
