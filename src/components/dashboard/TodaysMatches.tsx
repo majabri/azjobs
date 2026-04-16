@@ -370,7 +370,7 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
       const { jobs: rawResults } = await searchJobsService({
         skills: profile.skills?.slice(0, 10) || [],
         jobTypes: profile.preferred_job_types || [],
-        location: profile.location || "",
+        location: (profile.location && profile.location !== '<UNKNOWN>') ? profile.location : "",
         query: "",
         careerLevel: profile.career_level || "",
         targetTitles: profile.target_job_titles || [],
