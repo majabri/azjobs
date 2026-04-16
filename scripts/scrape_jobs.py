@@ -24,26 +24,55 @@ SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY")
 if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
     log.error("SUPABASE_URL and SUPABASE_SERVICE_KEY are required"); sys.exit(1)
 
-# Baseline searches — always run regardless of user queries
+# Baseline searches — always run regardless of user queries.
+# Covers the full breadth of roles iCareerOS users target, not just engineering.
 BASELINE_CONFIGS = [
-    {"term": "software engineer",         "location": "United States", "is_remote": True},
-    {"term": "software engineer",         "location": "San Francisco, CA"},
-    {"term": "software engineer",         "location": "New York, NY"},
-    {"term": "frontend developer",        "location": "United States", "is_remote": True},
-    {"term": "backend developer",         "location": "United States", "is_remote": True},
-    {"term": "full stack developer",      "location": "United States", "is_remote": True},
-    {"term": "product manager",           "location": "United States", "is_remote": True},
-    {"term": "product manager",           "location": "San Francisco, CA"},
-    {"term": "data scientist",            "location": "United States", "is_remote": True},
-    {"term": "data engineer",             "location": "United States", "is_remote": True},
-    {"term": "machine learning engineer", "location": "United States", "is_remote": True},
-    {"term": "devops engineer",           "location": "United States", "is_remote": True},
-    {"term": "UX designer",               "location": "United States", "is_remote": True},
-    {"term": "engineering manager",       "location": "United States", "is_remote": True},
-    {"term": "financial analyst",         "location": "New York, NY"},
-    {"term": "business analyst",          "location": "United States", "is_remote": True},
-    {"term": "software engineer intern",  "location": "United States"},
-    {"term": "junior software engineer",  "location": "United States", "is_remote": True},
+    # ── Software Engineering ──────────────────────────────────────────────────
+    {"term": "software engineer",          "location": "United States", "is_remote": True},
+    {"term": "software engineer",          "location": "San Francisco, CA"},
+    {"term": "software engineer",          "location": "New York, NY"},
+    {"term": "frontend developer",         "location": "United States", "is_remote": True},
+    {"term": "backend developer",          "location": "United States", "is_remote": True},
+    {"term": "full stack developer",       "location": "United States", "is_remote": True},
+    {"term": "devops engineer",            "location": "United States", "is_remote": True},
+    {"term": "cloud architect",            "location": "United States", "is_remote": True},
+    {"term": "site reliability engineer",  "location": "United States", "is_remote": True},
+    {"term": "junior software engineer",   "location": "United States", "is_remote": True},
+    {"term": "software engineer intern",   "location": "United States"},
+
+    # ── Cybersecurity ─────────────────────────────────────────────────────────
+    {"term": "CISO",                             "location": "United States", "is_remote": True},
+    {"term": "VP of Cybersecurity",              "location": "United States", "is_remote": True},
+    {"term": "VP of Information Security",       "location": "United States", "is_remote": True},
+    {"term": "Director of Cybersecurity",        "location": "United States", "is_remote": True},
+    {"term": "Director of Information Security", "location": "United States", "is_remote": True},
+    {"term": "cybersecurity manager",            "location": "United States", "is_remote": True},
+    {"term": "information security manager",     "location": "United States", "is_remote": True},
+    {"term": "cybersecurity engineer",           "location": "United States", "is_remote": True},
+    {"term": "security architect",               "location": "United States", "is_remote": True},
+    {"term": "cloud security engineer",          "location": "United States", "is_remote": True},
+    {"term": "penetration tester",               "location": "United States", "is_remote": True},
+    {"term": "security analyst",                 "location": "United States", "is_remote": True},
+
+    # ── Product & Design ──────────────────────────────────────────────────────
+    {"term": "product manager",            "location": "United States", "is_remote": True},
+    {"term": "product manager",            "location": "San Francisco, CA"},
+    {"term": "UX designer",                "location": "United States", "is_remote": True},
+
+    # ── Data & AI ─────────────────────────────────────────────────────────────
+    {"term": "data scientist",             "location": "United States", "is_remote": True},
+    {"term": "data engineer",              "location": "United States", "is_remote": True},
+    {"term": "machine learning engineer",  "location": "United States", "is_remote": True},
+    {"term": "AI engineer",                "location": "United States", "is_remote": True},
+
+    # ── Leadership & Management ───────────────────────────────────────────────
+    {"term": "engineering manager",        "location": "United States", "is_remote": True},
+    {"term": "VP of Engineering",          "location": "United States", "is_remote": True},
+    {"term": "CTO",                        "location": "United States", "is_remote": True},
+
+    # ── Finance & Business ────────────────────────────────────────────────────
+    {"term": "financial analyst",          "location": "New York, NY"},
+    {"term": "business analyst",           "location": "United States", "is_remote": True},
 ]
 
 SITES = ["indeed", "google", "zip_recruiter"]
@@ -71,21 +100,56 @@ def norm_type(raw):
     return m.get(str(raw).lower().replace(" ",""), None)
 
 def get_dynamic_configs(supabase):
-    """Read top user search terms from last 7 days and add them to configs."""
+    """
+    Build dynamic search configs from two sources:
+    1. Top user search queries from the last 7 days (search_queries table)
+    2. Target job titles from all active user profiles (job_seeker_profiles table)
+    Both are deduplicated against BASELINE_CONFIGS.
+    """
+    dynamic = []
+    existing_terms = {(c["term"].lower(), c["location"]) for c in BASELINE_CONFIGS}
+
+    # ── Source 1: recent user search queries ─────────────────────────────────
     try:
         result = supabase.rpc("get_top_search_terms", {"limit_count": 10}).execute()
-        dynamic = []
         if result.data:
             for row in result.data:
-                term = row.get("search_term", "")
-                loc  = row.get("location") or "United States"
-                if term and not any(c["term"] == term and c["location"] == loc
-                                    for c in BASELINE_CONFIGS):
-                    dynamic.append({"term": term, "location": loc})
-        return dynamic
+                term = (row.get("search_term") or "").strip()
+                loc  = (row.get("location") or "United States").strip() or "United States"
+                if term and (term.lower(), loc) not in existing_terms:
+                    dynamic.append({"term": term, "location": loc, "is_remote": True})
+                    existing_terms.add((term.lower(), loc))
     except Exception as e:
-        log.warning(f"Could not fetch dynamic configs: {e}")
-        return []
+        log.warning(f"Could not fetch dynamic search terms: {e}")
+
+    # ── Source 2: target job titles from user profiles ────────────────────────
+    try:
+        result = (supabase.table("job_seeker_profiles")
+                  .select("target_job_titles, location")
+                  .execute())
+        if result.data:
+            for profile in result.data:
+                titles = profile.get("target_job_titles") or []
+                loc    = (profile.get("location") or "United States").strip()
+                # Ignore sentinel values and very short locations
+                if not loc or loc in ("<UNKNOWN>", "unknown") or len(loc) < 2:
+                    loc = "United States"
+                for title in titles:
+                    title = (title or "").strip()
+                    if not title or len(title) < 3:
+                        continue
+                    # Add remote search for each target title
+                    if (title.lower(), "United States") not in existing_terms:
+                        dynamic.append({"term": title, "location": "United States", "is_remote": True})
+                        existing_terms.add((title.lower(), "United States"))
+                    # Also add location-specific if profile has one
+                    if loc != "United States" and (title.lower(), loc) not in existing_terms:
+                        dynamic.append({"term": title, "location": loc})
+                        existing_terms.add((title.lower(), loc))
+    except Exception as e:
+        log.warning(f"Could not fetch profile target titles: {e}")
+
+    return dynamic
 
 def run():
     supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)

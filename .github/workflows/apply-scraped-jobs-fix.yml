@@ -1,0 +1,29 @@
+name: Apply scraped_jobs view fix
+
+on:
+  workflow_dispatch:
+
+jobs:
+  migrate:
+    name: Restore scraped_jobs → job_postings + HTML decode
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Apply migration via Supabase Management API
+        run: |
+          SQL=$(cat supabase/migrations/20260416_006_fix_scraped_jobs_view.sql)
+          RESPONSE=$(curl -s -w "\n%{http_code}" \
+            -X POST "https://api.supabase.com/v1/projects/bryoehuhhhjqcueomgev/database/query" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ACCESS_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"query\": $(echo "$SQL" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')}")
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | head -n -1)
+          echo "HTTP $HTTP_CODE: $BODY"
+          if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
+            echo "✅ scraped_jobs view fixed"
+          else
+            echo "❌ Migration failed"
+            exit 1
+          fi
