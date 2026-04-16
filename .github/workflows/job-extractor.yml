@@ -1,0 +1,55 @@
+name: iCareerOS Job Extractor
+
+# Repo path: .github/workflows/job-extractor.yml
+#
+# Runs nightly at 03:00 UTC (after the 02:00 scrape run)
+# Reads raw_jobs (or job_postings) that haven't been extracted yet
+# Extracts structured data using Claude Haiku (no Ollama needed on GitHub Actions)
+#
+# Required GitHub Secrets:
+#   VITE_SUPABASE_URL         — https://bryoehuhhhjqcueomgev.supabase.co
+#   SUPABASE_SERVICE_ROLE_KEY — service_role key from Supabase dashboard
+#   ANTHROPIC_API_KEY         — from console.anthropic.com
+
+on:
+  schedule:
+    - cron: '0 3 * * *'      # 03:00 UTC daily
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: 'Max jobs to extract (default: 500)'
+        required: false
+        default: '500'
+
+jobs:
+  extract-jobs:
+    name: Extract Jobs (Mistral→Claude)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45      # Extraction is slow — 500 jobs × ~3s = ~25 min
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: |
+          cd src/job-discovery-v2
+          bun install
+
+      - name: Run extraction batch
+        run: |
+          cd src/job-discovery-v2
+          bun run scripts/run-extraction.ts
+        env:
+          SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OLLAMA_API_URL: ''             # Blank = skip Mistral, go straight to Claude
+          EXTRACTION_LIMIT: ${{ github.event.inputs.limit || '500' }}
+
+      - name: Report results
+        if: always()
+        run: echo "Extraction finished at $(date -u)"
