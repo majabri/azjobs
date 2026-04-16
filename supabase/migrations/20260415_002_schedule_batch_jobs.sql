@@ -1,28 +1,25 @@
 -- =============================================================================
 -- iCareerOS v5 — Job Discovery Microservices
--- Migration 002: pg_cron batch scheduling
+-- Migration 002: pg_cron batch scheduling (SQL-only, no edge function HTTP calls)
 --
 -- Pipeline schedule (UTC):
---   02:00  → Scraping already running via GitHub Actions (every 2h, free)
---   03:00  → Extract: raw_jobs → extracted_jobs (Mistral batch)
---   04:00  → Deduplicate: extracted_jobs → deduplicated_jobs
---   05:00  → Score: deduplicated_jobs × user_profiles → job_scores
---   06:00  → Accuracy update: recalculate extraction_accuracy per source
---   08:00  → Daily job alerts (existing job-alerts edge function)
---   00:00  → Weekly: purge old events + archive stale data
+--   02:00  → Scraping via GitHub Actions (every 2h, free)
+--   03:00  → Fire extraction batch event (GitHub Actions picks up + processes)
+--   04:00  → Fire dedup batch event (GitHub Actions picks up + processes)
+--   05:00  → Fire score batch event (GitHub Actions picks up + processes)
+--   06:00  → Recalculate extraction accuracy stats (pure SQL)
+--   Sun 00:00  → Archive stale jobs + purge old events (pure SQL)
 --
--- HOW TO DEPLOY:
---   1. Replace <SUPABASE_URL> with: https://bryoehuhhhjqcueomgev.supabase.co
---   2. Replace <SERVICE_ROLE_KEY> with your actual service_role key
---   3. Run from Supabase dashboard SQL editor
+-- All schedules use pure SQL functions — no HTTP calls, no secrets needed.
+-- GitHub Actions workflows run on their own schedule and also react to
+-- platform_events via the event-listeners service.
 -- =============================================================================
 
 CREATE EXTENSION IF NOT EXISTS pg_cron;
-CREATE EXTENSION IF NOT EXISTS pg_net;  -- Required for HTTP calls from pg_cron
 
 -- =============================================================================
 -- BATCH TRIGGER FUNCTIONS
--- These fire events into platform_events; the TypeScript services poll/react.
+-- These insert events into platform_events; TypeScript services react.
 -- =============================================================================
 
 CREATE OR REPLACE FUNCTION trigger_extract_batch()
@@ -131,7 +128,7 @@ BEGIN
     )
   FROM extraction_accuracy
   WHERE accuracy_7d < 0.80
-    AND total_extractions > 10;  -- Only flag if we have enough data
+    AND total_extractions > 10;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
@@ -141,16 +138,16 @@ DECLARE
   rows_deleted integer := 0;
   n integer;
 BEGIN
-  -- Archive raw_jobs older than 30 days (keep extracted data)
-  DELETE FROM raw_jobs WHERE created_at < now() - interval '30 days' AND raw_html IS NOT NULL;
-  GET DIAGNOSTICS n = ROW_COUNT;
-  rows_deleted := rows_deleted + n;
-
   -- Nullify raw_html on raw_jobs > 7 days (save storage, keep metadata)
   UPDATE raw_jobs SET raw_html = NULL
   WHERE raw_html IS NOT NULL AND created_at < now() - interval '7 days';
 
-  -- Purge old platform events
+  -- Archive raw_jobs older than 30 days (keep extracted data)
+  DELETE FROM raw_jobs WHERE created_at < now() - interval '30 days' AND raw_html IS NULL;
+  GET DIAGNOSTICS n = ROW_COUNT;
+  rows_deleted := rows_deleted + n;
+
+  -- Purge old platform events (> 7 days)
   SELECT purge_old_platform_events() INTO n;
   rows_deleted := rows_deleted + n;
 
@@ -169,66 +166,38 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 
 -- =============================================================================
--- EDGE FUNCTION TRIGGERS (via pg_net HTTP calls)
--- Replace <SUPABASE_URL> and <SERVICE_ROLE_KEY> before running
+-- pg_cron SCHEDULES (SQL-only — no HTTP calls, no secrets required)
 -- =============================================================================
 
--- 03:00 UTC — Trigger extraction batch via Edge Function
+-- 03:00 UTC — fire extraction batch event (GHA job-extractor.yml picks up)
 SELECT cron.schedule(
   'jd-extract-batch',
   '0 3 * * *',
-  $$
-  SELECT net.http_post(
-    url     := '<SUPABASE_URL>/functions/v1/jd-extraction-runner',
-    headers := jsonb_build_object(
-      'Authorization', 'Bearer <SERVICE_ROLE_KEY>',
-      'Content-Type',  'application/json'
-    ),
-    body    := '{"mode":"batch","limit":500}'::jsonb
-  );
-  $$
+  'SELECT trigger_extract_batch()'
 );
 
--- 04:00 UTC — Trigger deduplication
+-- 04:00 UTC — fire dedup batch event (GHA job-deduplicator.yml picks up)
 SELECT cron.schedule(
   'jd-dedup-batch',
   '0 4 * * *',
-  $$
-  SELECT net.http_post(
-    url     := '<SUPABASE_URL>/functions/v1/jd-dedup-runner',
-    headers := jsonb_build_object(
-      'Authorization', 'Bearer <SERVICE_ROLE_KEY>',
-      'Content-Type',  'application/json'
-    ),
-    body    := '{"mode":"batch"}'::jsonb
-  );
-  $$
+  'SELECT trigger_dedup_batch()'
 );
 
--- 05:00 UTC — Trigger profile matching / scoring
+-- 05:00 UTC — fire score/match batch event (GHA job-matcher.yml picks up)
 SELECT cron.schedule(
   'jd-score-batch',
   '0 5 * * *',
-  $$
-  SELECT net.http_post(
-    url     := '<SUPABASE_URL>/functions/v1/jd-matching-runner',
-    headers := jsonb_build_object(
-      'Authorization', 'Bearer <SERVICE_ROLE_KEY>',
-      'Content-Type',  'application/json'
-    ),
-    body    := '{"mode":"batch"}'::jsonb
-  );
-  $$
+  'SELECT trigger_score_batch()'
 );
 
--- 06:00 UTC — Recalculate extraction accuracy stats (pure SQL, no edge fn needed)
+-- 06:00 UTC — recalculate extraction accuracy (pure SQL, no service needed)
 SELECT cron.schedule(
   'jd-accuracy-update',
   '0 6 * * *',
   'SELECT update_extraction_accuracy_stats()'
 );
 
--- 00:00 UTC Sunday — Archive stale data
+-- 00:00 UTC Sunday — archive stale data + purge old events
 SELECT cron.schedule(
   'jd-archive-stale',
   '0 0 * * 0',
@@ -237,8 +206,26 @@ SELECT cron.schedule(
 
 
 -- =============================================================================
--- MANUAL BATCH TRIGGERS (for testing without waiting for cron)
--- Run these from Supabase SQL editor to test each stage
+-- VERIFICATION
+-- =============================================================================
+DO $$
+BEGIN
+  ASSERT EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'jd-extract-batch'),
+    'jd-extract-batch cron job must exist';
+  ASSERT EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'jd-dedup-batch'),
+    'jd-dedup-batch cron job must exist';
+  ASSERT EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'jd-score-batch'),
+    'jd-score-batch cron job must exist';
+  ASSERT EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'jd-accuracy-update'),
+    'jd-accuracy-update cron job must exist';
+  ASSERT EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'jd-archive-stale'),
+    'jd-archive-stale cron job must exist';
+  RAISE NOTICE '✅ Migration 002 verified: all 5 pg_cron jobs scheduled';
+END $$;
+
+
+-- =============================================================================
+-- MANUAL TEST HELPERS (run from SQL editor to test each stage)
 -- =============================================================================
 
 -- Test extraction trigger:
@@ -253,8 +240,8 @@ SELECT cron.schedule(
 -- Check pipeline stats:
 -- SELECT * FROM pipeline_stats_24h;
 
--- Check scheduled jobs:
--- SELECT * FROM cron.job;
+-- Check all scheduled jobs:
+-- SELECT jobname, schedule, command FROM cron.job ORDER BY jobname;
 
 -- Remove all scheduled jobs (if needed):
 -- SELECT cron.unschedule('jd-extract-batch');

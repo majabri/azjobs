@@ -35,9 +35,7 @@ CREATE INDEX IF NOT EXISTS idx_raw_jobs_source     ON raw_jobs(source);
 CREATE INDEX IF NOT EXISTS idx_raw_jobs_url        ON raw_jobs(url);
 CREATE INDEX IF NOT EXISTS idx_raw_jobs_fetched    ON raw_jobs(fetched_at DESC);
 CREATE INDEX IF NOT EXISTS idx_raw_jobs_source_id  ON raw_jobs(source, source_job_id);
-CREATE INDEX IF NOT EXISTS idx_raw_jobs_unextracted
-  ON raw_jobs(created_at DESC)
-  WHERE id NOT IN (SELECT raw_job_id FROM extracted_jobs WHERE raw_job_id IS NOT NULL);
+CREATE INDEX IF NOT EXISTS idx_raw_jobs_created ON raw_jobs(created_at DESC);
 
 
 -- Extracted jobs (structured data parsed by Mistral 7B or Claude)
@@ -69,9 +67,7 @@ CREATE INDEX IF NOT EXISTS idx_extracted_company    ON extracted_jobs(company);
 CREATE INDEX IF NOT EXISTS idx_extracted_skills     ON extracted_jobs USING GIN(required_skills);
 CREATE INDEX IF NOT EXISTS idx_extracted_confidence ON extracted_jobs(confidence_score DESC);
 CREATE INDEX IF NOT EXISTS idx_extracted_source     ON extracted_jobs(source, extracted_at DESC);
-CREATE INDEX IF NOT EXISTS idx_extracted_undeduped
-  ON extracted_jobs(created_at DESC)
-  WHERE id NOT IN (SELECT primary_extracted_job_id FROM deduplicated_jobs WHERE primary_extracted_job_id IS NOT NULL);
+CREATE INDEX IF NOT EXISTS idx_extracted_created ON extracted_jobs(created_at DESC);
 
 
 -- Deduplicated jobs (1 record per unique title+company+location)
