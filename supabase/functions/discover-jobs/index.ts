@@ -183,7 +183,14 @@ Deno.serve(async (req) => {
 
     // Extract key 2-3 word phrases from a long title for broader matching.
     // e.g. "Business Information Security Officer" → ["Information Security", "Security Officer"]
-    // This lets specific profile titles match common job board listings (CISO, Security Architect, etc.)
+    // Only keeps phrases that contain at least one domain-signal word, so generic terms
+    // like "Vice President" alone don't flood results with off-domain VP roles.
+    const DOMAIN_SIGNALS = new Set([
+      "security","cyber","cybersecurity","ciso","privacy","compliance","risk","governance",
+      "architect","engineering","infrastructure","cloud","devops","data","analytics","ai","ml",
+      "product","marketing","finance","legal","operations","procurement","hr","talent","recruiting",
+      "sales","design","ux","research","audit","fraud","identity","access","network","systems",
+    ]);
     function extractTitleKeyPhrases(title: string): string[] {
       const TITLE_STOP = new Set(["of","and","the","in","for","at","a","an","to","with","by","i","ii","iii","iv"]);
       const words = title.replace(/[,&()\./]/g, " ").split(/\s+/)
@@ -191,13 +198,15 @@ Deno.serve(async (req) => {
         .filter(w => w.length > 2 && !TITLE_STOP.has(w.toLowerCase()));
       const phrases: string[] = [];
       for (let i = 0; i < words.length - 1; i++) {
-        // 2-word phrases
         const p2 = `${words[i]} ${words[i+1]}`;
-        if (p2.length >= 8 && !NOISE.has(words[i].toLowerCase())) phrases.push(p2);
-        // 3-word phrases
+        // Only add if at least one word is a domain signal
+        const p2Words = [words[i].toLowerCase(), words[i+1].toLowerCase()];
+        const hasSignal = p2Words.some(w => DOMAIN_SIGNALS.has(w));
+        if (p2.length >= 8 && hasSignal && !NOISE.has(words[i].toLowerCase())) phrases.push(p2);
         if (i < words.length - 2) {
           const p3 = `${words[i]} ${words[i+1]} ${words[i+2]}`;
-          if (p3.length >= 10) phrases.push(p3);
+          const p3Words = [words[i].toLowerCase(), words[i+1].toLowerCase(), words[i+2].toLowerCase()];
+          if (p3.length >= 10 && p3Words.some(w => DOMAIN_SIGNALS.has(w))) phrases.push(p3);
         }
       }
       return phrases;
