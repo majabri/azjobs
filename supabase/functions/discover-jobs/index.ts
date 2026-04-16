@@ -181,12 +181,47 @@ Deno.serve(async (req) => {
 
     // ── Build two-pass search (title-first, then description) ─────────────────
 
-    // PASS 1: Title matches from user's target titles + free-text query keywords
+    // Extract key 2-3 word phrases from a long title for broader matching.
+    // e.g. "Business Information Security Officer" → ["Information Security", "Security Officer"]
+    // This lets specific profile titles match common job board listings (CISO, Security Architect, etc.)
+    function extractTitleKeyPhrases(title: string): string[] {
+      const TITLE_STOP = new Set(["of","and","the","in","for","at","a","an","to","with","by","i","ii","iii","iv"]);
+      const words = title.replace(/[,&()\./]/g, " ").split(/\s+/)
+        .map(w => w.trim())
+        .filter(w => w.length > 2 && !TITLE_STOP.has(w.toLowerCase()));
+      const phrases: string[] = [];
+      for (let i = 0; i < words.length - 1; i++) {
+        // 2-word phrases
+        const p2 = `${words[i]} ${words[i+1]}`;
+        if (p2.length >= 8 && !NOISE.has(words[i].toLowerCase())) phrases.push(p2);
+        // 3-word phrases
+        if (i < words.length - 2) {
+          const p3 = `${words[i]} ${words[i+1]} ${words[i+2]}`;
+          if (p3.length >= 10) phrases.push(p3);
+        }
+      }
+      return phrases;
+    }
+
+    // PASS 1: Title matches from user's target titles + extracted key phrases
     const titleTerms: string[] = [
       ...targetTitles.map((t: string) =>
         t.replace(/[,&()]/g, " ").replace(/[%*]/g, "").replace(/\s+/g, " ").trim()
       ).filter((t: string) => t.length >= 3),
     ];
+
+    // Also add key phrase extractions from long titles — so "Business Information Security Officer"
+    // also triggers searches for "Information Security", "Security Architect", etc.
+    const titleKeyPhrases = targetTitles.flatMap((t: string) => extractTitleKeyPhrases(t));
+    // Deduplicate and add (cap at 15 extra terms to avoid huge OR clauses)
+    const seenTerms = new Set(titleTerms.map((t: string) => t.toLowerCase()));
+    for (const phrase of titleKeyPhrases) {
+      if (!seenTerms.has(phrase.toLowerCase())) {
+        titleTerms.push(phrase);
+        seenTerms.add(phrase.toLowerCase());
+      }
+      if (titleTerms.length >= 30) break;
+    }
 
     // Add meaningful words from the free-text searchTerm to title pass
     if (searchTerm && searchTerm.trim()) {
