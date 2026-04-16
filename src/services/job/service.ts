@@ -313,16 +313,10 @@ export async function searchDatabaseJobsFallback(filters: JobSearchFilters): Pro
       .map(s => s.replace(/[%_()\[\]]/g, "").replace(/[,&]/g, " ").replace(/\s+/g, " ").trim())
       .filter(s => s.length >= 5);
 
-    // Full-phrase description matches (most specific)
+    // Full-phrase description matches only — no single-word title extraction from skill phrases
+    // (splitting "Risk Management and Incident Response" into words like "Incident" / "Response"
+    //  would match unrelated jobs; rely on targetTitles for title-level matching)
     const descOrParts: string[] = skillPhrases.slice(0, 8).map(p => `description.ilike.%${p}%`);
-
-    // Domain-specific title keywords extracted from skill phrases (non-noise, ≥7 chars)
-    const domainKws = [...new Set(
-      skillPhrases.flatMap(s => s.split(/\s+/))
-        .map(w => w.replace(/[^a-zA-Z0-9\-]/g, "").trim())
-        .filter(w => w.length >= 7 && !NOISE_WORDS.has(w.toLowerCase()) && !POSTGREST_RESERVED.has(w.toLowerCase()))
-    )].slice(0, 4);
-    domainKws.forEach(kw => descOrParts.push(`title.ilike.%${kw}%`));
 
     // Also include free-text query in description pass
     if (filters.query) {
