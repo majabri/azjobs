@@ -221,101 +221,140 @@ function formatSalary(min: number | null, max: number | null, currency = "USD"):
 
 export async function searchDatabaseJobsFallback(filters: JobSearchFilters): Promise<JobResult[]> {
   try {
-    const limit  = filters.search_mode === "volume" ? 800 : 200;
-    const offset = filters.offset ?? 0;
-
-    let query = supabase
-      .from("scraped_jobs")
-      .select("id, title, company, location, job_type, description, job_url, quality_score, is_flagged, flag_reasons, salary, market_rate, seniority, is_remote, source, first_seen_at")
-      .order("quality_score", { ascending: false })
-      .range(offset, offset + limit - 1);
+    const limit = filters.search_mode === "volume" ? 800 : 200;
 
     // Reserved words that break PostgREST's OR filter parser
     const POSTGREST_RESERVED = new Set(["and","or","not","in","is","null","true","false","eq","neq","gt","gte","lt","lte","like","ilike","cs","cd","sl","sr","nxr","nxl","adj","ov","fts","plfts","phfts","wfts"]);
 
-    const orParts: string[] = [];
+    const COLS = "id, title, company, location, job_type, description, job_url, quality_score, is_flagged, flag_reasons, salary, market_rate, seniority, is_remote, source, first_seen_at";
 
-    // 1. Target titles → exact phrase match in title (most specific signal)
-    for (const t of filters.targetTitles) {
-      const safe = t.replace(/[,&()]/g, " ").replace(/%/g, "").replace(/_/g, " ").trim();
-      if (safe.length >= 3) orParts.push(`title.ilike.%${safe}%`);
+    // Helper: apply shared non-text filters to a query builder
+    const applyCommonFilters = (q: ReturnType<typeof supabase.from>) => {
+      if (filters.location && !/^\s*remote\s*$/i.test(filters.location))
+        q = (q as any).ilike("location", `%${filters.location}%`);
+      if (filters.jobTypes.includes("remote")) q = (q as any).eq("is_remote", true);
+      const structuredTypes = filters.jobTypes
+        .filter(t => !["remote","hybrid","in-office"].includes(t))
+        .flatMap(t => JOB_TYPE_MAP[t] ?? [t]);
+      if (structuredTypes.length > 0)
+        q = (q as any).or(structuredTypes.map(t => `job_type.ilike.%${t}%`).join(","));
+      const salaryMin = filters.salaryMin ? parseInt(filters.salaryMin.replace(/\D/g,""), 10) : null;
+      const salaryMax = filters.salaryMax ? parseInt(filters.salaryMax.replace(/\D/g,""), 10) : null;
+      if (salaryMin && !isNaN(salaryMin)) q = (q as any).gte("market_rate", salaryMin);
+      if (salaryMax && !isNaN(salaryMax)) q = (q as any).lte("market_rate", salaryMax);
+      if (filters.days_old) {
+        const cutoff = new Date(Date.now() - filters.days_old * 86400000).toISOString();
+        q = (q as any).gte("first_seen_at", cutoff);
+      }
+      if (!filters.showFlagged) q = (q as any).eq("is_flagged", false);
+      return q;
+    };
+
+    const toResult = (row: any, matchReason: string): JobResult => ({
+      id: row.id,
+      title: row.title || "Job Opportunity",
+      company: row.company || "Company",
+      location: row.location || "Remote",
+      type: row.job_type || "full-time",
+      description: row.description || "",
+      url: normalizeJobUrl(row.job_url) || "",
+      matchReason,
+      quality_score: row.quality_score ?? 50,
+      is_flagged: row.is_flagged ?? false,
+      flag_reasons: row.flag_reasons ?? [],
+      salary: row.salary,
+      seniority: row.seniority,
+      is_remote: row.is_remote,
+      source: row.source || "database",
+      first_seen_at: row.first_seen_at,
+    });
+
+    // ── PASS 1: Title matches (strongest signal — jobs whose title matches the
+    //           user's target job titles go to the top regardless of skill overlap) ──
+    const titleOrParts = filters.targetTitles
+      .map(t => t.replace(/[,&()]/g, " ").replace(/%/g, "").replace(/_/g, " ").trim())
+      .filter(s => s.length >= 3)
+      .map(safe => `title.ilike.%${safe}%`);
+
+    // Also add user-typed query to title pass
+    if (filters.query) {
+      const qKws = [...new Set(
+        filters.query.split(/[\s,&]+/)
+          .map(s => s.replace(/[%_()\[\]]/g, "").trim())
+          .filter(s => s.length >= 4 && !POSTGREST_RESERVED.has(s.toLowerCase()))
+      )];
+      qKws.slice(0, 4).forEach(kw => titleOrParts.push(`title.ilike.%${kw}%`));
     }
 
-    // 2. Skills — match as WHOLE PHRASES in description (not split into individual words).
-    //    Splitting "Business Process Improvement" into ["Business","Process","Improvement"]
-    //    caused every generic job to match. Full-phrase matching is far more precise.
-    const skillPhrases = filters.skills
-      .map(s => s.replace(/[%_()\[\]]/g, "").replace(/[,&]/g, " ").replace(/\s+/g, " ").trim())
-      .filter(s => s.length >= 5);
-
-    for (const phrase of skillPhrases.slice(0, 6)) {
-      orParts.push(`description.ilike.%${phrase}%`);
+    let titleJobs: any[] = [];
+    if (titleOrParts.length > 0) {
+      let q = applyCommonFilters(
+        supabase.from("scraped_jobs").select(COLS).order("quality_score", { ascending: false }).limit(limit)
+      );
+      q = (q as any).or(titleOrParts.slice(0, 20).join(","));
+      const { data, error } = await (q as any);
+      if (error) console.error("[searchDatabaseJobsFallback] title pass error:", error.message);
+      titleJobs = data || [];
     }
 
-    // Also add domain-specific single keywords from skills to title matching.
-    // Skip generic noise words that would match every job posting.
+    const titleJobIds = new Set(titleJobs.map((j: any) => j.id));
+
+    // ── PASS 2: Skill / description matches (secondary signal — jobs whose
+    //           description mentions the user's required skills, excluding any
+    //           already returned by the title pass) ──
     const NOISE_WORDS = new Set([
       "and","the","for","with","that","from","business","process","management",
       "digital","strategy","operations","development","services","enterprise",
       "information","improvement","regulatory","service","change","employee",
       "cloud","customer","product","data","team","people","work","support",
     ]);
-    const titleKws = [...new Set(
-      skillPhrases
-        .flatMap(s => s.split(/\s+/))
+
+    const skillPhrases = filters.skills
+      .map(s => s.replace(/[%_()\[\]]/g, "").replace(/[,&]/g, " ").replace(/\s+/g, " ").trim())
+      .filter(s => s.length >= 5);
+
+    // Full-phrase description matches (most specific)
+    const descOrParts: string[] = skillPhrases.slice(0, 8).map(p => `description.ilike.%${p}%`);
+
+    // Domain-specific title keywords extracted from skill phrases (non-noise, ≥7 chars)
+    const domainKws = [...new Set(
+      skillPhrases.flatMap(s => s.split(/\s+/))
         .map(w => w.replace(/[^a-zA-Z0-9\-]/g, "").trim())
         .filter(w => w.length >= 7 && !NOISE_WORDS.has(w.toLowerCase()) && !POSTGREST_RESERVED.has(w.toLowerCase()))
-    )].slice(0, 5);
-    for (const kw of titleKws) {
-      orParts.push(`title.ilike.%${kw}%`);
-    }
+    )].slice(0, 4);
+    domainKws.forEach(kw => descOrParts.push(`title.ilike.%${kw}%`));
 
-    // 3. Free-text query keywords (user-typed search only — split is fine here)
+    // Also include free-text query in description pass
     if (filters.query) {
-      const queryKws = [...new Set(
+      const qKws = [...new Set(
         filters.query.split(/[\s,&]+/)
           .map(s => s.replace(/[%_()\[\]]/g, "").trim())
           .filter(s => s.length >= 4 && !POSTGREST_RESERVED.has(s.toLowerCase()))
       )];
-      for (const kw of queryKws.slice(0, 4)) {
-        orParts.push(`title.ilike.%${kw}%`);
-        orParts.push(`description.ilike.%${kw}%`);
-      }
+      qKws.slice(0, 4).forEach(kw => descOrParts.push(`description.ilike.%${kw}%`));
     }
 
-    // Hard cap at 20 OR parts to prevent parser overflow
-    if (orParts.length > 0) query = query.or(orParts.slice(0, 20).join(","));
-    if (filters.location && !/^\s*remote\s*$/i.test(filters.location)) query = query.ilike("location", `%${filters.location}%`);
-    if (filters.jobTypes.includes("remote")) query = query.eq("is_remote", true);
-    const structuredTypes = filters.jobTypes.filter(t => !["remote","hybrid","in-office"].includes(t)).flatMap(t => JOB_TYPE_MAP[t] ?? [t]);
-    if (structuredTypes.length > 0) query = query.or(structuredTypes.map(t => `job_type.ilike.%${t}%`).join(","));
-    // NOTE: seniority filter intentionally omitted in fallback.
-    // Scraped jobs from external feeds don't have experience_level populated,
-    // so a seniority filter would AND with the title filter and return 0 results.
-    // Career-level matching is handled by the AI fit score instead.
-    const salaryMinNum = filters.salaryMin ? parseInt(filters.salaryMin.replace(/\D/g, ""), 10) : null;
-    const salaryMaxNum = filters.salaryMax ? parseInt(filters.salaryMax.replace(/\D/g, ""), 10) : null;
-    if (salaryMinNum && !isNaN(salaryMinNum)) query = query.gte("market_rate", salaryMinNum);
-    if (salaryMaxNum && !isNaN(salaryMaxNum)) query = query.lte("market_rate", salaryMaxNum);
-    const daysOld = filters.days_old ?? 0;
-    if (daysOld > 0) {
-      const cutoff = new Date(Date.now() - daysOld * 24 * 60 * 60 * 1000).toISOString();
-      query = query.gte("first_seen_at", cutoff);
+    let skillJobs: any[] = [];
+    if (descOrParts.length > 0) {
+      let q = applyCommonFilters(
+        supabase.from("scraped_jobs").select(COLS).order("quality_score", { ascending: false }).limit(limit)
+      );
+      q = (q as any).or(descOrParts.slice(0, 20).join(","));
+      const { data, error } = await (q as any);
+      if (error) console.error("[searchDatabaseJobsFallback] skill pass error:", error.message);
+      // Exclude jobs already returned by the title pass
+      skillJobs = (data || []).filter((j: any) => !titleJobIds.has(j.id));
     }
-    if (!filters.showFlagged) query = query.eq("is_flagged", false);
 
-    const { data, error } = await query;
-    if (error) { console.error("[searchDatabaseJobsFallback] Error:", error.message); return []; }
+    // ── Combine: title matches first, skill matches second.
+    //    matchReason carries the title text so client-side scoring
+    //    rewards matches that align with profile keywords. ──
+    const combined = [
+      ...titleJobs.map((row: any) => toResult(row, `${row.title} ${row.description || ""}`)),
+      ...skillJobs.map((row: any) => toResult(row, `${row.title} ${row.description || ""}`)),
+    ];
 
-    return (data || []).map((row: any) => ({
-      id: row.id, title: row.title || "Job Opportunity", company: row.company || "Company",
-      location: row.location || "Remote", type: row.job_type || "full-time",
-      description: row.description || "", url: normalizeJobUrl(row.job_url) || "",
-      matchReason: "Database match", quality_score: row.quality_score ?? 50,
-      is_flagged: row.is_flagged ?? false, flag_reasons: row.flag_reasons ?? [],
-      salary: row.salary, seniority: row.seniority, is_remote: row.is_remote,
-      source: row.source || "database", first_seen_at: row.first_seen_at,
-    }));
+    return combined.slice(0, limit);
   } catch (e) {
     console.error("[searchDatabaseJobsFallback] Exception:", e);
     return [];
