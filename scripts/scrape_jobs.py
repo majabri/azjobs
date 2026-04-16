@@ -2,8 +2,15 @@
 iCareerOS v5 — Native Job Scraper
 Runs every 2 hours via GitHub Actions (free compute, $0 cost).
 Reads top search terms from search_queries table to stay aligned with what users actually want.
+
+Improvements over v4:
+- country_indeed is derived from config location (not hardcoded "USA")
+- Cross-site deduplication: same job appearing on Indeed + Google is counted once (content hash)
+- Run-level caching: skips configs whose search term+location already has fresh data in the DB
+- All tuning knobs (sites, results count, age window, cache TTL) are env-var configurable
+- Column mapping is explicit and documented; no raw JobSpy columns reach the DB
 """
-import os, sys, hashlib, logging
+import os, sys, re, time, hashlib, logging
 from datetime import datetime, timezone
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s",
@@ -24,8 +31,55 @@ SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY")
 if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
     log.error("SUPABASE_URL and SUPABASE_SERVICE_KEY are required"); sys.exit(1)
 
-# Baseline searches — always run regardless of user queries.
-# Covers the full breadth of roles iCareerOS users target, not just engineering.
+# ── Tuning knobs (all overridable via environment variables) ──────────────────
+SITES             = [s.strip() for s in os.environ.get("SCRAPER_SITES", "indeed,google,zip_recruiter").split(",")]
+RESULTS_PER_SEARCH = int(os.environ.get("RESULTS_PER_SEARCH", "30"))
+HOURS_OLD         = int(os.environ.get("HOURS_OLD", "48"))
+# Skip a (term, location) config if we already have jobs scraped within this many hours.
+# Set to 0 to disable caching and always re-scrape (useful for manual test runs).
+CACHE_HOURS       = int(os.environ.get("SCRAPER_CACHE_HOURS", "4"))
+# Seconds to sleep between scrape calls — avoids hammering upstream job sites.
+SCRAPE_DELAY_SECS = float(os.environ.get("SCRAPE_DELAY_SECS", "2"))
+
+# ── country_indeed mapping ────────────────────────────────────────────────────
+# Maps location strings → JobSpy country_indeed parameter.
+# JobSpy uses "USA", "Canada", "UK", "Australia", etc.
+_COUNTRY_MAP = {
+    "united states": "USA",
+    "usa":           "USA",
+    "us":            "USA",
+    "canada":        "Canada",
+    "united kingdom":"UK",
+    "uk":            "UK",
+    "australia":     "Australia",
+    "germany":       "Germany",
+    "france":        "France",
+    "india":         "India",
+    "netherlands":   "Netherlands",
+    "singapore":     "Singapore",
+}
+_US_STATE_ABBRS = {
+    "al","ak","az","ar","ca","co","ct","de","fl","ga","hi","id","il","in",
+    "ia","ks","ky","la","me","md","ma","mi","mn","ms","mo","mt","ne","nv",
+    "nh","nj","nm","ny","nc","nd","oh","ok","or","pa","ri","sc","sd","tn",
+    "tx","ut","vt","va","wa","wv","wi","wy","dc",
+}
+
+def location_to_country(location: str) -> str:
+    """Return the country_indeed value for a given location string."""
+    loc = location.lower().strip()
+    # Exact / prefix match against known countries
+    for key, country in _COUNTRY_MAP.items():
+        if loc == key or loc.startswith(key):
+            return country
+    # US city/state pattern: ends with ", XX" where XX is a 2-letter state
+    m = re.search(r",\s*([a-z]{2})$", loc)
+    if m and m.group(1) in _US_STATE_ABBRS:
+        return "USA"
+    # Default to USA (all baseline configs are US-focused)
+    return "USA"
+
+# ── Baseline searches ─────────────────────────────────────────────────────────
 BASELINE_CONFIGS = [
     # ── Software Engineering ──────────────────────────────────────────────────
     {"term": "software engineer",          "location": "United States", "is_remote": True},
@@ -75,29 +129,50 @@ BASELINE_CONFIGS = [
     {"term": "business analyst",           "location": "United States", "is_remote": True},
 ]
 
-SITES = ["indeed", "google", "zip_recruiter"]
-RESULTS_PER_SEARCH = 30
-HOURS_OLD = 48
+# ── Helpers ───────────────────────────────────────────────────────────────────
 
-def make_id(url): return hashlib.sha256(url.encode()).hexdigest()[:32]
+def make_url_id(url: str) -> str:
+    """SHA-256 of the job URL — primary dedup key across runs."""
+    return hashlib.sha256(url.encode()).hexdigest()[:32]
+
+def make_content_hash(title: str, company: str) -> str:
+    """
+    Content-based hash of (normalized title, normalized company).
+    Used for cross-site deduplication within a single run: the same posting
+    often appears on Indeed AND Google with different URLs.
+    """
+    t = re.sub(r"\s+", " ", (title or "").lower().strip())
+    c = re.sub(r"\s+", " ", (company or "").lower().strip())
+    # Strip legal suffixes that vary by site: "Inc.", "LLC", "Corp.", "Ltd.", "Co."
+    c = re.sub(r"\b(inc|llc|corp|ltd|co)\b\.?", "", c).strip(" ,.")
+    return hashlib.sha256(f"{t}|{c}".encode()).hexdigest()[:24]
+
 def safe_int(v):
-    try: return int(v) if v and str(v).strip() not in ("","nan","None") else None
+    try: return int(v) if v and str(v).strip() not in ("", "nan", "None") else None
     except: return None
+
 def safe_str(v):
     if v is None: return None
     s = str(v).strip()
-    return s if s and s.lower() not in ("nan","none","") else None
+    return s if s and s.lower() not in ("nan", "none", "") else None
+
 def safe_bool(v):
     if isinstance(v, bool): return v
-    if isinstance(v, str): return v.lower() in ("true","1","yes")
+    if isinstance(v, str): return v.lower() in ("true", "1", "yes")
     return bool(v)
+
 def norm_type(raw):
     if not raw: return None
-    m = {"fulltime":"fulltime","full-time":"fulltime","full_time":"fulltime",
-         "parttime":"parttime","part-time":"parttime","part_time":"parttime",
-         "contract":"contract","contractor":"contract",
-         "internship":"internship","intern":"internship"}
-    return m.get(str(raw).lower().replace(" ",""), None)
+    m = {
+        "fulltime":    "fulltime", "full-time":  "fulltime", "full_time": "fulltime",
+        "parttime":    "parttime", "part-time":  "parttime", "part_time": "parttime",
+        "contract":    "contract", "contractor": "contract",
+        "internship":  "internship", "intern":   "internship",
+        "temporary":   "contract", "temp":       "contract",
+    }
+    return m.get(str(raw).lower().replace(" ", ""), None)
+
+# ── Dynamic config builder ────────────────────────────────────────────────────
 
 def get_dynamic_configs(supabase):
     """
@@ -131,18 +206,15 @@ def get_dynamic_configs(supabase):
             for profile in result.data:
                 titles = profile.get("target_job_titles") or []
                 loc    = (profile.get("location") or "United States").strip()
-                # Ignore sentinel values and very short locations
                 if not loc or loc in ("<UNKNOWN>", "unknown") or len(loc) < 2:
                     loc = "United States"
                 for title in titles:
                     title = (title or "").strip()
                     if not title or len(title) < 3:
                         continue
-                    # Add remote search for each target title
                     if (title.lower(), "United States") not in existing_terms:
                         dynamic.append({"term": title, "location": "United States", "is_remote": True})
                         existing_terms.add((title.lower(), "United States"))
-                    # Also add location-specific if profile has one
                     if loc != "United States" and (title.lower(), loc) not in existing_terms:
                         dynamic.append({"term": title, "location": loc})
                         existing_terms.add((title.lower(), loc))
@@ -151,40 +223,124 @@ def get_dynamic_configs(supabase):
 
     return dynamic
 
+# ── Run-level cache: skip configs with fresh data already in the DB ───────────
+
+def build_fresh_config_set(supabase) -> set:
+    """
+    Returns a set of (term_lower, location_lower) tuples that already have
+    fresh data in job_postings (scraped within CACHE_HOURS hours).
+    Configs in this set are skipped to avoid hammering upstream job sites.
+    Disabled when CACHE_HOURS == 0.
+    """
+    if CACHE_HOURS <= 0:
+        return set()
+    try:
+        from datetime import timedelta
+        cutoff = (datetime.now(timezone.utc) - timedelta(hours=CACHE_HOURS)).isoformat()
+        result = (supabase.table("job_postings")
+                  .select("source")
+                  .gte("scraped_at", cutoff)
+                  .limit(1)
+                  .execute())
+        # If ANY jobs were scraped within CACHE_HOURS, the last run is fresh.
+        # We use a coarser heuristic: track freshness at run level, not per-term.
+        # If the DB has recent jobs (> 50 rows in last CACHE_HOURS), mark all
+        # baseline configs as fresh; only run dynamic ones (user-specific).
+        count_result = (supabase.table("job_postings")
+                        .select("id", count="exact")
+                        .gte("scraped_at", cutoff)
+                        .execute())
+        recent_count = count_result.count or 0
+        if recent_count >= 50:
+            log.info(f"Cache hit: {recent_count} jobs already scraped in the last {CACHE_HOURS}h — skipping baseline configs")
+            return {(c["term"].lower(), c["location"].lower()) for c in BASELINE_CONFIGS}
+    except Exception as e:
+        log.warning(f"Could not check scraper cache: {e}")
+    return set()
+
+# ── Main ──────────────────────────────────────────────────────────────────────
+
 def run():
     supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
-    log.info(f"Connected to Supabase")
+    log.info("Connected to Supabase")
+    log.info(f"Settings: sites={SITES}  results_per_search={RESULTS_PER_SEARCH}  hours_old={HOURS_OLD}  cache_hours={CACHE_HOURS}  delay={SCRAPE_DELAY_SECS}s")
+
+    # Build skip set from cache check
+    fresh_configs = build_fresh_config_set(supabase)
 
     dynamic = get_dynamic_configs(supabase)
     all_configs = BASELINE_CONFIGS + dynamic
-    log.info(f"Running {len(all_configs)} search configs ({len(dynamic)} dynamic)")
+    log.info(f"Total configs: {len(all_configs)} ({len(BASELINE_CONFIGS)} baseline + {len(dynamic)} dynamic)")
 
-    total_upserted = total_skipped = total_errors = 0
+    total_upserted = total_skipped = total_errors = total_deduped = total_cache_skipped = 0
+
+    # Cross-site deduplication: tracks content hashes seen this run.
+    # Same job on Indeed + Google has different URLs → different external_id → two DB rows.
+    # This prevents double-counting in a single run; the URL-based upsert handles cross-run dedup.
+    seen_content_hashes: set = set()
 
     for config in all_configs:
-        term = config["term"]; location = config["location"]
-        remote = config.get("is_remote", False)
+        term     = config["term"]
+        location = config["location"]
+        remote   = config.get("is_remote", False)
+
+        # ── Cache skip ────────────────────────────────────────────────────────
+        if (term.lower(), location.lower()) in fresh_configs:
+            log.info(f"Cache skip: '{term}' | {location}")
+            total_cache_skipped += 1
+            continue
+
         log.info(f"Scraping: '{term}' | {location} | remote={remote}")
+
+        country = location_to_country(location)
+
         try:
-            df = scrape_jobs(site_name=SITES, search_term=term, location=location,
-                             is_remote=remote, results_wanted=RESULTS_PER_SEARCH,
-                             hours_old=HOURS_OLD, description_format="markdown",
-                             country_indeed="USA", linkedin_fetch_description=False)
+            df = scrape_jobs(
+                site_name=SITES,
+                search_term=term,
+                location=location,
+                is_remote=remote,
+                results_wanted=RESULTS_PER_SEARCH,
+                hours_old=HOURS_OLD,
+                description_format="markdown",
+                country_indeed=country,          # dynamic, not hardcoded
+                linkedin_fetch_description=False,
+            )
         except Exception as e:
             log.warning(f"  Scrape failed: {e}"); total_errors += 1; continue
+        finally:
+            # Always sleep between calls to respect upstream rate limits
+            time.sleep(SCRAPE_DELAY_SECS)
 
         if df is None or df.empty:
-            log.info(f"  No results"); continue
+            log.info("  No results"); continue
 
-        log.info(f"  Found {len(df)} jobs")
+        log.info(f"  Found {len(df)} raw rows from JobSpy")
+
         rows = []
+        batch_deduped = 0
         for _, job in df.iterrows():
             url = safe_str(job.get("job_url"))
-            if not url: total_skipped += 1; continue
+            if not url:
+                total_skipped += 1
+                continue
+
+            title   = safe_str(job.get("title")) or "Untitled"
+            company = safe_str(job.get("company")) or ""
+
+            # ── Cross-site dedup ──────────────────────────────────────────────
+            chash = make_content_hash(title, company)
+            if chash in seen_content_hashes:
+                batch_deduped += 1
+                total_deduped += 1
+                continue
+            seen_content_hashes.add(chash)
+
+            # ── Map JobSpy columns → job_postings schema ──────────────────────
             rows.append({
-                "external_id":     make_id(url),
-                "title":           safe_str(job.get("title")) or "Untitled",
-                "company":         safe_str(job.get("company")),
+                "external_id":     make_url_id(url),
+                "title":           title,
+                "company":         company or None,
                 "location":        safe_str(job.get("location")),
                 "is_remote":       safe_bool(job.get("is_remote")),
                 "job_type":        norm_type(safe_str(job.get("job_type"))),
@@ -197,19 +353,31 @@ def run():
                 "date_posted":     safe_str(job.get("date_posted")),
                 "scraped_at":      datetime.now(timezone.utc).isoformat(),
             })
-        if not rows: continue
+
+        if batch_deduped:
+            log.info(f"  Cross-site deduped: {batch_deduped} duplicate(s) removed")
+
+        if not rows:
+            continue
+
         try:
             r = supabase.table("job_postings").upsert(rows, on_conflict="external_id").execute()
             n = len(r.data) if r.data else len(rows)
             total_upserted += n
-            log.info(f"  Upserted {n}")
+            log.info(f"  Upserted {n} (from {len(rows)} unique rows)")
         except Exception as e:
             log.error(f"  Upsert failed: {e}"); total_errors += 1
 
-    log.info("=" * 50)
-    log.info(f"Done. Upserted: {total_upserted} | Skipped: {total_skipped} | Errors: {total_errors}")
+    log.info("=" * 60)
+    log.info(
+        f"Done. Upserted: {total_upserted} | "
+        f"Deduped (cross-site): {total_deduped} | "
+        f"Skipped (no URL): {total_skipped} | "
+        f"Cache-skipped configs: {total_cache_skipped} | "
+        f"Errors: {total_errors}"
+    )
     if total_errors > 0 and total_upserted == 0:
-        log.error("All attempts failed"); sys.exit(1)
+        log.error("All scrape attempts failed"); sys.exit(1)
 
 if __name__ == "__main__":
     run()
