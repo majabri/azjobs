@@ -88,7 +88,7 @@ export async function searchJobs(
       isRemote: filters.jobTypes.includes("remote") || undefined,
       jobType: buildJobTypeFilter(filters.jobTypes),
       minFitScore: filters.minFitScore > 0 ? filters.minFitScore : undefined,
-      daysOld: filters.days_old || 7,            // default 7 days (edge fn handles this)
+      daysOld: filters.days_old || 30,           // default 30 days (scraper data may be a few weeks old)
       limit: filters.search_mode === "volume" ? 200 : 100,
       offset: filters.offset ?? 0,
       triggerMatch: !!userId,
@@ -237,8 +237,8 @@ export async function searchDatabaseJobsFallback(filters: JobSearchFilters): Pro
       const salaryMax = filters.salaryMax ? parseInt(filters.salaryMax.replace(/\D/g,""), 10) : null;
       if (salaryMin && !isNaN(salaryMin)) q = (q as any).gte("market_rate", salaryMin);
       if (salaryMax && !isNaN(salaryMax)) q = (q as any).lte("market_rate", salaryMax);
-      // Default to 7 days if not specified (48h was too aggressive — jobs stay fresh for a week)
-      const daysOld = filters.days_old || 7;
+      // Default to 30 days if not specified (scraper data may be a few weeks old)
+      const daysOld = filters.days_old || 30;
       const cutoff = new Date(Date.now() - daysOld * 86400000).toISOString();
       q = (q as any).gte("first_seen_at", cutoff);
       if (!filters.showFlagged) q = (q as any).eq("is_flagged", false);

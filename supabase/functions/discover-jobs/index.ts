@@ -141,7 +141,7 @@ Deno.serve(async (req) => {
       jobType,
       salaryMin,
       minFitScore,
-      daysOld = 7,          // default: 7 days (was 48 hours — too short)
+      daysOld = 30,         // default: 30 days (scraper may not run daily; show all recent jobs)
       hoursOld,             // legacy: if provided, takes precedence
       limit = 50,
       offset = 0,
@@ -151,7 +151,7 @@ Deno.serve(async (req) => {
     const userId = authenticatedUserId ?? requestedUserId ?? null;
 
     // Resolve time window: prefer daysOld, but accept legacy hoursOld
-    const effectiveDays = hoursOld ? Math.ceil(hoursOld / 24) : (daysOld || 7);
+    const effectiveDays = hoursOld ? Math.ceil(hoursOld / 24) : (daysOld || 30);
     const cutoff = new Date(Date.now() - effectiveDays * 86400000).toISOString();
 
     // ── Log search (fire-and-forget) ──────────────────────────────────────────
@@ -170,11 +170,12 @@ Deno.serve(async (req) => {
     }
 
     // ── scraped_jobs column list ──────────────────────────────────────────────
-    // Uses the compatibility view: maps jobs → old frontend column names
+    // Uses the scraped_jobs view (reads from job_postings table).
+    // NOTE: date_posted is NOT exposed by the view — use first_seen_at instead.
     const selectCols = [
       "id", "title", "company", "location", "is_remote",
       "job_type", "salary", "description", "job_url",
-      "source", "date_posted", "first_seen_at", "quality_score",
+      "source", "first_seen_at", "quality_score",
       "is_flagged", "flag_reasons", "seniority",
     ].join(",");
 
@@ -215,7 +216,7 @@ Deno.serve(async (req) => {
     }
     if (isRemote) baseParams.push(`is_remote=eq.true`);
     if (jobType)  baseParams.push(`job_type=eq.${encodeURIComponent(jobType)}`);
-    if (salaryMin) baseParams.push(`salary_min=gte.${salaryMin}`);
+    if (salaryMin) baseParams.push(`market_rate=gte.${salaryMin}`);  // view uses market_rate, not salary_min
 
     // ── PASS 1 query ──────────────────────────────────────────────────────────
     if (titleTerms.length > 0) {
