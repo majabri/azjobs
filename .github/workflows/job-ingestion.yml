@@ -49,6 +49,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    defaults:
+      run:
+        working-directory: job-discovery-v2
 
     steps:
       - uses: actions/checkout@v4
@@ -91,6 +94,9 @@ jobs:
         startsWith(github.event.schedule, '0 0') ||
         startsWith(github.event.schedule, '0 12'))) ||
       github.event_name == 'workflow_dispatch'
+    defaults:
+      run:
+        working-directory: job-discovery-v2
 
     steps:
       - uses: actions/checkout@v4
@@ -121,6 +127,9 @@ jobs:
     if: |
       (github.event_name == 'schedule' && startsWith(github.event.schedule, '0 2')) ||
       github.event_name == 'workflow_dispatch'
+    defaults:
+      run:
+        working-directory: job-discovery-v2
 
     steps:
       - uses: actions/checkout@v4
@@ -152,6 +161,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     if: github.event_name == 'workflow_dispatch' && (inputs.tier == 'all' || inputs.tier == '')
+    defaults:
+      run:
+        working-directory: job-discovery-v2
 
     steps:
       - uses: actions/checkout@v4
