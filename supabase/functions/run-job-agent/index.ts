@@ -10,7 +10,7 @@
  * picks up fresh results automatically.
  *
  * What it does:
- *   1. Reads user_job_agents state — decide: serve cache or run fresh
+ *   1. Reads user_agent_instances state — decide: serve cache or run fresh
  *   2. If fresh run needed:
  *        a. Query scraped_jobs with multi-pass title + skill filters
  *        b. Score each job heuristically (fast, no AI cost)
@@ -211,8 +211,8 @@ Deno.serve(async (req) => {
     let agentRows: any[] = [];
     try {
       agentRows = await pgrest(
-        "user_job_agents",
-        `user_id=eq.${userId}&limit=1`,
+        "user_agent_instances",
+        `user_id=eq.${userId}&agent_type=eq.job_match&limit=1`,
       );
     } catch (_) {}
 
@@ -255,13 +255,14 @@ Deno.serve(async (req) => {
     }
 
     // ── Mark agent as running ───────────────────────────────────────────────
-    await pgrest("user_job_agents",
-      "on_conflict=user_id",
+    await pgrest("user_agent_instances",
+      "on_conflict=user_id%2Cagent_type",
       {
         method: "POST",
         prefer: "return=minimal,resolution=merge-duplicates",
         body: JSON.stringify({
           user_id:    userId,
+          agent_type: "job_match",
           status:     "running",
           updated_at: new Date().toISOString(),
         }),
@@ -332,13 +333,14 @@ Deno.serve(async (req) => {
 
     // ── Mark agent as idle ──────────────────────────────────────────────────
     const nextRunAt = new Date(Date.now() + agentTtlMs).toISOString();
-    await pgrest("user_job_agents",
-      "on_conflict=user_id",
+    await pgrest("user_agent_instances",
+      "on_conflict=user_id%2Cagent_type",
       {
         method: "POST",
         prefer: "return=minimal,resolution=merge-duplicates",
         body: JSON.stringify({
           user_id:           userId,
+          agent_type:        "job_match",
           status:            "idle",
           last_run_at:       now,
           next_run_at:       nextRunAt,
@@ -368,13 +370,14 @@ Deno.serve(async (req) => {
     const token = req.headers.get("Authorization")?.replace("Bearer ", "").trim() ?? "";
     const userId = token ? await verifyToken(token).catch(() => null) : null;
     if (userId) {
-      await pgrest("user_job_agents",
-        "on_conflict=user_id",
+      await pgrest("user_agent_instances",
+        "on_conflict=user_id%2Cagent_type",
         {
           method: "POST",
           prefer: "return=minimal,resolution=merge-duplicates",
           body: JSON.stringify({
             user_id:    userId,
+            agent_type: "job_match",
             status:     "pending",  // retry on next call
             last_error: err instanceof Error ? err.message : String(err),
             updated_at: new Date().toISOString(),
