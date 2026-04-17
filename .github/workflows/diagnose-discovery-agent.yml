@@ -1,55 +1,33 @@
-name: Set Supabase Function Secrets + Redeploy
+name: Diagnose discovery-agent — simple capture
 
 on:
   workflow_dispatch:
 
 jobs:
-  set-secrets:
+  diagnose:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - uses: supabase/setup-cli@v1
-        with:
-          version: latest
-
-      - name: Set SUPABASE_SERVICE_ROLE_KEY as function secret
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      - name: Call edge function and capture response
         run: |
-          echo "${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" | \
-            supabase secrets set SUPABASE_SERVICE_ROLE_KEY="${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
-            --project-ref bryoehuhhhjqcueomgev
-          echo "✅ Secret set"
-
-      - name: Redeploy discovery-agent with secrets
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-        run: |
-          supabase functions deploy discovery-agent \
-            --project-ref bryoehuhhhjqcueomgev \
-            --no-verify-jwt
-          echo "✅ Redeployed"
-
-      - name: Test the function directly
-        run: |
-          sleep 5
           HTTP_CODE=$(curl -s -o /tmp/body.txt -w "%{http_code}" \
             -X POST "${{ secrets.VITE_SUPABASE_URL }}/functions/v1/discovery-agent" \
             -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
             -H "Content-Type: application/json" \
             --max-time 90)
           echo "HTTP: $HTTP_CODE"
-          cat /tmp/body.txt | python3 -m json.tool 2>/dev/null || cat /tmp/body.txt
-          
-          # Save result
+          cat /tmp/body.txt
           mkdir -p .diag
           echo "Date: $(date -u)" > .diag/discovery_diag.md
           echo "HTTP_CODE=$HTTP_CODE" >> .diag/discovery_diag.md
-          cat /tmp/body.txt > .diag/discovery_fn_body.txt
+          cp /tmp/body.txt .diag/discovery_fn_body.txt
 
+      - name: Commit results
+        if: always()
+        run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add .diag/
-          git diff --staged --quiet || git commit -m "diag: post-secret-set result [skip ci]"
-          git push
+          git diff --staged --quiet || git commit -m "diag: capture result [skip ci]"
+          git push || true
