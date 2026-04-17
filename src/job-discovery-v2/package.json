@@ -1,0 +1,33 @@
+{
+  "name": "icareeros-job-discovery-v2",
+  "version": "2.0.0",
+  "description": "iCareerOS Job Discovery Pipeline — 12 free sources, $0/month, 2000+ jobs/day",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "extract": "bun run scripts/run-extraction.ts",
+    "deduplicate": "bun run scripts/run-deduplication.ts",
+    "match": "bun run scripts/run-matching.ts",
+    "ingest": "bun run src/services/job-ingestion/index.ts",
+    "benchmark": "bun run src/services/benchmarks/index.ts",
+    "listen": "bun run src/services/event-listeners/index.ts",
+    "test": "bun test",
+    "test:phase1": "bun test src/services/__tests__/phase1.integration.test.ts",
+    "test:phase2": "bun test src/services/__tests__/phase2.integration.test.ts",
+    "test:unit": "bun test src/services/job-extraction-service/__tests__/unit.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.4",
+    "axios": "^1.8.4"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/node": "^22.14.0",
+    "typescript": "^5.8.3"
+  },
+  "engines": {
+    "bun": ">=1.1.0",
+    "node": ">=20.0.0"
+  }
+}
