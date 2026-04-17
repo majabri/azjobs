@@ -479,7 +479,8 @@ CREATE INDEX IF NOT EXISTS idx_benchmark_reports_date ON benchmark_reports(repor
 export const benchmarksService = new BenchmarksService()
 
 // CLI entry point — used by GitHub Actions daily benchmark job
-if (require.main === module || process.argv[1]?.includes('benchmarks')) {
+// import.meta.main is true when Bun runs this file directly
+if (import.meta.main || process.argv[1]?.includes('benchmarks')) {
   benchmarksService.generateReport().then(report => {
     process.exit(report.health.sources_active < 6 ? 1 : 0)  // Non-zero exit if unhealthy
   }).catch(err => {
