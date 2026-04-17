@@ -1,1 +1,1 @@
-{"code":"WORKER_RESOURCE_LIMIT","message":"Function failed due to not having enough compute resources (please check logs)"}
+{"success":true,"adapters_run":["remoteok","greenhouse","lever"],"search_terms":["Software Engineer","Full Stack Developer","Backend Engineer","DevOps Engineer"],"total_inserted":84,"total_dupes":0,"total_errors":1,"run_log":[{"adapter":"remoteok","found":0,"inserted":0,"dupes":0},{"adapter":"greenhouse","found":84,"inserted":84,"dupes":0},{"adapter":"lever","error":"The signal has been aborted"}]}
