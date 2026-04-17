@@ -1,5 +1,5 @@
 /**
- * Account Settings page Ã¢ÂÂ appearance, password, MFA (TOTP), Google linking, delete account.
+ * Account Settings page — appearance, display name, password, MFA (TOTP), Google linking, delete account.
  */
 
 import { useState, useEffect, useMemo } from "react";
@@ -27,9 +27,11 @@ import {
   Link2,
   Unlink,
   Palette,
+  UserCircle,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
+import { useProfile } from "@/hooks/useProfile";
 import {
   enrollTOTP,
   verifyTOTP,
@@ -44,6 +46,36 @@ import { ThemeSelector } from "@/components/settings/ThemeSelector";
 export default function AccountSettings() {
   const navigate = useNavigate();
   const { user } = useAuthReady();
+  const { profile, displayName, updateDisplayName } = useProfile();
+
+  // Display name
+  const [nameValue, setNameValue] = useState("");
+  const [nameLoading, setNameLoading] = useState(false);
+
+  // Sync input when profile loads
+  useEffect(() => {
+    setNameValue(
+      profile?.full_name ||
+        user?.user_metadata?.full_name ||
+        ""
+    );
+  }, [profile, user]);
+
+  const handleSaveName = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!nameValue.trim()) {
+      toast.error("Display name cannot be empty.");
+      return;
+    }
+    setNameLoading(true);
+    const err = await updateDisplayName(nameValue.trim());
+    if (err) {
+      toast.error(err);
+    } else {
+      toast.success("Display name updated.");
+    }
+    setNameLoading(false);
+  };
 
   // Password
   const [newPassword, setNewPassword] = useState("");
@@ -249,7 +281,7 @@ export default function AccountSettings() {
     <div className="max-w-2xl mx-auto py-8 px-4 space-y-6">
       <h1 className="text-2xl font-bold text-foreground">Account Settings</h1>
 
-      {/* âââ Appearance âââââââââââââââââââââââââââââââââââââââââââââââââââ */}
+      {/* ─── Appearance ────────────────────────────────────────────── */}
       <section className="space-y-6 pb-8 border-b border-border">
         <div>
           <h2 className="text-base font-semibold text-foreground">Appearance</h2>
@@ -260,7 +292,44 @@ export default function AccountSettings() {
         <ThemeSelector />
       </section>
 
-      {/* Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ Account Info Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ */}
+      {/* ─── Display Name ──────────────────────────────────────────── */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <UserCircle className="w-4 h-4" /> Display Name
+          </CardTitle>
+          <CardDescription>
+            This is the name shown in the header after you log in.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSaveName} className="space-y-3">
+            <div className="space-y-1">
+              <Label htmlFor="displayName">Name</Label>
+              <Input
+                id="displayName"
+                type="text"
+                value={nameValue}
+                onChange={(e) => setNameValue(e.target.value)}
+                placeholder="Your name"
+                maxLength={80}
+              />
+            </div>
+            <Button
+              type="submit"
+              disabled={nameLoading || !nameValue.trim()}
+              size="sm"
+            >
+              {nameLoading ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-1" />
+              ) : null}
+              Save Name
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      {/* ─── Account Info ────────────────────────────────────────────────────────────── */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Account Info</CardTitle>
@@ -268,7 +337,7 @@ export default function AccountSettings() {
         <CardContent className="space-y-2">
           <div className="flex justify-between items-center">
             <span className="text-sm text-muted-foreground">Email</span>
-            <span className="text-sm font-medium">{user?.email || "Ã¢ÂÂ"}</span>
+            <span className="text-sm font-medium">{user?.email || "—"}</span>
           </div>
           <div className="flex justify-between items-center">
             <span className="text-sm text-muted-foreground">
@@ -289,7 +358,7 @@ export default function AccountSettings() {
         </CardContent>
       </Card>
 
-      {/* Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ Connected Accounts Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ */}
+      {/* ─── Connected Accounts ──────────────────────────────────── */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
@@ -428,7 +497,7 @@ export default function AccountSettings() {
         </CardContent>
       </Card>
 
-      {/* Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ Change Password Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ */}
+      {/* ─── Change Password ────────────────────────────────────────────────────── */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
@@ -472,7 +541,7 @@ export default function AccountSettings() {
         </CardContent>
       </Card>
 
-      {/* Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ MFA Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ */}
+      {/* ─── MFA ────────────────────────────────────────────────────── */}
       <Card>
         <CardHeader>
           <CardTitle className="text-lg flex items-center gap-2">
@@ -559,7 +628,7 @@ export default function AccountSettings() {
 
           <Separator />
 
-          {/* Email MFA Ã¢ÂÂ grayed out */}
+          {/* Email MFA — grayed out */}
           <div className="flex items-center justify-between p-3 rounded-lg border border-border opacity-50">
             <div className="flex items-center gap-3">
               <Mail className="w-5 h-5 text-muted-foreground" />
@@ -577,7 +646,7 @@ export default function AccountSettings() {
             </Badge>
           </div>
 
-          {/* SMS MFA Ã¢ÂÂ grayed out */}
+          {/* SMS MFA — grayed out */}
           <div className="flex items-center justify-between p-3 rounded-lg border border-border opacity-50">
             <div className="flex items-center gap-3">
               <MessageSquare className="w-5 h-5 text-muted-foreground" />
@@ -597,7 +666,7 @@ export default function AccountSettings() {
         </CardContent>
       </Card>
 
-      {/* Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ Delete Account Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ */}
+      {/* ─── Delete Account ────────────────────────────────────────────── */}
       <Card className="border-destructive/30">
         <CardHeader>
           <CardTitle className="text-lg text-destructive flex items-center gap-2">
