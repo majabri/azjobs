@@ -65,11 +65,16 @@ export const leverAdapter: BoardAdapter = {
     const wanted = params.results_wanted ?? 25;
     let lastStatus = 200;
 
-    for (const c of companies ?? []) {
+    // Cap to 5 companies per run — Lever's API can be slow (3-8s per company)
+    // and the edge function has a wall-clock limit. Each fetch uses an 8s timeout.
+    const MAX_COMPANIES = 5;
+    const companyList = (companies ?? []).slice(0, MAX_COMPANIES);
+
+    for (const c of companyList) {
       if (all.length >= wanted) break;
 
       const url = `https://api.lever.co/v0/postings/${encodeURIComponent(c.company_slug)}?mode=json&limit=50`;
-      const res = await politeFetch(url);
+      const res = await politeFetch(url, {}, 8_000);
       lastStatus = res.status;
 
       if (!res.ok) continue;
