@@ -14,15 +14,13 @@ jobs:
     steps:
       - name: Trigger discovery-agent edge function
         run: |
-          RESPONSE=$(curl -s -w "\n%{http_code}" \
+          HTTP_CODE=$(curl -s -o /tmp/body.txt -w "%{http_code}" \
             -X POST "${{ secrets.VITE_SUPABASE_URL }}/functions/v1/discovery-agent" \
             -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
             -H "Content-Type: application/json" \
             --max-time 90)
-          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
-          BODY=$(echo "$RESPONSE" | head -n -1)
           echo "HTTP $HTTP_CODE"
-          echo "$BODY" | python3 -m json.tool 2>/dev/null || echo "$BODY"
+          cat /tmp/body.txt | python3 -m json.tool 2>/dev/null || cat /tmp/body.txt
           if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
             echo "✅ Discovery agent completed successfully"
           else
