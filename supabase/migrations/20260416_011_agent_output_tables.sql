@@ -76,8 +76,7 @@ CREATE TABLE IF NOT EXISTS public.user_interview_prep (
   suggested_ans   jsonb,       -- [{question_id, answer, tips}]
   company_bullets text[],
   red_flags       text[],
-  expires_at      timestamptz GENERATED ALWAYS AS
-                    (agent_run_at + interval '7 days') STORED
+  expires_at      timestamptz NOT NULL DEFAULT (now() + interval '7 days')
 );
 
 ALTER TABLE public.user_interview_prep ENABLE ROW LEVEL SECURITY;
@@ -126,3 +125,4 @@ BEGIN
   END IF;
 END;
 $$;
+
