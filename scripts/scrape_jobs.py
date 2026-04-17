@@ -301,6 +301,19 @@ def get_dynamic_configs(supabase):
                     title = (title or "").strip()
                     if not title or len(title) < 3:
                         continue
+                    # ── Quality filter: reject resume blobs and other noise ──
+                    # Titles > 70 chars, > 7 words, containing years, or boolean
+                    # operators are almost certainly resume fragments, not job titles.
+                    if len(title) > 70:
+                        log.debug(f"Skipping long title ({len(title)} chars): {title[:60]}...")
+                        continue
+                    if len(title.split()) > 7:
+                        log.debug(f"Skipping multi-word title ({len(title.split())} words): {title[:60]}")
+                        continue
+                    import re as _re
+                    if _re.search(r'\b(OR|AND)\b', title) or _re.search(r'\b\d{4}\b', title):
+                        log.debug(f"Skipping noise title: {title[:60]}")
+                        continue
                     if (title.lower(), "United States") not in existing_terms:
                         dynamic.append({"term": title, "location": "United States", "is_remote": True})
                         existing_terms.add((title.lower(), "United States"))
