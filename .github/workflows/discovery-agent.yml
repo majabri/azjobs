@@ -18,7 +18,7 @@ jobs:
             -X POST "${{ secrets.VITE_SUPABASE_URL }}/functions/v1/discovery-agent" \
             -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
             -H "Content-Type: application/json" \
-            --max-time 60)
+            --max-time 90)
           HTTP_CODE=$(echo "$RESPONSE" | tail -1)
           BODY=$(echo "$RESPONSE" | head -n -1)
           echo "HTTP $HTTP_CODE"
