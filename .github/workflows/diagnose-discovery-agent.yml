@@ -1,54 +1,55 @@
-name: Diagnose discovery-agent failure
+name: Set Supabase Function Secrets + Redeploy
 
 on:
   workflow_dispatch:
 
 jobs:
-  diagnose:
+  set-secrets:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Show secret presence and URL shape
-        run: |
-          URL="${{ secrets.VITE_SUPABASE_URL }}"
-          KEY="${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}"
-          echo "VITE_SUPABASE_URL set: $([ -n \"$URL\" ] && echo YES || echo NO)"
-          echo "VITE_SUPABASE_URL length: ${#URL}"
-          echo "VITE_SUPABASE_URL last 20 chars: ...${URL: -20}"
-          echo "SUPABASE_SERVICE_ROLE_KEY set: $([ -n \"$KEY\" ] && echo YES || echo NO)"
-          echo "SUPABASE_SERVICE_ROLE_KEY length: ${#KEY}"
-          echo "SUPABASE_SERVICE_ROLE_KEY last 30 chars: ...${KEY: -30}"
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
 
-      - name: Call function and capture full response + headers
+      - name: Set SUPABASE_SERVICE_ROLE_KEY as function secret
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
-          HTTP_CODE=$(curl -sv -o /tmp/fn_body.txt -w "%{http_code}" \
+          echo "${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" | \
+            supabase secrets set SUPABASE_SERVICE_ROLE_KEY="${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            --project-ref bryoehuhhhjqcueomgev
+          echo "✅ Secret set"
+
+      - name: Redeploy discovery-agent with secrets
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          supabase functions deploy discovery-agent \
+            --project-ref bryoehuhhhjqcueomgev \
+            --no-verify-jwt
+          echo "✅ Redeployed"
+
+      - name: Test the function directly
+        run: |
+          sleep 5
+          HTTP_CODE=$(curl -s -o /tmp/body.txt -w "%{http_code}" \
             -X POST "${{ secrets.VITE_SUPABASE_URL }}/functions/v1/discovery-agent" \
             -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
             -H "Content-Type: application/json" \
-            --max-time 90 2>/tmp/fn_headers.txt)
-          echo "HTTP Code: $HTTP_CODE"
-          echo "=== Body ===" && cat /tmp/fn_body.txt
-          echo "" && echo "=== Response headers ===" && grep "< " /tmp/fn_headers.txt | head -20
-
-      - name: Write results to repo
-        run: |
+            --max-time 90)
+          echo "HTTP: $HTTP_CODE"
+          cat /tmp/body.txt | python3 -m json.tool 2>/dev/null || cat /tmp/body.txt
+          
+          # Save result
           mkdir -p .diag
-          URL="${{ secrets.VITE_SUPABASE_URL }}"
-          KEY="${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}"
-          {
-            echo "Date: $(date -u)"
-            echo "URL_SET=$([ -n \"$URL\" ] && echo YES || echo NO)"
-            echo "URL_LEN=${#URL}"
-            echo "URL_TAIL=...${URL: -20}"
-            echo "KEY_SET=$([ -n \"$KEY\" ] && echo YES || echo NO)"
-            echo "KEY_LEN=${#KEY}"
-            echo "KEY_TAIL=...${KEY: -30}"
-          } > .diag/discovery_diag.md
-          cat /tmp/fn_body.txt > .diag/discovery_fn_body.txt
+          echo "Date: $(date -u)" > .diag/discovery_diag.md
+          echo "HTTP_CODE=$HTTP_CODE" >> .diag/discovery_diag.md
+          cat /tmp/body.txt > .diag/discovery_fn_body.txt
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add .diag/
-          git diff --staged --quiet || git commit -m "diag: discovery-agent v3 [skip ci]"
+          git diff --staged --quiet || git commit -m "diag: post-secret-set result [skip ci]"
           git push
