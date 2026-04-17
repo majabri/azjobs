@@ -31,15 +31,30 @@ Deno.serve(async (req) => {
   }
 
   // Service-role only — this function runs server-side, never from the browser.
-  const auth        = req.headers.get('Authorization') ?? '';
-  const serviceKey  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
-  if (!auth.includes(serviceKey)) {
+  // Validates the JWT payload rather than comparing against an env var to avoid
+  // mismatches between the Supabase-injected key and the caller's key.
+  const auth  = req.headers.get('Authorization') ?? '';
+  const token = auth.startsWith('Bearer ') ? auth.slice(7) : '';
+  let isAuthorized = false;
+  try {
+    const parts = token.split('.');
+    if (parts.length === 3) {
+      const payload = JSON.parse(atob(parts[1]));
+      isAuthorized = payload.role === 'service_role' &&
+                     payload.ref  === 'bryoehuhhhjqcueomgev';
+    }
+  } catch { /* invalid JWT — isAuthorized stays false */ }
+
+  if (!isAuthorized) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 
+  // Use the passed service-role token for the Supabase client so it works
+  // regardless of whether SUPABASE_SERVICE_ROLE_KEY is injected correctly.
+  const serviceKey = token;
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
     serviceKey,
@@ -183,3 +198,4 @@ Deno.serve(async (req) => {
     { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
   );
 });
+
