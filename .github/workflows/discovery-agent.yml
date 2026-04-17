@@ -1,0 +1,35 @@
+name: iCareerOS Discovery Agent
+
+on:
+  schedule:
+    - cron: '0 */4 * * *'   # Every 4 hours (off-peak from the 2-hr Python scraper)
+  workflow_dispatch:          # Manual trigger from Actions tab
+
+jobs:
+  run-discovery-agent:
+    name: Run Discovery Agent → job_postings
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Trigger discovery-agent edge function
+        run: |
+          RESPONSE=$(curl -s -w "\n%{http_code}" \
+            -X POST "${{ secrets.VITE_SUPABASE_URL }}/functions/v1/discovery-agent" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
+            -H "Content-Type: application/json" \
+            --max-time 60)
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | head -n -1)
+          echo "HTTP $HTTP_CODE"
+          echo "$BODY" | python3 -m json.tool 2>/dev/null || echo "$BODY"
+          if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
+            echo "✅ Discovery agent completed successfully"
+          else
+            echo "❌ Discovery agent returned HTTP $HTTP_CODE"
+            exit 1
+          fi
+
+      - name: Done
+        if: always()
+        run: echo "Discovery agent finished at $(date -u)"
