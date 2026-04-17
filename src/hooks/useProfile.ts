@@ -31,7 +31,7 @@ export function useProfile() {
     supabase
       .from("profiles")
       .select("full_name, username, avatar_url")
-      .eq("id", user.id)
+      .eq("user_id", user.id)
       .maybeSingle()
       .then(({ data }) => {
         if (!mounted) return;
@@ -72,7 +72,7 @@ export function useProfile() {
     const { error } = await supabase
       .from("profiles")
       .update({ full_name: newName.trim(), updated_at: new Date().toISOString() })
-      .eq("id", user.id);
+      .eq("user_id", user.id);
     if (error) return error.message;
     setProfile((prev) => (prev ? { ...prev, full_name: newName.trim() } : prev));
     return null;
