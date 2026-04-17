@@ -1,0 +1,1 @@
+{"message":"Failed to run sql query: ERROR:  42P07: relation \"platform_events\" already exists\n"}
