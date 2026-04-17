@@ -4,20 +4,23 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useAdminRole } from "@/hooks/useAdminRole";
+import { useProfile } from "@/hooks/useProfile";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 export default function UserMenu() {
   const { user } = useAuthReady();
   const { isAdmin } = useAdminRole();
+  const { displayName, profile } = useProfile();
   const navigate = useNavigate();
   const location = useLocation();
 
   if (!user) return null;
 
-  const avatar = user.user_metadata?.avatar_url;
-  const name = isAdmin
-    ? "Admin"
-    : user.user_metadata?.full_name || user.email?.split("@")[0] || "User";
+  // Prefer profile avatar, then OAuth avatar from user metadata
+  const avatar = profile?.avatar_url || user.user_metadata?.avatar_url;
+
+  // Admins always show "Admin"; everyone else gets their editable display name
+  const name = isAdmin ? "Admin" : displayName();
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
