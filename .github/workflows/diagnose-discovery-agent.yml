@@ -1,4 +1,4 @@
-name: Diagnose discovery-agent failure
+name: Diagnose discovery-agent — write output
 
 on:
   workflow_dispatch:
@@ -7,26 +7,41 @@ jobs:
   diagnose:
     runs-on: ubuntu-latest
     steps:
-      - name: Check secrets present
-        run: |
-          [ -n "${{ secrets.VITE_SUPABASE_URL }}" ] && echo "VITE_SUPABASE_URL: SET" || echo "VITE_SUPABASE_URL: MISSING"
-          [ -n "${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" ] && echo "SUPABASE_SERVICE_ROLE_KEY: SET" || echo "SUPABASE_SERVICE_ROLE_KEY: MISSING"
-          [ -n "${{ secrets.SUPABASE_ACCESS_TOKEN }}" ] && echo "SUPABASE_ACCESS_TOKEN: SET" || echo "SUPABASE_ACCESS_TOKEN: MISSING"
+      - uses: actions/checkout@v4
 
-      - name: Call discovery-agent edge function (verbose)
+      - name: Call edge function and capture output
         run: |
-          echo "=== Calling edge function ==="
-          HTTP_CODE=$(curl -s -o /tmp/body.txt -w "%{http_code}" \
+          HTTP_CODE=$(curl -s -o /tmp/fn_body.txt -w "%{http_code}" \
             -X POST "${{ secrets.VITE_SUPABASE_URL }}/functions/v1/discovery-agent" \
             -H "Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
             -H "Content-Type: application/json" \
             --max-time 90)
+          
+          echo "## Discovery Agent Diagnostic" > /tmp/diag_result.md
+          echo "- Date: $(date -u)" >> /tmp/diag_result.md
+          echo "- HTTP Code: $HTTP_CODE" >> /tmp/diag_result.md
+          echo "" >> /tmp/diag_result.md
+          echo "### Response Body" >> /tmp/diag_result.md
+          echo "\`\`\`json" >> /tmp/diag_result.md
+          cat /tmp/fn_body.txt | python3 -m json.tool 2>/dev/null || cat /tmp/fn_body.txt >> /tmp/diag_result.md
+          echo "\`\`\`" >> /tmp/diag_result.md
+          
+          # Write to step summary so it appears in GitHub Actions UI
+          cat /tmp/diag_result.md >> $GITHUB_STEP_SUMMARY
+          
+          # Also save to repo for retrieval
+          mkdir -p .diag
+          cp /tmp/diag_result.md .diag/discovery_diag.md
+          echo "HTTP_CODE=$HTTP_CODE" >> .diag/discovery_diag.md
+          cat /tmp/fn_body.txt >> .diag/discovery_fn_body.txt
+          
           echo "HTTP Code: $HTTP_CODE"
-          echo "Response body:"
-          cat /tmp/body.txt | python3 -m json.tool 2>/dev/null || cat /tmp/body.txt
+          cat /tmp/fn_body.txt
 
-      - name: Check deployed functions via Supabase API
+      - name: Commit diagnostic output
         run: |
-          curl -s "https://api.supabase.com/v1/projects/bryoehuhhhjqcueomgev/functions" \
-            -H "Authorization: Bearer ${{ secrets.SUPABASE_ACCESS_TOKEN }}" | \
-            python3 -c "import sys,json; fns=json.load(sys.stdin); [print(f[\"slug\"], \"->\", f.get(\"status\",\"?\")) for f in fns] if isinstance(fns, list) else print(fns)"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .diag/
+          git diff --staged --quiet || git commit -m "diag: discovery-agent response [skip ci]"
+          git push
