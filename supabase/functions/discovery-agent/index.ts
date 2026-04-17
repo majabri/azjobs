@@ -84,14 +84,15 @@ Deno.serve(async (req) => {
   for (const p of prefs ?? []) {
     for (const t of p.target_titles ?? []) {
       if (isCleanTitle(t)) termSet.add(t.trim());
+      if (termSet.size >= 5) break;  // cap to avoid WORKER_RESOURCE_LIMIT
     }
+    if (termSet.size >= 5) break;
   }
 
   // Fallback terms so the agent is useful before any user preferences exist.
   if (termSet.size === 0) {
     for (const t of [
       'software engineer', 'product manager', 'data scientist',
-      'devops engineer', 'security engineer', 'engineering manager',
     ]) termSet.add(t);
   }
   const terms = [...termSet];
