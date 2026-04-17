@@ -1,7 +1,12 @@
 /**
- * useProfile — fetches the current user's profile row from the `profiles` table.
- * This is the source of truth for user-editable display information (full_name,
- * username, avatar_url) that is separate from Supabase auth metadata.
+ * useProfile — fetches the current user's display name from multiple sources.
+ *
+ * Priority order for display name:
+ * 1. profiles.full_name        — user-edited in Account Settings
+ * 2. user_metadata.full_name   — set by OAuth provider (Google/Apple) on first login
+ * 3. profiles.username         — optional username field
+ * 4. job_seeker_profiles.full_name — name from career profile (auto-populated)
+ * 5. email prefix              — last resort fallback
  */
 
 import { useEffect, useState } from "react";
@@ -17,27 +22,37 @@ export interface ProfileData {
 export function useProfile() {
   const { user } = useAuthReady();
   const [profile, setProfile] = useState<ProfileData | null>(null);
+  const [jobSeekerName, setJobSeekerName] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (!user) {
       setProfile(null);
+      setJobSeekerName(null);
       return;
     }
 
     let mounted = true;
     setIsLoading(true);
 
-    supabase
-      .from("profiles")
-      .select("full_name, username, avatar_url")
-      .eq("user_id", user.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (!mounted) return;
-        setProfile(data ?? null);
-        setIsLoading(false);
-      });
+    // Fetch both tables in parallel
+    Promise.all([
+      supabase
+        .from("profiles")
+        .select("full_name, username, avatar_url")
+        .eq("user_id", user.id)
+        .maybeSingle(),
+      supabase
+        .from("job_seeker_profiles")
+        .select("full_name")
+        .eq("user_id", user.id)
+        .maybeSingle(),
+    ]).then(([profileRes, jobSeekerRes]) => {
+      if (!mounted) return;
+      setProfile(profileRes.data ?? null);
+      setJobSeekerName(jobSeekerRes.data?.full_name ?? null);
+      setIsLoading(false);
+    });
 
     return () => {
       mounted = false;
@@ -45,12 +60,7 @@ export function useProfile() {
   }, [user?.id]);
 
   /**
-   * Returns the best available display name using this priority:
-   * 1. profiles.full_name  (user-edited in Settings)
-   * 2. user_metadata.full_name  (set by OAuth provider on first login)
-   * 3. profiles.username
-   * 4. email prefix  (fallback)
-   * 5. "User"
+   * Returns the best available display name.
    */
   const displayName = (): string => {
     if (!user) return "User";
@@ -58,6 +68,7 @@ export function useProfile() {
       profile?.full_name ||
       user.user_metadata?.full_name ||
       profile?.username ||
+      jobSeekerName ||
       user.email?.split("@")[0] ||
       "User"
     );
@@ -65,16 +76,28 @@ export function useProfile() {
 
   /**
    * Persists a new display name to the profiles table.
+   * Uses upsert so it works even if the user has no profile row yet.
    * Returns an error string on failure, or null on success.
    */
   const updateDisplayName = async (newName: string): Promise<string | null> => {
     if (!user) return "Not authenticated";
+    const trimmed = newName.trim();
     const { error } = await supabase
       .from("profiles")
-      .update({ full_name: newName.trim(), updated_at: new Date().toISOString() })
-      .eq("user_id", user.id);
+      .upsert(
+        {
+          user_id: user.id,
+          full_name: trimmed,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id" }
+      );
     if (error) return error.message;
-    setProfile((prev) => (prev ? { ...prev, full_name: newName.trim() } : prev));
+    setProfile((prev) =>
+      prev
+        ? { ...prev, full_name: trimmed }
+        : { full_name: trimmed, username: null, avatar_url: null }
+    );
     return null;
   };
 
