@@ -1,0 +1,28 @@
+name: DB Migration — Post-Launch Cleanup
+
+on:
+  workflow_dispatch:
+
+jobs:
+  cleanup:
+    name: Drop legacy scraped_jobs VIEW + user_job_matches table
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run cleanup migration
+        run: |
+          SQL=$(cat supabase/migrations/20260417_post_launch_cleanup.sql)
+          RESPONSE=$(curl -s -o /tmp/body.txt -w "%{http_code}" \
+            -X POST "https://api.supabase.com/v1/projects/bryoehuhhhjqcueomgev/database/query" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ACCESS_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"query\": $(echo "$SQL" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')}")
+          echo "HTTP $RESPONSE"
+          cat /tmp/body.txt | python3 -m json.tool 2>/dev/null || cat /tmp/body.txt
+          if [ "$RESPONSE" -ge 200 ] && [ "$RESPONSE" -lt 300 ]; then
+            echo "✅ Cleanup complete"
+          else
+            echo "❌ Cleanup failed"
+            exit 1
+          fi
