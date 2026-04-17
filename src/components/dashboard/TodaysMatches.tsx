@@ -154,8 +154,10 @@ function isGenericJobListingUrl(rawUrl: string): boolean {
 function hasSubstantiveJobDescription(description?: string | null): boolean {
   if (!description) return false;
   const text = description.trim();
-  if (text.length < 140) return false;
-  if (text.split(/\s+/).length < 24) return false;
+  // Relaxed threshold: scraped descriptions vary in length; just need something
+  // meaningful — not an empty or single-line placeholder
+  if (text.length < 30) return false;
+  if (text.split(/\s+/).length < 5) return false;
   return true;
 }
 
@@ -264,7 +266,8 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
       .eq("user_id", session.user.id);
     if (appData) setSavedApps(appData as any);
 
-    if (!profile?.skills?.length) {
+    // Show "complete profile" only if truly empty — no skills AND no target titles
+    if (!profile?.skills?.length && !profile?.target_job_titles?.length && !profile?.career_level) {
       setHasProfile(false);
       return;
     }

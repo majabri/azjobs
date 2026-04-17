@@ -164,8 +164,8 @@ function isGenericJobListingUrl(rawUrl: string): boolean {
 function hasSubstantiveJobDescription(description?: string | null): boolean {
   if (!description) return false;
   const text = description.trim();
-  if (text.length < 140) return false;
-  if (text.split(/\s+/).length < 24) return false;
+  if (text.length < 30) return false;
+  if (text.split(/\s+/).length < 5) return false;
   return true;
 }
 
@@ -274,7 +274,7 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
       .eq("user_id", session.user.id);
     if (appData) setSavedApps(appData as any);
 
-    if (!profile?.skills?.length) {
+    if (!profile?.skills?.length && !profile?.target_job_titles?.length && !profile?.career_level) {
       setHasProfile(false);
       return;
     }
