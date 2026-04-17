@@ -59,6 +59,16 @@ interface JobMatch {
   titleMatch?: boolean; // true when job title aligns with user's target titles (title-pass jobs rank first)
 }
 
+const CAREER_LEVEL_TITLES: Record<string, string[]> = {
+  "Entry-Level / Junior": ["junior software engineer", "entry level analyst", "associate engineer", "junior developer", "entry level coordinator"],
+  "Mid-Level": ["software engineer", "data analyst", "product manager", "business analyst", "marketing manager"],
+  "Senior": ["senior software engineer", "senior engineer", "senior analyst", "senior manager", "senior consultant"],
+  "Manager": ["engineering manager", "product manager", "team lead", "operations manager", "marketing manager"],
+  "Director": ["director of engineering", "director of operations", "director of product", "director of marketing", "director of finance"],
+  "VP / Senior Leadership": ["VP of Engineering", "VP of Product", "VP of Operations", "VP of Marketing", "Vice President"],
+  "C-Level / Executive": ["CTO", "CEO", "COO", "CISO", "Chief Technology Officer", "Chief Operating Officer"],
+};
+
 const GENERIC_JOB_PATH_SEGMENTS = new Set([
   "careers",
   "career",
@@ -380,6 +390,12 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
   const fetchJobs = async (profile: any, session: any, cacheKey: string, outcomes?: HistoricalOutcomes) => {
     setLoading(true);
     try {
+      // Derive target titles — fall back to career-level defaults when profile has none
+      const profileTitles: string[] = profile.target_job_titles || [];
+      const targetTitles = profileTitles.length > 0
+        ? profileTitles
+        : (CAREER_LEVEL_TITLES[profile.career_level || ""] ?? ["software engineer", "data analyst", "product manager"]);
+
       // Use the job service with built-in polling support
       const { jobs: rawResults } = await searchJobsService({
         skills: profile.skills?.slice(0, 10) || [],
@@ -387,7 +403,7 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
         location: (profile.location && profile.location !== '<UNKNOWN>') ? profile.location : "",
         query: "",
         careerLevel: profile.career_level || "",
-        targetTitles: profile.target_job_titles || [],
+        targetTitles,
         searchSource: "all",
         minFitScore: 0,
         showFlagged: false,
@@ -416,7 +432,7 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
         if (!uniqueByUrl.has(job.url)) uniqueByUrl.set(job.url, job);
       }
 
-      const enriched = enrichJobs(Array.from(uniqueByUrl.values()), profile.skills || [], profile.target_job_titles || [], outcomes)
+      const enriched = enrichJobs(Array.from(uniqueByUrl.values()), profile.skills || [], targetTitles, outcomes)
         .filter(job => !isJobIgnored(job, ignoredList))
         .filter(job => !isJobAlreadySaved(job, savedApps));
       setJobs(enriched);

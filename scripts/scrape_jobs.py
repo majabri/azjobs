@@ -124,9 +124,92 @@ BASELINE_CONFIGS = [
     {"term": "VP of Engineering",          "location": "United States", "is_remote": True},
     {"term": "CTO",                        "location": "United States", "is_remote": True},
 
-    # ── Finance & Business ────────────────────────────────────────────────────
+    # ── Finance & Accounting ──────────────────────────────────────────────────
     {"term": "financial analyst",          "location": "New York, NY"},
+    {"term": "financial analyst",          "location": "United States", "is_remote": True},
     {"term": "business analyst",           "location": "United States", "is_remote": True},
+    {"term": "CFO",                        "location": "United States", "is_remote": True},
+    {"term": "VP of Finance",              "location": "United States", "is_remote": True},
+    {"term": "Director of Finance",        "location": "United States", "is_remote": True},
+    {"term": "controller",                 "location": "United States", "is_remote": True},
+    {"term": "accountant",                 "location": "United States", "is_remote": True},
+    {"term": "senior accountant",          "location": "United States", "is_remote": True},
+    {"term": "FP&A analyst",               "location": "United States", "is_remote": True},
+    {"term": "investment analyst",         "location": "New York, NY"},
+
+    # ── Human Resources & Recruiting ─────────────────────────────────────────
+    {"term": "HR manager",                 "location": "United States", "is_remote": True},
+    {"term": "HR business partner",        "location": "United States", "is_remote": True},
+    {"term": "recruiter",                  "location": "United States", "is_remote": True},
+    {"term": "technical recruiter",        "location": "United States", "is_remote": True},
+    {"term": "talent acquisition manager", "location": "United States", "is_remote": True},
+    {"term": "Chief People Officer",       "location": "United States", "is_remote": True},
+    {"term": "VP of People",               "location": "United States", "is_remote": True},
+    {"term": "Director of HR",             "location": "United States", "is_remote": True},
+    {"term": "people operations manager",  "location": "United States", "is_remote": True},
+
+    # ── Marketing & Growth ────────────────────────────────────────────────────
+    {"term": "marketing manager",          "location": "United States", "is_remote": True},
+    {"term": "digital marketing manager",  "location": "United States", "is_remote": True},
+    {"term": "content marketing manager",  "location": "United States", "is_remote": True},
+    {"term": "growth marketing manager",   "location": "United States", "is_remote": True},
+    {"term": "SEO specialist",             "location": "United States", "is_remote": True},
+    {"term": "CMO",                        "location": "United States", "is_remote": True},
+    {"term": "VP of Marketing",            "location": "United States", "is_remote": True},
+    {"term": "Director of Marketing",      "location": "United States", "is_remote": True},
+    {"term": "brand manager",              "location": "United States", "is_remote": True},
+    {"term": "social media manager",       "location": "United States", "is_remote": True},
+
+    # ── Sales & Business Development ─────────────────────────────────────────
+    {"term": "sales manager",              "location": "United States", "is_remote": True},
+    {"term": "account executive",          "location": "United States", "is_remote": True},
+    {"term": "account manager",            "location": "United States", "is_remote": True},
+    {"term": "VP of Sales",                "location": "United States", "is_remote": True},
+    {"term": "Director of Sales",          "location": "United States", "is_remote": True},
+    {"term": "business development manager", "location": "United States", "is_remote": True},
+    {"term": "sales development representative", "location": "United States", "is_remote": True},
+    {"term": "enterprise account executive", "location": "United States", "is_remote": True},
+
+    # ── Legal & Compliance ────────────────────────────────────────────────────
+    {"term": "compliance manager",         "location": "United States", "is_remote": True},
+    {"term": "compliance officer",         "location": "United States", "is_remote": True},
+    {"term": "general counsel",            "location": "United States", "is_remote": True},
+    {"term": "corporate attorney",         "location": "New York, NY"},
+    {"term": "legal counsel",              "location": "United States", "is_remote": True},
+    {"term": "privacy counsel",            "location": "United States", "is_remote": True},
+    {"term": "Chief Compliance Officer",   "location": "United States", "is_remote": True},
+
+    # ── Operations & Supply Chain ─────────────────────────────────────────────
+    {"term": "operations manager",         "location": "United States", "is_remote": True},
+    {"term": "COO",                        "location": "United States", "is_remote": True},
+    {"term": "VP of Operations",           "location": "United States", "is_remote": True},
+    {"term": "Director of Operations",     "location": "United States", "is_remote": True},
+    {"term": "supply chain manager",       "location": "United States", "is_remote": True},
+    {"term": "logistics manager",          "location": "United States", "is_remote": True},
+    {"term": "project manager",            "location": "United States", "is_remote": True},
+    {"term": "program manager",            "location": "United States", "is_remote": True},
+    {"term": "scrum master",               "location": "United States", "is_remote": True},
+
+    # ── Healthcare ────────────────────────────────────────────────────────────
+    {"term": "registered nurse",           "location": "United States"},
+    {"term": "nurse practitioner",         "location": "United States"},
+    {"term": "physician assistant",        "location": "United States"},
+    {"term": "healthcare administrator",   "location": "United States"},
+    {"term": "medical director",           "location": "United States"},
+    {"term": "clinical manager",           "location": "United States"},
+    {"term": "health informatics",         "location": "United States", "is_remote": True},
+
+    # ── Customer Success & Support ────────────────────────────────────────────
+    {"term": "customer success manager",   "location": "United States", "is_remote": True},
+    {"term": "VP of Customer Success",     "location": "United States", "is_remote": True},
+    {"term": "Director of Customer Success", "location": "United States", "is_remote": True},
+    {"term": "customer support manager",   "location": "United States", "is_remote": True},
+
+    # ── Education & Training ──────────────────────────────────────────────────
+    {"term": "instructional designer",     "location": "United States", "is_remote": True},
+    {"term": "learning and development manager", "location": "United States", "is_remote": True},
+    {"term": "training manager",           "location": "United States", "is_remote": True},
+    {"term": "curriculum developer",       "location": "United States", "is_remote": True},
 ]
 
 # ── Helpers ───────────────────────────────────────────────────────────────────

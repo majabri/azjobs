@@ -380,6 +380,22 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
   const fetchJobs = async (profile: any, session: any, cacheKey: string, outcomes?: HistoricalOutcomes) => {
     setLoading(true);
     try {
+      // When the profile has no target titles, derive reasonable search terms from
+      // career_level so users with incomplete profiles still see relevant jobs.
+      const CAREER_LEVEL_TITLES: Record<string, string[]> = {
+        "Entry-Level / Junior": ["junior software engineer", "entry level analyst", "associate engineer", "junior developer"],
+        "Mid-Level":            ["software engineer", "data analyst", "product manager", "business analyst"],
+        "Senior":               ["senior software engineer", "senior engineer", "senior analyst", "senior manager"],
+        "Manager":              ["engineering manager", "product manager", "team lead", "operations manager"],
+        "Director":             ["director of engineering", "director of operations", "director of product"],
+        "VP / Senior Leadership": ["VP of Engineering", "VP of Product", "VP of Operations", "Vice President"],
+        "C-Level / Executive":  ["CTO", "CEO", "COO", "Chief Technology Officer", "CISO"],
+      };
+      const profileTitles: string[] = profile.target_job_titles || [];
+      const targetTitles = profileTitles.length > 0
+        ? profileTitles
+        : (CAREER_LEVEL_TITLES[profile.career_level || ""] ?? ["software engineer", "data analyst", "product manager"]);
+
       // Use the job service with built-in polling support
       const { jobs: rawResults } = await searchJobsService({
         skills: profile.skills?.slice(0, 10) || [],
@@ -387,7 +403,7 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
         location: (profile.location && profile.location !== '<UNKNOWN>') ? profile.location : "",
         query: "",
         careerLevel: profile.career_level || "",
-        targetTitles: profile.target_job_titles || [],
+        targetTitles,
         searchSource: "all",
         minFitScore: 0,
         showFlagged: false,

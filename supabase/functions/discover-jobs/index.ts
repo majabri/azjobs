@@ -292,13 +292,54 @@ Deno.serve(async (req) => {
       }
     }
 
-    // If no target titles but there's a searchTerm, fall back to broad description match
+    // ── FALLBACK A: free-text searchTerm against title + description ─────────
     if (pass1Jobs.length === 0 && pass2Jobs.length === 0 && searchTerm.trim()) {
       const fallbackOr = `or=(title.ilike.*${encodeURIComponent(searchTerm.trim())}*,description.ilike.*${encodeURIComponent(searchTerm.trim())}*)`;
       try {
         pass1Jobs = (await pgrest("scraped_jobs", [...baseParams, fallbackOr].join("&"))) ?? [];
       } catch (e) {
-        console.warn("[discover-jobs] Fallback query error:", e instanceof Error ? e.message : e);
+        console.warn("[discover-jobs] Fallback A error:", e instanceof Error ? e.message : e);
+      }
+    }
+
+    // ── FALLBACK B: relax the date window — try 90 days if still no results ──
+    // Handles users whose target titles are scraped less frequently.
+    if (pass1Jobs.length === 0 && pass2Jobs.length === 0 && titleTerms.length > 0) {
+      const looseCutoff = new Date(Date.now() - 90 * 86400000).toISOString();
+      const looseBase = baseParams.map((p: string) =>
+        p.startsWith("first_seen_at=gte.") ? `first_seen_at=gte.${looseCutoff}` : p
+      );
+      const titleOr90 = titleTerms.slice(0, 20)
+        .map((t: string) => `title.ilike.*${encodeURIComponent(t)}*`)
+        .join(",");
+      try {
+        pass1Jobs = (await pgrest("scraped_jobs", [...looseBase, `or=(${titleOr90})`].join("&"))) ?? [];
+        if (pass1Jobs.length > 0) console.log(`[discover-jobs] Fallback B (90d): ${pass1Jobs.length} jobs`);
+      } catch (e) {
+        console.warn("[discover-jobs] Fallback B error:", e instanceof Error ? e.message : e);
+      }
+    }
+
+    // ── FALLBACK C: no criteria at all — return recent high-quality jobs ─────
+    // Ensures users with empty profiles (no titles, no skills, no query) still
+    // see something relevant rather than a blank page.
+    if (pass1Jobs.length === 0 && pass2Jobs.length === 0) {
+      try {
+        const fallbackParams = [
+          `select=${selectCols}`,
+          `order=quality_score.desc,first_seen_at.desc`,
+          `limit=${Math.min(limit, 50)}`,
+        ];
+        // Keep location / remote / jobType filters if provided
+        if (location && !/^\s*remote\s*$/i.test(location)) {
+          fallbackParams.push(`location=ilike.*${encodeURIComponent(location)}*`);
+        }
+        if (isRemote) fallbackParams.push(`is_remote=eq.true`);
+        if (jobType)  fallbackParams.push(`job_type=eq.${encodeURIComponent(jobType)}`);
+        pass1Jobs = (await pgrest("scraped_jobs", fallbackParams.join("&"))) ?? [];
+        if (pass1Jobs.length > 0) console.log(`[discover-jobs] Fallback C (recent quality): ${pass1Jobs.length} jobs`);
+      } catch (e) {
+        console.warn("[discover-jobs] Fallback C error:", e instanceof Error ? e.message : e);
       }
     }
 
