@@ -25,6 +25,12 @@ try:
     from supabase import create_client
 except ImportError:
     log.error("supabase not installed"); sys.exit(1)
+try:
+    from job_validator import validate_job
+    VALIDATOR_AVAILABLE = True
+except ImportError:
+    log.warning("job_validator not found — skipping validation on ingest")
+    VALIDATOR_AVAILABLE = False
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY")
@@ -355,7 +361,7 @@ def run():
     all_configs = BASELINE_CONFIGS + dynamic
     log.info(f"Total configs: {len(all_configs)} ({len(BASELINE_CONFIGS)} baseline + {len(dynamic)} dynamic)")
 
-    total_upserted = total_skipped = total_errors = total_deduped = total_cache_skipped = 0
+    total_upserted = total_skipped = total_errors = total_deduped = total_cache_skipped = total_flagged = 0
 
     # Cross-site deduplication: tracks content hashes seen this run.
     # Same job on Indeed + Google has different URLs → different external_id → two DB rows.
@@ -420,21 +426,55 @@ def run():
             seen_content_hashes.add(chash)
 
             # ── Map JobSpy columns → job_postings schema ──────────────────────
+            description = safe_str(job.get("description"))
+            location    = safe_str(job.get("location"))
+
+            # ── Ingest-time validation (heuristics + AI; no URL check for speed)
+            row_quality_score = 50
+            row_is_flagged    = False
+            row_flag_reasons  = None
+            row_validated_at  = None
+            if VALIDATOR_AVAILABLE:
+                try:
+                    vr = validate_job(
+                        title=title,
+                        company=company or "",
+                        location=location or "",
+                        description=description or "",
+                        job_url=url,
+                        job_age_days=None,    # unknown at scrape time
+                        skip_url_check=True,  # URL check runs in daily validate_jobs.py
+                    )
+                    row_quality_score = vr.quality_score
+                    row_is_flagged    = vr.is_flagged
+                    row_flag_reasons  = vr.flag_reasons if vr.flag_reasons else None
+                    row_validated_at  = datetime.now(timezone.utc).isoformat()
+                    if vr.is_flagged:
+                        total_flagged += 1
+                        log.debug(f"  Flagged: '{title}' @ {company} — {vr.flag_reasons}")
+                except Exception as e:
+                    log.debug(f"  Validation error for '{title}': {e}")
+
             rows.append({
                 "external_id":     make_url_id(url),
                 "title":           title,
                 "company":         company or None,
-                "location":        safe_str(job.get("location")),
+                "location":        location,
                 "is_remote":       safe_bool(job.get("is_remote")),
                 "job_type":        norm_type(safe_str(job.get("job_type"))),
                 "salary_min":      safe_int(job.get("min_amount")),
                 "salary_max":      safe_int(job.get("max_amount")),
                 "salary_currency": safe_str(job.get("currency")) or "USD",
-                "description":     safe_str(job.get("description")),
+                "description":     description,
                 "job_url":         url,
                 "source":          safe_str(job.get("site")) or "unknown",
                 "date_posted":     safe_str(job.get("date_posted")),
                 "scraped_at":      datetime.now(timezone.utc).isoformat(),
+                # Validation results
+                "quality_score":   row_quality_score,
+                "is_flagged":      row_is_flagged,
+                "flag_reasons":    row_flag_reasons,
+                "validated_at":    row_validated_at,
             })
 
         if batch_deduped:
@@ -454,6 +494,7 @@ def run():
     log.info("=" * 60)
     log.info(
         f"Done. Upserted: {total_upserted} | "
+        f"Flagged (fake/risky): {total_flagged} | "
         f"Deduped (cross-site): {total_deduped} | "
         f"Skipped (no URL): {total_skipped} | "
         f"Cache-skipped configs: {total_cache_skipped} | "
