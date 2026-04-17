@@ -1,0 +1,21 @@
+name: DB Migration — Agent Output Tables
+
+on:
+  workflow_dispatch:
+
+jobs:
+  migrate:
+    name: Apply agent output tables migration (011)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply migration via Supabase Management API
+        run: |
+          SQL=$(cat supabase/migrations/20260416_011_agent_output_tables.sql)
+          HTTP_CODE=$(curl -s -o /tmp/body.txt -w "%{http_code}" \
+            -X POST "https://api.supabase.com/v1/projects/bryoehuhhhjqcueomgev/database/query" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ACCESS_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"query\": $(echo "$SQL" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')}")
+          echo "HTTP $HTTP_CODE" && cat /tmp/body.txt
+          [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ] && echo "✅ Migration 011 applied" || (echo "❌ Failed" && exit 1)
