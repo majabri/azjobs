@@ -22,6 +22,7 @@ import {
   CheckCircle2,
   Info,
 } from "lucide-react";
+import { logger } from '@/lib/logger';
 
 export default function PlatformSettings() {
   const [isInviteOnly, setIsInviteOnly] = useState(true);
@@ -70,7 +71,7 @@ export default function PlatformSettings() {
         totalInvitesSent: totalResult.count || 0,
       });
     } catch (err) {
-      console.error("Error fetching settings:", err);
+      logger.error("Error fetching settings:", err);
       toast.error("Failed to load platform settings");
     } finally {
       setIsLoading(false);

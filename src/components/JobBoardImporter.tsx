@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { analyzeJobFit, FitAnalysis } from "@/lib/analysisEngine";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { logger } from '@/lib/logger';
 
 interface ImportedJob {
   id: string;
@@ -120,7 +121,7 @@ export default function JobBoardImporter() {
       const missedPct = importedJobs.length > 0 ? Math.round((missedCount / importedJobs.length) * 100) : 0;
       toast.success(`Analysis complete! You missed ${missedPct}% of opportunities.`);
     } catch (e) {
-      console.error(e);
+      logger.error(e);
       toast.error("Analysis failed");
     } finally {
       setAnalyzing(false);

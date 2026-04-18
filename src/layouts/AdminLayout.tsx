@@ -34,6 +34,7 @@ import {
   Globe,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from '@/lib/logger';
 
 interface AdminNavItem {
   title: string;
@@ -160,7 +161,7 @@ function AdminSidebar() {
     try {
       await supabase.auth.signOut();
     } catch (e) {
-      console.error("Sign out error:", e);
+      logger.error("Sign out error:", e);
     }
     navigate("/auth/login", { replace: true });
   };

@@ -5,6 +5,7 @@
  */
 
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from '@/lib/logger';
 
 export interface LearningEvent {
   id: string;
@@ -21,7 +22,7 @@ export async function loadLearningEvents(userId: string): Promise<LearningEvent[
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(100);
-  if (error) { console.error("[LearningService]", error); return []; }
+  if (error) { logger.error("[LearningService]", error); return []; }
   return (data || []) as unknown as LearningEvent[];
 }
 

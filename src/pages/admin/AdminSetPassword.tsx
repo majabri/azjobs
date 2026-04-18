@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { logger } from '@/lib/logger';
 
 const MIN_PASSWORD_LENGTH = 8;
 
@@ -39,7 +40,7 @@ export default function AdminSetPassword() {
       });
       if (metaError) {
         // Non-fatal — password was already changed, just log it
-        console.warn("Could not clear must_set_password flag:", metaError.message);
+        logger.warn("Could not clear must_set_password flag:", metaError.message);
       }
 
       toast.success("Password set! Redirecting to admin dashboard…");

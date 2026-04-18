@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, CheckCircle, AlertCircle, X, MessageSquare } from 'lucide-react';
+import { logger } from '@/lib/logger';
 
 interface SupportTicket {
   id: string;
@@ -72,7 +73,7 @@ export default function SupportPage() {
       if (ticketsError) throw ticketsError;
       setTickets(ticketsData || []);
     } catch (err) {
-      console.error('Error fetching tickets:', err);
+      logger.error('Error fetching tickets:', err);
       setError(err instanceof Error ? err.message : 'Failed to load tickets');
     } finally {
       setTicketsLoading(false);
@@ -153,7 +154,7 @@ export default function SupportPage() {
         setActiveTab('tickets');
       }, 2000);
     } catch (err) {
-      console.error('Error submitting ticket:', err);
+      logger.error('Error submitting ticket:', err);
       showToast('error', err instanceof Error ? err.message : 'Failed to submit ticket');
     } finally {
       setLoading(false);

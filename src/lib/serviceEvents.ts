@@ -4,6 +4,7 @@
  */
 
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from '@/lib/logger';
 
 export type ServiceEventName =
   | "user.created"
@@ -35,7 +36,7 @@ export async function emitServiceEvent({ eventName, payload = {}, emittedBy }: E
     } as any);
   } catch (e) {
     // Silent failure — event system should never break the caller
-    console.warn("[emitServiceEvent] Failed to emit:", eventName, e);
+    logger.warn("[emitServiceEvent] Failed to emit:", eventName, e);
   }
 }
 

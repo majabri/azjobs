@@ -1,6 +1,7 @@
 // src/events/publisher.ts
 import { supabase } from '@/integrations/supabase/client';
 import { validateEventType } from './registry';
+import { logger } from '@/lib/logger';
 
 interface PublishEventOptions {
   eventType: string;
@@ -10,7 +11,7 @@ interface PublishEventOptions {
 
 export async function publishEvent({ eventType, payload, sourceService }: PublishEventOptions) {
   if (!validateEventType(eventType)) {
-    console.error(`[EventBus] Unknown event type: ${eventType}. Add it to src/events/registry.ts`);
+    logger.error(`[EventBus] Unknown event type: ${eventType}. Add it to src/events/registry.ts`);
     return;
   }
 
@@ -24,6 +25,6 @@ export async function publishEvent({ eventType, payload, sourceService }: Publis
     }]);
 
   if (error) {
-    console.error(`[EventBus] Failed to publish ${eventType}:`, error);
+    logger.error(`[EventBus] Failed to publish ${eventType}:`, error);
   }
 }

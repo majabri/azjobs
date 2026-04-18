@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import i18n from "@/lib/i18n";
+import { logger } from '@/lib/logger';
 
 /**
  * FIX: Cache whether the user_preferences table is available.
@@ -46,7 +47,7 @@ export function useLanguagePreference() {
             code === "PGRST204" // PostgREST "table not found"
           ) {
             tableUnavailable = true;
-            console.debug(
+            logger.debug(
               "[useLanguagePreference] user_preferences table unavailable â falling back to localStorage"
             );
           }

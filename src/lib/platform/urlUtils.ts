@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 // src/lib/urlUtils.ts
 
 /**
@@ -24,7 +25,7 @@ export function sanitizeURL(url: string): string {
         const sanitized = new URL(url);
         return sanitized.href; // Return the sanitized URL
     } catch (error) {
-        console.error('Invalid URL:', error);
+        logger.error('Invalid URL:', error);
         return '';
     }
 }

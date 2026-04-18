@@ -14,6 +14,7 @@ import { Settings, Save, Clock, RefreshCw, HelpCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuthReady } from "@/hooks/useAuthReady";
+import { logger } from '@/lib/logger';
 
 interface SettingRow {
   id: string;
@@ -189,7 +190,7 @@ export default function AdminSettings() {
       setSettings((data || []) as SettingRow[]);
       setEdits({});
     } catch (e) {
-      console.error(e);
+      logger.error(e);
       toast.error("Failed to load settings");
     } finally {
       setLoading(false);
@@ -220,7 +221,7 @@ export default function AdminSettings() {
       toast.success("Settings saved");
       load();
     } catch (e) {
-      console.error(e);
+      logger.error(e);
       toast.error("Failed to save settings");
     } finally {
       setSaving(false);

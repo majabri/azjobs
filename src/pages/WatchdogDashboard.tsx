@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, AlertTriangle, CheckCircle, AlertCircle, TrendingUp } from 'lucide-react';
+import { logger } from '@/lib/logger';
 
 interface WatchdogProbe {
   id: string;
@@ -82,7 +83,7 @@ export default function WatchdogDashboard() {
 
       setError(null);
     } catch (err) {
-      console.error('Error checking admin access:', err);
+      logger.error('Error checking admin access:', err);
       setError('Failed to verify admin access');
     }
   };
@@ -153,7 +154,7 @@ export default function WatchdogDashboard() {
 
       setIncidents(formattedIncidents);
     } catch (err) {
-      console.error('Error fetching dashboard data:', err);
+      logger.error('Error fetching dashboard data:', err);
       setError(err instanceof Error ? err.message : 'Failed to load dashboard');
     } finally {
       setLoading(false);

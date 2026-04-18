@@ -25,6 +25,7 @@ import { toast } from "sonner";
 import { Loader2, Eye, EyeOff, Mail, CheckCircle2 } from "lucide-react";
 import { InviteGate, InvitedByBadge } from "@/components/invite/InviteGate";
 import type { InvitationData } from "@/components/invite/InviteGate";
+import { logger } from '@/lib/logger';
 
 type RegistrationMode = "loading" | "invite_only" | "public";
 type SignupStep = "gate" | "magic_link" | "form" | "magic_complete";
@@ -161,7 +162,7 @@ export default function SignUpWithInvite() {
           });
         } catch {
           // Non-blocking
-          console.error("Accept invite failed after magic link signup");
+          logger.error("Accept invite failed after magic link signup");
         }
       }
 
@@ -254,7 +255,7 @@ export default function SignUpWithInvite() {
               },
             });
           } catch {
-            console.error("Accept invite error â non-blocking");
+            logger.error("Accept invite error â non-blocking");
           }
         }
       }

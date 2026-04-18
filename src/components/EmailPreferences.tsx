@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Mail, Save, Info } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { logger } from '@/lib/logger';
 
 export default function EmailPreferences() {
   const [dailyAlerts, setDailyAlerts] = useState(true);
@@ -28,7 +29,7 @@ export default function EmailPreferences() {
         setWeeklyInsights(data.weekly_insights);
         setMinScore(data.min_match_score);
       }
-    } catch (e) { console.error(e); }
+    } catch (e) { logger.error(e); }
     finally { setLoading(false); }
   };
 

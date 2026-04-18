@@ -24,6 +24,7 @@ import { toast } from "sonner";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { logger } from '@/lib/logger';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -537,7 +538,7 @@ function JobSeekerPanel({
       setRecords(merged);
       onRecordsLoaded?.(merged);
     } catch (e) {
-      console.error("AdminUsers: failed to load records:", e);
+      logger.error("AdminUsers: failed to load records:", e);
     } finally {
       setLoading(false);
     }
@@ -809,7 +810,7 @@ function HiringManagerPanel({
       setRecords(merged);
       onRecordsLoaded?.(merged);
     } catch (e) {
-      console.error(e);
+      logger.error(e);
       toast.error("Failed to load hiring managers");
     } finally {
       setLoading(false);
@@ -1000,7 +1001,7 @@ function AdminPanel({
 
       setRecords(merged);
     } catch (e) {
-      console.error(e);
+      logger.error(e);
       toast.error("Failed to load admins");
     } finally {
       setLoading(false);
@@ -1165,7 +1166,7 @@ export default function AdminUsers() {
       toast.success("Role updated");
       reload();
     } catch (e) {
-      console.error(e);
+      logger.error(e);
       toast.error("Failed to update role");
     } finally {
       setUpdatingId(null);

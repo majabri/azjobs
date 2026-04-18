@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { logger } from '@/lib/logger';
 
 type ReplyType = "thank_you" | "schedule_interview" | "follow_up" | "negotiate" | "decline";
 
@@ -79,7 +80,7 @@ export default function RecruiterAssistant() {
                 const parsed = JSON.parse(line.slice(6));
                 text += parsed.choices?.[0]?.delta?.content || "";
                 setDraftReply(text);
-              } catch (e) { console.warn("SSE parse error:", e); }
+              } catch (e) { logger.warn("SSE parse error:", e); }
             }
           }
         }

@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Activity, CheckCircle2, XCircle, Clock, TrendingUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from '@/lib/logger';
 
 interface AgentHealth {
   agent: string;
@@ -45,7 +46,7 @@ export default function AgentHealthDashboard() {
         return { agent, runs, successes, failures, avgTime: runs > 0 ? Math.round(totalTime / runs) : 0 };
       });
       setHealth(stats);
-    } catch (e) { console.error(e); }
+    } catch (e) { logger.error(e); }
     finally { setLoading(false); }
   };
 

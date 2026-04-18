@@ -7,6 +7,7 @@ import { UserCircle, Save, Clock, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuthReady } from "@/hooks/useAuthReady";
+import { logger } from '@/lib/logger';
 
 interface ProfileData {
   full_name: string;
@@ -50,7 +51,7 @@ export default function AdminProfile() {
         username: row?.username ?? "",
       });
     } catch (e) {
-      console.error(e);
+      logger.error(e);
       toast.error("Failed to load profile");
     } finally {
       setLoading(false);
@@ -75,7 +76,7 @@ export default function AdminProfile() {
 
       toast.success("Profile updated");
     } catch (e) {
-      console.error(e);
+      logger.error(e);
       toast.error("Failed to save profile");
     } finally {
       setSaving(false);

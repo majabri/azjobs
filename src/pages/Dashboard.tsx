@@ -19,6 +19,7 @@ import AgentControlCenter from "@/components/auto-apply/AgentControlCenter";
 import CompensationDashboard from "@/components/dashboard/CompensationDashboard";
 import CareerROIScore from "@/components/dashboard/CareerROIScore";
 import SmartNotificationEngine from "@/components/dashboard/SmartNotificationEngine";
+import { logger } from '@/lib/logger';
 
 interface AnalysisRecord {
   id: string;
@@ -55,7 +56,7 @@ export default function Dashboard() {
       setAnalyses(data || []);
       supabase.from("job_seeker_profiles").update({ last_active_at: new Date().toISOString() } as any).eq("user_id", session.user.id).then(() => {});
     } catch (e) {
-      console.error(e);
+      logger.error(e);
       toast.error("Failed to load history");
     } finally { setLoading(false); }
   };

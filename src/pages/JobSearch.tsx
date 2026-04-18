@@ -20,6 +20,7 @@ import { STRATEGY_CONFIG, TRUST_LEVEL_CONFIG, type FakeJobFlag, type HistoricalO
 import { searchJobs as searchJobsService } from "@/services/job/api";
 import { scoreJobs, type EnrichedJob } from "@/services/matching/api";
 import type { JobResult, JobSearchFilters } from "@/services/job/types";
+import { logger } from '@/lib/logger';
 
 function parseSalaryNumber(salary: string): number | null {
   const match = salary.replace(/,/g, "").match(/(\d+)/g);
@@ -142,7 +143,7 @@ export default function JobSearchPage() {
         const avgDays = days.length > 0 ? days.reduce((a, b) => a + b, 0) / days.length : 14;
         setHistoricalOutcomes({ totalApplications: total, totalResponses: responded, avgResponseRate: (responded / total) * 100, avgDaysToResponse: avgDays });
       }
-    } catch (e) { console.error(e); }
+    } catch (e) { logger.error(e); }
     finally { setProfileLoaded(true); }
   };
 
@@ -160,7 +161,7 @@ export default function JobSearchPage() {
     try {
       const result = await searchJobsService(filters);
       rawJobs = result.jobs; cits = result.citations;
-    } catch (e) { console.error("[JobSearch] error:", e); toast.error("Search encountered an issue."); }
+    } catch (e) { logger.error("[JobSearch] error:", e); toast.error("Search encountered an issue."); }
 
     const filtered = rawJobs.filter(job => !isJobIgnored(job, ignoredList)).filter(job => !isJobAlreadySaved(job, savedApps));
     let enriched: EnrichedJob[];

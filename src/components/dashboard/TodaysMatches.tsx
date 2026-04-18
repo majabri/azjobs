@@ -39,6 +39,7 @@ import { saveJobToApplications } from "@/lib/job-search";
 import { getIgnoredJobs, ignoreJob, isJobIgnored, isJobAlreadySaved, type IgnoredJob } from "@/lib/job-search";
 import { searchJobs as searchJobsService } from "@/services/job/api";
 import type { JobResult } from "@/services/job/types";
+import { logger } from '@/lib/logger';
 
 interface JobMatch {
   title: string;
@@ -296,7 +297,7 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
             return;
           }
         }
-      } catch (e) { console.warn("Cache read error:", e); }
+      } catch (e) { logger.warn("Cache read error:", e); }
     }
 
     fetchJobs(profile, session, cacheKey, outcomes);

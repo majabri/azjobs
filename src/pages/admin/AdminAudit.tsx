@@ -9,6 +9,7 @@ import {
   Terminal, Shield, User, ChevronDown, ChevronRight, Filter,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from '@/lib/logger';
 
 interface CommandLogEntry {
   id: string;
@@ -102,7 +103,7 @@ export default function AdminAudit() {
       auditEntries.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
       setEntries(auditEntries);
     } catch (e) {
-      console.error(e);
+      logger.error(e);
     } finally {
       setLoading(false);
     }

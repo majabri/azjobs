@@ -6,6 +6,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import type { JobResult, JobSearchFilters } from "./types";
+import { logger } from '@/lib/logger';
 
 // ── URL normalization (kept from original) ─────────────────────────────
 
@@ -198,7 +199,7 @@ export async function searchDatabaseJobs(
     if (!filters.showFlagged) query = query.eq("is_flagged", false);
 
     const { data, error } = await query;
-    if (error) { console.error("[searchDatabaseJobs] Error:", error.message); return []; }
+    if (error) { logger.error("[searchDatabaseJobs] Error:", error.message); return []; }
 
     return (data || []).map((row: any) => ({
       id: row.id,
@@ -219,7 +220,7 @@ export async function searchDatabaseJobs(
       first_seen_at: row.first_seen_at,
     }));
   } catch (e) {
-    console.error("[searchDatabaseJobs] Exception:", e);
+    logger.error("[searchDatabaseJobs] Exception:", e);
     return [];
   }
 }
@@ -230,6 +231,6 @@ export async function searchDatabaseJobs(
 export async function searchAIJobs(
   filters: JobSearchFilters
 ): Promise<{ jobs: JobResult[]; citations: string[] }> {
-  console.info("[searchAIJobs] Skipped — database-only mode active. AI search disabled to operate at zero cost.");
+  logger.info("[searchAIJobs] Skipped — database-only mode active. AI search disabled to operate at zero cost.");
   return { jobs: [], citations: [] };
 }

@@ -14,6 +14,7 @@ import { optimize } from "@/services/resume/api";
 import { apply } from "@/services/application/api";
 import type { JobSearchFilters } from "@/services/job/api";
 import type { EnrichedJob } from "@/services/matching/api";
+import { logger } from '@/lib/logger';
 
 export interface OrchestratorResult {
   jobsFound: number;
@@ -48,29 +49,29 @@ export async function runAllAgents(filters: JobSearchFilters): Promise<Orchestra
   };
 
   // ── Step 1: Job Service — fetch jobs only ──────────────────────────────────
-  console.log("[Orchestrator] Step 1: searching jobs...");
+  logger.info("[Orchestrator] Step 1: searching jobs...");
   const jobs = await searchJobs(filters).then(r => r.jobs).catch(e => {
-    console.error("[Orchestrator] searchJobs failed:", e);
+    logger.error("[Orchestrator] searchJobs failed:", e);
     result.errors.push(`searchJobs: ${errMsg(e)}`);
     return [];
   });
   result.jobsFound = jobs.length;
-  console.log(`[Orchestrator] Step 1 complete: ${jobs.length} jobs found`);
+  logger.info(`[Orchestrator] Step 1 complete: ${jobs.length} jobs found`);
 
   if (jobs.length === 0) {
-    console.warn("[Orchestrator] No jobs found — pipeline halted");
+    logger.warn("[Orchestrator] No jobs found — pipeline halted");
     return result;
   }
 
   // ── Step 2: Matching Service — score jobs independently ───────────────────
-  console.log("[Orchestrator] Step 2: scoring jobs...");
+  logger.info("[Orchestrator] Step 2: scoring jobs...");
   let scoredJobs: EnrichedJob[] = [];
   try {
     scoredJobs = scoreJobs({ jobs, skills: filters.skills });
     result.jobsScored = scoredJobs.length;
-    console.log(`[Orchestrator] Step 2 complete: ${scoredJobs.length} jobs scored`);
+    logger.info(`[Orchestrator] Step 2 complete: ${scoredJobs.length} jobs scored`);
   } catch (e) {
-    console.error("[Orchestrator] scoreJobs failed (non-blocking):", e);
+    logger.error("[Orchestrator] scoreJobs failed (non-blocking):", e);
     result.errors.push(`scoreJobs: ${errMsg(e)}`);
     // Fallback: wrap unscored jobs with default EnrichedJob fields so pipeline continues
     scoredJobs = jobs.map(job => ({
@@ -88,19 +89,19 @@ export async function runAllAgents(filters: JobSearchFilters): Promise<Orchestra
   }
 
   // ── Step 3: Resume Service — optimize for top job descriptions ────────────
-  console.log("[Orchestrator] Step 3: optimizing resume...");
+  logger.info("[Orchestrator] Step 3: optimizing resume...");
   const topJobs = scoredJobs.slice(0, 5);
   const jobDescriptions = topJobs.map(j => j.description).filter(Boolean);
   const optimizedResume = await optimize(jobDescriptions).catch(e => {
-    console.error("[Orchestrator] optimize failed (non-blocking):", e);
+    logger.error("[Orchestrator] optimize failed (non-blocking):", e);
     result.errors.push(`optimize: ${errMsg(e)}`);
     return null;
   });
   result.resumeOptimized = Boolean(optimizedResume);
-  console.log(`[Orchestrator] Step 3 complete: resume optimized = ${result.resumeOptimized}`);
+  logger.info(`[Orchestrator] Step 3 complete: resume optimized = ${result.resumeOptimized}`);
 
   // ── Step 4: Application Service — submit applications ─────────────────────
-  console.log("[Orchestrator] Step 4: submitting applications...");
+  logger.info("[Orchestrator] Step 4: submitting applications...");
   const applyPayloads = topJobs.map(j => ({
     title: j.title,
     company: j.company,
@@ -108,13 +109,13 @@ export async function runAllAgents(filters: JobSearchFilters): Promise<Orchestra
     resumeText: optimizedResume,
   }));
   const submitted = await apply(applyPayloads).catch(e => {
-    console.error("[Orchestrator] apply failed (non-blocking):", e);
+    logger.error("[Orchestrator] apply failed (non-blocking):", e);
     result.errors.push(`apply: ${errMsg(e)}`);
     return 0;
   });
   result.applicationsSubmitted = submitted;
-  console.log(`[Orchestrator] Step 4 complete: ${submitted} applications submitted`);
+  logger.info(`[Orchestrator] Step 4 complete: ${submitted} applications submitted`);
 
-  console.log("[Orchestrator] Pipeline complete:", result);
+  logger.info("[Orchestrator] Pipeline complete:", result);
   return result;
 }

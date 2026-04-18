@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { CheckCircle2, Circle, Upload, UserCircle, Search, Target, Bot, ChevronDown, ChevronUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from '@/lib/logger';
 
 interface ChecklistItem {
   id: string;
@@ -47,7 +48,7 @@ export default function OnboardingChecklist() {
         { id: "analyze", label: "Run your first analysis", description: "Paste a job description and see your fit score", icon: Target, route: "/job-seeker", completed: hasAnalysis },
         { id: "search", label: "Search for jobs", description: "Let AI find matching opportunities", icon: Search, route: "/job-search", completed: hasApp || hasAnalysis },
       ]);
-    } catch (e) { console.error(e); }
+    } catch (e) { logger.error(e); }
     finally { setLoading(false); }
   };
 

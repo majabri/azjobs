@@ -6,6 +6,7 @@ import AnalysisResults from "@/components/job-seeker/AnalysisResults";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
+import { logger } from '@/lib/logger';
 
 type Step = "input" | "result";
 
@@ -59,7 +60,7 @@ export default function JobSeekerPage() {
               summary: result.summary,
             } as any);
           }
-        } catch (e) { console.error("Failed to save analysis:", e); }
+        } catch (e) { logger.error("Failed to save analysis:", e); }
       }
     }, 1500);
   }, [isDemo]);

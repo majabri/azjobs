@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, CheckCircle2, Clock, PlayCircle, Package } from "lucide-react";
 import { fetchMyOrders } from "@/services/marketplace/service";
 import type { CatalogOrder } from "@/services/marketplace/types";
+import { logger } from '@/lib/logger';
 
 const statusSteps = ["pending", "accepted", "in_progress", "completed"];
 const statusIcons: Record<string, typeof Clock> = {
@@ -19,7 +20,7 @@ export default function BuyerOrdersDashboard() {
 
   useEffect(() => {
     (async () => {
-      try { setOrders(await fetchMyOrders("buyer")); } catch (e) { console.error("Failed to load orders:", e); }
+      try { setOrders(await fetchMyOrders("buyer")); } catch (e) { logger.error("Failed to load orders:", e); }
       setLoading(false);
     })();
   }, []);

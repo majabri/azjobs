@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, Save, Loader2, ExternalLink, Copy, Check, Globe } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { logger } from '@/lib/logger';
 
 interface PortfolioItem {
   id?: string;
@@ -39,7 +40,7 @@ export default function PortfolioEditor() {
       setUserId(session.user.id);
       const { data } = await supabase.from("user_portfolio_items" as any).select("*").eq("user_id", session.user.id).order("display_order", { ascending: true }) as any;
       setItems(data || []);
-    } catch (e) { console.error(e); }
+    } catch (e) { logger.error(e); }
     finally { setLoading(false); }
   };
 

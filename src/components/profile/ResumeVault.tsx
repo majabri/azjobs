@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { FileText, Plus, Save, Edit2, Trash2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { logger } from '@/lib/logger';
 
 interface ResumeVersion {
   id?: string;
@@ -32,7 +33,7 @@ export default function ResumeVault() {
       if (!session) return;
       const { data, error } = await supabase.from("resume_versions").select("*").eq("user_id", session.user.id).order("created_at", { ascending: false });
       if (error) {
-        console.error("ResumeVault: failed to load resume versions:", error);
+        logger.error("ResumeVault: failed to load resume versions:", error);
         toast.error("Could not load resume versions. Please refresh and try again.");
         return;
       }

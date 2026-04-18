@@ -6,6 +6,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import type { AnalysisRecord } from "./types";
+import { logger } from '@/lib/logger';
 
 export async function loadAnalysisHistory(userId: string): Promise<AnalysisRecord[]> {
   const { data, error } = await supabase
@@ -14,7 +15,7 @@ export async function loadAnalysisHistory(userId: string): Promise<AnalysisRecor
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(10) as any;
-  if (error) { console.error("[AnalyticsService]", error); return []; }
+  if (error) { logger.error("[AnalyticsService]", error); return []; }
   return data || [];
 }
 

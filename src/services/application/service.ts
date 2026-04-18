@@ -6,6 +6,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import type { JobApplication } from "./types";
+import { logger } from '@/lib/logger';
 
 export async function loadApplications(): Promise<JobApplication[]> {
   const { data } = await supabase
@@ -53,12 +54,12 @@ export interface ApplyPayload {
  * Returns the number of applications successfully submitted.
  */
 export async function apply(jobs: ApplyPayload[]): Promise<number> {
-  console.log("[ApplicationService] apply() called for", jobs.length, "jobs");
+  logger.info("[ApplicationService] apply() called for", jobs.length, "jobs");
   if (jobs.length === 0) return 0;
   try {
     const { data: { session } } = await supabase.auth.getSession();
     const token = session?.access_token;
-    if (!token) { console.warn("[ApplicationService] No session for apply"); return 0; }
+    if (!token) { logger.warn("[ApplicationService] No session for apply"); return 0; }
 
     const resp = await fetch(
       `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/agent-orchestrator`,
@@ -68,11 +69,11 @@ export async function apply(jobs: ApplyPayload[]): Promise<number> {
         body: JSON.stringify({ action: "apply", jobs }),
       }
     );
-    if (!resp.ok) { console.error("[ApplicationService] apply failed:", resp.status); return 0; }
+    if (!resp.ok) { logger.error("[ApplicationService] apply failed:", resp.status); return 0; }
     const data = await resp.json();
     return data.applied ?? 0;
   } catch (e) {
-    console.error("[ApplicationService] apply error:", e);
+    logger.error("[ApplicationService] apply error:", e);
     return 0;
   }
 }

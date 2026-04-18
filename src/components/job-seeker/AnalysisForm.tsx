@@ -13,6 +13,7 @@ import { parseDocument } from "@/lib/api/parseDocument";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { extractProfileFromResume } from "@/lib/analysisEngine";
+import { logger } from '@/lib/logger';
 
 interface ResumeVersionOption {
   id: string;
@@ -296,7 +297,7 @@ export default function AnalysisForm({ onAnalyze, isAnalyzing, isDemo, prefillJo
         setResume(lines.join("\n"));
         toast.info("Resume built from your profile. Upload a full resume for better results.");
       }
-    } catch (e) { console.error("Auto-load resume failed:", e); }
+    } catch (e) { logger.error("Auto-load resume failed:", e); }
   };
 
   const handleResumeUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -324,7 +325,7 @@ export default function AnalysisForm({ onAnalyze, isAnalyzing, isDemo, prefillJo
               }
             }
           }
-        } catch (e) { console.error("Skill sync error:", e); }
+        } catch (e) { logger.error("Skill sync error:", e); }
       } else { toast.error(result.error || "Could not extract text"); }
     } catch { toast.error("Failed to parse document"); }
     finally { setIsUploadingResume(false); if (resumeFileRef.current) resumeFileRef.current.value = ""; }
@@ -337,7 +338,7 @@ export default function AnalysisForm({ onAnalyze, isAnalyzing, isDemo, prefillJo
       if (!session) { toast.error("Please sign in"); return; }
       const { data: versionData, error: vaultError } = await supabase.from("resume_versions").select("*").eq("user_id", session.user.id).order("created_at", { ascending: false });
       if (vaultError) {
-        console.error("AnalysisForm: failed to load resume versions:", vaultError);
+        logger.error("AnalysisForm: failed to load resume versions:", vaultError);
         toast.error("Could not load your resume vault. Please refresh and try again.");
         return;
       }
