@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Star, Heart, ShoppingCart, User } from 'lucide-react';
+import { logger } from '@/lib/logger';
 
 interface ServiceTier {
   id: string;
@@ -47,12 +48,14 @@ export default function ServiceCatalog() {
 
   useEffect(() => {
     fetchData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchData intentionally excluded; mount-only load
   }, []);
 
   useEffect(() => {
     if (categories.length > 0) {
       fetchServices();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- categories.length and fetchServices intentionally excluded
   }, [selectedCategory, sortBy]);
 
   const fetchData = async () => {
@@ -72,7 +75,7 @@ export default function ServiceCatalog() {
       // Fetch services
       await fetchServices();
     } catch (err) {
-      console.error('Error fetching data:', err);
+      logger.error('Error fetching data:', err);
       setError(err instanceof Error ? err.message : 'Failed to load services');
     } finally {
       setLoading(false);
@@ -123,7 +126,7 @@ export default function ServiceCatalog() {
 
       setServices(formattedServices);
     } catch (err) {
-      console.error('Error fetching services:', err);
+      logger.error('Error fetching services:', err);
       setError(err instanceof Error ? err.message : 'Failed to load services');
     }
   };

@@ -16,6 +16,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import UserMenu from "@/components/UserMenu";
 import { analyzeJobFit, FitAnalysis } from "@/lib/analysisEngine";
+import { logger } from '@/lib/logger';
 
 interface AutoApplyPrefs {
   jobTitles: string[];
@@ -109,7 +110,7 @@ export default function AutoApplyPage() {
         setProfileLoaded(true);
       }
     } catch (e) {
-      console.error(e);
+      logger.error(e);
     }
   };
 
@@ -121,7 +122,7 @@ export default function AutoApplyPage() {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) return;
         await supabase.from("job_seeker_profiles").update({ min_match_score: prefs.minMatchScore } as any).eq("user_id", session.user.id);
-      } catch (e) { console.error("Failed to save match score:", e); }
+      } catch (e) { logger.error("Failed to save match score:", e); }
     }, 500);
     return () => clearTimeout(timer);
   }, [prefs.minMatchScore, profileLoaded]);
@@ -346,7 +347,7 @@ export default function AutoApplyPage() {
             const chunk = decoder.decode(value);
             for (const line of chunk.split("\n")) {
               if (line.startsWith("data: ") && line !== "data: [DONE]") {
-                try { const p = JSON.parse(line.slice(6)); optimizedResume += p.choices?.[0]?.delta?.content || ""; } catch {}
+                try { const p = JSON.parse(line.slice(6)); optimizedResume += p.choices?.[0]?.delta?.content || ""; } catch (e) { logger.warn("SSE parse error:", e); }
               }
             }
           }
@@ -379,7 +380,7 @@ export default function AutoApplyPage() {
             const chunk = decoder.decode(value);
             for (const line of chunk.split("\n")) {
               if (line.startsWith("data: ") && line !== "data: [DONE]") {
-                try { const p = JSON.parse(line.slice(6)); coverLetter += p.choices?.[0]?.delta?.content || ""; } catch {}
+                try { const p = JSON.parse(line.slice(6)); coverLetter += p.choices?.[0]?.delta?.content || ""; } catch (e) { logger.warn("SSE parse error:", e); }
               }
             }
           }

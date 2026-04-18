@@ -48,6 +48,7 @@ import {
   computeExperienceMatch,
   buildTopActions,
 } from "./services/scoringService";
+import { logger } from '@/lib/logger';
 
 /**
  * Main iCareerOS analysis — composes all services.
@@ -66,7 +67,7 @@ export function analyzeJobFit(jobDescription: string, resumeText: string): FitAn
   try {
     benefits = extractBenefits(jobDescription, parsed.benefitsText);
   } catch (e) {
-    console.error("[BenefitsService] Error:", e);
+    logger.error("[BenefitsService] Error:", e);
     benefits = [];
   }
 
@@ -75,7 +76,7 @@ export function analyzeJobFit(jobDescription: string, resumeText: string): FitAn
   try {
     companySummary = extractCompanySection(jobDescription);
   } catch (e) {
-    console.error("[CompanyService] Error:", e);
+    logger.error("[CompanyService] Error:", e);
     companySummary = "";
   }
 

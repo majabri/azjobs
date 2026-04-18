@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 /**
  * AuthContext — global auth state provider.
  * Exposes the current user/session and auth action helpers to any component

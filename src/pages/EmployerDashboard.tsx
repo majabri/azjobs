@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Loader2, Eye, Edit2, BarChart3 } from 'lucide-react';
+import { logger } from '@/lib/logger';
 
 interface JobPosting {
   id: string;
@@ -93,7 +94,7 @@ export default function EmployerDashboard() {
 
       setJobPostings(formattedJobs);
     } catch (err) {
-      console.error('Error fetching employer data:', err);
+      logger.error('Error fetching employer data:', err);
       setError(err instanceof Error ? err.message : 'Failed to load dashboard');
     } finally {
       setLoading(false);

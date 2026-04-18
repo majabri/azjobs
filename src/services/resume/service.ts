@@ -6,6 +6,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import type { ResumeVersion } from "./types";
+import { logger } from '@/lib/logger';
 
 export async function loadResumeVersions(userId: string): Promise<ResumeVersion[]> {
   const { data, error } = await supabase
@@ -13,7 +14,7 @@ export async function loadResumeVersions(userId: string): Promise<ResumeVersion[
     .select("*")
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
-  if (error) { console.error("[ResumeService]", error); return []; }
+  if (error) { logger.error("[ResumeService]", error); return []; }
   return (data || []) as unknown as ResumeVersion[];
 }
 
@@ -37,11 +38,11 @@ export async function deleteResumeVersion(id: string): Promise<void> {
  * Called only from the orchestrator — never directly by other services.
  */
 export async function optimize(jobDescriptions: string[]): Promise<string | null> {
-  console.log("[ResumeService] optimize() called for", jobDescriptions.length, "jobs");
+  logger.info("[ResumeService] optimize() called for", jobDescriptions.length, "jobs");
   try {
     const { data: { session } } = await supabase.auth.getSession();
     const token = session?.access_token;
-    if (!token) { console.warn("[ResumeService] No session for optimize"); return null; }
+    if (!token) { logger.warn("[ResumeService] No session for optimize"); return null; }
 
     const resp = await fetch(
       `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/rewrite-resume`,
@@ -51,11 +52,11 @@ export async function optimize(jobDescriptions: string[]): Promise<string | null
         body: JSON.stringify({ jobDescriptions }),
       }
     );
-    if (!resp.ok) { console.error("[ResumeService] optimize failed:", resp.status); return null; }
+    if (!resp.ok) { logger.error("[ResumeService] optimize failed:", resp.status); return null; }
     const data = await resp.json();
     return data.resumeText ?? null;
   } catch (e) {
-    console.error("[ResumeService] optimize error:", e);
+    logger.error("[ResumeService] optimize error:", e);
     return null;
   }
 }

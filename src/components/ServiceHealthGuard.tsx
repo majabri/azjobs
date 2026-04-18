@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, RotateCcw } from 'lucide-react';
+import { logger } from '@/lib/logger';
 
 interface ServiceHealthGuardProps {
   children: ReactNode;
@@ -68,7 +69,7 @@ export default class ServiceHealthGuard extends React.Component<
         });
     } catch (err) {
       // Silently fail - don't let logging errors break the app
-      console.error('Failed to log error to database:', err);
+      logger.error('Failed to log error to database:', err);
     }
   };
 

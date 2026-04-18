@@ -10,6 +10,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import type { JobResult, JobSearchFilters, DiscoverJobsResponse } from "./types";
+import { logger } from "@/lib/logger";
 
 // ---------------------------------------------------------------------------
 // URL normalization (unchanged)
@@ -99,7 +100,7 @@ export async function searchJobs(
     });
 
     if (error || !data) {
-      console.warn("[searchJobs] Edge function failed, falling back to DB:", error?.message);
+      logger.warn("[searchJobs] Edge function failed, falling back to DB:", error?.message);
       const dbJobs = await searchDatabaseJobsFallback(filters);
       return { jobs: dbJobs, citations: [], matchingTriggered: false };
     }
@@ -138,7 +139,7 @@ export async function searchJobs(
     return { jobs, citations: [], matchingTriggered: data.matchingTriggered ?? false };
 
   } catch (e) {
-    console.error("[searchJobs] Exception:", e);
+    logger.error("[searchJobs] Exception:", e);
     const dbJobs = await searchDatabaseJobsFallback(filters);
     return { jobs: dbJobs, citations: [], matchingTriggered: false };
   }
@@ -288,7 +289,7 @@ export async function searchDatabaseJobsFallback(filters: JobSearchFilters): Pro
       );
       q = (q as any).or(titleOrParts.slice(0, 20).join(","));
       const { data, error } = await (q as any);
-      if (error) console.error("[searchDatabaseJobsFallback] title pass error:", error.message);
+      if (error) logger.error("[searchDatabaseJobsFallback] title pass error:", error.message);
       titleJobs = data || [];
     }
 
@@ -330,7 +331,7 @@ export async function searchDatabaseJobsFallback(filters: JobSearchFilters): Pro
       );
       q = (q as any).or(descOrParts.slice(0, 20).join(","));
       const { data, error } = await (q as any);
-      if (error) console.error("[searchDatabaseJobsFallback] skill pass error:", error.message);
+      if (error) logger.error("[searchDatabaseJobsFallback] skill pass error:", error.message);
       // Exclude jobs already returned by the title pass
       skillJobs = (data || []).filter((j: any) => !titleJobIds.has(j.id));
     }
@@ -345,7 +346,7 @@ export async function searchDatabaseJobsFallback(filters: JobSearchFilters): Pro
 
     return combined.slice(0, limit);
   } catch (e) {
-    console.error("[searchDatabaseJobsFallback] Exception:", e);
+    logger.error("[searchDatabaseJobsFallback] Exception:", e);
     return [];
   }
 }

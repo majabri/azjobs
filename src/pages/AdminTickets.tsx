@@ -13,6 +13,7 @@ import {
   ChevronDown,
   AlertCircle
 } from 'lucide-react';
+import { logger } from '@/lib/logger';
 
 interface SupportTicket {
   id: string;
@@ -52,6 +53,7 @@ export default function AdminTickets() {
     if (error === null) {
       fetchTickets();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- error and fetchTickets intentionally excluded; mount-only load
   }, [filters, sortBy]);
 
   const checkAdminAccess = async () => {
@@ -76,7 +78,7 @@ export default function AdminTickets() {
 
       setError(null);
     } catch (err) {
-      console.error('Error checking admin access:', err);
+      logger.error('Error checking admin access:', err);
       setError('Failed to verify admin access');
     }
   };
@@ -115,7 +117,7 @@ export default function AdminTickets() {
       setTickets(ticketsData || []);
       setError(null);
     } catch (err) {
-      console.error('Error fetching tickets:', err);
+      logger.error('Error fetching tickets:', err);
       setError(err instanceof Error ? err.message : 'Failed to load tickets');
     } finally {
       setLoading(false);
@@ -136,7 +138,7 @@ export default function AdminTickets() {
         prev.map(t => (t.id === ticketId ? { ...t, status: newStatus } : t))
       );
     } catch (err) {
-      console.error('Error updating ticket:', err);
+      logger.error('Error updating ticket:', err);
       alert(err instanceof Error ? err.message : 'Failed to update ticket');
     }
   };
@@ -151,7 +153,7 @@ export default function AdminTickets() {
 
       // Call the support-service Edge Function
       const response = await fetch(
-        `${process.env.REACT_APP_SUPABASE_URL}/functions/v1/support-service`,
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/support-service`,
         {
           method: 'POST',
           headers: {
@@ -191,7 +193,7 @@ export default function AdminTickets() {
       await fetchTickets();
       alert(`AI Triage complete: ${result.triage_result}`);
     } catch (err) {
-      console.error('Error running AI triage:', err);
+      logger.error('Error running AI triage:', err);
       alert(err instanceof Error ? err.message : 'Failed to run AI triage');
     } finally {
       setTriageLoading(null);

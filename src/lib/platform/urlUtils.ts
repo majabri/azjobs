@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 // src/lib/urlUtils.ts
 
 /**
@@ -6,14 +7,14 @@
 
 // Validate if the input is a valid URL
 export function isValidURL(url: string): boolean {
-    const pattern = new RegExp('^(https?:\/\/)?'+ // protocol
-        '((([a-z0-9\-]+\.)+[a-z]{2,})|'+ // domain name
+    const pattern = new RegExp('^(https?://)?'+ // protocol
+        '((([a-z0-9-]+[.])+[a-z]{2,})|'+ // domain name
         'localhost|'+ // localhost
-        '\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}|'+ // IP address
-        '\[?[a-f0-9:\.]+\]?)+'+ // IPv6
-        '(\:\d+)?(\/[-a-z0-9%_.~+&:?=]*)*'+ // port and path
-        '(\?[;&a-z0-9%_.~+=-]*)?'+ // query string
-        '(\#[-a-z0-9_]*)?$','i'); // fragment locator
+        '[\\d]{1,3}[.][\\d]{1,3}[.][\\d]{1,3}[.][\\d]{1,3}|'+ // IP address
+        '[[]?[a-f0-9:.]+[]]?)+'+ // IPv6
+        '(:[\\d]+)?(/[-a-z0-9%_.~+&:?=]*)*'+ // port and path
+        '([?][;&a-z0-9%_.~+=-]*)?'+ // query string
+        '([#][-a-z0-9_]*)?$','i'); // fragment locator
     return !!pattern.test(url);
 }
 
@@ -24,7 +25,7 @@ export function sanitizeURL(url: string): string {
         const sanitized = new URL(url);
         return sanitized.href; // Return the sanitized URL
     } catch (error) {
-        console.error('Invalid URL:', error);
+        logger.error('Invalid URL:', error);
         return '';
     }
 }

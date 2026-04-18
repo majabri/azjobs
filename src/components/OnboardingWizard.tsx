@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { parseDocument } from "@/lib/api/parseDocument";
 import { extractProfileFromResume } from "@/lib/analysisEngine";
 import { toast } from "sonner";
+import { logger } from '@/lib/logger';
 
 type WizardStep = "welcome" | "resume" | "preferences" | "done";
 
@@ -56,7 +57,7 @@ export default function OnboardingWizard() {
       if (profile?.target_job_titles) {
         setJobTitles(profile.target_job_titles as string[]);
       }
-    } catch (e) { console.error(e); }
+    } catch (e) { logger.error(e); }
     finally { setLoading(false); }
   };
 
@@ -119,7 +120,7 @@ export default function OnboardingWizard() {
 
       setStep("preferences");
     } catch (e) {
-      console.error(e);
+      logger.error(e);
       toast.error("Failed to process resume");
     } finally {
       setUploading(false);

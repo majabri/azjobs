@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Loader2, CheckCircle, AlertCircle, X } from 'lucide-react';
+import { logger } from '@/lib/logger';
 
 interface FormData {
   title: string;
@@ -145,7 +146,7 @@ export default function JobPostingForm() {
         window.location.href = '/employer/dashboard';
       }, 2000);
     } catch (err) {
-      console.error('Error posting job:', err);
+      logger.error('Error posting job:', err);
       showToast('error', err instanceof Error ? err.message : 'Failed to post job');
     } finally {
       setLoading(false);

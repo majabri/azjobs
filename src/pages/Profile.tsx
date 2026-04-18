@@ -14,6 +14,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { logger } from '@/lib/logger';
 
 export default function ProfilePage() {
   const navigate = useNavigate();
@@ -59,7 +60,7 @@ export default function ProfilePage() {
         });
       }
     } catch (e) {
-      console.error(e);
+      logger.error(e);
       toast.error("Failed to load profile");
     } finally { setLoading(false); }
   };
@@ -135,7 +136,7 @@ export default function ProfilePage() {
       if (error) throw error;
       toast.success("Profile saved!");
     } catch (e) {
-      console.error(e);
+      logger.error(e);
       toast.error("Failed to save profile");
     } finally { setSaving(false); }
   };

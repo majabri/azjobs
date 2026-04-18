@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import UserMenu from "@/components/UserMenu";
 import { DollarSign } from "lucide-react";
+import { logger } from '@/lib/logger';
 
 function ExpectedOfferRange({ jobTitle }: { jobTitle: string }) {
   const title = jobTitle.toLowerCase();
@@ -62,7 +63,7 @@ export default function InterviewPrepPage() {
       if (!session) return;
       const { data } = await supabase.from("interview_sessions" as any).select("*").eq("user_id", session.user.id).order("created_at", { ascending: false }).limit(10) as any;
       setSessions(data || []);
-    } catch (e) { console.error(e); }
+    } catch (e) { logger.error(e); }
     finally { setLoadingSessions(false); }
   };
 

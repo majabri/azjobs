@@ -10,6 +10,7 @@ import {
 import { Globe } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { logger } from '@/lib/logger';
 
 const languages = [
   { code: "en", label: "English", flag: "\u{1F1FA}\u{1F1F8}" },
@@ -58,7 +59,7 @@ export default function LanguageSwitcher() {
               errCode === "PGRST204"
             ) {
               tableUnavailable = true;
-              console.debug(
+              logger.debug(
                 "[LanguageSwitcher] user_preferences table unavailable â using localStorage only"
               );
             }

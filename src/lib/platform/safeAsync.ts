@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 // safeAsync.ts
 
 /**
@@ -19,7 +20,7 @@ const safeAsync = async (fn: () => Promise<any>, retries: number = 3, timeout: n
             if (attempts === retries) {
                 throw error;
             }
-            console.warn(`Attempt ${attempts} failed. Retrying...`);
+            logger.warn(`Attempt ${attempts} failed. Retrying...`);
         }
     }
 };

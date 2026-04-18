@@ -1,3 +1,8 @@
+// Sentry must be initialised before React renders so it captures
+// all errors, including those thrown during component setup.
+import { initSentry } from "./lib/sentry";
+initSentry();
+
 import { createRoot } from "react-dom/client";
 import App from "./shell/App.tsx";
 import "./index.css";

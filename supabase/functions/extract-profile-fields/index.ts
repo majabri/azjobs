@@ -237,6 +237,14 @@ CRITICAL INSTRUCTIONS:
         : [];
       profile.skills = Array.isArray(profile.skills) ? profile.skills : [];
 
+      // Sanitize string fields — discard AI placeholders like <UNKNOWN>
+      const PLACEHOLDER_RE = /^<[A-Z_]+>$/;
+      for (const key of ["full_name", "email", "phone", "location", "summary", "linkedin_url"] as const) {
+        if (typeof profile[key] === "string" && PLACEHOLDER_RE.test(profile[key].trim())) {
+          profile[key] = null;
+        }
+      }
+
       return new Response(
         JSON.stringify({ profile, source: "ai" }),
         {

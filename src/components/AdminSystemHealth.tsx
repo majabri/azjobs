@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from '@/lib/logger';
 
 interface ServiceHealth {
   name: string;
@@ -16,6 +17,7 @@ export function AdminSystemHealth() {
     checkSystemHealth();
     const interval = setInterval(checkSystemHealth, 30000);
     return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- checkSystemHealth is stable (non-hook function defined outside useEffect)
   }, []);
 
   async function checkSystemHealth() {
@@ -26,7 +28,7 @@ export function AdminSystemHealth() {
       ]);
       setServices(checks);
     } catch (error) {
-      console.error("Health check failed:", error);
+      logger.error("Health check failed:", error);
     } finally {
       setLoading(false);
     }

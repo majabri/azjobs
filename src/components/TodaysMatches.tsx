@@ -39,6 +39,7 @@ import { saveJobToApplications } from "@/lib/saveJob";
 import { getIgnoredJobs, ignoreJob, isJobIgnored, isJobAlreadySaved, type IgnoredJob } from "@/lib/ignoredJobs";
 import { searchJobs as searchJobsService } from "@/services/job/api";
 import type { JobResult } from "@/services/job/types";
+import { logger } from '@/lib/logger';
 
 interface JobMatch {
   title: string;
@@ -229,6 +230,7 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
 
   useEffect(() => {
     checkAndFetch();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- checkAndFetch is stable per render cycle; adding it would cause infinite loops
   }, []);
 
   const loadHistoricalOutcomes = async (userId: string): Promise<HistoricalOutcomes | undefined> => {
@@ -306,7 +308,7 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
             return;
           }
         }
-      } catch {}
+      } catch (e) { logger.warn("Cache read error:", e); }
     }
 
     fetchJobs(profile, session, cacheKey, outcomes);

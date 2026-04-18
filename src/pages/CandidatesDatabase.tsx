@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { analyzeJobFit } from "@/lib/analysisEngine";
+import { logger } from '@/lib/logger';
 
 interface CandidateProfile {
   id: string;
@@ -61,7 +62,7 @@ export default function CandidatesDatabase() {
 
     if (error) {
       toast.error("Failed to load candidates");
-      console.error(error);
+      logger.error(error);
     } else {
       setCandidates((data as CandidateProfile[]) || []);
     }

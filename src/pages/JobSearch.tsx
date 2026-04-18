@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 import {
   saveJobToApplications,
   getIgnoredJobs, ignoreJob, isJobIgnored, isJobAlreadySaved, type IgnoredJob,
@@ -353,7 +354,7 @@ export default function JobSearchPage() {
         const avgDays = days.length > 0 ? days.reduce((a, b) => a + b, 0) / days.length : 14;
         setHistoricalOutcomes({ totalApplications: total, totalResponses: responded, avgResponseRate: (responded / total) * 100, avgDaysToResponse: avgDays });
       }
-    } catch (e) { console.error(e); }
+    } catch (e) { logger.error("[JobSearch] scrape error:", e); }
     finally { setProfileLoaded(true); }
   };
 
@@ -380,7 +381,7 @@ export default function JobSearchPage() {
       rawJobs = result.jobs;
       triggeredMatch = result.matchingTriggered ?? false;
     } catch (e) {
-      console.error("[JobSearch] error:", e);
+      logger.error("[JobSearch] error:", e);
       toast.error("Search encountered an issue.");
     }
 

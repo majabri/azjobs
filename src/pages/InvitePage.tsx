@@ -22,6 +22,7 @@ import {
   XCircle,
   Link as LinkIcon,
 } from "lucide-react";
+import { logger } from '@/lib/logger';
 
 interface Invitation {
   id: string;
@@ -89,7 +90,7 @@ export default function InvitePage() {
 
       setReferrals(refs || []);
     } catch (err) {
-      console.error("Error fetching invite data:", err);
+      logger.error("Error fetching invite data:", err);
     } finally {
       setIsLoading(false);
     }

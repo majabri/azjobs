@@ -28,6 +28,7 @@ import {
   TrendingUp,
   UserPlus,
 } from "lucide-react";
+import { logger } from '@/lib/logger';
 
 interface Invitation {
   id: string;
@@ -101,7 +102,7 @@ export default function ReferralProgram() {
 
       setUserReferralCode(profile?.referral_code || null);
     } catch (err) {
-      console.error("Error fetching referral data:", err);
+      logger.error("Error fetching referral data:", err);
     } finally {
       setIsLoading(false);
     }

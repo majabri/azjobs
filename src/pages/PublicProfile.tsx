@@ -30,6 +30,7 @@ export default function PublicProfilePage() {
 
   useEffect(() => {
     if (userId) loadPublicProfile();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- loadPublicProfile intentionally excluded; runs once on mount
   }, [userId]);
 
   const loadPublicProfile = async () => {
@@ -78,6 +79,7 @@ export default function PublicProfilePage() {
       knowsAbout: skills,
     });
     return () => { ld?.remove(); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- skills dependency intentionally excluded to avoid re-runs on skill list change
   }, [profile]);
 
   const shareProfile = () => {

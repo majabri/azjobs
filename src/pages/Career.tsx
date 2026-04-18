@@ -18,6 +18,7 @@ import OutreachTracker from "@/components/career/OutreachTracker";
 import SalaryProjection from "@/components/career/SalaryProjection";
 import ProgressMetrics from "@/components/career/ProgressMetrics";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { logger } from '@/lib/logger';
 
 interface CareerInsight {
   currentLevel: string;
@@ -76,7 +77,7 @@ export default function CareerPage() {
           score: h.overall_score,
         })));
       }
-    } catch (e) { console.error(e); }
+    } catch (e) { logger.error(e); }
     finally { setLoading(false); }
   };
 

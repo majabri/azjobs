@@ -7,6 +7,7 @@ import { Loader2, ShieldAlert, Eye, CheckCircle2, XCircle, AlertTriangle, Zap } 
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
+import { logger } from '@/lib/logger';
 
 interface SimulationResult {
   ats_stage: {
@@ -60,7 +61,7 @@ export default function RejectionSimulator({ resumeText: initialResume, jobDescr
       setResult(data);
     } catch (e) {
       toast.error("Simulation failed");
-      console.error(e);
+      logger.error(e);
     } finally {
       setLoading(false);
     }

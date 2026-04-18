@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Search, Filter, Clock, DollarSign, Star } from 'lucide-react';
+import { logger } from '@/lib/logger';
 
 interface GigProject {
   id: string;
@@ -44,6 +45,7 @@ export default function GigMarketplace() {
 
   useEffect(() => {
     fetchData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchData intentionally excluded; mount-only load
   }, []);
 
   const fetchData = async () => {
@@ -63,7 +65,7 @@ export default function GigMarketplace() {
       // Fetch projects
       await fetchProjects();
     } catch (err) {
-      console.error('Error fetching data:', err);
+      logger.error('Error fetching data:', err);
       setError(err instanceof Error ? err.message : 'Failed to load marketplace');
     } finally {
       setLoading(false);
@@ -124,7 +126,7 @@ export default function GigMarketplace() {
 
       setProjects(formattedProjects);
     } catch (err) {
-      console.error('Error fetching projects:', err);
+      logger.error('Error fetching projects:', err);
       setError(err instanceof Error ? err.message : 'Failed to load projects');
     }
   };

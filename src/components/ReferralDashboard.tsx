@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Copy, Gift, Users, Loader2, CheckCircle, Clock, Send } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { logger } from '@/lib/logger';
 
 interface Referral {
   id: string;
@@ -44,7 +45,7 @@ export default function ReferralDashboard() {
       } else {
         setReferralCode(session.user.id.slice(0, 8));
       }
-    } catch (e) { console.error(e); }
+    } catch (e) { logger.error(e); }
     finally { setLoading(false); }
   };
 

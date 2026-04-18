@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { analyzeJobFit, FitAnalysis } from "@/lib/analysisEngine";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { logger } from '@/lib/logger';
 
 interface ImportedJob {
   id: string;
@@ -30,12 +31,12 @@ export default function JobBoardImporter() {
 
   const parseJobsFromText = (text: string): ImportedJob[] => {
     // Split by common separators (double newlines, dashes, numbered items)
-    const sections = text.split(/\n{2,}|---+|\n(?=\d+[\.\)]\s)/).filter(s => s.trim().length > 30);
+    const sections = text.split(/\n{2,}|---+|\n(?=\d+[.)]\s)/).filter(s => s.trim().length > 30);
     
     return sections.map(section => {
       const lines = section.trim().split("\n").filter(Boolean);
       // Try to extract title and company from first lines
-      let title = lines[0]?.replace(/^\d+[\.\)]\s*/, "").trim() || "Unknown Role";
+      let title = lines[0]?.replace(/^\d+[.)]\s*/, "").trim() || "Unknown Role";
       let company = "";
       
       // Common patterns: "Title at Company" or "Title - Company" or "Company: Title"
@@ -120,7 +121,7 @@ export default function JobBoardImporter() {
       const missedPct = importedJobs.length > 0 ? Math.round((missedCount / importedJobs.length) * 100) : 0;
       toast.success(`Analysis complete! You missed ${missedPct}% of opportunities.`);
     } catch (e) {
-      console.error(e);
+      logger.error(e);
       toast.error("Analysis failed");
     } finally {
       setAnalyzing(false);
