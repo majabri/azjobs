@@ -12,7 +12,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "seed:admin": "npx tsx scripts/seed-admin.ts",
-    "check:soa": "npx tsx scripts/check-cross-service-imports.ts"
+    "check:soa": "bash scripts/check-soa.sh && npx tsx scripts/check-cross-service-imports.ts"
   },
   "dependencies": {
     "@hello-pangea/dnd": "^17.0.0",
