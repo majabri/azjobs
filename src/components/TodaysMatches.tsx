@@ -57,7 +57,18 @@ interface JobMatch {
   trustLevel?: "trusted" | "caution" | "risky";
   flags?: FakeJobFlag[];
   strategy?: "apply_now" | "apply_fast" | "improve_first" | "skip";
+  titleMatch?: boolean; // true when job title aligns with user's target titles (title-pass jobs rank first)
 }
+
+const CAREER_LEVEL_TITLES: Record<string, string[]> = {
+  "Entry-Level / Junior": ["junior software engineer", "entry level analyst", "associate engineer", "junior developer", "entry level coordinator"],
+  "Mid-Level": ["software engineer", "data analyst", "product manager", "business analyst", "marketing manager"],
+  "Senior": ["senior software engineer", "senior engineer", "senior analyst", "senior manager", "senior consultant"],
+  "Manager": ["engineering manager", "product manager", "team lead", "operations manager", "marketing manager"],
+  "Director": ["director of engineering", "director of operations", "director of product", "director of marketing", "director of finance"],
+  "VP / Senior Leadership": ["VP of Engineering", "VP of Product", "VP of Operations", "VP of Marketing", "Vice President"],
+  "C-Level / Executive": ["CTO", "CEO", "COO", "CISO", "Chief Technology Officer", "Chief Operating Officer"],
+};
 
 const GENERIC_JOB_PATH_SEGMENTS = new Set([
   "careers",
@@ -154,8 +165,8 @@ function isGenericJobListingUrl(rawUrl: string): boolean {
 function hasSubstantiveJobDescription(description?: string | null): boolean {
   if (!description) return false;
   const text = description.trim();
-  if (text.length < 140) return false;
-  if (text.split(/\s+/).length < 24) return false;
+  if (text.length < 30) return false;
+  if (text.split(/\s+/).length < 5) return false;
   return true;
 }
 
@@ -265,7 +276,7 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
       .eq("user_id", session.user.id);
     if (appData) setSavedApps(appData as any);
 
-    if (!profile?.skills?.length) {
+    if (!profile?.skills?.length && !profile?.target_job_titles?.length && !profile?.career_level) {
       setHasProfile(false);
       return;
     }
@@ -303,11 +314,16 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
     fetchJobs(profile, session, cacheKey, outcomes);
   };
 
-  const enrichJobs = (rawJobs: any[], skills: string[], outcomes?: HistoricalOutcomes): JobMatch[] => {
+  const enrichJobs = (rawJobs: any[], skills: string[], targetTitles: string[], outcomes?: HistoricalOutcomes): JobMatch[] => {
     const allTitles = rawJobs.map((j) => j.title || "");
+    // Normalised target title tokens for fast matching
+    const targetTitleTokens = targetTitles.map(t => t.toLowerCase().trim()).filter(Boolean);
 
     const enriched = rawJobs.map((job) => {
       const matchScore = estimateMatchScore(job.matchReason || "", skills);
+      // Flag jobs whose title contains any of the user's target titles (these always rank first)
+      const jobTitleLower = (job.title || "").toLowerCase();
+      const titleMatch = targetTitleTokens.some(t => jobTitleLower.includes(t));
       // Use real posted date if available, otherwise estimate from data
       const postedDate = job.postedDate || job.created_at || job.first_seen_at;
       const jobAge = postedDate ? Math.max(1, Math.floor((Date.now() - new Date(postedDate).getTime()) / 86400000)) : 7; // default to 7 days if no date available
@@ -352,14 +368,22 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
         trustLevel,
         responseProbability,
         strategy,
+        titleMatch,
       };
     });
 
-    // Sort: apply_fast > apply_now > improve_first > skip, then by match score
+    // Sort: title matches first (user-defined target titles), then by strategy tier,
+    // then by match score. This preserves the server's title-first priority.
     const order = { apply_fast: 0, apply_now: 1, improve_first: 2, skip: 3 };
     enriched.sort((a, b) => {
-      const diff = (order[a.strategy!] || 3) - (order[b.strategy!] || 3);
-      return diff !== 0 ? diff : (b.matchScore || 0) - (a.matchScore || 0);
+      // 1. Title match jobs always rank above skill/description match jobs
+      const titleDiff = (a.titleMatch ? 0 : 1) - (b.titleMatch ? 0 : 1);
+      if (titleDiff !== 0) return titleDiff;
+      // 2. Within each group, sort by strategy tier
+      const stratDiff = (order[a.strategy!] || 3) - (order[b.strategy!] || 3);
+      if (stratDiff !== 0) return stratDiff;
+      // 3. Within same tier, stronger match score wins
+      return (b.matchScore || 0) - (a.matchScore || 0);
     });
 
     return enriched;
@@ -368,14 +392,20 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
   const fetchJobs = async (profile: any, session: any, cacheKey: string, outcomes?: HistoricalOutcomes) => {
     setLoading(true);
     try {
+      // Derive target titles — fall back to career-level defaults when profile has none
+      const profileTitles: string[] = profile.target_job_titles || [];
+      const targetTitles = profileTitles.length > 0
+        ? profileTitles
+        : (CAREER_LEVEL_TITLES[profile.career_level || ""] ?? ["software engineer", "data analyst", "product manager"]);
+
       // Use the job service with built-in polling support
       const { jobs: rawResults } = await searchJobsService({
         skills: profile.skills?.slice(0, 10) || [],
         jobTypes: profile.preferred_job_types || [],
-        location: profile.location || "",
+        location: (profile.location && profile.location !== '<UNKNOWN>') ? profile.location : "",
         query: "",
         careerLevel: profile.career_level || "",
-        targetTitles: profile.target_job_titles || [],
+        targetTitles,
         searchSource: "all",
         minFitScore: 0,
         showFlagged: false,
@@ -404,7 +434,7 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
         if (!uniqueByUrl.has(job.url)) uniqueByUrl.set(job.url, job);
       }
 
-      const enriched = enrichJobs(Array.from(uniqueByUrl.values()), profile.skills || [], outcomes)
+      const enriched = enrichJobs(Array.from(uniqueByUrl.values()), profile.skills || [], targetTitles, outcomes)
         .filter(job => !isJobIgnored(job, ignoredList))
         .filter(job => !isJobAlreadySaved(job, savedApps));
       setJobs(enriched);

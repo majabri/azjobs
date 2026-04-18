@@ -1,0 +1,44 @@
+name: DB Check — job_postings and scraped_jobs
+
+on:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Count job_postings rows
+        run: |
+          echo "=== job_postings total ==="
+          curl -s -X POST "https://api.supabase.com/v1/projects/bryoehuhhhjqcueomgev/database/query" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ACCESS_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{"query":"SELECT COUNT(*), COUNT(external_id) as with_ext_id, COUNT(CASE WHEN status=''active'' THEN 1 END) as active_status FROM job_postings LIMIT 1"}' \
+            | python3 -m json.tool 2>/dev/null || echo "raw"
+
+      - name: Show job_postings columns
+        run: |
+          echo "=== job_postings columns ==="
+          curl -s -X POST "https://api.supabase.com/v1/projects/bryoehuhhhjqcueomgev/database/query" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ACCESS_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{"query":"SELECT column_name, data_type FROM information_schema.columns WHERE table_name=''job_postings'' AND table_schema=''public'' ORDER BY ordinal_position"}' \
+            | python3 -m json.tool 2>/dev/null || echo "raw"
+
+      - name: Count scraped_jobs rows
+        run: |
+          echo "=== scraped_jobs view count ==="
+          curl -s -X POST "https://api.supabase.com/v1/projects/bryoehuhhhjqcueomgev/database/query" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ACCESS_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{"query":"SELECT COUNT(*) FROM scraped_jobs"}' \
+            | python3 -m json.tool 2>/dev/null || echo "raw"
+
+      - name: Sample 3 scraped_jobs
+        run: |
+          echo "=== scraped_jobs sample ==="
+          curl -s -X POST "https://api.supabase.com/v1/projects/bryoehuhhhjqcueomgev/database/query" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ACCESS_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{"query":"SELECT id, title, source, first_seen_at FROM scraped_jobs LIMIT 3"}' \
+            | python3 -m json.tool 2>/dev/null || echo "raw"

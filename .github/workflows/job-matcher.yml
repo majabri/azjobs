@@ -1,8 +1,18 @@
 name: iCareerOS Job Matcher
 
+# Repo path: .github/workflows/job-matcher.yml
+#
+# Runs nightly at 05:00 UTC (after 04:00 dedup)
+# Scores all deduplicated jobs against all user search preferences
+# Results ready in job_scores table by ~06:00 UTC (midnight PT)
+#
+# Required GitHub Secrets:
+#   VITE_SUPABASE_URL
+#   SUPABASE_SERVICE_ROLE_KEY
+
 on:
   schedule:
-    - cron: '0 5 * * *'
+    - cron: '0 5 * * *'        # 05:00 UTC daily
   workflow_dispatch:
     inputs:
       limit:
@@ -12,7 +22,7 @@ on:
 
 jobs:
   match-jobs:
-    name: Score Jobs x User Profiles
+    name: Score Jobs × User Profiles
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -37,6 +47,6 @@ jobs:
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           MATCHING_LIMIT: ${{ github.event.inputs.limit || '1000' }}
 
-      - name: Done
+      - name: Report results
         if: always()
         run: echo "Matching finished at $(date -u)"

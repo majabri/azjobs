@@ -1,0 +1,42 @@
+name: Migrate — discovery_company_sources
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run-migration:
+    name: Apply discovery_company_sources migration
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Apply migration via Supabase Management API
+        run: |
+          SQL=$(cat supabase/migrations/20260417_discovery_company_sources.sql)
+          RESPONSE=$(curl -s -w "\n%{http_code}" \
+            -X POST "https://api.supabase.com/v1/projects/bryoehuhhhjqcueomgev/database/query" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ACCESS_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"query\": $(echo "$SQL" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')}")
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | head -n -1)
+          echo "HTTP $HTTP_CODE: $BODY"
+          if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
+            echo "✅ Migration applied successfully"
+          else
+            echo "❌ Migration failed"
+            exit 1
+          fi
+
+      - name: Verify migration
+        run: |
+          RESPONSE=$(curl -s -w "\n%{http_code}" \
+            -X POST "https://api.supabase.com/v1/projects/bryoehuhhhjqcueomgev/database/query" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ACCESS_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"query\": \"SELECT ats, count(*) FROM public.discovery_company_sources GROUP BY ats;\"}")
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | head -n -1)
+          echo "Verification result (HTTP $HTTP_CODE):"
+          echo "$BODY" | python3 -m json.tool 2>/dev/null || echo "$BODY"
+

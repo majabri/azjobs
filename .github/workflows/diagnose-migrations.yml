@@ -1,0 +1,44 @@
+name: Diagnose migrations 011 + event_bus
+
+on:
+  workflow_dispatch:
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run migration 011 and capture error
+        run: |
+          SQL=$(cat supabase/migrations/20260416_011_agent_output_tables.sql)
+          HTTP_CODE=$(curl -s -o /tmp/011_body.txt -w "%{http_code}" \
+            -X POST "https://api.supabase.com/v1/projects/bryoehuhhhjqcueomgev/database/query" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ACCESS_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"query\": $(echo "$SQL" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')}")
+          echo "011 HTTP: $HTTP_CODE"
+          cat /tmp/011_body.txt
+
+      - name: Run event_bus migration and capture error
+        run: |
+          SQL=$(cat supabase/migrations/20260417_event_bus.sql)
+          HTTP_CODE=$(curl -s -o /tmp/evtbus_body.txt -w "%{http_code}" \
+            -X POST "https://api.supabase.com/v1/projects/bryoehuhhhjqcueomgev/database/query" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ACCESS_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"query\": $(echo "$SQL" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')}")
+          echo "event_bus HTTP: $HTTP_CODE"
+          cat /tmp/evtbus_body.txt
+
+      - name: Commit results
+        if: always()
+        run: |
+          mkdir -p .diag
+          cp /tmp/011_body.txt .diag/011_error.txt 2>/dev/null || echo "no 011 body" > .diag/011_error.txt
+          cp /tmp/evtbus_body.txt .diag/evtbus_error.txt 2>/dev/null || echo "no evtbus body" > .diag/evtbus_error.txt
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .diag/
+          git diff --staged --quiet || git commit -m "diag: migration 011+evtbus errors [skip ci]"
+          git push || true

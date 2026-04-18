@@ -21,6 +21,21 @@ export interface JobResult {
   is_remote?: boolean;
   source?: string;
   first_seen_at?: string;
+
+  // AI match fields (from user_job_matches via discover-jobs v6)
+  fit_score?: number | null;
+  matched_skills?: string[];
+  skill_gaps?: string[];
+  strengths?: string[];
+  red_flags?: string[];
+  match_summary?: string;
+  effort_level?: "easy" | "moderate" | "hard";
+  response_prob?: number | null;
+  smart_tag?: string;
+  is_saved?: boolean;
+  is_applied?: boolean;
+
+  // Local scoring fields (computed client-side when AI scores unavailable)
   responseProbability?: number;
   smartTag?: string;
   decisionScore?: number;
@@ -44,9 +59,7 @@ export interface JobSearchFilters {
   minFitScore: number;
   showFlagged: boolean;
   search_mode?: "quality" | "balanced" | "volume";
-  /** Only return jobs posted within the last N days (0 = no limit) */
   days_old?: number;
-  /** Pagination offset for DB-level cursor paging */
   offset?: number;
 }
 
@@ -55,4 +68,13 @@ export interface ParsedJobDescription {
   benefitsText: string;
   companyText: string;
   fullText: string;
+}
+
+// discover-jobs v6 response
+export interface DiscoverJobsResponse {
+  jobs: JobResult[];
+  total: number;
+  searchTerm: string;
+  matchingTriggered: boolean;
+  source: string;
 }

@@ -1,0 +1,47 @@
+name: DB Migration — Agent Registry (010 + 011)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  migrate:
+    name: Rename user_job_agents + create agent output tables
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Apply migration 010 — user_agent_instances
+        run: |
+          SQL=$(cat supabase/migrations/20260416_010_user_agent_instances.sql)
+          RESPONSE=$(curl -s -w "\n%{http_code}" \
+            -X POST "https://api.supabase.com/v1/projects/bryoehuhhhjqcueomgev/database/query" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ACCESS_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"query\": $(echo "$SQL" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')}")
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | head -n -1)
+          echo "HTTP $HTTP_CODE: $BODY"
+          if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
+            echo "✅ Migration 010 applied — user_agent_instances ready"
+          else
+            echo "❌ Migration 010 failed"
+            exit 1
+          fi
+
+      - name: Apply migration 011 — agent output tables
+        run: |
+          SQL=$(cat supabase/migrations/20260416_011_agent_output_tables.sql)
+          RESPONSE=$(curl -s -w "\n%{http_code}" \
+            -X POST "https://api.supabase.com/v1/projects/bryoehuhhhjqcueomgev/database/query" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ACCESS_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"query\": $(echo "$SQL" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')}")
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | head -n -1)
+          echo "HTTP $HTTP_CODE: $BODY"
+          if [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ]; then
+            echo "✅ Migration 011 applied — salary_snapshots, market_intel, interview_prep tables ready"
+          else
+            echo "❌ Migration 011 failed"
+            exit 1
+          fi

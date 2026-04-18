@@ -1,8 +1,18 @@
 name: iCareerOS Job Deduplicator
 
+# Repo path: .github/workflows/job-deduplicator.yml
+#
+# Runs nightly at 04:00 UTC (after 03:00 extraction)
+# Merges extracted_jobs across platforms into deduplicated_jobs
+# Same job seen on Indeed + LinkedIn + Greenhouse = 1 card, 3-source badge
+#
+# Required GitHub Secrets:
+#   VITE_SUPABASE_URL
+#   SUPABASE_SERVICE_ROLE_KEY
+
 on:
   schedule:
-    - cron: '0 4 * * *'
+    - cron: '0 4 * * *'       # 04:00 UTC daily
   workflow_dispatch:
     inputs:
       limit:
@@ -37,6 +47,6 @@ jobs:
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           DEDUP_LIMIT: ${{ github.event.inputs.limit || '2000' }}
 
-      - name: Done
+      - name: Report results
         if: always()
         run: echo "Deduplication finished at $(date -u)"
