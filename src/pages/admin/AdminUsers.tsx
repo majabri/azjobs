@@ -537,9 +537,11 @@ function JobSeekerPanel({
       setRecords(merged);
       onRecordsLoaded?.(merged);
     } catch (e) {
+      console.error("AdminUsers: failed to load records:", e);
     } finally {
       setLoading(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- onRecordsLoaded intentionally excluded from useCallback deps; stable callback ref
   }, []);
 
   useEffect(() => { load(); }, [load, reloadKey]);
@@ -812,6 +814,7 @@ function HiringManagerPanel({
     } finally {
       setLoading(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- onRecordsLoaded intentionally excluded from useCallback deps; stable callback ref
   }, []);
 
   useEffect(() => { load(); }, [load, reloadKey]);

@@ -28,6 +28,7 @@ export default function AdminProfile() {
 
   useEffect(() => {
     if (user) loadProfile();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- loadProfile intentionally excluded; mount-only fetch
   }, [user]);
 
   const loadProfile = async () => {

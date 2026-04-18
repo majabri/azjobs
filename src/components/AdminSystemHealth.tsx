@@ -16,6 +16,7 @@ export function AdminSystemHealth() {
     checkSystemHealth();
     const interval = setInterval(checkSystemHealth, 30000);
     return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- checkSystemHealth is stable (non-hook function defined outside useEffect)
   }, []);
 
   async function checkSystemHealth() {

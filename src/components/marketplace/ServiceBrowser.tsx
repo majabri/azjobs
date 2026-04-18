@@ -33,7 +33,7 @@ export default function ServiceBrowser() {
   }, []);
 
   const filtered = useMemo(() => {
-    let list = services.filter((s) => {
+    const list = services.filter((s) => {
       if (search && !s.title.toLowerCase().includes(search.toLowerCase()) && !s.headline.toLowerCase().includes(search.toLowerCase())) return false;
       if (category !== "all" && s.category !== category) return false;
       if (s.rating_avg < minRating) return false;

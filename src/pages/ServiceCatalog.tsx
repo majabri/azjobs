@@ -47,12 +47,14 @@ export default function ServiceCatalog() {
 
   useEffect(() => {
     fetchData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchData intentionally excluded; mount-only load
   }, []);
 
   useEffect(() => {
     if (categories.length > 0) {
       fetchServices();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- categories.length and fetchServices intentionally excluded
   }, [selectedCategory, sortBy]);
 
   const fetchData = async () => {

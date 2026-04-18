@@ -265,6 +265,7 @@ export default function AnalysisForm({ onAnalyze, isAnalyzing, isDemo, prefillJo
     const prefillFromUrl = new URLSearchParams(window.location.search).get("prefillJob");
     if (prefillFromUrl) setJobDesc(prefillFromUrl);
     if (!autoLoaded) { autoLoadResume(); setAutoLoaded(true); }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- autoLoaded and handleScrapeResult intentionally excluded to avoid re-triggering on every render
   }, [isDemo, prefillJob, prefillJobLink]);
 
   const handleFetchJobLink = async () => {
@@ -323,7 +324,7 @@ export default function AnalysisForm({ onAnalyze, isAnalyzing, isDemo, prefillJo
               }
             }
           }
-        } catch {}
+        } catch (e) { console.error("Skill sync error:", e); }
       } else { toast.error(result.error || "Could not extract text"); }
     } catch { toast.error("Failed to parse document"); }
     finally { setIsUploadingResume(false); if (resumeFileRef.current) resumeFileRef.current.value = ""; }

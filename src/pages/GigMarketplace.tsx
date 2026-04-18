@@ -44,6 +44,7 @@ export default function GigMarketplace() {
 
   useEffect(() => {
     fetchData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchData intentionally excluded; mount-only load
   }, []);
 
   const fetchData = async () => {

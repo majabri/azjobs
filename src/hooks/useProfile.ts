@@ -57,7 +57,7 @@ export function useProfile() {
     return () => {
       mounted = false;
     };
-  }, [user?.id]);
+  }, [user?.id, user]);
 
   /**
    * Returns the best available display name.

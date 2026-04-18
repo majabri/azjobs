@@ -346,7 +346,7 @@ export default function AutoApplyPage() {
             const chunk = decoder.decode(value);
             for (const line of chunk.split("\n")) {
               if (line.startsWith("data: ") && line !== "data: [DONE]") {
-                try { const p = JSON.parse(line.slice(6)); optimizedResume += p.choices?.[0]?.delta?.content || ""; } catch {}
+                try { const p = JSON.parse(line.slice(6)); optimizedResume += p.choices?.[0]?.delta?.content || ""; } catch (e) { console.warn("SSE parse error:", e); }
               }
             }
           }
@@ -379,7 +379,7 @@ export default function AutoApplyPage() {
             const chunk = decoder.decode(value);
             for (const line of chunk.split("\n")) {
               if (line.startsWith("data: ") && line !== "data: [DONE]") {
-                try { const p = JSON.parse(line.slice(6)); coverLetter += p.choices?.[0]?.delta?.content || ""; } catch {}
+                try { const p = JSON.parse(line.slice(6)); coverLetter += p.choices?.[0]?.delta?.content || ""; } catch (e) { console.warn("SSE parse error:", e); }
               }
             }
           }

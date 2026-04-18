@@ -52,6 +52,7 @@ export default function AdminTickets() {
     if (error === null) {
       fetchTickets();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- error and fetchTickets intentionally excluded; mount-only load
   }, [filters, sortBy]);
 
   const checkAdminAccess = async () => {

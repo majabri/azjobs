@@ -218,6 +218,7 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
 
   useEffect(() => {
     checkAndFetch();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- checkAndFetch is stable per render cycle; adding it would cause infinite loops
   }, []);
 
   const loadHistoricalOutcomes = async (userId: string): Promise<HistoricalOutcomes | undefined> => {
@@ -295,7 +296,7 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
             return;
           }
         }
-      } catch {}
+      } catch (e) { console.warn("Cache read error:", e); }
     }
 
     fetchJobs(profile, session, cacheKey, outcomes);

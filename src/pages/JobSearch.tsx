@@ -162,7 +162,7 @@ export default function JobSearchPage() {
       rawJobs = result.jobs; cits = result.citations;
     } catch (e) { console.error("[JobSearch] error:", e); toast.error("Search encountered an issue."); }
 
-    let filtered = rawJobs.filter(job => !isJobIgnored(job, ignoredList)).filter(job => !isJobAlreadySaved(job, savedApps));
+    const filtered = rawJobs.filter(job => !isJobIgnored(job, ignoredList)).filter(job => !isJobAlreadySaved(job, savedApps));
     let enriched: EnrichedJob[];
     try {
       enriched = scoreJobs({ jobs: filtered, skills, historicalOutcomes, salaryMin, salaryMax, remotePreferred: jobTypes.includes("remote") });

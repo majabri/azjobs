@@ -58,6 +58,7 @@ export default function WatchdogDashboard() {
       const interval = setInterval(fetchDashboardData, 30000);
       return () => clearInterval(interval);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- error and fetchDashboardData intentionally excluded; mount-only load
   }, [timeRange]);
 
   const checkAdminAccess = async () => {

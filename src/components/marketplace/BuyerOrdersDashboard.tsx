@@ -19,7 +19,7 @@ export default function BuyerOrdersDashboard() {
 
   useEffect(() => {
     (async () => {
-      try { setOrders(await fetchMyOrders("buyer")); } catch {}
+      try { setOrders(await fetchMyOrders("buyer")); } catch (e) { console.error("Failed to load orders:", e); }
       setLoading(false);
     })();
   }, []);

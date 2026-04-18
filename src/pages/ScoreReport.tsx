@@ -18,6 +18,7 @@ export default function ScoreReport() {
 
   useEffect(() => {
     if (analysisId) loadReport();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- loadReport intentionally excluded; mount-only fetch
   }, [analysisId]);
 
   useEffect(() => {
