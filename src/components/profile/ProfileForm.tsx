@@ -283,7 +283,7 @@ export default function ProfileForm({ profile, setProfile, onSave, saving }: Pro
         full_name: extracted?.full_name || prev.full_name,
         email: extracted?.email || prev.email,
         phone: extracted?.phone || prev.phone,
-        location: extracted?.location || prev.location,
+        location: (extracted?.location && extracted.location !== '<UNKNOWN>' && extracted.location.trim() !== '') ? extracted.location : prev.location,
         summary: extracted?.summary || prev.summary,
         linkedin_url: extracted?.linkedin_url || prev.linkedin_url,
         skills: extracted?.skills?.length

@@ -151,7 +151,7 @@ export default function AdminTickets() {
 
       // Call the support-service Edge Function
       const response = await fetch(
-        `${process.env.REACT_APP_SUPABASE_URL}/functions/v1/support-service`,
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/support-service`,
         {
           method: 'POST',
           headers: {

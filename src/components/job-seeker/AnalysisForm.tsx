@@ -334,7 +334,12 @@ export default function AnalysisForm({ onAnalyze, isAnalyzing, isDemo, prefillJo
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { toast.error("Please sign in"); return; }
-      const { data: versionData } = await supabase.from("resume_versions").select("*").eq("user_id", session.user.id).order("created_at", { ascending: false });
+      const { data: versionData, error: vaultError } = await supabase.from("resume_versions").select("*").eq("user_id", session.user.id).order("created_at", { ascending: false });
+      if (vaultError) {
+        console.error("AnalysisForm: failed to load resume versions:", vaultError);
+        toast.error("Could not load your resume vault. Please refresh and try again.");
+        return;
+      }
       if (versionData?.length) {
         setResumeVersions(versionData.map((v: any) => ({ id: v.id, version_name: v.version_name, job_type: v.job_type || "", resume_text: v.resume_text })));
         setShowVersionPicker(true);
