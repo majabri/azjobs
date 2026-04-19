@@ -1,8 +1,5 @@
 name: Set Sentry DSN in Vercel
 
-# Trigger manually via GitHub Actions UI — enter the DSN in the input field.
-# The workflow adds VITE_SENTRY_DSN + VITE_APP_VERSION to the Vercel project
-# (production + preview targets) and then triggers a production re-deploy.
 on:
   workflow_dispatch:
     inputs:
@@ -28,7 +25,8 @@ jobs:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
           DSN: ${{ inputs.sentry_dsn }}
         run: |
-          echo "Setting VITE_SENTRY_DSN..."
+          set -e
+          echo "Fetching existing env vars..."
           EXISTING=$(curl -s \
             -H "Authorization: Bearer $VERCEL_TOKEN" \
             "https://api.vercel.com/v10/projects/$VERCEL_PROJECT_ID/env" \
@@ -38,20 +36,26 @@ jobs:
             echo "Removing existing VITE_SENTRY_DSN (id=$EXISTING)..."
             curl -s -X DELETE \
               -H "Authorization: Bearer $VERCEL_TOKEN" \
-              "https://api.vercel.com/v10/projects/$VERCEL_PROJECT_ID/env/$EXISTING"
+              "https://api.vercel.com/v10/projects/$VERCEL_PROJECT_ID/env/$EXISTING" > /dev/null
           fi
 
-          RESULT=$(curl -s -X POST \
+          echo "Creating VITE_SENTRY_DSN..."
+          HTTP_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
             -H "Authorization: Bearer $VERCEL_TOKEN" \
             -H "Content-Type: application/json" \
             "https://api.vercel.com/v10/projects/$VERCEL_PROJECT_ID/env" \
-            -d "{
-              \"key\": \"VITE_SENTRY_DSN\",
-              \"value\": \"$DSN\",
-              \"type\": \"encrypted\",
-              \"target\": [\"production\", \"preview\"]
-            }")
-          echo "$RESULT" | jq -e '.id' > /dev/null && echo "VITE_SENTRY_DSN set." || (echo "Failed to set VITE_SENTRY_DSN" && exit 1)
+            -d "{\"key\":\"VITE_SENTRY_DSN\",\"value\":\"$DSN\",\"type\":\"encrypted\",\"target\":[\"production\",\"preview\",\"development\"]}")
+
+          HTTP_CODE=$(echo "$HTTP_RESPONSE" | tail -1)
+          BODY=$(echo "$HTTP_RESPONSE" | head -n -1)
+          echo "HTTP $HTTP_CODE: $BODY"
+
+          if [[ "$HTTP_CODE" == 2* ]]; then
+            echo "✅ VITE_SENTRY_DSN set successfully."
+          else
+            echo "❌ Failed to set VITE_SENTRY_DSN (HTTP $HTTP_CODE)"
+            exit 1
+          fi
 
       - name: Add VITE_APP_VERSION to Vercel
         env:
@@ -59,7 +63,6 @@ jobs:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
           VERSION: ${{ inputs.app_version }}
         run: |
-          echo "Setting VITE_APP_VERSION=$VERSION..."
           EXISTING=$(curl -s \
             -H "Authorization: Bearer $VERCEL_TOKEN" \
             "https://api.vercel.com/v10/projects/$VERCEL_PROJECT_ID/env" \
@@ -68,40 +71,42 @@ jobs:
           if [ -n "$EXISTING" ]; then
             curl -s -X DELETE \
               -H "Authorization: Bearer $VERCEL_TOKEN" \
-              "https://api.vercel.com/v10/projects/$VERCEL_PROJECT_ID/env/$EXISTING"
+              "https://api.vercel.com/v10/projects/$VERCEL_PROJECT_ID/env/$EXISTING" > /dev/null
           fi
 
-          RESULT=$(curl -s -X POST \
+          HTTP_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
             -H "Authorization: Bearer $VERCEL_TOKEN" \
             -H "Content-Type: application/json" \
             "https://api.vercel.com/v10/projects/$VERCEL_PROJECT_ID/env" \
-            -d "{
-              \"key\": \"VITE_APP_VERSION\",
-              \"value\": \"$VERSION\",
-              \"type\": \"plain\",
-              \"target\": [\"production\", \"preview\"]
-            }")
-          echo "$RESULT" | jq -e '.id' > /dev/null && echo "VITE_APP_VERSION set." || echo "VITE_APP_VERSION may already be set."
+            -d "{\"key\":\"VITE_APP_VERSION\",\"value\":\"$VERSION\",\"type\":\"plain\",\"target\":[\"production\",\"preview\",\"development\"]}")
 
-      - name: Trigger production re-deploy
+          HTTP_CODE=$(echo "$HTTP_RESPONSE" | tail -1)
+          echo "VITE_APP_VERSION HTTP $HTTP_CODE"
+          [[ "$HTTP_CODE" == 2* ]] && echo "✅ VITE_APP_VERSION=$VERSION set." || echo "⚠️ VITE_APP_VERSION may need manual check."
+
+      - name: Trigger Vercel production redeploy
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
         run: |
-          echo "Triggering production re-deploy..."
-          RESULT=$(curl -s -X POST \
+          echo "Triggering redeploy via Vercel API..."
+          # Get the latest production deployment and redeploy it
+          LATEST=$(curl -s \
             -H "Authorization: Bearer $VERCEL_TOKEN" \
-            -H "Content-Type: application/json" \
-            "https://api.vercel.com/v13/deployments" \
-            -d "{
-              \"name\": \"azjobs\",
-              \"target\": \"production\",
-              \"gitSource\": {
-                \"type\": \"github\",
-                \"repoId\": \"$(curl -s -H 'Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' https://api.github.com/repos/majabri/azjobs | jq -r .id)\",
-                \"ref\": \"main\"
-              }
-            }" 2>/dev/null || true)
-          echo "Deploy triggered."
-          echo "Done - check https://vercel.com/jabri-solutions/azjobs for deploy status."
+            "https://api.vercel.com/v6/deployments?projectId=$VERCEL_PROJECT_ID&target=production&limit=1" \
+            | jq -r '.deployments[0].uid' 2>/dev/null || true)
+
+          if [ -n "$LATEST" ] && [ "$LATEST" != "null" ]; then
+            echo "Redeploying $LATEST..."
+            REDEPLOY=$(curl -s -w "\n%{http_code}" -X POST \
+              -H "Authorization: Bearer $VERCEL_TOKEN" \
+              -H "Content-Type: application/json" \
+              "https://api.vercel.com/v13/deployments?forceNew=1&withLatestCommit=1" \
+              -d "{\"deploymentId\":\"$LATEST\",\"target\":\"production\"}")
+            HTTP_CODE=$(echo "$REDEPLOY" | tail -1)
+            echo "Redeploy HTTP $HTTP_CODE"
+            [[ "$HTTP_CODE" == 2* ]] && echo "✅ Redeploy triggered." || echo "⚠️ Redeploy via API failed — a git push to main will also trigger it."
+          else
+            echo "⚠️ Could not find latest deployment uid. Push any commit to main to redeploy."
+          fi
+          echo "Done — env vars are set in Vercel."
