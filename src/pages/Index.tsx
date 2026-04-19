@@ -180,16 +180,16 @@ export default function Index() {
     <div className="min-h-screen flex flex-col">
       {/* ═══════════════ NAV ═══════════════ */}
       <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-3 bg-card/95 backdrop-blur-sm border-b border-border">
-        <div
-          className="flex items-center gap-2 cursor-pointer select-none"
-          onClick={() => navigate("/")}
+        <a
+          href="/"
+          className="flex items-center gap-2 select-none no-underline"
         >
           <ICareerOSLogo size={28} />
           <span className="text-sm font-medium tracking-tight">
             <span className="text-primary">iCareer</span>
             <span className="text-foreground">OS</span>
           </span>
-        </div>
+        </a>
 
         <nav className="flex items-center gap-1">
           {user ? (
@@ -602,11 +602,11 @@ export default function Index() {
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {features.map((f, i) => (
-              <div
+              <a
                 key={f.title}
-                className="bg-background rounded-2xl p-7 shadow-card border border-border hover:shadow-elevated hover:border-accent/30 transition-all cursor-pointer group"
+                href={user ? f.link : AUTH_LOGIN}
+                className="bg-background rounded-2xl p-7 shadow-card border border-border hover:shadow-elevated hover:border-accent/30 transition-all cursor-pointer group no-underline block"
                 style={{ animationDelay: `${i * 0.1}s` }}
-                onClick={() => navigate(user ? f.link : AUTH_LOGIN)}
               >
                 <div className="w-11 h-11 gradient-indigo rounded-xl flex items-center justify-center mb-5 shadow-indigo-500/20 group-hover:scale-110 transition-transform">
                   <f.icon className="w-5 h-5 text-white" />
@@ -620,7 +620,7 @@ export default function Index() {
                 <div className="flex items-center gap-1 text-accent text-sm font-medium mt-4 opacity-0 group-hover:opacity-100 transition-opacity">
                   Try it <ArrowRight className="w-3.5 h-3.5" />
                 </div>
-              </div>
+              </a>
             ))}
           </div>
         </div>

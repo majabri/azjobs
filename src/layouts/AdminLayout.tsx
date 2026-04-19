@@ -32,6 +32,7 @@ import {
   MessageSquare,
   LogOut,
   Globe,
+  Activity,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from '@/lib/logger';
@@ -120,6 +121,11 @@ const adminNavGroups: AdminNavGroup[] = [
         title: "Audit Log",
         url: "/admin/audit",
         icon: ClipboardList,
+      },
+      {
+        title: "Pipeline Events",
+        url: "/admin/events",
+        icon: Activity,
       },
       {
         title: "Platform Settings",
