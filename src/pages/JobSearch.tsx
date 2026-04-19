@@ -18,9 +18,10 @@ import {
   getIgnoredJobs, ignoreJob, isJobIgnored, isJobAlreadySaved, type IgnoredJob,
 } from "@/lib/job-search";
 import { STRATEGY_CONFIG, TRUST_LEVEL_CONFIG, type FakeJobFlag, type HistoricalOutcomes } from "@/lib/job-search/jobQualityEngine";
-import { searchJobs as searchJobsService, pollMatchScores, markJobInteraction } from "@/services/job/api";
-import { scoreJobs, type EnrichedJob } from "@/services/matching/api";
-import type { JobResult, JobSearchFilters } from "@/services/job/types";
+import { pollMatchScores, markJobInteraction } from "@/services/job/api";
+import { type EnrichedJob } from "@/services/matching/api";
+import { runSearchOnly } from "@/shell/orchestrator";
+import type { JobSearchFilters } from "@/services/job/types";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -373,30 +374,25 @@ export default function JobSearchPage() {
       ...overrideFilters,
     };
 
-    let rawJobs: JobResult[] = [];
     let triggeredMatch = false;
 
+    // Fetch + score via the shell orchestrator (steps 1 + 2).
+    // JobSearch must NOT call searchJobs / scoreJobs directly — all service
+    // chaining is owned by the orchestrator.
+    let enriched: EnrichedJob[] = [];
     try {
-      const result = await searchJobsService(filters);
-      rawJobs = result.jobs;
-      triggeredMatch = result.matchingTriggered ?? false;
+      const result = await runSearchOnly(filters, historicalOutcomes);
+      enriched = result.jobs;
+      triggeredMatch = result.matchingTriggered;
     } catch (e) {
       logger.error("[JobSearch] error:", e);
       toast.error("Search encountered an issue.");
     }
 
     // Filter out ignored / already-saved
-    let filtered = rawJobs
+    enriched = enriched
       .filter(job => !isJobIgnored(job, ignoredList))
       .filter(job => !isJobAlreadySaved(job, savedApps));
-
-    // Local enrichment (for jobs without AI scores)
-    let enriched: EnrichedJob[];
-    try {
-      enriched = scoreJobs({ jobs: filtered, skills, historicalOutcomes, salaryMin, salaryMax, remotePreferred: jobTypes.includes("remote") });
-    } catch {
-      enriched = filtered.map(job => ({ ...job, flags: [], trustScore: 50, trustLevel: "caution" as const, strategy: "apply_now" as const, responseProbability: 50, decisionScore: job.quality_score || 50, effortEstimate: 50 }));
-    }
 
     // Sort
     enriched = sortResults(enriched, sortBy);

@@ -2,6 +2,12 @@
 // Zero-dependency: uses Deno.serve + inline PostgREST + direct GoTrue auth.
 // Orchestrates 5 AI agents: discovery, matching, optimization, application, learning.
 
+// ─── Shared modules ───────────────────────────────────────────────────────────
+// Import shared job-search logic instead of HTTP-fetching the search-jobs
+// edge function.  Function-to-function HTTP calls add latency, create hidden
+// dependencies, and make local testing harder.
+import { searchJobPostings } from "../_shared/job-search.ts";
+
 // ─── CORS ─────────────────────────────────────────────────────────────────────
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -119,16 +125,15 @@ const AGENTS: Record<string, AgentFn> = {
 
 // ─── Agent Implementations ──────────────────────────────────────────────────
 async function runDiscovery(ctx: AgentContext): Promise<AgentResult> {
-  const titles = ctx.profile.target_job_titles || [];
-  const query = titles.length ? titles.slice(0, 3).join(" OR ") : "software engineer";
-  const resp = await fetch(`${ctx.supabaseUrl}/functions/v1/search-jobs`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: ctx.userAuthHeader },
-    body: JSON.stringify({ query, location: ctx.profile.location || "", limit: 20 }),
+  const titles: string[] = ctx.profile.target_job_titles || [];
+  // Use shared searchJobPostings directly — no HTTP hop to search-jobs function.
+  const result = await searchJobPostings({
+    targetTitles: titles.slice(0, 3),
+    query: titles.length ? undefined : "software engineer",
+    location: ctx.profile.location || undefined,
+    limit: 20,
   });
-  if (!resp.ok) throw new Error(`Search failed: ${resp.status}`);
-  const data = await resp.json();
-  return { name: "discovery", success: true, metrics: { jobs_found: data.jobs?.length || 0 } };
+  return { name: "discovery", success: true, metrics: { jobs_found: result.jobs.length } };
 }
 
 async function runMatching(ctx: AgentContext): Promise<AgentResult> {

@@ -14,7 +14,69 @@ import { optimize } from "@/services/resume/api";
 import { apply } from "@/services/application/api";
 import type { JobSearchFilters } from "@/services/job/api";
 import type { EnrichedJob } from "@/services/matching/api";
+import type { HistoricalOutcomes } from "@/lib/job-search/jobQualityEngine";
 import { logger } from '@/lib/logger';
+
+// ─── runSearchOnly ────────────────────────────────────────────────────────────
+
+export interface SearchOnlyResult {
+  jobs: EnrichedJob[];
+  /** True when the discover-jobs function triggered background AI matching. */
+  matchingTriggered: boolean;
+}
+
+/**
+ * Run steps 1 + 2 only: fetch jobs then score them.
+ *
+ * Use this in UI pages (e.g. JobSearch) instead of calling searchJobs /
+ * scoreJobs directly so that pages do not cross the service boundary.
+ * The orchestrator is the ONLY place where services are chained.
+ *
+ * Scoring failure is non-blocking: if scoreJobs throws, a fallback
+ * EnrichedJob array is returned with default scores so the UI
+ * can still display results.
+ */
+export async function runSearchOnly(
+  filters: JobSearchFilters,
+  historicalOutcomes?: HistoricalOutcomes,
+): Promise<SearchOnlyResult> {
+  // Step 1 — fetch
+  logger.info("[Orchestrator] runSearchOnly: searching jobs…");
+  let matchingTriggered = false;
+  const rawJobs = await searchJobs(filters)
+    .then(r => { matchingTriggered = r.matchingTriggered ?? false; return r.jobs; })
+    .catch(e => { logger.error("[Orchestrator] runSearchOnly: searchJobs failed:", e); return []; });
+
+  if (rawJobs.length === 0) return { jobs: [], matchingTriggered };
+
+  // Step 2 — score (non-blocking, failure falls back to default enrichment)
+  logger.info("[Orchestrator] runSearchOnly: scoring jobs…");
+  try {
+    const jobs = scoreJobs({
+      jobs: rawJobs,
+      skills: filters.skills,
+      historicalOutcomes,
+      salaryMin: filters.salaryMin,
+      salaryMax: filters.salaryMax,
+      remotePreferred: filters.jobTypes.includes("remote"),
+    });
+    return { jobs, matchingTriggered };
+  } catch (e) {
+    logger.error("[Orchestrator] runSearchOnly: scoreJobs failed (non-blocking):", e);
+    const jobs: EnrichedJob[] = rawJobs.map(job => ({
+      ...job,
+      flags: [],
+      trustScore: 50,
+      trustLevel: "caution" as const,
+      strategy: "apply_now" as const,
+      responseProbability: 50,
+      decisionScore: job.quality_score || 50,
+      effortEstimate: 50,
+      smartTag: "Worth Applying",
+    }));
+    return { jobs, matchingTriggered };
+  }
+}
 
 export interface OrchestratorResult {
   jobsFound: number;
