@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Loader2, TrendingUp, TrendingDown, Minus, BarChart3, Send, Target, Award } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import HelpTooltip from "@/components/HelpTooltip";
+import { logger } from '@/lib/logger';
 
 interface Metrics {
   appsThisMonth: number;
@@ -65,7 +66,7 @@ export default function ProgressMetrics() {
         totalApps: apps.length,
         totalInterviews: interviews.length,
       });
-    } catch (e) { console.error(e); }
+    } catch (e) { logger.error(e); }
     finally { setLoading(false); }
   };
 

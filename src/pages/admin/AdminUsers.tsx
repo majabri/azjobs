@@ -24,6 +24,7 @@ import { toast } from "sonner";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { logger } from '@/lib/logger';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -537,9 +538,11 @@ function JobSeekerPanel({
       setRecords(merged);
       onRecordsLoaded?.(merged);
     } catch (e) {
+      logger.error("AdminUsers: failed to load records:", e);
     } finally {
       setLoading(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- onRecordsLoaded intentionally excluded from useCallback deps; stable callback ref
   }, []);
 
   useEffect(() => { load(); }, [load, reloadKey]);
@@ -807,11 +810,12 @@ function HiringManagerPanel({
       setRecords(merged);
       onRecordsLoaded?.(merged);
     } catch (e) {
-      console.error(e);
+      logger.error(e);
       toast.error("Failed to load hiring managers");
     } finally {
       setLoading(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- onRecordsLoaded intentionally excluded from useCallback deps; stable callback ref
   }, []);
 
   useEffect(() => { load(); }, [load, reloadKey]);
@@ -997,7 +1001,7 @@ function AdminPanel({
 
       setRecords(merged);
     } catch (e) {
-      console.error(e);
+      logger.error(e);
       toast.error("Failed to load admins");
     } finally {
       setLoading(false);
@@ -1162,7 +1166,7 @@ export default function AdminUsers() {
       toast.success("Role updated");
       reload();
     } catch (e) {
-      console.error(e);
+      logger.error(e);
       toast.error("Failed to update role");
     } finally {
       setUpdatingId(null);

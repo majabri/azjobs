@@ -1,6 +1,7 @@
 import * as pdfjsLib from "pdfjs-dist";
 import workerUrl from "pdfjs-dist/build/pdf.worker.mjs?url";
 import mammoth from "mammoth";
+import { logger } from '@/lib/logger';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
 
@@ -33,7 +34,7 @@ export async function parseDocument(file: File): Promise<{ success: boolean; tex
 
     return { success: false, error: "Unsupported file type. Please upload a PDF or Word document." };
   } catch (error) {
-    console.error("Error parsing document:", error);
+    logger.error("Error parsing document:", error);
     return { success: false, error: error instanceof Error ? error.message : "Failed to parse document" };
   }
 }

@@ -1,13 +1,17 @@
 name: iCareerOS Job Scraper
 
+# Repo path: .github/workflows/job-scraper.yml
+# Copies from: iCareerOS/code/v5-merged/github-actions-scraper/job-scraper.yml
+# Identical to the existing scraper — included here for one-shot deployment
+
 on:
   schedule:
-    - cron: '0 */2 * * *'   # every 2 hours, free GitHub compute
-  workflow_dispatch:          # manual trigger: Actions > iCareerOS Job Scraper > Run workflow
+    - cron: '0 */2 * * *'   # Every 2 hours — free GitHub compute
+  workflow_dispatch:          # Manual trigger: Actions > Run workflow
 
 jobs:
   scrape-jobs:
-    name: Scrape Jobs > Supabase
+    name: Scrape Jobs → Supabase job_postings
     runs-on: ubuntu-latest
     timeout-minutes: 15
 

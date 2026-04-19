@@ -1,5 +1,15 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { isJobIgnored, isJobAlreadySaved, type IgnoredJob } from "@/lib/ignoredJobs";
+
+// ignoredJobs.ts imports supabase at module load; mock it so tests don't need
+// real env vars — the functions under test (isJobIgnored, isJobAlreadySaved)
+// are pure helpers that never call the database.
+vi.mock("@/integrations/supabase/client", () => ({
+  supabase: {
+    from: vi.fn(),
+    auth: { getSession: vi.fn() },
+  },
+}));
 
 const makeIgnored = (overrides: Partial<IgnoredJob> = {}): IgnoredJob => ({
   id: "1",

@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { logger } from '@/lib/logger';
 
 interface SystemCheck {
   name: string;
@@ -214,7 +215,7 @@ export default function AdminSystem() {
 
       setErrorLogs(failedRuns.slice(0, 20));
     } catch (e) {
-      console.error(e);
+      logger.error(e);
       toast.error("Failed to load system health data");
     } finally {
       setLoading(false);

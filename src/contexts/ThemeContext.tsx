@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 /**
  * ThemeContext — manages light / dark / system theme preference.
  *
@@ -22,6 +23,7 @@ import {
 } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { logger } from '@/lib/logger';
 
 export type ThemePreference = "light" | "dark" | "system";
 type ResolvedTheme = "light" | "dark";
@@ -131,7 +133,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
           .update({ theme: next } as any)
           .eq("id", user.id)
           .then(({ error }) => {
-            if (error) console.warn("[ThemeContext] Failed to persist theme:", error.message);
+            if (error) logger.warn("[ThemeContext] Failed to persist theme:", error.message);
           });
       }
     },

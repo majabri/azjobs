@@ -1,8 +1,9 @@
+import { logger } from '@/lib/logger';
 // errorHandling.ts
 
 // Centralized error handling utility
 export function handleError(error: any): void {
-    console.error('An error occurred:', error);
+    logger.error('An error occurred:', error);
     // Additional logging or actions can be added here
 }
 

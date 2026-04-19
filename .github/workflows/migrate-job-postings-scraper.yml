@@ -1,0 +1,29 @@
+name: DB Migration — Job Postings Scraper Columns
+
+# Adds external_id, scraped_at, experience_level, remote_type columns to
+# job_postings and updates the scraped_jobs VIEW so scraped feed jobs appear.
+# Run manually: Actions → DB Migration — Job Postings Scraper Columns → Run workflow
+
+on:
+  workflow_dispatch:
+
+jobs:
+  migrate:
+    name: Apply scraper columns migration
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Apply 20260502_job_postings_scraper_columns
+        run: |
+          SQL=$(cat supabase/migrations/20260502_job_postings_scraper_columns.sql)
+          RESPONSE=$(curl -s -w "\n%{http_code}" \
+            -X POST "https://api.supabase.com/v1/projects/bryoehuhhhjqcueomgev/database/query" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ACCESS_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"query\": $(echo "$SQL" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')}")
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | head -n -1)
+          echo "HTTP $HTTP_CODE"
+          echo "$BODY" | python3 -m json.tool 2>/dev/null || echo "$BODY"
+          [[ "$HTTP_CODE" -ge 200 && "$HTTP_CODE" -lt 300 ]] && echo "✅ Migration applied" || (echo "❌ Failed"; exit 1)

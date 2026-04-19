@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 /**
  * Analytics module for event tracking and page views
  * Provides type-safe event tracking with support for multiple analytics providers
@@ -31,24 +32,24 @@ export const initAnalytics = (cfg: Partial<AnalyticsConfig> = {}): void => {
 
   if (!config.enabled) {
     if (process.env.NODE_ENV === 'development') {
-      console.log('[Analytics] Analytics disabled');
+      logger.info('[Analytics] Analytics disabled');
     }
     return;
   }
 
   if (process.env.NODE_ENV === 'development') {
-    console.log('[Analytics] Initialized with provider:', config.provider);
+    logger.info('[Analytics] Initialized with provider:', config.provider);
   }
 
   // Initialize provider-specific code here
   // Google Analytics 4
   if (config.provider === 'ga4' && config.trackingId) {
-    console.log('[Analytics] GA4 initialized with ID:', config.trackingId);
+    logger.info('[Analytics] GA4 initialized with ID:', config.trackingId);
   }
 
   // Plausible
   if (config.provider === 'plausible') {
-    console.log('[Analytics] Plausible initialized');
+    logger.info('[Analytics] Plausible initialized');
   }
 };
 
@@ -74,7 +75,7 @@ export const trackEvent = (
   };
 
   if (process.env.NODE_ENV === 'development') {
-    console.log('[Analytics Event]', event);
+    logger.info('[Analytics Event]', event);
   }
 
   sendEventToProvider(event);
@@ -96,7 +97,7 @@ export const trackPageView = (path: string, title?: string): void => {
   };
 
   if (process.env.NODE_ENV === 'development') {
-    console.log('[Page View]', { path, title, ...event });
+    logger.info('[Page View]', { path, title, ...event });
   }
 
   sendEventToProvider(event);
@@ -126,7 +127,7 @@ const sendEventToProvider = (event: AnalyticsEvent): void => {
   }
 
   if (process.env.NODE_ENV === 'development') {
-    console.log('[Analytics] Event sent:', event);
+    logger.info('[Analytics] Event sent:', event);
   }
 };
 
@@ -182,7 +183,7 @@ export const trackAuthAction = (
 export const disableAnalytics = (): void => {
   config.enabled = false;
   if (process.env.NODE_ENV === 'development') {
-    console.log('[Analytics] Disabled');
+    logger.info('[Analytics] Disabled');
   }
 };
 
@@ -192,6 +193,6 @@ export const disableAnalytics = (): void => {
 export const enableAnalytics = (): void => {
   config.enabled = true;
   if (process.env.NODE_ENV === 'development') {
-    console.log('[Analytics] Enabled');
+    logger.info('[Analytics] Enabled');
   }
 };

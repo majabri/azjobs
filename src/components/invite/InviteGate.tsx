@@ -38,6 +38,7 @@ export function InviteGate({ onValidated }: InviteGateProps) {
       setAutoChecked(true);
       validateInvite({ token });
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- validateInvite is stable; intentional mount-only effect
   }, [searchParams, autoChecked]);
 
   async function validateInvite(params: { token?: string; invite_code?: string }) {

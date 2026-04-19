@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 /**
  * Client-side rate limiter utility
  * Uses token bucket algorithm to prevent request spamming
@@ -55,13 +56,13 @@ export const createRateLimiter = (
     if (tokens >= 1) {
       tokens -= 1;
       if (process.env.NODE_ENV === 'development') {
-        console.log(`[RateLimiter] Request allowed. Remaining: ${Math.floor(tokens)}`);
+        logger.info(`[RateLimiter] Request allowed. Remaining: ${Math.floor(tokens)}`);
       }
       return true;
     }
 
     if (process.env.NODE_ENV === 'development') {
-      console.warn('[RateLimiter] Rate limit exceeded');
+      logger.warn('[RateLimiter] Rate limit exceeded');
     }
     return false;
   };
@@ -81,7 +82,7 @@ export const createRateLimiter = (
     tokens = maxRequests;
     lastRefillTime = Date.now();
     if (process.env.NODE_ENV === 'development') {
-      console.log('[RateLimiter] Reset to max requests:', maxRequests);
+      logger.info('[RateLimiter] Reset to max requests:', maxRequests);
     }
   };
 

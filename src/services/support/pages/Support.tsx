@@ -111,6 +111,7 @@ export default function SupportPage() {
 
   useEffect(() => {
     if (user?.email && !email) setEmail(user.email);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- email intentionally excluded; runs once on mount
   }, [user?.email]);
 
   const loadTickets = useCallback(async () => {

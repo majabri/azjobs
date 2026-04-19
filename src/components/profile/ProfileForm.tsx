@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { parseDocument } from "@/lib/api/parseDocument";
 import { extractProfileFromResume } from "@/lib/analysisEngine";
 import { toast } from "sonner";
+import { logger } from '@/lib/logger';
 
 interface WorkExperience { title: string; company: string; startDate: string; endDate: string; description: string; }
 interface Education { degree: string; institution: string; year: string; }
@@ -274,7 +276,7 @@ export default function ProfileForm({ profile, setProfile, onSave, saving }: Pro
         }
       } catch (aiErr) {
         // Edge function unavailable — continue with client-side extraction
-        console.warn("AI profile extraction unavailable, using local extraction:", aiErr);
+        logger.warn("AI profile extraction unavailable, using local extraction:", aiErr);
       }
 
       // Step 4: Merge results — AI extraction takes priority, local fills gaps
@@ -283,7 +285,7 @@ export default function ProfileForm({ profile, setProfile, onSave, saving }: Pro
         full_name: extracted?.full_name || prev.full_name,
         email: extracted?.email || prev.email,
         phone: extracted?.phone || prev.phone,
-        location: extracted?.location || prev.location,
+        location: (extracted?.location && extracted.location !== '<UNKNOWN>' && extracted.location.trim() !== '') ? extracted.location : prev.location,
         summary: extracted?.summary || prev.summary,
         linkedin_url: extracted?.linkedin_url || prev.linkedin_url,
         skills: extracted?.skills?.length
@@ -314,7 +316,7 @@ export default function ProfileForm({ profile, setProfile, onSave, saving }: Pro
         toast.success("Basic profile info extracted \u2014 AI enhancement unavailable.");
       }
     } catch (err) {
-      console.error("Resume import error:", err);
+      logger.error("Resume import error:", err);
       toast.error("Failed to import resume. Please try again.");
     } finally {
       setImporting(false);

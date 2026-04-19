@@ -32,6 +32,7 @@ export default function ProposalManagement({ project, onBack }: Props) {
     setLoading(false);
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- load
   useEffect(() => { load(); }, [project.id]);
 
   const updateStatus = async (id: string, status: string) => {

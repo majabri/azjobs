@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   RadialBarChart, RadialBar, ResponsiveContainer, PolarAngleAxis,
 } from "recharts";
+import { logger } from '@/lib/logger';
 
 interface ROIData {
   overallROI: number;
@@ -109,7 +110,7 @@ export default function CareerROIScore() {
         bestOfferVsMarket,
         weeklyTrend,
       });
-    } catch (e) { console.error(e); }
+    } catch (e) { logger.error(e); }
     finally { setLoading(false); }
   };
 

@@ -46,6 +46,7 @@ import AdminAgentRunDetail from "./pages/admin/AdminAgentRunDetail";
 import PlatformSettings from "./pages/admin/PlatformSettings";
 import SignUpWithInvite from "./pages/auth/SignUpWithInvite";
 import { useAuthReady } from "@/hooks/useAuthReady";
+import RouteErrorBoundary from "./components/RouteErrorBoundary";
 import React, { lazy, Suspense } from "react";
 
 /* Lazy-load service pages that were previously unrouted */
@@ -58,10 +59,14 @@ const queryClient = new QueryClient();
 // Initialize analytics
 initAnalytics({ enabled: true });
 
-function ProtectedWithLayout({ children }: { children: React.ReactNode }) {
+function ProtectedWithLayout({ children, routeName = "this page" }: { children: React.ReactNode; routeName?: string }) {
   return (
     <ProtectedRoute>
-      <AuthenticatedLayout>{children}</AuthenticatedLayout>
+      <AuthenticatedLayout>
+        <RouteErrorBoundary routeName={routeName}>
+          {children}
+        </RouteErrorBoundary>
+      </AuthenticatedLayout>
     </ProtectedRoute>
   );
 }
@@ -78,8 +83,8 @@ function OptionalLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (user) return <AuthenticatedLayout>{children}</AuthenticatedLayout>;
-  return <>{children}</>;
+  if (user) return <AuthenticatedLayout><RouteErrorBoundary routeName="Job Seeker">{children}</RouteErrorBoundary></AuthenticatedLayout>;
+  return <RouteErrorBoundary routeName="Job Seeker">{children}</RouteErrorBoundary>;
 }
 
 function LazyFallback() {
@@ -103,45 +108,45 @@ const App = () => (
               <Route path="/auth" element={<Auth />} />
               <Route path="/auth/signup" element={<SignUpWithInvite />} />
               <Route path="/job-seeker" element={<OptionalLayout><JobSeeker /></OptionalLayout>} />
-              <Route path="/dashboard" element={<ProtectedWithLayout><Dashboard /></ProtectedWithLayout>} />
-              <Route path="/applications" element={<ProtectedWithLayout><Applications /></ProtectedWithLayout>} />
-              <Route path="/profile" element={<ProtectedWithLayout><Profile /></ProtectedWithLayout>} />
-              <Route path="/job-search" element={<ProtectedWithLayout><JobSearch /></ProtectedWithLayout>} />
-              <Route path="/hiring-manager" element={<ProtectedWithLayout><HiringManager /></ProtectedWithLayout>} />
-              <Route path="/candidates" element={<ProtectedWithLayout><CandidatesDatabase /></ProtectedWithLayout>} />
-              <Route path="/job-postings" element={<ProtectedWithLayout><JobPostings /></ProtectedWithLayout>} />
-              <Route path="/interview-scheduling" element={<ProtectedWithLayout><InterviewScheduling /></ProtectedWithLayout>} />
-              <Route path="/offers" element={<ProtectedWithLayout><Offers /></ProtectedWithLayout>} />
-              <Route path="/career" element={<ProtectedWithLayout><Career /></ProtectedWithLayout>} />
-              <Route path="/interview-prep" element={<ProtectedWithLayout><InterviewPrep /></ProtectedWithLayout>} />
-              <Route path="/auto-apply" element={<ProtectedWithLayout><AutoApply /></ProtectedWithLayout>} />
-              <Route path="/settings" element={<ProtectedWithLayout><AccountSettings /></ProtectedWithLayout>} />
+              <Route path="/dashboard" element={<ProtectedWithLayout routeName="Dashboard"><Dashboard /></ProtectedWithLayout>} />
+              <Route path="/applications" element={<ProtectedWithLayout routeName="Applications"><Applications /></ProtectedWithLayout>} />
+              <Route path="/profile" element={<ProtectedWithLayout routeName="Profile"><Profile /></ProtectedWithLayout>} />
+              <Route path="/job-search" element={<ProtectedWithLayout routeName="Job Search"><JobSearch /></ProtectedWithLayout>} />
+              <Route path="/hiring-manager" element={<ProtectedWithLayout routeName="Hiring Manager"><HiringManager /></ProtectedWithLayout>} />
+              <Route path="/candidates" element={<ProtectedWithLayout routeName="Candidates"><CandidatesDatabase /></ProtectedWithLayout>} />
+              <Route path="/job-postings" element={<ProtectedWithLayout routeName="Job Postings"><JobPostings /></ProtectedWithLayout>} />
+              <Route path="/interview-scheduling" element={<ProtectedWithLayout routeName="Interview Scheduling"><InterviewScheduling /></ProtectedWithLayout>} />
+              <Route path="/offers" element={<ProtectedWithLayout routeName="Offers"><Offers /></ProtectedWithLayout>} />
+              <Route path="/career" element={<ProtectedWithLayout routeName="Career"><Career /></ProtectedWithLayout>} />
+              <Route path="/interview-prep" element={<ProtectedWithLayout routeName="Interview Prep"><InterviewPrep /></ProtectedWithLayout>} />
+              <Route path="/auto-apply" element={<ProtectedWithLayout routeName="Auto Apply"><AutoApply /></ProtectedWithLayout>} />
+              <Route path="/settings" element={<ProtectedWithLayout routeName="Settings"><AccountSettings /></ProtectedWithLayout>} />
 
               {/* Open Market (gig marketplace) */}
-              <Route path="/gigs" element={<ProtectedWithLayout><GigMarketplace /></ProtectedWithLayout>} />
+              <Route path="/gigs" element={<ProtectedWithLayout routeName="Open Market"><GigMarketplace /></ProtectedWithLayout>} />
               {/* Skill Store (service catalog) */}
-              <Route path="/services" element={<ProtectedWithLayout><Marketplace /></ProtectedWithLayout>} />
+              <Route path="/services" element={<ProtectedWithLayout routeName="Skill Store"><Marketplace /></ProtectedWithLayout>} />
               {/* Support Inbox */}
-              <Route path="/support" element={<ProtectedWithLayout><Support /></ProtectedWithLayout>} />
+              <Route path="/support" element={<ProtectedWithLayout routeName="Support"><Support /></ProtectedWithLayout>} />
 
-              {/* Admin routes */}
+              {/* Admin routes — each wrapped with RouteErrorBoundary inside AdminLayout */}
               <Route path="/admin/login" element={<Navigate to="/auth/login" replace />} />
-              <Route path="/admin/set-password" element={<AdminProtectedRoute><AdminSetPassword /></AdminProtectedRoute>} />
-              <Route path="/admin" element={<AdminProtectedRoute><AdminLayout><AdminDashboard /></AdminLayout></AdminProtectedRoute>} />
-              <Route path="/admin/users" element={<AdminProtectedRoute><AdminLayout><AdminUsers /></AdminLayout></AdminProtectedRoute>} />
-              <Route path="/admin/agents" element={<AdminProtectedRoute><AdminLayout><AdminAgents /></AdminLayout></AdminProtectedRoute>} />
-              <Route path="/admin/system" element={<AdminProtectedRoute><AdminLayout><AdminSystem /></AdminLayout></AdminProtectedRoute>} />
-              <Route path="/admin/settings" element={<AdminProtectedRoute><AdminLayout><AccountSettings /></AdminLayout></AdminProtectedRoute>} />
-              <Route path="/admin/profile" element={<AdminProtectedRoute><AdminLayout><AdminProfile /></AdminLayout></AdminProtectedRoute>} />
-              <Route path="/admin/logs" element={<AdminProtectedRoute><AdminLayout><AdminLogs /></AdminLayout></AdminProtectedRoute>} />
-              <Route path="/admin/agent-runs" element={<AdminProtectedRoute><AdminLayout><AdminAgentRuns /></AdminLayout></AdminProtectedRoute>} />
-              <Route path="/admin/queue" element={<AdminProtectedRoute><AdminLayout><AdminQueue /></AdminLayout></AdminProtectedRoute>} />
-              <Route path="/admin/console" element={<AdminProtectedRoute><AdminLayout><AdminConsole /></AdminLayout></AdminProtectedRoute>} />
-              <Route path="/admin/audit" element={<AdminProtectedRoute><AdminLayout><AdminAudit /></AdminLayout></AdminProtectedRoute>} />
-              <Route path="/admin/tickets" element={<AdminProtectedRoute><AdminLayout><AdminTickets /></AdminLayout></AdminProtectedRoute>} />
-              <Route path="/admin/surveys" element={<AdminProtectedRoute><AdminLayout><AdminSurveys /></AdminLayout></AdminProtectedRoute>} />
-              <Route path="/admin/agent-runs/:runId" element={<AdminProtectedRoute><AdminLayout><AdminAgentRunDetail /></AdminLayout></AdminProtectedRoute>} />
-              <Route path="/admin/platform-settings" element={<AdminProtectedRoute><AdminLayout><PlatformSettings /></AdminLayout></AdminProtectedRoute>} />
+              <Route path="/admin/set-password" element={<AdminProtectedRoute><RouteErrorBoundary routeName="Admin Set Password"><AdminSetPassword /></RouteErrorBoundary></AdminProtectedRoute>} />
+              <Route path="/admin" element={<AdminProtectedRoute><AdminLayout><RouteErrorBoundary routeName="Admin Dashboard"><AdminDashboard /></RouteErrorBoundary></AdminLayout></AdminProtectedRoute>} />
+              <Route path="/admin/users" element={<AdminProtectedRoute><AdminLayout><RouteErrorBoundary routeName="Admin Users"><AdminUsers /></RouteErrorBoundary></AdminLayout></AdminProtectedRoute>} />
+              <Route path="/admin/agents" element={<AdminProtectedRoute><AdminLayout><RouteErrorBoundary routeName="Admin Agents"><AdminAgents /></RouteErrorBoundary></AdminLayout></AdminProtectedRoute>} />
+              <Route path="/admin/system" element={<AdminProtectedRoute><AdminLayout><RouteErrorBoundary routeName="Admin System"><AdminSystem /></RouteErrorBoundary></AdminLayout></AdminProtectedRoute>} />
+              <Route path="/admin/settings" element={<AdminProtectedRoute><AdminLayout><RouteErrorBoundary routeName="Admin Settings"><AccountSettings /></RouteErrorBoundary></AdminLayout></AdminProtectedRoute>} />
+              <Route path="/admin/profile" element={<AdminProtectedRoute><AdminLayout><RouteErrorBoundary routeName="Admin Profile"><AdminProfile /></RouteErrorBoundary></AdminLayout></AdminProtectedRoute>} />
+              <Route path="/admin/logs" element={<AdminProtectedRoute><AdminLayout><RouteErrorBoundary routeName="Admin Logs"><AdminLogs /></RouteErrorBoundary></AdminLayout></AdminProtectedRoute>} />
+              <Route path="/admin/agent-runs" element={<AdminProtectedRoute><AdminLayout><RouteErrorBoundary routeName="Admin Agent Runs"><AdminAgentRuns /></RouteErrorBoundary></AdminLayout></AdminProtectedRoute>} />
+              <Route path="/admin/queue" element={<AdminProtectedRoute><AdminLayout><RouteErrorBoundary routeName="Admin Queue"><AdminQueue /></RouteErrorBoundary></AdminLayout></AdminProtectedRoute>} />
+              <Route path="/admin/console" element={<AdminProtectedRoute><AdminLayout><RouteErrorBoundary routeName="Admin Console"><AdminConsole /></RouteErrorBoundary></AdminLayout></AdminProtectedRoute>} />
+              <Route path="/admin/audit" element={<AdminProtectedRoute><AdminLayout><RouteErrorBoundary routeName="Admin Audit"><AdminAudit /></RouteErrorBoundary></AdminLayout></AdminProtectedRoute>} />
+              <Route path="/admin/tickets" element={<AdminProtectedRoute><AdminLayout><RouteErrorBoundary routeName="Admin Tickets"><AdminTickets /></RouteErrorBoundary></AdminLayout></AdminProtectedRoute>} />
+              <Route path="/admin/surveys" element={<AdminProtectedRoute><AdminLayout><RouteErrorBoundary routeName="Admin Surveys"><AdminSurveys /></RouteErrorBoundary></AdminLayout></AdminProtectedRoute>} />
+              <Route path="/admin/agent-runs/:runId" element={<AdminProtectedRoute><AdminLayout><RouteErrorBoundary routeName="Admin Agent Run Detail"><AdminAgentRunDetail /></RouteErrorBoundary></AdminLayout></AdminProtectedRoute>} />
+              <Route path="/admin/platform-settings" element={<AdminProtectedRoute><AdminLayout><RouteErrorBoundary routeName="Platform Settings"><PlatformSettings /></RouteErrorBoundary></AdminLayout></AdminProtectedRoute>} />
 
               {/* Public routes */}
               <Route path="/p/:userId" element={<PublicProfile />} />

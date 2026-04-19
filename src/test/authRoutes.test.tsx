@@ -94,24 +94,21 @@ describe("landing page Sign In link", () => {
     vi.clearAllMocks();
   });
 
-  it("navigates to AUTH_LOGIN when Sign In is clicked", async () => {
+  it("Sign In links point to AUTH_LOGIN href", async () => {
     const { default: Index } = await import("@/pages/Index");
 
     render(
       <MemoryRouter initialEntries={["/"]}>
         <Routes>
           <Route path="/" element={<Index />} />
-          <Route path={AUTH_LOGIN} element={<LocationDisplay />} />
         </Routes>
       </MemoryRouter>
     );
 
-    // The new landing page renders Sign In as a <Link> (anchor), not a button
+    // Since Phase 1 refactor, Sign In is a plain <a href> (not a React Router
+    // <Link>), so we assert the href attribute rather than testing navigation.
     const signInLinks = screen.getAllByRole("link", { name: /sign in/i });
-
-    // Click the first one (header navigation link)
-    fireEvent.click(signInLinks[0]);
-
-    expect(screen.getByTestId("location").textContent).toBe(AUTH_LOGIN);
+    expect(signInLinks.length).toBeGreaterThan(0);
+    expect(signInLinks[0]).toHaveAttribute("href", AUTH_LOGIN);
   });
 });

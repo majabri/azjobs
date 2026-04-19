@@ -8,6 +8,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { normalizeError } from "@/lib/normalizeError";
 import type { User, Session, AuthChangeEvent } from "@supabase/supabase-js";
+import { logger } from '@/lib/logger';
 export interface AuthResult {
   user?: User | null;
   session?: Session | null;
@@ -119,7 +120,7 @@ export async function logout(): Promise<void> {
   try {
     await supabase.auth.signOut();
   } catch (e) {
-    console.error("logout error:", normalizeError(e));
+    logger.error("logout error:", normalizeError(e));
   }
 }
 
@@ -129,7 +130,7 @@ export async function getCurrentUser(): Promise<User | null> {
     const { data: { user } } = await supabase.auth.getUser();
     return user;
   } catch (e) {
-    console.error("getCurrentUser error:", normalizeError(e));
+    logger.error("getCurrentUser error:", normalizeError(e));
     return null;
   }
 }

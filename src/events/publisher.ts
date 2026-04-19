@@ -1,6 +1,11 @@
-// src/events/publisher.ts
-import { supabase } from '@/integrations/supabase/client';
+/**
+ * src/events/publisher.ts
+ * High-level event publisher with registry validation.
+ * Delegates persistence to EventBus (platform_events table).
+ */
+import { EventBus } from '@/lib/eventBus';
 import { validateEventType } from './registry';
+import { logger } from '@/lib/logger';
 
 interface PublishEventOptions {
   eventType: string;
@@ -8,22 +13,11 @@ interface PublishEventOptions {
   sourceService: string;
 }
 
-export async function publishEvent({ eventType, payload, sourceService }: PublishEventOptions) {
+export async function publishEvent({ eventType, payload, sourceService }: PublishEventOptions): Promise<string | null> {
   if (!validateEventType(eventType)) {
-    console.error(`[EventBus] Unknown event type: ${eventType}. Add it to src/events/registry.ts`);
-    return;
+    logger.error(`[EventBus] Unknown event type: "${eventType}". Add it to src/events/registry.ts`);
+    return null;
   }
 
-  const { error } = await supabase
-    .from('service_events')
-    .insert([{
-      event_name: eventType,
-      payload: payload as any,
-      emitted_by: sourceService,
-      processed: false,
-    }]);
-
-  if (error) {
-    console.error(`[EventBus] Failed to publish ${eventType}:`, error);
-  }
+  return EventBus.publish({ eventType, payload, sourceService });
 }

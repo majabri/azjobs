@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Users, Search, Loader2, Edit } from "lucide-react";
+import { logger } from '@/lib/logger';
 
 interface UserWithRoles {
   user_id: string;
@@ -62,7 +63,7 @@ export default function UserRoleManagementPanel() {
 
       setUsers(result);
     } catch (e) {
-      console.error(e);
+      logger.error(e);
     }
     setLoading(false);
   }, []);

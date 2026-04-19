@@ -2,8 +2,13 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import UserMenu from "@/components/UserMenu";
 import NotificationCenter from "@/components/NotificationCenter";
+import { useAuthReady } from "@/hooks/useAuthReady";
+import { useAgentWakeup } from "@/hooks/useAgentWakeup";
 
 export default function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
+  const { user } = useAuthReady();
+  useAgentWakeup(user?.id);
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">

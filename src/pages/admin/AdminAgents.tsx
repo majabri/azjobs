@@ -7,6 +7,7 @@ import {
   TrendingUp, Search, Briefcase,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from '@/lib/logger';
 
 interface AgentRun {
   id: string;
@@ -74,7 +75,7 @@ export default function AdminAgents() {
       });
       setStats(agentStats);
     } catch (e) {
-      console.error(e);
+      logger.error(e);
     } finally {
       setLoading(false);
     }

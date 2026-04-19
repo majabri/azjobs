@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { FileText, Plus, Save, Edit2, Trash2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { logger } from '@/lib/logger';
 
 interface ResumeVersion {
   id?: string;
@@ -21,14 +22,25 @@ export default function ResumeVault() {
   const [editingVersion, setEditingVersion] = useState<number | null>(null);
   const [newVersion, setNewVersion] = useState<ResumeVersion>({ version_name: "", job_type: "", resume_text: "" });
   const [showNewVersion, setShowNewVersion] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => { loadVersions(); }, []);
 
   const loadVersions = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
-    const { data } = await supabase.from("resume_versions").select("*").eq("user_id", session.user.id).order("created_at", { ascending: false });
-    setVersions((data as any[])?.map((v: any) => ({ id: v.id, version_name: v.version_name, job_type: v.job_type || "", resume_text: v.resume_text })) || []);
+    setIsLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const { data, error } = await supabase.from("resume_versions").select("*").eq("user_id", session.user.id).order("created_at", { ascending: false });
+      if (error) {
+        logger.error("ResumeVault: failed to load resume versions:", error);
+        toast.error("Could not load resume versions. Please refresh and try again.");
+        return;
+      }
+      setVersions((data as any[])?.map((v: any) => ({ id: v.id, version_name: v.version_name, job_type: v.job_type || "", resume_text: v.resume_text })) || []);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const saveVersion = async (version: ResumeVersion) => {
@@ -58,6 +70,10 @@ export default function ResumeVault() {
       <h2 className="text-base font-semibold text-foreground flex items-center gap-2 mb-4"><FileText className="w-4 h-4 text-primary" /> Resume Versions</h2>
       <p className="text-sm text-muted-foreground mb-4">Create different versions tailored for different job types. Your latest version auto-loads in the Analyze tool.</p>
       <div className="space-y-3">
+        {isLoading && <p className="text-sm text-muted-foreground">Loading resume versions…</p>}
+        {!isLoading && versions.length === 0 && !showNewVersion && (
+          <p className="text-sm text-muted-foreground py-2">No resume versions yet. Click "Add Resume Version" below to get started.</p>
+        )}
         {versions.map((v, i) => (
           <Card key={v.id || i} className="p-4">
             {editingVersion === i ? (

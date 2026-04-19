@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Loader2, Trash2, Send, CheckCircle2, Clock, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { logger } from '@/lib/logger';
 
 interface OutreachContact {
   id: string;
@@ -41,7 +42,7 @@ export default function OutreachTracker() {
       if (!session) return;
       const { data } = await supabase.from("outreach_contacts" as any).select("*").eq("user_id", session.user.id).order("created_at", { ascending: false }) as any;
       setContacts(data || []);
-    } catch (e) { console.error(e); }
+    } catch (e) { logger.error(e); }
     finally { setLoading(false); }
   };
 

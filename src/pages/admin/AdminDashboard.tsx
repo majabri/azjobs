@@ -18,6 +18,7 @@ import ServiceHealthPanel from "@/components/admin/ServiceHealthPanel";
 import AdminAlertsPanel from "@/components/admin/AdminAlertsPanel";
 import EnhancedServiceHealthPanel from "@/components/admin/EnhancedServiceHealthPanel";
 import UserRoleManagementPanel from "@/components/admin/UserRoleManagementPanel";
+import { logger } from '@/lib/logger';
 
 interface PlatformStats {
   totalUsers: number;
@@ -155,7 +156,7 @@ export default function AdminDashboard() {
       events.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
       setActivityFeed(events.slice(0, 20));
     } catch (e) {
-      console.error(e);
+      logger.error(e);
     } finally {
       setLoading(false);
     }

@@ -1,0 +1,79 @@
+name: Enable Discovery Feature Flags + Health Check
+
+on:
+  workflow_dispatch:
+
+jobs:
+  enable-flags-and-verify:
+    name: Enable flags & run pipeline health checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enable discovery feature flags
+        run: |
+          SQL="INSERT INTO feature_flags (key, enabled) VALUES
+            ('discovery_board_remoteok',   true),
+            ('discovery_board_greenhouse', true),
+            ('discovery_board_lever',      true)
+          ON CONFLICT (key) DO UPDATE SET enabled = true;"
+          RESPONSE=$(curl -s -w "\n%{http_code}" \
+            -X POST "https://api.supabase.com/v1/projects/bryoehuhhhjqcueomgev/database/query" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ACCESS_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"query\": $(echo "$SQL" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')}")
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | head -n -1)
+          echo "HTTP $HTTP_CODE: $BODY"
+          [ "$HTTP_CODE" -ge 200 ] && [ "$HTTP_CODE" -lt 300 ] && echo "✅ Feature flags enabled" || (echo "❌ Failed" && exit 1)
+
+      - name: Verify feature flags
+        run: |
+          SQL="SELECT key, enabled FROM feature_flags WHERE key IN ('discovery_board_remoteok','discovery_board_greenhouse','discovery_board_lever');"
+          curl -s -X POST "https://api.supabase.com/v1/projects/bryoehuhhhjqcueomgev/database/query" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ACCESS_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"query\": $(echo "$SQL" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')}" | python3 -m json.tool
+
+      - name: Health check — job_postings by source
+        run: |
+          SQL="SELECT source, count(*) as total, max(scraped_at) as latest_scrape FROM job_postings GROUP BY source ORDER BY latest_scrape DESC;"
+          echo "=== job_postings by source ===" && \
+          curl -s -X POST "https://api.supabase.com/v1/projects/bryoehuhhhjqcueomgev/database/query" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ACCESS_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"query\": $(echo "$SQL" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')}" | python3 -m json.tool
+
+      - name: Health check — discovered_jobs bridge
+        run: |
+          SQL="SELECT count(*) as total_discovered, max(populated_at) as last_bridge_run FROM discovered_jobs;"
+          echo "=== discovered_jobs ===" && \
+          curl -s -X POST "https://api.supabase.com/v1/projects/bryoehuhhhjqcueomgev/database/query" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ACCESS_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"query\": $(echo "$SQL" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')}" | python3 -m json.tool
+
+      - name: Health check — scraper_runs
+        run: |
+          SQL="SELECT source_board, status, jobs_found, jobs_inserted, finished_at FROM scraper_runs ORDER BY finished_at DESC LIMIT 10;"
+          echo "=== scraper_runs (last 10) ===" && \
+          curl -s -X POST "https://api.supabase.com/v1/projects/bryoehuhhhjqcueomgev/database/query" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ACCESS_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"query\": $(echo "$SQL" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')}" | python3 -m json.tool
+
+      - name: Health check — confirm scraped_jobs is VIEW
+        run: |
+          SQL="SELECT table_type FROM information_schema.tables WHERE table_name = 'scraped_jobs';"
+          echo "=== scraped_jobs table_type ===" && \
+          curl -s -X POST "https://api.supabase.com/v1/projects/bryoehuhhhjqcueomgev/database/query" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ACCESS_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"query\": $(echo "$SQL" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')}" | python3 -m json.tool
+
+      - name: Health check — sample discovered_jobs
+        run: |
+          SQL="SELECT title, company, source, populated_at FROM discovered_jobs ORDER BY populated_at DESC LIMIT 10;"
+          echo "=== discovered_jobs sample ===" && \
+          curl -s -X POST "https://api.supabase.com/v1/projects/bryoehuhhhjqcueomgev/database/query" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ACCESS_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"query\": $(echo "$SQL" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')}" | python3 -m json.tool

@@ -1,0 +1,54 @@
+name: DB Migration — Job Search Agent Tables
+
+# Applies:
+#   20260501_job_search_agent.sql     (user_job_matches, job_alerts, job_feed_log, RPC)
+#   20260430_domain_extraction_hints.sql  (adaptive scraping cache)
+#   20260430_extraction_cache_rpcs.sql    (counter increment RPCs)
+#
+# Run manually via: Actions → DB Migration — Job Search Agent Tables → Run workflow
+
+on:
+  workflow_dispatch:
+
+jobs:
+  migrate:
+    name: Apply job search agent migrations
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Apply 20260430_domain_extraction_hints
+        run: |
+          SQL=$(cat supabase/migrations/20260430_domain_extraction_hints.sql)
+          RESPONSE=$(curl -s -w "\n%{http_code}" \
+            -X POST "https://api.supabase.com/v1/projects/bryoehuhhhjqcueomgev/database/query" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ACCESS_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"query\": $(echo "$SQL" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')}")
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          echo "domain_extraction_hints: HTTP $HTTP_CODE"
+          [[ "$HTTP_CODE" -ge 200 && "$HTTP_CODE" -lt 300 ]] && echo "✅" || (echo "❌"; exit 1)
+
+      - name: Apply 20260430_extraction_cache_rpcs
+        run: |
+          SQL=$(cat supabase/migrations/20260430_extraction_cache_rpcs.sql)
+          RESPONSE=$(curl -s -w "\n%{http_code}" \
+            -X POST "https://api.supabase.com/v1/projects/bryoehuhhhjqcueomgev/database/query" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ACCESS_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"query\": $(echo "$SQL" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')}")
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          echo "extraction_cache_rpcs: HTTP $HTTP_CODE"
+          [[ "$HTTP_CODE" -ge 200 && "$HTTP_CODE" -lt 300 ]] && echo "✅" || (echo "❌"; exit 1)
+
+      - name: Apply 20260501_job_search_agent
+        run: |
+          SQL=$(cat supabase/migrations/20260501_job_search_agent.sql)
+          RESPONSE=$(curl -s -w "\n%{http_code}" \
+            -X POST "https://api.supabase.com/v1/projects/bryoehuhhhjqcueomgev/database/query" \
+            -H "Authorization: Bearer ${{ secrets.SUPABASE_ACCESS_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"query\": $(echo "$SQL" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')}")
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          echo "job_search_agent: HTTP $HTTP_CODE"
+          [[ "$HTTP_CODE" -ge 200 && "$HTTP_CODE" -lt 300 ]] && echo "✅ All migrations applied" || (echo "❌"; exit 1)

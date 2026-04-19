@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from '@/lib/logger';
 
 const DAILY_LIMIT = 5;
 
@@ -50,7 +51,7 @@ export function useInvites(): UseInvitesReturn {
       ).length;
       setInvitesRemaining(Math.max(0, DAILY_LIMIT - todayCount));
     } catch (err) {
-      console.error("Error fetching invites:", err);
+      logger.error("Error fetching invites:", err);
     } finally {
       setIsLoading(false);
     }
