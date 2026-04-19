@@ -29,13 +29,16 @@ export function publishEvent<T extends EventType>(
   userId?: string | null,
 ): void {
   // Non-blocking insert — we do NOT await this
+  // Column mapping to real platform_events schema:
+  //   payload       ← our event_data
+  //   source_service ← our source label
   supabase
     .from("platform_events")
     .insert({
       event_type: eventType,
-      event_data: eventData as Record<string, unknown>,
+      payload: eventData as Record<string, unknown>,
       user_id: userId ?? null,
-      source: "frontend",
+      source_service: "frontend",
     })
     .then(({ error }) => {
       if (error) {

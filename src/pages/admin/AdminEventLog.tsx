@@ -20,14 +20,16 @@ import type { EventType } from "@/types/events";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+// Real platform_events schema (table pre-existed with different column names)
 interface PlatformEventRow {
   id: string;
   event_type: EventType;
-  event_data: Record<string, unknown>;
+  payload: Record<string, unknown>;      // our "event_data"
   user_id: string | null;
   published_at: string;
   processed: boolean;
-  source: "frontend" | "edge-function" | "cron";
+  source_service: string;                // our "source"
+  status: string | null;
 }
 
 // ─── Config ───────────────────────────────────────────────────────────────────
@@ -206,7 +208,7 @@ export default function AdminEventLog() {
               {events.map(ev => {
                 const cfg = eventCfg(ev.event_type);
                 const expanded = expandedIds.has(ev.id);
-                const dataKeys = Object.keys(ev.event_data ?? {});
+                const dataKeys = Object.keys(ev.payload ?? {});
                 return (
                   <div key={ev.id} className="hover:bg-muted/30 transition-colors">
                     <div
@@ -225,12 +227,12 @@ export default function AdminEventLog() {
 
                       {/* Key data snippet */}
                       <span className="text-xs text-muted-foreground font-mono truncate flex-1 min-w-0">
-                        {dataKeys.slice(0, 3).map(k => `${k}: ${String(ev.event_data[k])}`).join("  ·  ")}
+                        {dataKeys.slice(0, 3).map(k => `${k}: ${String(ev.payload[k])}`).join("  ·  ")}
                       </span>
 
                       {/* Source */}
                       <Badge variant="outline" className="text-[10px] text-muted-foreground flex-shrink-0 hidden sm:flex">
-                        {ev.source}
+                        {ev.source_service}
                       </Badge>
 
                       {/* Processed */}
@@ -251,7 +253,7 @@ export default function AdminEventLog() {
                         <div className="rounded-md bg-muted/50 border border-border p-3">
                           <p className="text-xs text-muted-foreground mb-2 font-semibold uppercase tracking-wide">Event Data</p>
                           <pre className="text-xs font-mono text-foreground whitespace-pre-wrap break-all">
-                            {JSON.stringify(ev.event_data, null, 2)}
+                            {JSON.stringify(ev.payload, null, 2)}
                           </pre>
                         </div>
                         <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">

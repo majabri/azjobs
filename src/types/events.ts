@@ -63,12 +63,14 @@ export interface EventPayloads {
 
 // ─── Canonical event record (matches platform_events table) ──────────────────
 
+// Matches the real platform_events table schema (columns pre-existed with these names)
 export interface PlatformEvent<T extends EventType = EventType> {
   id?: string;
   event_type: T;
-  event_data: T extends keyof EventPayloads ? EventPayloads[T] : Record<string, unknown>;
+  payload: T extends keyof EventPayloads ? EventPayloads[T] : Record<string, unknown>;
   user_id?: string | null;
   published_at?: string;
   processed?: boolean;
-  source?: "frontend" | "edge-function" | "cron";
+  source_service?: "frontend" | "edge-function" | "cron";
+  status?: string | null;
 }
