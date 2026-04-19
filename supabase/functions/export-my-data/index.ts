@@ -105,11 +105,54 @@ serve(async (req) => {
     ignored_jobs: getData(ignoredJobs),
   };
 
-  return new Response(JSON.stringify(exportData, null, 2), {
+  // Attempt AES-GCM encryption if EXPORT_ENCRYPTION_KEY is configured.
+  // If encryption fails (e.g. key format error), fall back to plain JSON gracefully.
+  const EXPORT_ENCRYPTION_KEY = Deno.env.get("EXPORT_ENCRYPTION_KEY");
+  const dateStr = new Date().toISOString().split("T")[0];
+
+  let responseBody = JSON.stringify(exportData, null, 2);
+  let contentType = "application/json";
+  let filename = `my_data_export_${dateStr}.json`;
+
+  if (EXPORT_ENCRYPTION_KEY) {
+    try {
+      const rawKey = new TextEncoder().encode(
+        EXPORT_ENCRYPTION_KEY.slice(0, 32).padEnd(32, "0")
+      );
+      const key = await crypto.subtle.importKey(
+        "raw",
+        rawKey,
+        { name: "AES-GCM" },
+        false,
+        ["encrypt"]
+      );
+
+      const iv = crypto.getRandomValues(new Uint8Array(12));
+      const encrypted = await crypto.subtle.encrypt(
+        { name: "AES-GCM", iv },
+        key,
+        new TextEncoder().encode(responseBody)
+      );
+
+      // Prepend IV so the client can decrypt: first 12 bytes = IV, rest = ciphertext
+      const combined = new Uint8Array(12 + encrypted.byteLength);
+      combined.set(iv, 0);
+      combined.set(new Uint8Array(encrypted), 12);
+
+      responseBody = btoa(String.fromCharCode(...combined));
+      contentType = "application/octet-stream";
+      filename = `my_data_export_${dateStr}.enc`;
+    } catch (e) {
+      console.error("GDPR export encryption failed, sending unencrypted:", e);
+      // Fall through — plain JSON is better than a broken export
+    }
+  }
+
+  return new Response(responseBody, {
     headers: {
       ...corsHeaders,
-      "Content-Type": "application/json",
-      "Content-Disposition": `attachment; filename="my_data_export_${new Date().toISOString().split("T")[0]}.json"`,
+      "Content-Type": contentType,
+      "Content-Disposition": `attachment; filename="${filename}"`,
     },
   });
 });
