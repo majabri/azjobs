@@ -20,6 +20,7 @@ import type { EnrichedJob } from "@/services/matching/api";
 import type { HistoricalOutcomes } from "@/lib/job-search/jobQualityEngine";
 import { logger } from "@/lib/logger";
 import { publishEvent, publishFailureEvent } from "@/lib/events";
+import { supabase } from "@/integrations/supabase/client";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -29,6 +30,26 @@ function errMsg(e: unknown): string {
 
 function elapsed(start: number): number {
   return Math.round(Date.now() - start);
+}
+
+/**
+ * Read a boolean feature flag from the feature_flags table.
+ * Returns false on any error so the pipeline defaults to synchronous mode.
+ */
+async function getFeatureFlag(key: string): Promise<boolean> {
+  try {
+    const { data, error } = await supabase
+      .from("feature_flags")
+      .select("value")
+      .eq("key", key)
+      .maybeSingle();
+    if (error || !data) return false;
+    // value column is jsonb — could be stored as true/false (boolean) or "true"/"false" (string)
+    const raw = (data as { value: unknown }).value;
+    return raw === true || raw === "true";
+  } catch {
+    return false;
+  }
 }
 
 // ─── runSearchOnly ────────────────────────────────────────────────────────────
@@ -152,6 +173,23 @@ export async function runAllAgents(
     errors: [],
   };
 
+  // ── Async mode (Phase 3) ───────────────────────────────────────────────────
+  // When the orchestration_mode_async feature flag is true, publish a
+  // job.search.requested event and return immediately.  The event-processor
+  // edge function picks up the event via a DB Webhook and dispatches work
+  // to the appropriate backend service.
+  const asyncMode = await getFeatureFlag("orchestration_mode_async");
+  if (asyncMode) {
+    logger.info("[Orchestrator] async mode enabled — publishing trigger event and returning");
+    publishEvent(
+      "job.search.requested",
+      { filters: filters as unknown as Record<string, unknown> },
+      userId,
+    );
+    return result; // results will be populated by the async pipeline
+  }
+
+  // ── Synchronous mode (default, flag = false) ───────────────────────────────
   publishEvent("job.search.requested", { filters: filters as unknown as Record<string, unknown> }, userId);
 
   // ── Step 1: Job Service — fetch jobs only ──────────────────────────────────

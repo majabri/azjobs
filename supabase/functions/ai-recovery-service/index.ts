@@ -14,7 +14,7 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL") || "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 
 interface RecoveryRequest {
-  action: "handle_probe_failure" | "daily_audit" | "health_ping";
+  action: "handle_probe_failure" | "daily_audit" | "health_ping" | "process_events";
   event?: Record<string, unknown>;
 }
 
@@ -182,6 +182,43 @@ async function dailyAudit(
 }
 
 /**
+ * process_events — retry unprocessed platform_events via event-processor.
+ *
+ * Called on a cron schedule (every 5 min recommended).  Delegates to
+ * event-processor with { mode: "retry" } so the retry logic lives in one place.
+ *
+ * Note: pg_net is not available on this project, so we use a Deno fetch
+ * from this edge function instead of a pg_cron HTTP call.
+ */
+async function processEvents(): Promise<{ success: boolean; retried?: number; message?: string }> {
+  const SUPABASE_URL_ENV = Deno.env.get("SUPABASE_URL") || "";
+  const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+
+  try {
+    const resp = await fetch(`${SUPABASE_URL_ENV}/functions/v1/event-processor`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: SERVICE_KEY,
+        Authorization: `Bearer ${SERVICE_KEY}`,
+      },
+      body: JSON.stringify({ mode: "retry" }),
+    });
+
+    if (!resp.ok) {
+      const txt = await resp.text().catch(() => "");
+      return { success: false, message: `event-processor ${resp.status}: ${txt.slice(0, 200)}` };
+    }
+
+    const data = await resp.json().catch(() => ({}));
+    return { success: true, retried: data.retried ?? 0 };
+  } catch (err) {
+    console.error("[ai-recovery-service] processEvents error:", err);
+    return { success: false, message: err instanceof Error ? err.message : "Unknown error" };
+  }
+}
+
+/**
  * Health ping for watchdog monitoring
  */
 function healthPing(): { status: string; timestamp: string } {
@@ -225,6 +262,10 @@ serve(async (req: Request) => {
 
       case "health_ping":
         response = healthPing();
+        break;
+
+      case "process_events":
+        response = await processEvents();
         break;
 
       default:
