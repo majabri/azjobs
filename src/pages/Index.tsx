@@ -180,16 +180,16 @@ export default function Index() {
     <div className="min-h-screen flex flex-col">
       {/* ═══════════════ NAV ═══════════════ */}
       <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-3 bg-card/95 backdrop-blur-sm border-b border-border">
-        <div
-          className="flex items-center gap-2 cursor-pointer select-none"
-          onClick={() => navigate("/")}
+        <a
+          href="/"
+          className="flex items-center gap-2 select-none no-underline"
         >
           <ICareerOSLogo size={28} />
           <span className="text-sm font-medium tracking-tight">
             <span className="text-primary">iCareer</span>
             <span className="text-foreground">OS</span>
           </span>
-        </div>
+        </a>
 
         <nav className="flex items-center gap-1">
           {user ? (
@@ -211,18 +211,18 @@ export default function Index() {
           ) : (
             <>
               <Button
+                asChild
                 variant="ghost"
                 className="text-muted-foreground hover:text-foreground border border-border hover:border-primary/50 text-sm"
-                onClick={() => navigate("/job-seeker?demo=true")}
               >
-                Try Demo
+                <a href="/job-seeker?demo=true">Try Demo</a>
               </Button>
               <Button
+                asChild
                 size="sm"
                 className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold ml-2"
-                onClick={() => navigate(AUTH_LOGIN)}
               >
-                Sign In
+                <a href={AUTH_LOGIN}>Sign In</a>
               </Button>
             </>
           )}
@@ -275,21 +275,25 @@ export default function Index() {
             style={{ animationDelay: "0.3s" }}
           >
             <Button
+              asChild
               size="lg"
               className="gradient-indigo text-white font-semibold text-lg px-8 py-6 rounded-xl shadow-indigo-500/20 hover:opacity-90 transition-opacity animate-pulse-glow"
-              onClick={() => navigate(user ? "/dashboard" : AUTH_SIGNUP)}
             >
-              <Bot className="mr-2 w-5 h-5" />
-              {user ? "Go to Dashboard" : "Activate My Job Agent"}
+              <a href={user ? "/dashboard" : AUTH_SIGNUP}>
+                <Bot className="mr-2 w-5 h-5" />
+                {user ? "Go to Dashboard" : "Activate My Job Agent"}
+              </a>
             </Button>
             <Button
+              asChild
               size="lg"
               variant="outline"
               className="border-white/30 text-white bg-white/10 hover:bg-white/20 text-lg px-8 py-6 rounded-xl backdrop-blur-sm"
-              onClick={() => navigate("/job-seeker?demo=true")}
             >
-              <Play className="mr-2 w-5 h-5" />
-              Try Demo — No Sign Up
+              <a href="/job-seeker?demo=true">
+                <Play className="mr-2 w-5 h-5" />
+                Try Demo — No Sign Up
+              </a>
             </Button>
           </div>
 
@@ -368,12 +372,14 @@ export default function Index() {
 
           <div className="text-center mt-12">
             <Button
+              asChild
               size="lg"
               className="gradient-indigo text-white font-semibold shadow-indigo-500/20 hover:opacity-90 px-8 py-6 text-lg"
-              onClick={() => navigate(user ? "/job-seeker" : AUTH_LOGIN)}
             >
-              <Upload className="mr-2 w-5 h-5" />
-              Upload Resume Now
+              <a href={user ? "/job-seeker" : AUTH_LOGIN}>
+                <Upload className="mr-2 w-5 h-5" />
+                Upload Resume Now
+              </a>
             </Button>
           </div>
         </div>
@@ -472,11 +478,13 @@ export default function Index() {
                 )}
 
                 <Button
+                  asChild
                   className="gradient-indigo text-white shadow-indigo-500/20 hover:opacity-90 w-full"
-                  onClick={() => navigate(user ? "/job-seeker" : AUTH_LOGIN)}
                 >
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  Get Full Analysis & Optimized Resume
+                  <a href={user ? "/job-seeker" : AUTH_LOGIN}>
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Get Full Analysis & Optimized Resume
+                  </a>
                 </Button>
               </div>
             )}
@@ -565,12 +573,14 @@ export default function Index() {
 
           <div className="text-center mt-10">
             <Button
+              asChild
               size="lg"
               className="gradient-indigo text-white font-semibold shadow-indigo-500/20 hover:opacity-90 px-8 py-6 text-lg"
-              onClick={() => navigate(user ? "/job-seeker" : AUTH_LOGIN)}
             >
-              <Sparkles className="mr-2 w-5 h-5" />
-              Optimize My Resume
+              <a href={user ? "/job-seeker" : AUTH_LOGIN}>
+                <Sparkles className="mr-2 w-5 h-5" />
+                Optimize My Resume
+              </a>
             </Button>
           </div>
         </div>
@@ -592,11 +602,11 @@ export default function Index() {
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {features.map((f, i) => (
-              <div
+              <a
                 key={f.title}
-                className="bg-background rounded-2xl p-7 shadow-card border border-border hover:shadow-elevated hover:border-accent/30 transition-all cursor-pointer group"
+                href={user ? f.link : AUTH_LOGIN}
+                className="bg-background rounded-2xl p-7 shadow-card border border-border hover:shadow-elevated hover:border-accent/30 transition-all cursor-pointer group no-underline block"
                 style={{ animationDelay: `${i * 0.1}s` }}
-                onClick={() => navigate(user ? f.link : AUTH_LOGIN)}
               >
                 <div className="w-11 h-11 gradient-indigo rounded-xl flex items-center justify-center mb-5 shadow-indigo-500/20 group-hover:scale-110 transition-transform">
                   <f.icon className="w-5 h-5 text-white" />
@@ -610,7 +620,7 @@ export default function Index() {
                 <div className="flex items-center gap-1 text-accent text-sm font-medium mt-4 opacity-0 group-hover:opacity-100 transition-opacity">
                   Try it <ArrowRight className="w-3.5 h-3.5" />
                 </div>
-              </div>
+              </a>
             ))}
           </div>
         </div>
@@ -726,22 +736,26 @@ export default function Index() {
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-6">
             <Button
+              asChild
               size="lg"
               className="gradient-indigo text-white font-semibold text-lg px-10 py-6 rounded-xl shadow-indigo-500/20 hover:opacity-90 animate-pulse-glow"
-              onClick={() => navigate(user ? "/dashboard" : AUTH_LOGIN)}
             >
-              <Bot className="mr-2 w-5 h-5" />
-              {user ? "Go to Dashboard" : "Get Started Free"}
-              <ArrowRight className="ml-2 w-5 h-5" />
+              <a href={user ? "/dashboard" : AUTH_LOGIN}>
+                <Bot className="mr-2 w-5 h-5" />
+                {user ? "Go to Dashboard" : "Get Started Free"}
+                <ArrowRight className="ml-2 w-5 h-5" />
+              </a>
             </Button>
             <Button
+              asChild
               size="lg"
               variant="outline"
               className="border-white/30 text-white bg-white/10 hover:bg-white/20 text-lg px-8 py-6 rounded-xl backdrop-blur-sm"
-              onClick={() => navigate("/job-seeker?demo=true")}
             >
-              <Play className="mr-2 w-5 h-5" />
-              Try Demo First
+              <a href="/job-seeker?demo=true">
+                <Play className="mr-2 w-5 h-5" />
+                Try Demo First
+              </a>
             </Button>
           </div>
 
@@ -754,21 +768,25 @@ export default function Index() {
       {/* ═══════════════ MOBILE STICKY CTA ═══════════════ */}
       <div className="fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-sm border-t border-border px-4 py-3 flex items-center justify-center gap-3 sm:hidden">
         <Button
+          asChild
           size="sm"
           className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold text-xs flex-1"
-          onClick={() => navigate(user ? "/job-seeker" : AUTH_LOGIN)}
         >
-          <Upload className="w-3.5 h-3.5 mr-1" />
-          Upload Resume
+          <a href={user ? "/job-seeker" : AUTH_LOGIN}>
+            <Upload className="w-3.5 h-3.5 mr-1" />
+            Upload Resume
+          </a>
         </Button>
         <Button
+          asChild
           size="sm"
           variant="outline"
           className="border-border text-foreground bg-muted text-xs flex-1"
-          onClick={() => navigate(user ? "/job-search" : AUTH_LOGIN)}
         >
-          <Search className="w-3.5 h-3.5 mr-1" />
-          Find Jobs
+          <a href={user ? "/job-search" : AUTH_LOGIN}>
+            <Search className="w-3.5 h-3.5 mr-1" />
+            Find Jobs
+          </a>
         </Button>
       </div>
 
@@ -785,30 +803,30 @@ export default function Index() {
               </span>
             </div>
             <div className="flex flex-wrap gap-4 text-primary-foreground/50 text-sm">
-              <button
+              <a
                 className="hover:text-primary-foreground transition-colors"
-                onClick={() => navigate("/job-seeker")}
+                href="/job-seeker"
               >
                 Get Interviews
-              </button>
-              <button
+              </a>
+              <a
                 className="hover:text-primary-foreground transition-colors"
-                onClick={() => navigate("/job-search")}
+                href="/job-search"
               >
                 Find Jobs
-              </button>
-              <button
+              </a>
+              <a
                 className="hover:text-primary-foreground transition-colors"
-                onClick={() => navigate("/applications")}
+                href="/applications"
               >
                 Track
-              </button>
-              <button
+              </a>
+              <a
                 className="hover:text-primary-foreground transition-colors"
-                onClick={() => navigate("/dashboard")}
+                href="/dashboard"
               >
                 Dashboard
-              </button>
+              </a>
             </div>
           </div>
           <div className="border-t border-white/10 pt-4 text-center">
