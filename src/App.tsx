@@ -42,6 +42,7 @@ import AdminAgentRuns from "./pages/admin/AdminAgentRuns";
 import AdminQueue from "./pages/admin/AdminQueue";
 import AdminConsole from "./pages/admin/AdminConsole";
 import AdminAudit from "./pages/admin/AdminAudit";
+import AdminEventLog from "./pages/admin/AdminEventLog";
 import AdminAgentRunDetail from "./pages/admin/AdminAgentRunDetail";
 import PlatformSettings from "./pages/admin/PlatformSettings";
 import SignUpWithInvite from "./pages/auth/SignUpWithInvite";
@@ -143,6 +144,7 @@ const App = () => (
               <Route path="/admin/queue" element={<AdminProtectedRoute><AdminLayout><RouteErrorBoundary routeName="Admin Queue"><AdminQueue /></RouteErrorBoundary></AdminLayout></AdminProtectedRoute>} />
               <Route path="/admin/console" element={<AdminProtectedRoute><AdminLayout><RouteErrorBoundary routeName="Admin Console"><AdminConsole /></RouteErrorBoundary></AdminLayout></AdminProtectedRoute>} />
               <Route path="/admin/audit" element={<AdminProtectedRoute><AdminLayout><RouteErrorBoundary routeName="Admin Audit"><AdminAudit /></RouteErrorBoundary></AdminLayout></AdminProtectedRoute>} />
+              <Route path="/admin/events" element={<AdminProtectedRoute><AdminLayout><RouteErrorBoundary routeName="Pipeline Events"><AdminEventLog /></RouteErrorBoundary></AdminLayout></AdminProtectedRoute>} />
               <Route path="/admin/tickets" element={<AdminProtectedRoute><AdminLayout><RouteErrorBoundary routeName="Admin Tickets"><AdminTickets /></RouteErrorBoundary></AdminLayout></AdminProtectedRoute>} />
               <Route path="/admin/surveys" element={<AdminProtectedRoute><AdminLayout><RouteErrorBoundary routeName="Admin Surveys"><AdminSurveys /></RouteErrorBoundary></AdminLayout></AdminProtectedRoute>} />
               <Route path="/admin/agent-runs/:runId" element={<AdminProtectedRoute><AdminLayout><RouteErrorBoundary routeName="Admin Agent Run Detail"><AdminAgentRunDetail /></RouteErrorBoundary></AdminLayout></AdminProtectedRoute>} />
