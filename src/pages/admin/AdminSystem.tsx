@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { DiscoveryHealthPanel } from "./DiscoveryHealthPanel";
 import {
   Shield,
   CheckCircle2,
@@ -49,7 +50,7 @@ export default function AdminSystem() {
   const load = async () => {
     setLoading(true);
     try {
-      // ââ Parallel fetch all data sources ââ
+      // ── Parallel fetch all data sources ──
       const [
         profilesRes,
         analysesRes,
@@ -101,7 +102,7 @@ export default function AdminSystem() {
         agentRuns: allRuns.length,
       });
 
-      // ââ Count healthy services from service_health table ââ
+      // ── Count healthy services from service_health table ──
       const healthyServices = (serviceHealthRes.data || []).filter(
         (s: any) => s.status === "healthy"
       ).length;
@@ -170,7 +171,7 @@ export default function AdminSystem() {
                   .length
               } failed`,
         },
-        // ââ FIX 3.10.3: Three additional service checks to reach 11+ ââ
+        // ── FIX 3.10.3: Three additional service checks to reach 11+ ──
         {
           name: "Feature Flags",
           status: (featureFlagsRes as any).error ? "error" : "ok",
@@ -199,7 +200,7 @@ export default function AdminSystem() {
         {
           name: "API Status",
           status: "ok",
-          detail: `Operational Â· ${new Date().toLocaleTimeString()}`,
+          detail: `Operational · ${new Date().toLocaleTimeString()}`,
         },
         {
           name: "Last Error Timestamp",
@@ -355,6 +356,9 @@ export default function AdminSystem() {
         </CardContent>
       </Card>
 
+      {/* Discovery Agent Board Health */}
+      <DiscoveryHealthPanel />
+
       {/* Error Logs */}
       <Card className="border-border">
         <CardHeader className="pb-3">
@@ -367,7 +371,7 @@ export default function AdminSystem() {
           {errorLogs.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <CheckCircle2 className="w-8 h-8 mx-auto mb-2 text-success opacity-60" />
-              <p className="text-sm">No errors found â all good!</p>
+              <p className="text-sm">No errors found — all good!</p>
             </div>
           ) : (
             <div className="space-y-2">
@@ -380,7 +384,7 @@ export default function AdminSystem() {
                     <div className="flex items-center gap-2">
                       <XCircle className="w-3.5 h-3.5 text-destructive" />
                       <span className="text-xs font-medium text-foreground">
-                        Run failed Â· user: {log.user_id.slice(0, 8)}â¦
+                        Run failed · user: {log.user_id.slice(0, 8)}…
                       </span>
                     </div>
                     <span className="text-[10px] text-muted-foreground">
