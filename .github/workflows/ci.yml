@@ -1,15 +1,18 @@
 name: CI
 
+
 on:
   push:
     branches: [dev]
   pull_request:
     branches: [main]
 
+
 jobs:
   build-and-test:
     name: Build & Test
     runs-on: ubuntu-latest
+
 
     steps:
       - name: Checkout code

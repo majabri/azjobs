@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { logger } from "@/lib/logger";
 import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -305,7 +306,7 @@ export default function AnalysisForm({ onAnalyze, isAnalyzing, isDemo, prefillJo
         setResume(lines.join("\n"));
         toast.info("Resume built from your profile. Upload a full resume for better results.");
       }
-    } catch (e) { console.error("Auto-load resume failed:", e); }
+    } catch (e) { logger.error("Auto-load resume failed:", e); }
   };
 
   const handleResumeUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {

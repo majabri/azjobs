@@ -4,9 +4,11 @@
  * In development (Vite dev server) all levels are forwarded to the browser
  * console so that debugging stays frictionless.
  *
- * In production the console calls are suppressed.  When Sentry is wired up
- * (Phase 4) logger.error() will forward to Sentry.captureException/Message.
+ * In production, console calls are suppressed and errors are forwarded to
+ * Sentry (when VITE_SENTRY_DSN is set).
  */
+
+import { captureError } from "@/lib/sentry";
 
 const isDev = import.meta.env.DEV;
 
@@ -21,10 +23,12 @@ export const logger = {
     if (isDev) console.warn(message, ...args);
   },
 
-  /** Error messages — add Sentry.captureException here in Phase 4 */
+  /** Error messages — forwarded to Sentry in production */
   error: (message: string, ...args: unknown[]): void => {
     if (isDev) console.error(message, ...args);
-    // TODO Phase 4: Sentry.captureException / Sentry.captureMessage
+    // Forward to Sentry — no-op if VITE_SENTRY_DSN is not set
+    const errorArg = args.find((a) => a instanceof Error);
+    captureError(errorArg ?? new Error(message), { extra: args });
   },
 
   /** Verbose debug output */
