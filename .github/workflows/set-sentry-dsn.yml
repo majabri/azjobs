@@ -1,0 +1,107 @@
+name: Set Sentry DSN in Vercel
+
+# Trigger manually via GitHub Actions UI — enter the DSN in the input field.
+# The workflow adds VITE_SENTRY_DSN + VITE_APP_VERSION to the Vercel project
+# (production + preview targets) and then triggers a production re-deploy.
+on:
+  workflow_dispatch:
+    inputs:
+      sentry_dsn:
+        description: 'Sentry DSN (from sentry.io → Settings → Projects → Client Keys)'
+        required: true
+        type: string
+      app_version:
+        description: 'App version tag (default: 1.0.0)'
+        required: false
+        default: '1.0.0'
+        type: string
+
+jobs:
+  set-env-vars:
+    name: Inject Sentry env vars into Vercel
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Add VITE_SENTRY_DSN to Vercel
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          DSN: ${{ inputs.sentry_dsn }}
+        run: |
+          echo "Setting VITE_SENTRY_DSN..."
+          EXISTING=$(curl -s \
+            -H "Authorization: Bearer $VERCEL_TOKEN" \
+            "https://api.vercel.com/v10/projects/$VERCEL_PROJECT_ID/env" \
+            | jq -r '.envs[] | select(.key=="VITE_SENTRY_DSN") | .id' 2>/dev/null || true)
+
+          if [ -n "$EXISTING" ]; then
+            echo "Removing existing VITE_SENTRY_DSN (id=$EXISTING)..."
+            curl -s -X DELETE \
+              -H "Authorization: Bearer $VERCEL_TOKEN" \
+              "https://api.vercel.com/v10/projects/$VERCEL_PROJECT_ID/env/$EXISTING"
+          fi
+
+          RESULT=$(curl -s -X POST \
+            -H "Authorization: Bearer $VERCEL_TOKEN" \
+            -H "Content-Type: application/json" \
+            "https://api.vercel.com/v10/projects/$VERCEL_PROJECT_ID/env" \
+            -d "{
+              \"key\": \"VITE_SENTRY_DSN\",
+              \"value\": \"$DSN\",
+              \"type\": \"encrypted\",
+              \"target\": [\"production\", \"preview\"]
+            }")
+          echo "$RESULT" | jq -e '.id' > /dev/null && echo "VITE_SENTRY_DSN set." || (echo "Failed to set VITE_SENTRY_DSN" && exit 1)
+
+      - name: Add VITE_APP_VERSION to Vercel
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERSION: ${{ inputs.app_version }}
+        run: |
+          echo "Setting VITE_APP_VERSION=$VERSION..."
+          EXISTING=$(curl -s \
+            -H "Authorization: Bearer $VERCEL_TOKEN" \
+            "https://api.vercel.com/v10/projects/$VERCEL_PROJECT_ID/env" \
+            | jq -r '.envs[] | select(.key=="VITE_APP_VERSION") | .id' 2>/dev/null || true)
+
+          if [ -n "$EXISTING" ]; then
+            curl -s -X DELETE \
+              -H "Authorization: Bearer $VERCEL_TOKEN" \
+              "https://api.vercel.com/v10/projects/$VERCEL_PROJECT_ID/env/$EXISTING"
+          fi
+
+          RESULT=$(curl -s -X POST \
+            -H "Authorization: Bearer $VERCEL_TOKEN" \
+            -H "Content-Type: application/json" \
+            "https://api.vercel.com/v10/projects/$VERCEL_PROJECT_ID/env" \
+            -d "{
+              \"key\": \"VITE_APP_VERSION\",
+              \"value\": \"$VERSION\",
+              \"type\": \"plain\",
+              \"target\": [\"production\", \"preview\"]
+            }")
+          echo "$RESULT" | jq -e '.id' > /dev/null && echo "VITE_APP_VERSION set." || echo "VITE_APP_VERSION may already be set."
+
+      - name: Trigger production re-deploy
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+        run: |
+          echo "Triggering production re-deploy..."
+          RESULT=$(curl -s -X POST \
+            -H "Authorization: Bearer $VERCEL_TOKEN" \
+            -H "Content-Type: application/json" \
+            "https://api.vercel.com/v13/deployments" \
+            -d "{
+              \"name\": \"azjobs\",
+              \"target\": \"production\",
+              \"gitSource\": {
+                \"type\": \"github\",
+                \"repoId\": \"$(curl -s -H 'Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' https://api.github.com/repos/majabri/azjobs | jq -r .id)\",
+                \"ref\": \"main\"
+              }
+            }" 2>/dev/null || true)
+          echo "Deploy triggered."
+          echo "Done - check https://vercel.com/jabri-solutions/azjobs for deploy status."
