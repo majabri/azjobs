@@ -40,13 +40,11 @@ async function getFeatureFlag(key: string): Promise<boolean> {
   try {
     const { data, error } = await supabase
       .from("feature_flags")
-      .select("value")
+      .select("enabled")
       .eq("key", key)
       .maybeSingle();
     if (error || !data) return false;
-    // value column is jsonb — could be stored as true/false (boolean) or "true"/"false" (string)
-    const raw = (data as { value: unknown }).value;
-    return raw === true || raw === "true";
+    return (data as { enabled: boolean }).enabled === true;
   } catch {
     return false;
   }
