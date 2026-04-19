@@ -67,8 +67,8 @@ Deno.serve(async (req: Request) => {
       // Check 2: Active sources
       supabase
         .from('ingestion_sources')
-        .select('source_name, active, last_success_at')
-        .eq('active', true),
+        .select('source_name, is_active, last_success_at')
+        .eq('is_active', true),
 
       // Check 3: Most recent ingestion
       supabase
