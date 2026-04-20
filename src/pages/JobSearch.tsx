@@ -694,7 +694,7 @@ export default function JobSearchPage() {
             </div>
 
             <Button className="gradient-indigo text-white shadow-indigo-500/20 hover:opacity-90 w-full sm:w-auto" disabled={searching} onClick={() => handleSearch()}>
-              {searching ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Searching...</> : <><Search className="w-4 h-4 mr-2" />Search Jobs</>}
+              {searching ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Scanning live jobs…</> : <><Search className="w-4 h-4 mr-2" />Search Jobs</>}
             </Button>
           </div>
         </Card>
