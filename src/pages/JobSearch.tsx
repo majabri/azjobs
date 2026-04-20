@@ -375,6 +375,7 @@ export default function JobSearchPage() {
     };
 
     let triggeredMatch = false;
+    let rawJobsCount = 0;
 
     // Fetch + score via the shell orchestrator (steps 1 + 2).
     // JobSearch must NOT call searchJobs / scoreJobs directly — all service
@@ -383,6 +384,7 @@ export default function JobSearchPage() {
     try {
       const result = await runSearchOnly(filters, historicalOutcomes);
       enriched = result.jobs;
+      rawJobsCount = result.jobs.length;
       triggeredMatch = result.matchingTriggered;
     } catch (e) {
       logger.error("[JobSearch] error:", e);
@@ -415,7 +417,7 @@ export default function JobSearchPage() {
 
     if (!enriched.length && beforeCount > 0) {
       toast.info(`${beforeCount} jobs found but hidden by your ${effectiveMinFit}% fit score filter.`);
-    } else if (!enriched.length && rawJobs.length > 0) {
+    } else if (!enriched.length && rawJobsCount > 0) {
       toast.info("Jobs found but all filtered out.");
     } else if (!enriched.length) {
       toast.info("No jobs found. Try adjusting your criteria.");
