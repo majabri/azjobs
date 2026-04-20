@@ -294,6 +294,8 @@ export default function JobSearchPage() {
   // Results
   const [jobs, setJobs] = useState<EnrichedJob[]>([]);
   const [searching, setSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [searchRan, setSearchRan] = useState(false); // true once any search has completed
   const [matchingInProgress, setMatchingInProgress] = useState(false);
   const [totalBeforeFilter, setTotalBeforeFilter] = useState(0);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
@@ -364,6 +366,7 @@ export default function JobSearchPage() {
   const handleSearch = async (overrideFilters?: Partial<JobSearchFilters>) => {
     if (pollTimerRef.current) { clearTimeout(pollTimerRef.current); pollTimerRef.current = null; }
     setSearching(true);
+    setSearchError(null);
     setJobs([]);
     setMatchingInProgress(false);
 
@@ -388,7 +391,9 @@ export default function JobSearchPage() {
       triggeredMatch = result.matchingTriggered;
     } catch (e) {
       logger.error("[JobSearch] error:", e);
-      toast.error("Search encountered an issue.");
+      const msg = e instanceof Error ? e.message : "Search encountered an issue.";
+      setSearchError(msg);
+      toast.error("Search failed. Please retry.");
     }
 
     // Filter out ignored / already-saved
@@ -423,6 +428,7 @@ export default function JobSearchPage() {
       toast.info("No jobs found. Try adjusting your criteria.");
     }
 
+    setSearchRan(true);
     setSearching(false);
 
     // Schedule poll for AI scores if match was triggered
@@ -640,7 +646,7 @@ export default function JobSearchPage() {
             </div>
 
             <Button className="gradient-indigo text-white shadow-indigo-500/20 hover:opacity-90 w-full sm:w-auto" disabled={searching} onClick={() => handleSearch()}>
-              {searching ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Searching...</> : <><Search className="w-4 h-4 mr-2" />Search Jobs</>}
+              {searching ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Scanning live jobs…</> : <><Search className="w-4 h-4 mr-2" />Search Jobs</>}
             </Button>
           </div>
         </Card>
@@ -720,15 +726,26 @@ export default function JobSearchPage() {
           </div>
         )}
 
-        {/* Empty state */}
-        {!searching && jobs.length === 0 && profileLoaded && (
+        {/* Empty states — four distinct cases */}
+
+        {/* api-error: search threw */}
+        {!searching && searchError && (
+          <div className="text-center py-16 text-destructive">
+            <Search className="w-12 h-12 mx-auto mb-4 opacity-40" />
+            <p className="text-lg mb-2">Search failed. Please retry.</p>
+            <p className="text-sm text-muted-foreground mb-4">{searchError}</p>
+            <Button variant="outline" onClick={() => handleSearch()}>Retry</Button>
+          </div>
+        )}
+
+        {/* idle: no search run yet */}
+        {!searching && !searchError && !searchRan && profileLoaded && (
           <div className="text-center py-16 text-muted-foreground">
             <Search className="w-12 h-12 mx-auto mb-4 opacity-30" />
             {skills.length > 0 || targetTitles.length > 0 ? (
               <>
-                <p className="text-lg mb-2">No jobs matched your filters</p>
-                <p className="text-sm mb-4">Try lowering the minimum fit score, removing location, or broadening job types</p>
-                <Button variant="outline" onClick={() => handleSearch({ minFitScore: 0, showFlagged: true, careerLevel: "" })}>Browse all jobs</Button>
+                <p className="text-lg mb-2">Ready to scan</p>
+                <p className="text-sm mb-4">Click Search Jobs to find live matches for your profile.</p>
               </>
             ) : (
               <>
@@ -737,6 +754,16 @@ export default function JobSearchPage() {
                 <Button variant="outline" onClick={() => handleSearch({ skills: [], targetTitles: [], minFitScore: 0, careerLevel: "" })}>Browse all →</Button>
               </>
             )}
+          </div>
+        )}
+
+        {/* zero-matches: search completed, no results */}
+        {!searching && !searchError && searchRan && jobs.length === 0 && (
+          <div className="text-center py-16 text-muted-foreground">
+            <Search className="w-12 h-12 mx-auto mb-4 opacity-30" />
+            <p className="text-lg mb-2">No jobs matched your filters</p>
+            <p className="text-sm mb-4">Try broadening your criteria — lower the fit score, remove the location filter, or add more job titles.</p>
+            <Button variant="outline" onClick={() => handleSearch({ minFitScore: 0, showFlagged: true, careerLevel: "" })}>Browse all jobs</Button>
           </div>
         )}
       </div>
