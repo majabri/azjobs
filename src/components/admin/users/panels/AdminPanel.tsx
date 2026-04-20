@@ -1,0 +1,175 @@
+import { useState, useCallback, useEffect } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Shield, Clock, UserCircle, Pencil, Trash2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { logger } from "@/lib/logger";
+import { AdminRecord, UserRef } from "../types";
+import { MiniStat, RoleSelect, ROLE_COLORS } from "../shared";
+
+export function AdminPanel({
+  search,
+  updatingId,
+  onChangeRole,
+  onEdit,
+  onDelete,
+  reloadKey,
+}: {
+  search: string;
+  updatingId: string | null;
+  onChangeRole: (userId: string, role: string) => void;
+  onEdit: (user: UserRef) => void;
+  onDelete: (user: UserRef) => void;
+  reloadKey: number;
+}) {
+  const [records, setRecords] = useState<AdminRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const { data: rolesData } = await supabase
+        .from("user_roles")
+        .select("user_id, created_at")
+        .eq("role", "admin" as any);
+
+      const adminIds = ((rolesData as any[]) || []).map((r) => r.user_id);
+
+      if (adminIds.length === 0) {
+        setRecords([]);
+        setLoading(false);
+        return;
+      }
+
+      const { data: profilesData } = await supabase
+        .from("profiles")
+        .select("user_id, full_name, email, username")
+        .in("user_id", adminIds);
+
+      const profileMap = new Map<string, { full_name: string | null; email: string | null; username: string | null }>();
+      for (const p of ((profilesData as any[]) || [])) {
+        profileMap.set(p.user_id, { full_name: p.full_name, email: p.email, username: p.username });
+      }
+
+      const merged: AdminRecord[] = ((rolesData as any[]) || []).map((r) => {
+        const profile = profileMap.get(r.user_id);
+        return {
+          user_id: r.user_id,
+          full_name: profile?.full_name ?? null,
+          email: profile?.email ?? null,
+          username: profile?.username ?? null,
+          created_at: r.created_at,
+        };
+      });
+
+      setRecords(merged);
+    } catch (e) {
+      logger.error(e);
+      toast.error("Failed to load admins");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load, reloadKey]);
+
+  const filtered = records.filter((u) => {
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    return (
+      u.full_name?.toLowerCase().includes(q) ||
+      u.email?.toLowerCase().includes(q) ||
+      u.username?.toLowerCase().includes(q) ||
+      u.user_id.includes(q)
+    );
+  });
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <Clock className="w-6 h-6 animate-spin text-accent" />
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        <MiniStat label="Total Admins" value={records.length} icon={<Shield className="w-3.5 h-3.5" />} color="text-destructive" />
+        <MiniStat label="With Username Login" value={records.filter((r) => !!r.username).length} icon={<UserCircle className="w-3.5 h-3.5" />} />
+      </div>
+
+      {filtered.length === 0 ? (
+        <div className="text-center py-12 text-muted-foreground">
+          <Shield className="w-10 h-10 mx-auto mb-2 opacity-40" />
+          <p>No admin users found.</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {filtered.map((user) => (
+            <div
+              key={user.user_id}
+              className="flex items-center gap-3 p-3 bg-muted/20 rounded-lg border border-border"
+            >
+              <div className="w-9 h-9 rounded-full bg-destructive/10 flex items-center justify-center flex-shrink-0">
+                <Shield className="w-5 h-5 text-destructive" />
+              </div>
+
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-foreground truncate">
+                  {user.full_name || "Unnamed Admin"}
+                </p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {user.email || user.user_id.slice(0, 16) + "…"}
+                </p>
+              </div>
+
+              {user.username && (
+                <Badge variant="outline" className="text-[10px] font-mono hidden sm:inline-flex">
+                  @{user.username}
+                </Badge>
+              )}
+
+              <div className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground">
+                <Clock className="w-3 h-3" />
+                {user.created_at ? new Date(user.created_at).toLocaleDateString() : "—"}
+              </div>
+
+              <Badge className={ROLE_COLORS.admin}>
+                <Shield className="w-3 h-3 mr-1" />
+                admin
+              </Badge>
+
+              <RoleSelect
+                userId={user.user_id}
+                currentRole="admin"
+                disabled={updatingId === user.user_id}
+                onChangeRole={onChangeRole}
+              />
+
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                title="Edit user"
+                onClick={() => onEdit(user)}
+              >
+                <Pencil className="w-3.5 h-3.5" />
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                title="Remove user"
+                onClick={() => onDelete(user)}
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
