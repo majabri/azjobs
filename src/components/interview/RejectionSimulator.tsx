@@ -4,10 +4,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, ShieldAlert, Eye, CheckCircle2, XCircle, AlertTriangle, Zap } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
-import { logger } from '@/lib/logger';
+import { useAgentInvocation } from "@/hooks/useAgentInvocation";
 
 interface SimulationResult {
   ats_stage: {
@@ -44,7 +43,9 @@ interface Props {
 export default function RejectionSimulator({ resumeText: initialResume, jobDescription: initialJd, jobTitle }: Props) {
   const [resumeText, setResumeText] = useState(initialResume || "");
   const [jobDescription, setJobDescription] = useState(initialJd || "");
-  const [loading, setLoading] = useState(false);
+  const { invoke, loading } = useAgentInvocation<SimulationResult>("simulate-rejection", {
+    errorMessage: "Simulation failed",
+  });
   const [result, setResult] = useState<SimulationResult | null>(null);
 
   const runSimulation = async () => {
@@ -52,19 +53,8 @@ export default function RejectionSimulator({ resumeText: initialResume, jobDescr
       toast.error("Both resume and job description are required");
       return;
     }
-    setLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("simulate-rejection", {
-        body: { resumeText, jobDescription, jobTitle },
-      });
-      if (error) throw error;
-      setResult(data);
-    } catch (e) {
-      toast.error("Simulation failed");
-      logger.error(e);
-    } finally {
-      setLoading(false);
-    }
+    const data = await invoke({ resumeText, jobDescription, jobTitle });
+    if (data) setResult(data);
   };
 
   const priorityColor = (p: string) => {
