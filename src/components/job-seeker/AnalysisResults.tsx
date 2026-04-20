@@ -76,6 +76,12 @@ export default function AnalysisResults({
   const [addingSkill, setAddingSkill] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
+  /**
+   * SSE streaming helper — raw fetch is intentional.
+   * supabase.functions.invoke() does not support streaming responses.
+   * All callers of this helper target streaming edge functions:
+   * rewrite-resume, generate-cover-letter, generate-interview-prep, generate-followup-email.
+   */
   const streamFromEdgeFunction = async (
     functionName: string, body: Record<string, any>,
     onChunk: (text: string) => void, onDone?: () => void,
