@@ -38,7 +38,13 @@ Exception: SSE streaming responses (e.g. `mock-interview`) require raw fetch wit
 
 ## Active Edge Functions (verified 2026-04-20)
 
-`discover-jobs`, `career-path-analysis`, `match-jobs`, `discovery-agent`, `search-jobs`
+`discover-jobs`, `career-path-analysis`, `match-jobs`, `discovery-agent`, `search-jobs`,
+`generate-outreach`, `salary-projection`, `learning-insights`, `interview-predictor`,
+`extract-profile-fields`, `rewrite-resume`, `generate-cover-letter`,
+`generate-interview-prep`, `generate-followup-email`, `recruiter-assistant`
+
+SSE streaming (raw fetch exception): `mock-interview`, `rewrite-resume`, `generate-cover-letter`,
+`generate-interview-prep`, `generate-followup-email`, `recruiter-assistant`
 
 ## Never
 
