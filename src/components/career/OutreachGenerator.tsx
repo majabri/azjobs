@@ -30,14 +30,10 @@ export default function OutreachGenerator() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { toast.error("Please sign in"); return; }
 
-      const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-outreach`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify({ company, role, contactName, messageType }),
+      const { data, error: fnErr } = await supabase.functions.invoke("generate-outreach", {
+        body: { company, role, contactName, messageType },
       });
-
-      if (!resp.ok) throw new Error("Failed");
-      const data = await resp.json();
+      if (fnErr || !data) throw new Error(fnErr?.message ?? "Failed");
       setResult(data.message || "");
     } catch { toast.error("Failed to generate message"); }
     finally { setGenerating(false); }
