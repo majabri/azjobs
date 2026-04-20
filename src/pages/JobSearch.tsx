@@ -424,7 +424,7 @@ export default function JobSearchPage() {
         skill_gaps: j.skill_gaps,
         first_seen_at: j.date_posted,
         salary: j.salary_min != null && j.salary_max != null
-          ? `$${j.salary_min.toLocaleString()} – $${j.salary_max.toLocaleString()}`
+          ? `${j.salary_min.toLocaleString()} – ${j.salary_max.toLocaleString()}`
           : undefined,
       }));
 
