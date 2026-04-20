@@ -32,6 +32,7 @@ interface AutoApplyPrefs {
 
 interface QueuedApplication {
   id: string;
+  jobDbId?: string;        // DB id from public.jobs — used for job_queue writes
   jobTitle: string;
   company: string;
   location: string;
@@ -71,6 +72,7 @@ export default function AutoApplyPage() {
   const [locationInput, setLocationInput] = useState("");
   const [queue, setQueue] = useState<QueuedApplication[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
@@ -202,6 +204,7 @@ export default function AutoApplyPage() {
       return;
     }
     setIsSearching(true);
+    setSearchError(null);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { toast.error("Please sign in"); return; }
@@ -212,27 +215,22 @@ export default function AutoApplyPage() {
         .eq("user_id", session.user.id)
         .maybeSingle();
 
-      const resp = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/search-jobs`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({
-            skills: (profile?.skills as string[]) || [],
-            jobTypes: (profile as any)?.preferred_job_types || [],
-            location: prefs.locations.join(", ") || (profile?.location as string) || "",
-            careerLevel: (profile as any)?.career_level || "",
-            targetTitles: prefs.jobTitles,
-            query: prefs.remoteOnly ? "remote positions only" : "",
-          }),
-        }
-      );
+      // Invoke discover-jobs edge function via SDK (auth injected automatically)
+      const { data, error: fnErr } = await supabase.functions.invoke("discover-jobs", {
+        body: {
+          targetTitles: prefs.jobTitles,
+          skills: (profile?.skills as string[]) || [],
+          jobType: ((profile as any)?.preferred_job_types as string[])?.join(",") || undefined,
+          location: prefs.locations.join(", ") || (profile?.location as string) || undefined,
+          careerLevel: (profile as any)?.career_level || undefined,
+          isRemote: prefs.remoteOnly || undefined,
+          userId: session.user.id,
+          triggerMatch: true,
+          limit: 50,
+        },
+      });
 
-      if (!resp.ok) throw new Error("Search failed");
-      const data = await resp.json();
+      if (fnErr || !data) throw new Error(fnErr?.message ?? "Search returned no data");
       const jobs = (data.jobs || []) as any[];
 
       const resumeLookup = await getBestResumeText(session.user.id);
@@ -240,16 +238,18 @@ export default function AutoApplyPage() {
 
       const newQueue: QueuedApplication[] = jobs
         .map((job: any) => {
-          const jobDesc = `${job.title} at ${job.company}\nLocation: ${job.location}\nType: ${job.type || ""}\n\n${job.description}`;
+          const jobDesc = `${job.title} at ${job.company}\nLocation: ${job.location}\nType: ${job.job_type || job.type || ""}\n\n${job.description}`;
           const analysis = resumeText ? analyzeJobFit(jobDesc, resumeText) : null;
-          const score = analysis?.overallScore || 50;
+          // Prefer server-side fit_score; fall back to local analysis score
+          const score = job.fit_score ?? analysis?.overallScore ?? job.quality_score ?? 50;
           return {
             id: crypto.randomUUID(),
+            jobDbId: job.id || undefined,
             jobTitle: job.title,
             company: job.company,
             location: job.location,
-            matchScore: score,
-            status: score >= prefs.minMatchScore ? "review" as const : "skipped" as const,
+            matchScore: Math.round(score),
+            status: Math.round(score) >= prefs.minMatchScore ? "review" as const : "skipped" as const,
             jobDescription: jobDesc,
             analysis,
           };
@@ -258,7 +258,22 @@ export default function AutoApplyPage() {
 
       setQueue((prev) => [...newQueue, ...prev]);
       addLog("Search complete", `Found ${newQueue.filter(j => j.status === "review").length} matching jobs`, "search");
-      
+
+      // Persist review-eligible jobs to job_queue so Supabase tracks them
+      const reviewJobs = newQueue.filter(j => j.status === "review" && j.jobDbId);
+      if (reviewJobs.length > 0) {
+        const { error: qErr } = await supabase.from("job_queue").insert(
+          reviewJobs.map(j => ({
+            job_id: j.jobDbId!,
+            user_id: session.user.id,
+            type: "auto_apply",
+            status: "pending",
+            payload: { matchScore: j.matchScore, jobTitle: j.jobTitle, company: j.company },
+          }))
+        );
+        if (qErr) logger.warn("[AutoApply] job_queue insert partial error:", qErr.message);
+      }
+
       // Smart/Auto mode: auto-approve high matches
       if (prefs.applyMode === "smart" || prefs.applyMode === "full-auto") {
         const threshold = prefs.applyMode === "full-auto" ? prefs.minMatchScore : 80;
@@ -268,14 +283,20 @@ export default function AutoApplyPage() {
           }
         }
       }
-      
-      if (resumeLookup.source === "profile") {
-        toast.success(`Found ${newQueue.filter(j => j.status === "review").length} jobs. Using your profile for fit analysis.`);
+
+      const reviewCount = newQueue.filter(j => j.status === "review").length;
+      if (reviewCount === 0) {
+        toast.info(`No jobs met your ${prefs.minMatchScore}% threshold. Try lowering it or broadening your titles.`);
+      } else if (resumeLookup.source === "profile") {
+        toast.success(`Found ${reviewCount} jobs. Using your profile for fit analysis.`);
       } else {
-        toast.success(`Found ${newQueue.filter(j => j.status === "review").length} jobs above ${prefs.minMatchScore}% threshold`);
+        toast.success(`Found ${reviewCount} jobs above ${prefs.minMatchScore}% threshold`);
       }
-    } catch {
-      toast.error("Auto-search failed");
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Auto-search failed";
+      setSearchError(msg);
+      toast.error("Queue failed. Please retry.");
+      logger.error("[AutoApply] runAutoSearch error:", e);
     } finally {
       setIsSearching(false);
     }
@@ -639,6 +660,23 @@ export default function AutoApplyPage() {
             )}
           </div>
         </Card>
+
+        {/* Search error state */}
+        {searchError && !isSearching && (
+          <div className="text-center py-8 text-destructive">
+            <p className="font-medium mb-1">Queue failed. Please retry.</p>
+            <p className="text-sm text-muted-foreground">{searchError}</p>
+          </div>
+        )}
+
+        {/* Zero-matches state */}
+        {!isSearching && !searchError && queue.length === 0 && profileLoaded && (
+          <div className="text-center py-8 text-muted-foreground">
+            <Search className="w-10 h-10 mx-auto mb-3 opacity-30" />
+            <p className="font-medium">No matching jobs found</p>
+            <p className="text-sm mt-1">Try adding more job titles or lowering your minimum match score.</p>
+          </div>
+        )}
 
         {/* Application Queue */}
         {queue.length > 0 && (
