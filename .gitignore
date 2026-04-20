@@ -35,3 +35,14 @@ pnpm-lock.yaml
 
 # Archived Lovable config
 .lovable-archive/
+
+# Local deployment scripts (one-off .command files)
+*.command
+_patches/
+
+# Bun build info
+tsconfig.app.tsbuildinfo
+tsconfig.node.tsbuildinfo
+
+# Supabase temp
+supabase/.temp/
