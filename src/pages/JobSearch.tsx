@@ -294,7 +294,8 @@ export default function JobSearchPage() {
   // Results
   const [jobs, setJobs] = useState<EnrichedJob[]>([]);
   const [searching, setSearching] = useState(false);
-  const [searchState, setSearchState] = useState<"idle" | "zero-matches" | "api-error" | "results">("idle");
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [searchRan, setSearchRan] = useState(false); // true once any search has completed
   const [matchingInProgress, setMatchingInProgress] = useState(false);
   const [totalBeforeFilter, setTotalBeforeFilter] = useState(0);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
@@ -365,6 +366,7 @@ export default function JobSearchPage() {
   const handleSearch = async (overrideFilters?: Partial<JobSearchFilters>) => {
     if (pollTimerRef.current) { clearTimeout(pollTimerRef.current); pollTimerRef.current = null; }
     setSearching(true);
+    setSearchError(null);
     setJobs([]);
     setMatchingInProgress(false);
 
@@ -379,11 +381,10 @@ export default function JobSearchPage() {
     let rawJobsCount = 0;
 
     // ── Direct edge-function call (bypasses async-mode orchestrator) ──────────
-    // Issue #207: runAllAgents() checks orchestration_mode_async flag and
-    // returns immediately without issuing a query when the flag is true.
+    // Issue #207: orchestration_mode_async=true causes runAllAgents() to fire
+    // an event and return immediately — no query issued, 0 results returned.
     // Fix: call search-jobs directly, then score client-side with scoreJobs().
     let enriched: EnrichedJob[] = [];
-    let apiError = false;
     try {
       const { data, error } = await supabase.functions.invoke("search-jobs", {
         body: {
@@ -437,9 +438,10 @@ export default function JobSearchPage() {
         remotePreferred: (filters.jobTypes ?? []).includes("remote"),
       });
     } catch (e) {
-      apiError = true;
       logger.error("[JobSearch] search-jobs invoke failed:", e);
-      toast.error("Search encountered an issue. Please try again.");
+      const msg = e instanceof Error ? e.message : "Search encountered an issue.";
+      setSearchError(msg);
+      toast.error("Search failed. Please retry.");
     }
 
     // Filter out ignored / already-saved
@@ -466,21 +468,15 @@ export default function JobSearchPage() {
     setVisibleCount(PAGE_SIZE);
     setMatchingInProgress(triggeredMatch);
 
-    // Determine empty-state variant
-    if (apiError) {
-      setSearchState("api-error");
-    } else if (enriched.length > 0) {
-      setSearchState("results");
-    } else {
-      setSearchState("zero-matches");
-    }
-
-    if (!apiError && !enriched.length && beforeCount > 0) {
+    if (!enriched.length && beforeCount > 0) {
       toast.info(`${beforeCount} jobs found but hidden by your ${effectiveMinFit}% fit score filter.`);
-    } else if (!apiError && !enriched.length && rawJobsCount > 0) {
+    } else if (!enriched.length && rawJobsCount > 0) {
       toast.info("Jobs found but all filtered out.");
+    } else if (!enriched.length) {
+      toast.info("No jobs found. Try adjusting your criteria.");
     }
 
+    setSearchRan(true);
     setSearching(false);
 
     // Schedule poll for AI scores if match was triggered
@@ -778,25 +774,27 @@ export default function JobSearchPage() {
           </div>
         )}
 
-        {/* Empty state — api-error */}
-        {!searching && searchState === "api-error" && (
-          <div className="text-center py-16 text-muted-foreground">
-            <AlertTriangle className="w-12 h-12 mx-auto mb-4 text-destructive opacity-70" />
-            <p className="text-lg mb-2 text-destructive font-medium">Search failed</p>
-            <p className="text-sm mb-4">We couldn't reach the job search service. Check your connection and try again.</p>
+        {/* Empty states — four distinct cases */}
+
+        {/* api-error: search threw */}
+        {!searching && searchError && (
+          <div className="text-center py-16 text-destructive">
+            <Search className="w-12 h-12 mx-auto mb-4 opacity-40" />
+            <p className="text-lg mb-2">Search failed. Please retry.</p>
+            <p className="text-sm text-muted-foreground mb-4">{searchError}</p>
             <Button variant="outline" onClick={() => handleSearch()}>Retry</Button>
           </div>
         )}
 
-        {/* Empty state — zero-matches */}
-        {!searching && searchState === "zero-matches" && jobs.length === 0 && (
+
+        {/* idle: no search run yet */}
+        {!searching && !searchError && !searchRan && profileLoaded && (
           <div className="text-center py-16 text-muted-foreground">
             <Search className="w-12 h-12 mx-auto mb-4 opacity-30" />
             {skills.length > 0 || targetTitles.length > 0 ? (
               <>
-                <p className="text-lg mb-2">No jobs matched your filters</p>
-                <p className="text-sm mb-4">Try lowering the minimum fit score, removing location, or broadening job types</p>
-                <Button variant="outline" onClick={() => handleSearch({ minFitScore: 0, showFlagged: true, careerLevel: "" })}>Browse all jobs</Button>
+                <p className="text-lg mb-2">Ready to scan</p>
+                <p className="text-sm mb-4">Click Search Jobs to find live matches for your profile.</p>
               </>
             ) : (
               <>
@@ -808,14 +806,17 @@ export default function JobSearchPage() {
           </div>
         )}
 
-        {/* Empty state — idle (before first search) */}
-        {!searching && searchState === "idle" && profileLoaded && (
+        {/* zero-matches: search completed, no results */}
+        {!searching && !searchError && searchRan && jobs.length === 0 && (
           <div className="text-center py-16 text-muted-foreground">
             <Search className="w-12 h-12 mx-auto mb-4 opacity-30" />
-            <p className="text-lg mb-2">Ready to find your next opportunity</p>
-            <p className="text-sm mb-4">Hit <span className="font-medium text-foreground">Search Jobs</span> to pull live listings matched to your profile</p>
+            <p className="text-lg mb-2">No jobs matched your filters</p>
+            <p className="text-sm mb-4">Try broadening your criteria — lower the fit score, remove the location filter, or add more job titles.</p>
+            <Button variant="outline" onClick={() => handleSearch({ minFitScore: 0, showFlagged: true, careerLevel: "" })}>Browse all jobs</Button>
           </div>
         )}
+
+
       </div>
     </div>
   );
