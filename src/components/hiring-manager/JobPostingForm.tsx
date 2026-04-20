@@ -9,6 +9,7 @@ import {
 import { Loader2, ArrowRight, ArrowLeft, Sparkles } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useAgentInvocation } from "@/hooks/useAgentInvocation";
 import SkillsTagInput from "./SkillsTagInput";
 import JobPostingPreview from "./JobPostingPreview";
 
@@ -54,7 +55,14 @@ export default function JobPostingForm({ editing, onSaved, onCancel }: Props) {
   const [form, setForm] = useState<JobPostingFormData>(editing || EMPTY_FORM);
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
-  const [generating, setGenerating] = useState(false);
+  const { invoke: generateJobPosting, loading: generating } = useAgentInvocation<{
+    title?: string;
+    description?: string;
+    requirements?: string;
+    nice_to_haves?: string;
+    salary_suggestion_min?: number;
+    salary_suggestion_max?: number;
+  }>("generate-job-posting", { errorMessage: "AI generation failed" });
 
   // Load draft from localStorage on mount (only for new postings)
   useEffect(() => {
@@ -102,28 +110,18 @@ export default function JobPostingForm({ editing, onSaved, onCancel }: Props) {
 
   const handleAIGenerate = async () => {
     if (!form.title.trim()) { toast.error("Enter a job title first"); return; }
-    setGenerating(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("generate-job-posting", {
-        body: { title: form.title, company: form.company, department: "" },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      setForm((prev) => ({
-        ...prev,
-        title: data.title || prev.title,
-        description: data.description || prev.description,
-        requirements: data.requirements || prev.requirements,
-        niceToHaves: data.nice_to_haves || prev.niceToHaves,
-        salaryMin: data.salary_suggestion_min ? String(data.salary_suggestion_min) : prev.salaryMin,
-        salaryMax: data.salary_suggestion_max ? String(data.salary_suggestion_max) : prev.salaryMax,
-      }));
-      toast.success("AI generated your job posting!");
-    } catch (e: any) {
-      toast.error(e.message || "AI generation failed");
-    } finally {
-      setGenerating(false);
-    }
+    const data = await generateJobPosting({ title: form.title, company: form.company, department: "" });
+    if (!data) return;
+    setForm((prev) => ({
+      ...prev,
+      title: data.title || prev.title,
+      description: data.description || prev.description,
+      requirements: data.requirements || prev.requirements,
+      niceToHaves: data.nice_to_haves || prev.niceToHaves,
+      salaryMin: data.salary_suggestion_min ? String(data.salary_suggestion_min) : prev.salaryMin,
+      salaryMax: data.salary_suggestion_max ? String(data.salary_suggestion_max) : prev.salaryMax,
+    }));
+    toast.success("AI generated your job posting!");
   };
 
   const handleSubmit = async (asDraft = false) => {
