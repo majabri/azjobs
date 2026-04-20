@@ -19,9 +19,9 @@ import {
 } from "@/lib/job-search";
 import { STRATEGY_CONFIG, TRUST_LEVEL_CONFIG, type FakeJobFlag, type HistoricalOutcomes } from "@/lib/job-search/jobQualityEngine";
 import { pollMatchScores, markJobInteraction } from "@/services/job/api";
-import { type EnrichedJob } from "@/services/matching/api";
-import { runSearchOnly } from "@/shell/orchestrator";
+import { scoreJobs, type EnrichedJob } from "@/services/matching/api";
 import type { JobSearchFilters } from "@/services/job/types";
+import type { JobResult } from "@/types/job";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -294,6 +294,7 @@ export default function JobSearchPage() {
   // Results
   const [jobs, setJobs] = useState<EnrichedJob[]>([]);
   const [searching, setSearching] = useState(false);
+  const [searchState, setSearchState] = useState<"idle" | "zero-matches" | "api-error" | "results">("idle");
   const [matchingInProgress, setMatchingInProgress] = useState(false);
   const [totalBeforeFilter, setTotalBeforeFilter] = useState(0);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
@@ -377,18 +378,68 @@ export default function JobSearchPage() {
     let triggeredMatch = false;
     let rawJobsCount = 0;
 
-    // Fetch + score via the shell orchestrator (steps 1 + 2).
-    // JobSearch must NOT call searchJobs / scoreJobs directly — all service
-    // chaining is owned by the orchestrator.
+    // ── Direct edge-function call (bypasses async-mode orchestrator) ──────────
+    // Issue #207: runAllAgents() checks orchestration_mode_async flag and
+    // returns immediately without issuing a query when the flag is true.
+    // Fix: call search-jobs directly, then score client-side with scoreJobs().
     let enriched: EnrichedJob[] = [];
+    let apiError = false;
     try {
-      const result = await runSearchOnly(filters, historicalOutcomes);
-      enriched = result.jobs;
-      rawJobsCount = result.jobs.length;
-      triggeredMatch = result.matchingTriggered;
+      const { data, error } = await supabase.functions.invoke("search-jobs", {
+        body: {
+          query: filters.query ?? "",
+          location: filters.location ?? "",
+          job_types: filters.jobTypes ?? [],
+          skills: filters.skills ?? [],
+          salary_min: filters.salaryMin ? Number(filters.salaryMin) : undefined,
+          salary_max: filters.salaryMax ? Number(filters.salaryMax) : undefined,
+          days_old: filters.days_old ?? 7,
+          limit: 100,
+        },
+      });
+
+      if (error) throw error;
+
+      // Map NormalizedJob[] → JobResult[] → EnrichedJob[]
+      const normalizedJobs: Array<{
+        title: string; company: string; location: string; type: string;
+        description: string; url: string; source: string;
+        salary_min?: number; salary_max?: number;
+        date_posted?: string; is_remote?: boolean;
+        fit_score?: number | null; skill_gaps?: string[]; match_reasons?: string[];
+      }> = (data?.jobs ?? []);
+
+      const jobResults: JobResult[] = normalizedJobs.map(j => ({
+        title: j.title,
+        company: j.company,
+        location: j.location,
+        type: j.type,
+        description: j.description,
+        url: j.url,
+        matchReason: (j.match_reasons ?? []).join(", "),
+        source: j.source,
+        is_remote: j.is_remote,
+        fit_score: j.fit_score ?? null,
+        skill_gaps: j.skill_gaps,
+        first_seen_at: j.date_posted,
+        salary: j.salary_min != null && j.salary_max != null
+          ? `$${j.salary_min.toLocaleString()} – $${j.salary_max.toLocaleString()}`
+          : undefined,
+      }));
+
+      rawJobsCount = jobResults.length;
+      enriched = scoreJobs({
+        jobs: jobResults,
+        skills: filters.skills ?? [],
+        historicalOutcomes,
+        salaryMin: filters.salaryMin,
+        salaryMax: filters.salaryMax,
+        remotePreferred: (filters.jobTypes ?? []).includes("remote"),
+      });
     } catch (e) {
-      logger.error("[JobSearch] error:", e);
-      toast.error("Search encountered an issue.");
+      apiError = true;
+      logger.error("[JobSearch] search-jobs invoke failed:", e);
+      toast.error("Search encountered an issue. Please try again.");
     }
 
     // Filter out ignored / already-saved
@@ -415,12 +466,19 @@ export default function JobSearchPage() {
     setVisibleCount(PAGE_SIZE);
     setMatchingInProgress(triggeredMatch);
 
-    if (!enriched.length && beforeCount > 0) {
+    // Determine empty-state variant
+    if (apiError) {
+      setSearchState("api-error");
+    } else if (enriched.length > 0) {
+      setSearchState("results");
+    } else {
+      setSearchState("zero-matches");
+    }
+
+    if (!apiError && !enriched.length && beforeCount > 0) {
       toast.info(`${beforeCount} jobs found but hidden by your ${effectiveMinFit}% fit score filter.`);
-    } else if (!enriched.length && rawJobsCount > 0) {
+    } else if (!apiError && !enriched.length && rawJobsCount > 0) {
       toast.info("Jobs found but all filtered out.");
-    } else if (!enriched.length) {
-      toast.info("No jobs found. Try adjusting your criteria.");
     }
 
     setSearching(false);
@@ -720,8 +778,18 @@ export default function JobSearchPage() {
           </div>
         )}
 
-        {/* Empty state */}
-        {!searching && jobs.length === 0 && profileLoaded && (
+        {/* Empty state — api-error */}
+        {!searching && searchState === "api-error" && (
+          <div className="text-center py-16 text-muted-foreground">
+            <AlertTriangle className="w-12 h-12 mx-auto mb-4 text-destructive opacity-70" />
+            <p className="text-lg mb-2 text-destructive font-medium">Search failed</p>
+            <p className="text-sm mb-4">We couldn't reach the job search service. Check your connection and try again.</p>
+            <Button variant="outline" onClick={() => handleSearch()}>Retry</Button>
+          </div>
+        )}
+
+        {/* Empty state — zero-matches */}
+        {!searching && searchState === "zero-matches" && jobs.length === 0 && (
           <div className="text-center py-16 text-muted-foreground">
             <Search className="w-12 h-12 mx-auto mb-4 opacity-30" />
             {skills.length > 0 || targetTitles.length > 0 ? (
@@ -737,6 +805,15 @@ export default function JobSearchPage() {
                 <Button variant="outline" onClick={() => handleSearch({ skills: [], targetTitles: [], minFitScore: 0, careerLevel: "" })}>Browse all →</Button>
               </>
             )}
+          </div>
+        )}
+
+        {/* Empty state — idle (before first search) */}
+        {!searching && searchState === "idle" && profileLoaded && (
+          <div className="text-center py-16 text-muted-foreground">
+            <Search className="w-12 h-12 mx-auto mb-4 opacity-30" />
+            <p className="text-lg mb-2">Ready to find your next opportunity</p>
+            <p className="text-sm mb-4">Hit <span className="font-medium text-foreground">Search Jobs</span> to pull live listings matched to your profile</p>
           </div>
         )}
       </div>
