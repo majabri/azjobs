@@ -102,7 +102,9 @@ export default function AutoApplyPage() {
           jobTitles: ((data as any).target_job_titles as string[]) || [],
           salaryMin: (data as any).salary_min || "",
           salaryMax: (data as any).salary_max || "",
-          locations: (data as any).location ? [(data as any).location] : [],
+          locations: [(data as any).location].filter(
+            (loc): loc is string => !!loc && !/^<[A-Z_]+>$/.test(loc.trim())
+          ),
           remoteOnly: (data as any).remote_only || false,
           requireReview: true,
           minMatchScore: (data as any).min_match_score ?? 60,
@@ -600,11 +602,13 @@ export default function AutoApplyPage() {
                 <Button variant="outline" size="sm" onClick={addLocation}>Add</Button>
               </div>
               <div className="flex flex-wrap gap-2 mt-2">
-                {prefs.locations.map((l, i) => (
-                  <Badge key={i} variant="secondary" className="cursor-pointer" onClick={() => setPrefs({ ...prefs, locations: prefs.locations.filter((_, idx) => idx !== i) })}>
-                    <MapPin className="w-3 h-3 mr-1" />{l} <X className="w-3 h-3 ml-1" />
-                  </Badge>
-                ))}
+                {prefs.locations
+                  .filter(loc => loc && !/^<[A-Z_]+>$/.test(loc.trim()))
+                  .map((l, i) => (
+                    <Badge key={i} variant="secondary" className="cursor-pointer" onClick={() => setPrefs({ ...prefs, locations: prefs.locations.filter((_, idx) => idx !== i) })}>
+                      <MapPin className="w-3 h-3 mr-1" />{l} <X className="w-3 h-3 ml-1" />
+                    </Badge>
+                  ))}
               </div>
             </div>
 
