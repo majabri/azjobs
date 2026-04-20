@@ -19,9 +19,9 @@ import {
 } from "@/lib/job-search";
 import { STRATEGY_CONFIG, TRUST_LEVEL_CONFIG, type FakeJobFlag, type HistoricalOutcomes } from "@/lib/job-search/jobQualityEngine";
 import { pollMatchScores, markJobInteraction } from "@/services/job/api";
-import { type EnrichedJob } from "@/services/matching/api";
-import { runSearchOnly } from "@/shell/orchestrator";
+import { scoreJobs, type EnrichedJob } from "@/services/matching/api";
 import type { JobSearchFilters } from "@/services/job/types";
+import type { JobResult } from "@/types/job";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -380,17 +380,65 @@ export default function JobSearchPage() {
     let triggeredMatch = false;
     let rawJobsCount = 0;
 
-    // Fetch + score via the shell orchestrator (steps 1 + 2).
-    // JobSearch must NOT call searchJobs / scoreJobs directly — all service
-    // chaining is owned by the orchestrator.
+    // ── Direct edge-function call (bypasses async-mode orchestrator) ──────────
+    // Issue #207: orchestration_mode_async=true causes runAllAgents() to fire
+    // an event and return immediately — no query issued, 0 results returned.
+    // Fix: call search-jobs directly, then score client-side with scoreJobs().
     let enriched: EnrichedJob[] = [];
     try {
-      const result = await runSearchOnly(filters, historicalOutcomes);
-      enriched = result.jobs;
-      rawJobsCount = result.jobs.length;
-      triggeredMatch = result.matchingTriggered;
+      const { data, error } = await supabase.functions.invoke("search-jobs", {
+        body: {
+          query: filters.query ?? "",
+          location: filters.location ?? "",
+          job_types: filters.jobTypes ?? [],
+          skills: filters.skills ?? [],
+          salary_min: filters.salaryMin ? Number(filters.salaryMin) : undefined,
+          salary_max: filters.salaryMax ? Number(filters.salaryMax) : undefined,
+          days_old: filters.days_old ?? 7,
+          limit: 100,
+        },
+      });
+
+      if (error) throw error;
+
+      // Map NormalizedJob[] → JobResult[] → EnrichedJob[]
+      const normalizedJobs: Array<{
+        title: string; company: string; location: string; type: string;
+        description: string; url: string; source: string;
+        salary_min?: number; salary_max?: number;
+        date_posted?: string; is_remote?: boolean;
+        fit_score?: number | null; skill_gaps?: string[]; match_reasons?: string[];
+      }> = (data?.jobs ?? []);
+
+      const jobResults: JobResult[] = normalizedJobs.map(j => ({
+        title: j.title,
+        company: j.company,
+        location: j.location,
+        type: j.type,
+        description: j.description,
+        url: j.url,
+        matchReason: (j.match_reasons ?? []).join(", "),
+        source: j.source,
+        is_remote: j.is_remote,
+        fit_score: j.fit_score ?? null,
+        skill_gaps: j.skill_gaps,
+        first_seen_at: j.date_posted,
+        salary: j.salary_min != null && j.salary_max != null
+          ? `$${j.salary_min.toLocaleString()} – $${j.salary_max.toLocaleString()}`
+          : undefined,
+      }));
+
+      rawJobsCount = jobResults.length;
+      enriched = scoreJobs({
+        jobs: jobResults,
+        skills: filters.skills ?? [],
+        historicalOutcomes,
+        salaryMin: filters.salaryMin,
+        salaryMax: filters.salaryMax,
+        remotePreferred: (filters.jobTypes ?? []).includes("remote"),
+      });
     } catch (e) {
-      logger.error("[JobSearch] error:", e);
+      logger.error("[JobSearch] search-jobs invoke failed:", e);
       const msg = e instanceof Error ? e.message : "Search encountered an issue.";
       setSearchError(msg);
       toast.error("Search failed. Please retry.");
