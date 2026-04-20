@@ -1,10 +1,36 @@
 # iCareerOS -- AI-Powered Career Operating System
 ## Consolidated Phased Build Instruction
 
-**Version:** April 2026 (aligned with iCareerOS rebrand)
+**Version:** April 2026 (aligned with iCareerOS rebrand) — Status updated April 20, 2026
 **Repo:** https://github.com/majabri/azjobs
 **Stack:** Vite + React 18 + TypeScript 5.8 + Tailwind + shadcn-ui + Supabase + Bun
 **Production domain:** icareeros.com
+**Production Supabase:** bryoehuhhhjqcueomgev | **Staging:** muevgfmpzykihjuihnga
+
+---
+
+## Status Snapshot — April 20, 2026
+
+| Phase | Name | Status |
+|---|---|---|
+| 1 | Foundation and Rebrand Sweep | COMPLETE |
+| 2 | Security Hardening | COMPLETE |
+| 3 | Deployment and CI/CD | COMPLETE |
+| 4 | Observability and Code Quality | IN PROGRESS |
+| 5 | Market Intelligence and Career OS Definition | COMPLETE |
+| 6 | Mission, Vision, and Agent Architecture | COMPLETE |
+| 7 | MVP Build | IN PROGRESS |
+| 7.5 | Job Search and Matching Overhaul | IN PROGRESS (new) |
+| 8 | Gig Marketplace and Service Catalog | DEFERRED |
+| 9 | Automation Layer | IN PROGRESS (Discovery Agent shipped) |
+| 10 | Positioning, Messaging, and i18n | OPEN |
+| 11 | Launch Validation | OPEN |
+
+**Key milestone shipped April 2026:** Discovery Agent (first of five Crew agents) is fully live in production. Fetches from RemoteOK, Greenhouse, Lever, Adzuna (pending keys), USAJobs (pending keys). 30+ jobs ingested in smoke test. `scraper_runs` audit log active. Admin health panel live in Command Center.
+
+**Current active work:** Phase 7 wiring gap fixes (Issues #208/#209 raw-fetch files remaining), Phase 7.5 Job Search Overhaul (four-mode search rewrite, ingestion health panel, skill synonyms, behavioral signals).
+
+---
 
 ---
 
@@ -94,7 +120,9 @@ The following decisions resolve all conflicts between the original 11-phase prod
 
 ---
 
-## PHASE 1 -- Foundation and Rebrand Sweep (Days 1-3)
+## PHASE 1 -- Foundation and Rebrand Sweep (Days 1-3) — COMPLETE
+
+> **Status: COMPLETE** — Rebrand fully applied. FitCheck retired. Package name "icareeros". Auth pages live (/auth/login, /auth/signup, /auth/forgot-password, /auth/reset-password). Tailwind colors confirmed (#00B8A9 teal, #F5A623 gold). Supabase ref updated to bryoehuhhhjqcueomgev. Resend sending domain migrated to icareeros.com (Cloudflare DNS verified). support_email updated to support@icareeros.com (April 13, 2026).
 
 **Purpose:** Stabilize the codebase, remove legacy dependencies, fix critical issues, and complete the iCareerOS rebrand across all files.
 
@@ -158,7 +186,9 @@ All critical bugs fixed. Lovable dependencies removed. Package named "icareeros.
 
 ---
 
-## PHASE 2 -- Security Hardening (Days 1-2)
+## PHASE 2 -- Security Hardening (Days 1-2) — COMPLETE
+
+> **Status: COMPLETE** — RLS hardening applied across all unprotected public tables (migration 20260418_rls_fix_unprotected_tables.sql). Rate limiting and prompt injection protection added to agent-orchestrator (PR merged). Env validation in place. Bun lockfile synced (PR #206). Stale ref gberhsbddthwkjimsqig fully retired from config and docs. API secrets (ANTHROPIC_API_KEY, RESEND_API_KEY, STRIPE_SECRET_KEY, STRIPE_PUBLISHABLE_KEY) still need to be set in Supabase Edge Function Secrets.
 
 **Purpose:** Remove hardcoded keys, fix lockfiles, configure GitHub secrets.
 
@@ -181,7 +211,9 @@ No credentials in source code. Single lockfile (bun.lockb). All secrets in GitHu
 
 ---
 
-## PHASE 3 -- Deployment and CI/CD (Days 3-7)
+## PHASE 3 -- Deployment and CI/CD (Days 3-7) — COMPLETE
+
+> **Status: COMPLETE** — Production live at icareeros.com (Vercel, jabri-solutions team, Pro Trial). Staging Supabase project muevgfmpzykihjuihnga active. CI pipeline in place. Branch protection enforced. Vercel custom domain icareeros.com configured. Open item: CI build step intermittently failing when agents push code with TypeScript errors — investigate before Phase 11.
 
 **Purpose:** Production deployment on Vercel, Supabase environment separation, and CI hardening.
 
@@ -216,7 +248,9 @@ Live production deployment at icareeros.com. Separate staging environment. CI pi
 
 ---
 
-## PHASE 4 -- Observability and Code Quality (Week 2)
+## PHASE 4 -- Observability and Code Quality (Week 2) — IN PROGRESS
+
+> **Status: IN PROGRESS** — Event bus deployed (migration 20260417_event_bus.sql, 20260418_event_bus_created_at_index.sql). Agent runs table active. useAgentInvocation hook implemented (PR #220). Open items: Sentry (@sentry/react) not yet installed — needed before Phase 11. BetterStack monitoring not configured. TypeScript strictNullChecks not yet enabled. SOA violations partially resolved.
 
 **Purpose:** Error tracking, monitoring, event bus, and TypeScript strictness.
 
@@ -251,7 +285,9 @@ Sentry capturing errors. BetterStack monitoring. Event bus publishing platform e
 
 ---
 
-## PHASE 5 -- Market Intelligence and Career OS Definition (Week 2)
+## PHASE 5 -- Market Intelligence and Career OS Definition (Week 2) — COMPLETE
+
+> **Status: COMPLETE** — Strategy docs committed to dev (April 10-11, 2026): docs/iCareerOS-Consolidated-Build-Plan.md, docs/iCareerOS-Phase5-Market-Intelligence.md, docs/iCareerOS-Phase6-Mission-Vision-Agents.md, docs/iCareerOS-Phase10-Positioning-Messaging.md, docs/iCareerOS-Phase11-Final-Consolidated.md.
 
 **Purpose:** Research, competitive analysis, and product category definition. No code -- pure strategy output.
 
@@ -295,7 +331,9 @@ Structured tables + narrative analysis. Production-ready copy suitable for an in
 
 ---
 
-## PHASE 6 -- Mission, Vision, and Agent Architecture (Week 2-3)
+## PHASE 6 -- Mission, Vision, and Agent Architecture (Week 2-3) — COMPLETE
+
+> **Status: COMPLETE** — Mission/vision locked. Five Crew agent specifications defined and documented. Agent interaction loop designed. Discovery Agent (Agent 1) is now live in production as of April 2026. See Phase 9 for agent implementation status.
 
 **Purpose:** Lock in the brand mission/vision and design the five Crew agents.
 
@@ -379,7 +417,24 @@ Mission/vision options with recommendation. Structured agent specifications, int
 
 ---
 
-## PHASE 7 -- MVP Build (Week 2-4)
+## PHASE 7 -- MVP Build (Week 2-4) — IN PROGRESS
+
+> **Status: IN PROGRESS** — All five professional features are built and routed. Core wiring issues resolved. Open items listed per feature below.
+>
+> **COMPLETED:**
+> - Career Profile (/profile) — job_seeker_profiles table, ProfileForm, ResumeVault, display name, skills, work experience
+> - Opportunity Radar (/job-search) — search wired directly to search-jobs edge function (PR #218, Issue #207 resolved). 75 jobs confirmed returning. Four-mode rewrite planned in Phase 7.5.
+> - Match Score Lab (/job-seeker) — Analysis form, fit scoring, skill gap output
+> - Pipeline (/applications) — Kanban board, stage management, application tracking
+> - Mission Control (/dashboard) — Today's matches, agent status, activity feed
+> - Employer features — /employer/dashboard, job postings, talent search, invites (invite-only enrollment active)
+> - Admin Command Center — all admin routes active, DiscoveryHealthPanel mounted
+>
+> **OPEN ITEMS (blocking Phase 7.5 or Phase 11):**
+> - Issue #208 remaining: AnalysisResults.tsx, RecruiterAssistant.tsx, CareerPathIntelligence.tsx still use raw fetch() — migrate to supabase.functions.invoke()
+> - AutoApply.tsx and Career.tsx still use raw fetch for search-jobs and career-path-analysis
+> - Search results window too narrow (7-day scraped_at filter in search-jobs) — fix in Phase 7.5
+> - Mission Control ↔ Opportunity Radar match count mismatch (findings documented in docs/2026-04-20 Mission Control ↔ Opportunity Radar matches mismatch)
 
 **Purpose:** Build the core iCareerOS features for the professional user experience. This is the primary product build phase.
 
@@ -464,6 +519,74 @@ Working feature implementation on feature branches. Each PR to dev. Each feature
 
 ---
 
+---
+
+## PHASE 7.5 -- Job Search and Matching Overhaul — IN PROGRESS
+
+> **Status: IN PROGRESS** — Added April 20, 2026. Addresses the gap between the MVP build and a production-grade search and matching experience for ALL users. Full task list in docs/cowork-job-search-overhaul-v2.md.
+
+**Purpose:** Make job search work reliably for every authenticated user regardless of profile completeness. Harden the ingestion pipeline. Add behavioral signals and skill synonym matching.
+
+**Reference document:** `docs/cowork-job-search-overhaul-v2.md` — full task specs, SQL, and TypeScript code for every item below.
+
+### Phase 0 -- Diagnostics (prerequisite for all other 7.5 tasks)
+
+- [ ] Task 0.1 — Run 10 diagnostic queries on production Supabase; post results to GitHub Issue before any code changes
+- Branch: `chore/phase0-diagnostics`
+
+### Phase 7.5.1 -- Four-Mode Search Rewrite
+
+- [ ] Task 1.1 — Rewrite `search-jobs` edge function with four-mode decision tree (targeted+scored / targeted+unscored / profile_discovery / pure_discovery). Reads from `job_postings` (canonical) + `discovered_jobs` (Discovery Agent output). Supports new users with zero profile. Deploy to staging first, then production.
+- Branch: `fix/search-jobs-four-mode`
+
+### Phase 7.5.2 -- Raw Fetch Migration (remaining #208/#209 files)
+
+- [ ] Task 1.2 — Migrate remaining raw `fetch()` calls to `supabase.functions.invoke()` in AutoApply.tsx, Career.tsx, AnalysisResults.tsx, RecruiterAssistant.tsx, CareerPathIntelligence.tsx. Log agent_runs row from Autopilot "Find & Queue Jobs".
+- Branch: `fix/raw-fetch-invoke-remainder`
+
+### Phase 7.5.N1 -- Connect Discovery Agent to Search
+
+- [ ] Task N1 — Verify that `discovered_jobs` rows (produced by bridge_jobs_to_discovered() cron) surface in search results via Mode C (profile_discovery). Trigger bridge manually if needed. Confirm with a non-test user.
+- Branch: verification only, no code change expected
+
+### Phase 7.5.3 -- Enable Adzuna and USAJobs
+
+- [x] Adapters BUILT (discovery-agent v7 deployed)
+- [ ] Task 2.1 — Amir: Set ADZUNA_APP_ID, ADZUNA_APP_KEY, USAJOBS_API_KEY, USAJOBS_USER_AGENT in Supabase Edge Function Secrets. Flip feature flags `discovery_board_adzuna` and `discovery_board_usajobs` to true. Run smoke test.
+- Branch: `feat/enable-adzuna-usajobs-sources`
+
+### Phase 7.5.4 -- Expired Job Cleanup Cron
+
+- [ ] Task 2.2 — Add pg_cron job to delete expired `job_postings` rows daily (column `expires_at` already exists = scraped_at + 7 days). Also add 30-day cleanup for `discovery_jobs`.
+- Branch: `feat/job-expiry-cleanup-cron`
+
+### Phase 7.5.5 -- Admin Job Ingestion Health Panel
+
+- [ ] Task 2.3 — Lovable prompt for "Job Ingestion Health" panel below existing DiscoveryHealthPanel in Command Center. Shows source-level row counts and freshness from `job_postings` + `discovery_jobs`.
+- Branch: `feat/admin-job-ingestion-health`
+
+### Phase 7.5.6 -- Skill Synonym Normalization
+
+- [ ] Task 3.1 — Create `skill_synonyms` table, seed with 30 canonical/synonym pairs (React/React.js, Node.js/Node, ML/Machine Learning, etc.). Wire into `search-jobs` query builder to expand single-term searches.
+- Branch: `feat/skill-synonym-normalization`
+
+### Phase 7.5.7 -- Behavioral Signal Tracking
+
+- [ ] Task 3.2 — Create `job_interactions` table (saved / dismissed / applied / viewed). Lovable prompt for save/dismiss buttons on all job cards. Apply dismiss filter in search-jobs results. Small boost for saved-job-similar results.
+- Branch: `feat/behavioral-signal-tracking`
+
+### Phase 7.5 Validation Gate
+All of the following must pass before Amir merges 7.5 work to main:
+- [ ] `search-jobs` returns 20+ jobs for a brand new user with no profile and no search criteria
+- [ ] Test account gets fit scores in search results
+- [ ] `grep -rn "fetch.*VITE_SUPABASE_URL" src/` returns only mock-interview matches
+- [ ] `skill_synonyms` seeded (30+ rows)
+- [ ] `job_interactions` table exists with RLS enabled
+- [ ] `discovery_jobs` has rows with source_board = 'adzuna' and 'usajobs' (after secrets set)
+- [ ] Cleanup cron jobs appear in `cron.job` table
+
+---
+
 ## PHASE 8 -- Gig Marketplace and Service Catalog (Week 3-4) [DEFERRED]
 
 > **Status: DEFERRED** — This phase is planned but not yet implemented. All specifications below are preserved for future development.
@@ -497,9 +620,25 @@ Working marketplace on dev. Projects, proposals, contracts, milestones, services
 
 ---
 
-## PHASE 9 -- Automation Layer (Week 4-5) [DEFERRED]
+## PHASE 9 -- Automation Layer (Week 4-5) [PARTIALLY SHIPPED]
 
-> **Status: DEFERRED** — This phase is planned but not yet implemented. All specifications below are preserved for future development.
+> **Status: IN PROGRESS** — Discovery Agent (Agent 1) fully shipped April 2026. Remaining four agents and automation controls are planned but not yet implemented.
+>
+> **SHIPPED (April 2026) — Discovery Agent:**
+> - Supabase Edge Function `discovery-agent` v7 deployed (ACTIVE, bryoehuhhhjqcueomgev)
+> - 5 board adapters: RemoteOK (ON), Greenhouse (ON), Lever (ON), Adzuna (OFF — awaiting key), USAJobs (OFF — awaiting key)
+> - Staging table `discovery_jobs` + `scraper_runs` audit log created and active
+> - `bridge_jobs_to_discovered()` pg_cron runs every 30 min; fans jobs into per-user `discovered_jobs`
+> - `discovery_company_sources` seeded: 5 Greenhouse companies + 4 Lever companies
+> - 7 feature flags: master `discovery_agent` ON + per-board kill switches
+> - `DiscoveryHealthPanel` component live in Command Center (reads `scraper_runs`)
+> - 30+ jobs in `discovery_jobs`; SHA-256 dedup confirmed working; all code in `main` branch
+>
+> **OPEN — To activate remaining sources:**
+> - Set ADZUNA_APP_ID, ADZUNA_APP_KEY, USAJOBS_API_KEY, USAJOBS_USER_AGENT in Supabase Edge Function Secrets
+> - Flip feature flags `discovery_board_adzuna` and `discovery_board_usajobs` to true
+>
+> **NOT YET STARTED (specifications below preserved):** Agents 2-5, Autopilot Mode wiring, continuous scheduling, smart prioritization, Stripe Connect payments, self-healing recovery.
 
 **Purpose:** Activate the Crew. Build Autopilot Mode, continuous discovery, smart prioritization, and the full agent control system.
 
@@ -651,21 +790,22 @@ Platform live at icareeros.com. All validation passed. Disaster recovery tested.
 
 ---
 
-## Phase Summary
+## Phase Summary — Updated April 20, 2026
 
-| Phase | Name | Timeline | Source |
+| Phase | Name | Status | Notes |
 |---|---|---|---|
-| 1 | Foundation and Rebrand Sweep | Days 1-3 | Original P1 + rebrand |
-| 2 | Security Hardening | Days 1-2 | Original P2 |
-| 3 | Deployment and CI/CD | Days 3-7 | Original P3 + P4 + P5 |
-| 4 | Observability and Code Quality | Week 2 | Original P6 + P8 |
-| 5 | Market Intelligence and Career OS Definition | Week 2 | New P1 + P2 |
-| 6 | Mission, Vision, and Agent Architecture | Week 2-3 | New P3 + P4 |
-| 7 | MVP Build | Week 2-4 | New P5 + Original P7 |
-| 8 | Gig Marketplace and Service Catalog | Week 3-4 | Original P9 + P10 partial |
-| 9 | Automation Layer | Week 4-5 | New P6 + Original P10 partial |
-| 10 | Positioning, Messaging, and i18n | Week 5 | New P7 + Original P10.5 |
-| 11 | Launch Validation | Week 6 | Original P11 + Final Output |
+| 1 | Foundation and Rebrand Sweep | COMPLETE | Rebrand done, auth pages live |
+| 2 | Security Hardening | COMPLETE | RLS hardened, stale ref retired |
+| 3 | Deployment and CI/CD | COMPLETE | icareeros.com live on Vercel |
+| 4 | Observability and Code Quality | IN PROGRESS | Event bus done; Sentry/BetterStack pending |
+| 5 | Market Intelligence and Career OS Definition | COMPLETE | Strategy docs in repo |
+| 6 | Mission, Vision, and Agent Architecture | COMPLETE | Five Crew agents designed |
+| 7 | MVP Build | IN PROGRESS | All features built; wiring fixes open |
+| 7.5 | Job Search and Matching Overhaul | IN PROGRESS | Four-mode search, raw-fetch fixes, behavioral signals |
+| 8 | Gig Marketplace and Service Catalog | DEFERRED | Specs preserved |
+| 9 | Automation Layer | IN PROGRESS | Discovery Agent shipped; Agents 2-5 not started |
+| 10 | Positioning, Messaging, and i18n | OPEN | Messaging docs drafted; i18n not finalized |
+| 11 | Launch Validation | OPEN | Blocked on Phase 7.5 completion + Sentry |
 
 ---
 
