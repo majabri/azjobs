@@ -44,11 +44,18 @@ export default function SalaryProjection({ skills, careerLevel, salaryMin, salar
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { toast.error("Please sign in"); return; }
 
-      const { data: result, error: fnErr } = await supabase.functions.invoke("salary-projection", {
-        body: { skills, careerLevel, salaryMin, salaryMax, salaryTarget, targetTitles, experience },
+      const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/salary-projection`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ skills, careerLevel, salaryMin, salaryMax, salaryTarget, targetTitles, experience }),
       });
-      if (fnErr || !result) throw new Error(fnErr?.message ?? "Failed to generate projection");
-      setData(result);
+
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        throw new Error(err.error || "Failed to generate projection");
+      }
+
+      setData(await resp.json());
     } catch (e: any) {
       toast.error(e.message || "Failed to generate salary projection");
     } finally {

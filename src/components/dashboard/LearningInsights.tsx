@@ -23,8 +23,12 @@ export default function LearningInsights() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
-      const { data, error: fnErr } = await supabase.functions.invoke("learning-insights", { body: {} });
-      if (fnErr || !data) throw new Error(fnErr?.message ?? "Failed");
+      const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/learning-insights`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+      });
+      if (!resp.ok) throw new Error("Failed");
+      const data = await resp.json();
       setInsights(data.insights || []);
     } catch { toast.error("Failed to generate insights"); }
     finally { setLoading(false); }

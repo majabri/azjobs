@@ -83,12 +83,14 @@ export default function OnboardingWizard() {
       } as any);
 
       // Extract profile via edge function
-      const { data: extractData, error: fnErr } = await supabase.functions.invoke("extract-profile-fields", {
-        body: { resumeText: result.text },
+      const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extract-profile-fields`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ resumeText: result.text }),
       });
 
-      if (!fnErr && extractData) {
-        const { profile: extracted } = extractData;
+      if (resp.ok) {
+        const { profile: extracted } = await resp.json();
         const local = extractProfileFromResume(result.text);
         
         if (extracted) {

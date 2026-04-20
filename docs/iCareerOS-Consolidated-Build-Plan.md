@@ -73,7 +73,7 @@ The following decisions resolve all conflicts between the original 11-phase prod
 
 9. **Missing canonical entries:** Skill Store, Skill Radar, Network Tracker, and Career XP are now added to the canonical table above. They are future modules built in Phase 8+ alongside the Crew automation.
 
-10. **Supabase project ref:** Production is `bryoehuhhhjqcueomgev` (CareerPlatform). Staging is `muevgfmpzykihjuihnga` (icareeros-staging, created 2026-04-19). The old Lovable ref `gberhsbddthwkjimsqig` no longer exists in the org and must not be referenced anywhere.
+10. **Supabase project ref:** Production is bryoehuhhhjqcueomgev (CareerPlatform). The old Lovable ref gberhsbddthwkjimsqig is deprecated and must not be used for any new deployments.
 
 ---
 

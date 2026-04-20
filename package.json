@@ -12,7 +12,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "seed:admin": "npx tsx scripts/seed-admin.ts",
-    "check:soa": "bash scripts/check-soa.sh && npx tsx scripts/check-cross-service-imports.ts"
+    "check:soa": "bash scripts/check-soa.sh && npx tsx scripts/check-cross-service-imports.ts",
+    "prepare": "husky"
   },
   "dependencies": {
     "@hello-pangea/dnd": "^17.0.0",
@@ -96,6 +97,7 @@
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^15.15.0",
     "jsdom": "^29.0.1",
+    "lint-staged": "^16.4.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.8.3",

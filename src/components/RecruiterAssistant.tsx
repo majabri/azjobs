@@ -45,7 +45,6 @@ export default function RecruiterAssistant() {
         .eq("user_id", session.user.id)
         .maybeSingle();
 
-      // SSE streaming — raw fetch is intentional; invoke() does not support streaming
       const resp = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/recruiter-assistant`,
         {

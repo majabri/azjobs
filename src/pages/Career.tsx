@@ -34,7 +34,6 @@ export default function CareerPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
-  const [careerError, setCareerError] = useState<string | null>(null);
   const [insight, setInsight] = useState<CareerInsight | null>(null);
   const [editingGoals, setEditingGoals] = useState(false);
 
@@ -101,7 +100,6 @@ export default function CareerPage() {
 
   const analyzeCareer = async () => {
     setAnalyzing(true);
-    setCareerError(null);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { toast.error("Please sign in"); return; }
@@ -114,9 +112,10 @@ export default function CareerPage() {
 
       const { data: history } = await supabase.from("analysis_history" as any).select("job_title, overall_score, gaps, matched_skills").eq("user_id", session.user.id).order("created_at", { ascending: false }).limit(5) as any;
 
-      // Invoke career-path-analysis via SDK (replaces raw fetch — auth injected automatically)
-      const { data, error: fnErr } = await supabase.functions.invoke("career-path-analysis", {
-        body: {
+      const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/career-path-analysis`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({
           skills: profile.skills,
           careerLevel: (profile as any).career_level,
           experience: profile.work_experience,
@@ -125,19 +124,12 @@ export default function CareerPage() {
           targetTitles: (profile as any).target_job_titles,
           recentAnalyses: history || [],
           includeRoadmap: true,
-        },
+        }),
       });
-
-      if (fnErr || !data) throw new Error(fnErr?.message ?? "Roadmap generation failed");
-      setInsight(data as CareerInsight);
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Roadmap failed";
-      setCareerError(msg);
-      toast.error("Roadmap failed. Please retry.");
-      logger.error("[Career] analyzeCareer error:", e);
-    } finally {
-      setAnalyzing(false);
-    }
+      if (!resp.ok) throw new Error("Analysis failed");
+      setInsight(await resp.json());
+    } catch { toast.error("Failed to analyze career path"); }
+    finally { setAnalyzing(false); }
   };
 
   if (loading) return <div className="min-h-screen bg-background flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-accent" /></div>;
@@ -234,19 +226,12 @@ export default function CareerPage() {
             </Button>
           </div>
 
-          {careerError && !analyzing && (
-            <div className="text-center py-8 text-destructive">
-              <p className="font-medium mb-1">Roadmap failed. Please retry.</p>
-              <p className="text-sm text-muted-foreground">{careerError}</p>
-            </div>
-          )}
-
-          {!insight && !careerError ? (
+          {!insight ? (
             <div className="text-center py-8">
               <Map className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-              <p className="text-muted-foreground">{analyzing ? "Generating roadmap…" : "Generate your personalized career roadmap based on your profile, skills, and market data."}</p>
+              <p className="text-muted-foreground">Generate your personalized career roadmap based on your profile, skills, and market data.</p>
             </div>
-          ) : insight ? (
+          ) : (
             <div className="space-y-6">
               {/* Current Level */}
               <div className="flex items-center gap-3 p-3 rounded-lg bg-accent/5 border border-accent/20">
@@ -323,7 +308,7 @@ export default function CareerPage() {
                 <p className="text-sm text-foreground leading-relaxed">{insight.advice}</p>
               </Card>
             </div>
-          ) : null}
+          )}
         </Card>
 
         {/* Salary Projections */}

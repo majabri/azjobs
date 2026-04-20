@@ -44,18 +44,28 @@ export default function CareerPathIntelligence() {
         .order("created_at", { ascending: false })
         .limit(5) as any;
 
-      const { data, error: fnErr } = await supabase.functions.invoke("career-path-analysis", {
-        body: {
-          skills: profile.skills,
-          careerLevel: (profile as any).career_level,
-          experience: profile.work_experience,
-          education: profile.education,
-          certifications: profile.certifications,
-          targetTitles: (profile as any).target_job_titles,
-          recentAnalyses: history || [],
-        },
-      });
-      if (fnErr || !data) throw new Error(fnErr?.message ?? "Analysis failed");
+      const resp = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/career-path-analysis`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            skills: profile.skills,
+            careerLevel: (profile as any).career_level,
+            experience: profile.work_experience,
+            education: profile.education,
+            certifications: profile.certifications,
+            targetTitles: (profile as any).target_job_titles,
+            recentAnalyses: history || [],
+          }),
+        }
+      );
+
+      if (!resp.ok) throw new Error("Analysis failed");
+      const data = await resp.json();
       setInsight(data);
     } catch {
       toast.error("Failed to analyze career path");
