@@ -219,13 +219,11 @@ export default function ProfileForm({ profile, setProfile, onSave, saving }: Pro
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { toast.error("Please sign in"); return; }
-      const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extract-profile-fields`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify({ resumeText: `Skills: ${profile.skills.join(", ")}. Experience: ${profile.work_experience.map(w => `${w.title} at ${w.company}`).join("; ")}` }),
+      const { data: extractData, error: fnErr } = await supabase.functions.invoke("extract-profile-fields", {
+        body: { resumeText: `Skills: ${profile.skills.join(", ")}. Experience: ${profile.work_experience.map(w => `${w.title} at ${w.company}`).join("; ")}` },
       });
-      if (!resp.ok) throw new Error("Failed");
-      const { profile: extracted } = await resp.json();
+      if (fnErr || !extractData) throw new Error(fnErr?.message ?? "Failed");
+      const { profile: extracted } = extractData;
       if (extracted?.target_job_titles?.length || extracted?.job_titles?.length) {
         const suggestions = (extracted.target_job_titles || extracted.job_titles || []).filter((t: string) => !profile.target_job_titles.includes(t));
         if (suggestions.length > 0) {
@@ -256,22 +254,12 @@ export default function ProfileForm({ profile, setProfile, onSave, saving }: Pro
       let extracted: any = null;
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        const token = session?.access_token;
-        if (token) {
-          const resp = await fetch(
-            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extract-profile-fields`,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-              body: JSON.stringify({ resumeText: result.text }),
-            }
-          );
-          if (resp.ok) {
-            const data = await resp.json();
-            extracted = data.profile;
+        if (session) {
+          const { data: extractData, error: fnErr } = await supabase.functions.invoke("extract-profile-fields", {
+            body: { resumeText: result.text },
+          });
+          if (!fnErr && extractData) {
+            extracted = extractData.profile;
           }
         }
       } catch (aiErr) {
