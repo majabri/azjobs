@@ -205,6 +205,8 @@ export async function markJobInteraction(
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   const isUuid = uuidRegex.test(jobId);
 
+  // job_interactions table is not yet in the generated Supabase types; cast until next `supabase gen types` run
+  /* eslint-disable @typescript-eslint/no-explicit-any */
   await (supabase as any).from("job_interactions").insert({
     user_id:         session.user.id,
     job_id:          isUuid ? jobId : null,
@@ -212,6 +214,7 @@ export async function markJobInteraction(
     action:          mappedAction,
     metadata:        {},
   }).catch(() => {}); // non-fatal — interaction tracking must never break the UI
+  /* eslint-enable @typescript-eslint/no-explicit-any */
 }
 
 // ---------------------------------------------------------------------------
@@ -247,45 +250,48 @@ export async function searchDatabaseJobsFallback(filters: JobSearchFilters): Pro
 
     const COLS = "id, title, company, location, job_type, description, job_url, quality_score, is_flagged, flag_reasons, salary, market_rate, seniority, is_remote, source, first_seen_at";
 
-    // Helper: apply shared non-text filters to a query builder
-    const applyCommonFilters = (q: ReturnType<typeof supabase.from>) => {
+    // Helper: build a typed query with common filters + optional OR clause applied
+    // Filters are applied before .order()/.limit() so the type stays as PostgrestFilterBuilder
+    const buildFilteredQuery = (orParts: string[]) => {
+      let q = supabase.from("scraped_jobs").select(COLS);
       if (filters.location && !/^\s*remote\s*$/i.test(filters.location))
-        q = (q as any).ilike("location", `%${filters.location}%`);
-      if (filters.jobTypes.includes("remote")) q = (q as any).eq("is_remote", true);
+        q = q.ilike("location", `%${filters.location}%`);
+      if (filters.jobTypes.includes("remote")) q = q.eq("is_remote", true);
       const structuredTypes = filters.jobTypes
         .filter(t => !["remote","hybrid","in-office"].includes(t))
         .flatMap(t => JOB_TYPE_MAP[t] ?? [t]);
       if (structuredTypes.length > 0)
-        q = (q as any).or(structuredTypes.map(t => `job_type.ilike.%${t}%`).join(","));
+        q = q.or(structuredTypes.map(t => `job_type.ilike.%${t}%`).join(","));
       const salaryMin = filters.salaryMin ? parseInt(filters.salaryMin.replace(/\D/g,""), 10) : null;
       const salaryMax = filters.salaryMax ? parseInt(filters.salaryMax.replace(/\D/g,""), 10) : null;
-      if (salaryMin && !isNaN(salaryMin)) q = (q as any).gte("market_rate", salaryMin);
-      if (salaryMax && !isNaN(salaryMax)) q = (q as any).lte("market_rate", salaryMax);
+      if (salaryMin && !isNaN(salaryMin)) q = q.gte("market_rate", salaryMin);
+      if (salaryMax && !isNaN(salaryMax)) q = q.lte("market_rate", salaryMax);
       // Default to 30 days if not specified (scraper data may be a few weeks old)
       const daysOld = filters.days_old || 30;
       const cutoff = new Date(Date.now() - daysOld * 86400000).toISOString();
-      q = (q as any).gte("first_seen_at", cutoff);
-      if (!filters.showFlagged) q = (q as any).eq("is_flagged", false);
-      return q;
+      q = q.gte("first_seen_at", cutoff);
+      if (!filters.showFlagged) q = q.eq("is_flagged", false);
+      if (orParts.length > 0) q = q.or(orParts.slice(0, 20).join(","));
+      return q.order("quality_score", { ascending: false }).limit(limit);
     };
 
-    const toResult = (row: any, matchReason: string): JobResult => ({
-      id: row.id,
-      title: row.title || "Job Opportunity",
-      company: row.company || "Company",
-      location: row.location || "Remote",
-      type: row.job_type || "full-time",
-      description: row.description || "",
-      url: normalizeJobUrl(row.job_url) || "",
+    const toResult = (row: Record<string, unknown>, matchReason: string): JobResult => ({
+      id: row.id as string,
+      title: (row.title as string) || "Job Opportunity",
+      company: (row.company as string) || "Company",
+      location: (row.location as string) || "Remote",
+      type: (row.job_type as string) || "full-time",
+      description: (row.description as string) || "",
+      url: normalizeJobUrl(row.job_url as string | null) || "",
       matchReason,
-      quality_score: row.quality_score ?? 50,
-      is_flagged: row.is_flagged ?? false,
-      flag_reasons: row.flag_reasons ?? [],
-      salary: row.salary,
-      seniority: row.seniority,
-      is_remote: row.is_remote,
-      source: row.source || "database",
-      first_seen_at: row.first_seen_at,
+      quality_score: (row.quality_score as number) ?? 50,
+      is_flagged: (row.is_flagged as boolean) ?? false,
+      flag_reasons: (row.flag_reasons as string[]) ?? [],
+      salary: row.salary as string | null,
+      seniority: row.seniority as string | null,
+      is_remote: row.is_remote as boolean | null,
+      source: (row.source as string) || "database",
+      first_seen_at: row.first_seen_at as string | null,
     });
 
     // ── PASS 1: Title matches (strongest signal — jobs whose title matches the
@@ -305,18 +311,14 @@ export async function searchDatabaseJobsFallback(filters: JobSearchFilters): Pro
       qKws.slice(0, 4).forEach(kw => titleOrParts.push(`title.ilike.%${kw}%`));
     }
 
-    let titleJobs: any[] = [];
+    let titleJobs: Array<Record<string, unknown>> = [];
     if (titleOrParts.length > 0) {
-      let q = applyCommonFilters(
-        supabase.from("scraped_jobs").select(COLS).order("quality_score", { ascending: false }).limit(limit)
-      );
-      q = (q as any).or(titleOrParts.slice(0, 20).join(","));
-      const { data, error } = await (q as any);
+      const { data, error } = await buildFilteredQuery(titleOrParts);
       if (error) logger.error("[searchDatabaseJobsFallback] title pass error:", error.message);
       titleJobs = data || [];
     }
 
-    const titleJobIds = new Set(titleJobs.map((j: any) => j.id));
+    const titleJobIds = new Set(titleJobs.map((j) => j.id as string));
 
     // ── PASS 2: Skill / description matches (secondary signal — jobs whose
     //           description mentions the user's required skills, excluding any
@@ -347,24 +349,20 @@ export async function searchDatabaseJobsFallback(filters: JobSearchFilters): Pro
       qKws.slice(0, 4).forEach(kw => descOrParts.push(`description.ilike.%${kw}%`));
     }
 
-    let skillJobs: any[] = [];
+    let skillJobs: Array<Record<string, unknown>> = [];
     if (descOrParts.length > 0) {
-      let q = applyCommonFilters(
-        supabase.from("scraped_jobs").select(COLS).order("quality_score", { ascending: false }).limit(limit)
-      );
-      q = (q as any).or(descOrParts.slice(0, 20).join(","));
-      const { data, error } = await (q as any);
+      const { data, error } = await buildFilteredQuery(descOrParts);
       if (error) logger.error("[searchDatabaseJobsFallback] skill pass error:", error.message);
       // Exclude jobs already returned by the title pass
-      skillJobs = (data || []).filter((j: any) => !titleJobIds.has(j.id));
+      skillJobs = (data || []).filter((j) => !titleJobIds.has(j.id as string));
     }
 
     // ── Combine: title matches first, skill matches second.
     //    matchReason carries the title text so client-side scoring
     //    rewards matches that align with profile keywords. ──
     const combined = [
-      ...titleJobs.map((row: any) => toResult(row, `${row.title} ${row.description || ""}`)),
-      ...skillJobs.map((row: any) => toResult(row, `${row.title} ${row.description || ""}`)),
+      ...titleJobs.map((row) => toResult(row as Record<string, unknown>, `${row.title} ${row.description || ""}`)),
+      ...skillJobs.map((row) => toResult(row as Record<string, unknown>, `${row.title} ${row.description || ""}`)),
     ];
 
     return combined.slice(0, limit);

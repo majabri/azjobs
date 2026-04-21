@@ -55,7 +55,7 @@ export default function AdminAgentRuns() {
   const [showManual, setShowManual] = useState(false);
 
   const load = useCallback(async () => {
-    const { data } = await (supabase as any)
+    const { data } = await supabase
       .from("agent_runs")
       .select("*")
       .order("started_at", { ascending: false })
@@ -75,7 +75,7 @@ export default function AdminAgentRuns() {
   }, [runs, load]);
 
   const retryRun = async (runId: string) => {
-    const { error } = await (supabase as any)
+    const { error } = await supabase
       .from("agent_runs")
       .update({ status: "pending", errors: [], completed_at: null })
       .eq("id", runId);
@@ -88,7 +88,7 @@ export default function AdminAgentRuns() {
   };
 
   const cancelRun = async (runId: string) => {
-    const { error } = await (supabase as any)
+    const { error } = await supabase
       .from("agent_runs")
       .update({ status: "cancelled", completed_at: new Date().toISOString() })
       .eq("id", runId);

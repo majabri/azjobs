@@ -45,10 +45,10 @@ export default function PublicProfilePage() {
       setProfile(p);
 
       const { data: items } = await supabase
-        .from("user_portfolio_items" as any)
+        .from("user_portfolio_items")
         .select("*")
         .eq("user_id", userId!)
-        .order("display_order", { ascending: true }) as any;
+        .order("display_order", { ascending: true });
       setPortfolio(items || []);
     } catch { setNotFound(true); }
     finally { setLoading(false); }
@@ -102,8 +102,8 @@ export default function PublicProfilePage() {
     </div>
   );
 
-  const experience = (profile.work_experience as any[]) || [];
-  const education = (profile.education as any[]) || [];
+  const experience = (profile.work_experience as Array<Record<string, unknown>>) || [];
+  const education = (profile.education as Array<Record<string, unknown>>) || [];
   const skills = (profile.skills as string[]) || [];
   const certs = (profile.certifications as string[]) || [];
 

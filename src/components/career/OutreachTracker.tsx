@@ -1,24 +1,16 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Loader2, Trash2, Send, CheckCircle2, Clock, X } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { logger } from '@/lib/logger';
-
-interface OutreachContact {
-  id: string;
-  contact_name: string;
-  company: string;
-  role: string;
-  platform: string;
-  response_status: string;
-  sent_at: string | null;
-  notes: string;
-  created_at: string;
-}
+import {
+  useOutreachContacts,
+  useAddOutreachContact,
+  useUpdateOutreachContact,
+  useDeleteOutreachContact,
+} from "@/hooks/queries/useOutreachContacts";
 
 const STATUS_OPTIONS = [
   { value: "pending", label: "Pending", icon: Clock, color: "text-muted-foreground" },
@@ -28,56 +20,37 @@ const STATUS_OPTIONS = [
 ];
 
 export default function OutreachTracker() {
-  const [contacts, setContacts] = useState<OutreachContact[]>([]);
-  const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [newContact, setNewContact] = useState({ contact_name: "", company: "", role: "", platform: "linkedin" });
   const [filter, setFilter] = useState("all");
 
-  useEffect(() => { loadContacts(); }, []);
-
-  const loadContacts = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-      const { data } = await supabase.from("outreach_contacts" as any).select("*").eq("user_id", session.user.id).order("created_at", { ascending: false }) as any;
-      setContacts(data || []);
-    } catch (e) { logger.error(e); }
-    finally { setLoading(false); }
-  };
+  const { data: contacts = [], isLoading: loading } = useOutreachContacts();
+  const addContactMutation = useAddOutreachContact();
+  const updateContactMutation = useUpdateOutreachContact();
+  const deleteContactMutation = useDeleteOutreachContact();
 
   const addContact = async () => {
-    if (!newContact.contact_name.trim() || !newContact.company.trim()) { toast.error("Name and company required"); return; }
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-      await (supabase.from("outreach_contacts" as any) as any).insert({
-        user_id: session.user.id,
-        ...newContact,
-      });
-      toast.success("Contact added!");
-      setNewContact({ contact_name: "", company: "", role: "", platform: "linkedin" });
-      setShowAdd(false);
-      loadContacts();
-    } catch { toast.error("Failed to add"); }
+    if (!newContact.contact_name.trim() || !newContact.company.trim()) {
+      toast.error("Name and company required");
+      return;
+    }
+    await addContactMutation.mutateAsync(newContact);
+    setNewContact({ contact_name: "", company: "", role: "", platform: "linkedin" });
+    setShowAdd(false);
   };
 
   const updateStatus = async (id: string, status: string) => {
-    try {
-      await (supabase.from("outreach_contacts" as any) as any).update({
+    await updateContactMutation.mutateAsync({
+      id,
+      updates: {
         response_status: status,
         ...(status === "sent" ? { sent_at: new Date().toISOString() } : {}),
-      }).eq("id", id);
-      setContacts(prev => prev.map(c => c.id === id ? { ...c, response_status: status } : c));
-    } catch { toast.error("Failed to update"); }
+      },
+    });
   };
 
   const deleteContact = async (id: string) => {
-    try {
-      await (supabase.from("outreach_contacts" as any) as any).delete().eq("id", id);
-      setContacts(prev => prev.filter(c => c.id !== id));
-      toast.success("Removed");
-    } catch { toast.error("Failed to delete"); }
+    await deleteContactMutation.mutateAsync(id);
   };
 
   const filtered = filter === "all" ? contacts : contacts.filter(c => c.response_status === filter);
@@ -110,7 +83,9 @@ export default function OutreachTracker() {
           <Input value={newContact.contact_name} onChange={e => setNewContact({ ...newContact, contact_name: e.target.value })} placeholder="Name" />
           <Input value={newContact.company} onChange={e => setNewContact({ ...newContact, company: e.target.value })} placeholder="Company" />
           <Input value={newContact.role} onChange={e => setNewContact({ ...newContact, role: e.target.value })} placeholder="Role" />
-          <Button onClick={addContact} size="sm">Add</Button>
+          <Button onClick={addContact} size="sm" disabled={addContactMutation.isPending}>
+            {addContactMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "Add"}
+          </Button>
         </div>
       )}
 

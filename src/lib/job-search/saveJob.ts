@@ -68,7 +68,7 @@ export async function saveJobToApplications(input: SaveJobInput): Promise<{
     job_url: normalizedUrl || null,
     status: "saved",
     notes: notesParts.join("\n"),
-  } as any);
+  });
 
   if (insertError) {
     return { ok: false, error: insertError.message };

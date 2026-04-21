@@ -1,13 +1,13 @@
-import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, TrendingUp, DollarSign, Award, Target, Zap } from "lucide-react";
 import HelpTooltip from "@/components/HelpTooltip";
-import { supabase } from "@/integrations/supabase/client";
 import {
   RadialBarChart, RadialBar, ResponsiveContainer, PolarAngleAxis,
 } from "recharts";
-import { logger } from '@/lib/logger';
+import { useJobApplications } from "@/hooks/queries/useJobApplications";
+import { useAnalysisHistory } from "@/hooks/queries/useAnalysisHistory";
+import { useOffers } from "@/hooks/queries/useOffers";
 
 interface ROIData {
   overallROI: number;
@@ -20,102 +20,97 @@ interface ROIData {
   weeklyTrend: "up" | "down" | "flat";
 }
 
-export default function CareerROIScore() {
-  const [data, setData] = useState<ROIData | null>(null);
-  const [loading, setLoading] = useState(true);
+function computeROI(
+  apps: { status: string; interview_stage: string | null; applied_at: string | null }[],
+  history: { overall_score: number; created_at: string }[],
+  offers: { base_salary: number | null; bonus: number | null; equity: number | null; total_comp: number | null; market_rate: number | null; status: string }[],
+): ROIData {
+  // Fit score growth
+  let fitScoreGrowth = 0;
+  if (history.length >= 4) {
+    const half = Math.floor(history.length / 2);
+    const oldAvg = history.slice(0, half).reduce((s, h) => s + h.overall_score, 0) / half;
+    const newAvg = history.slice(half).reduce((s, h) => s + h.overall_score, 0) / (history.length - half);
+    fitScoreGrowth = Math.round(newAvg - oldAvg);
+  }
 
-  useEffect(() => { compute(); }, []);
+  // Interview conversion
+  const interviews = apps.filter(a => a.status === "interview" || a.interview_stage);
+  const interviewRate = apps.length > 0 ? (interviews.length / apps.length) * 100 : 0;
+  const interviewConversionImprovement = Math.round(interviewRate);
 
-  const compute = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
+  // Compensation gains
+  const acceptedOffers = offers.filter(o => o.status === "accepted");
+  let totalCompGains = 0;
+  let bestOfferVsMarket = 0;
+  let marketValueDelta = 0;
 
-      const [appsRes, historyRes, offersRes] = await Promise.all([
-        supabase.from("job_applications").select("status, interview_stage, applied_at").eq("user_id", session.user.id),
-        supabase.from("analysis_history" as any).select("overall_score, created_at").eq("user_id", session.user.id).order("created_at", { ascending: true }).limit(100) as any,
-        supabase.from("offers").select("base_salary, bonus, equity, total_comp, market_rate, status").eq("user_id", session.user.id) as any,
-      ]);
+  const offersPool = acceptedOffers.length > 0 ? acceptedOffers : offers;
+  if (offersPool.length > 0) {
+    const bestOffer = offersPool.reduce((best, o) => {
+      const comp = (o.total_comp || (o.base_salary || 0) + (o.bonus || 0) + (o.equity || 0));
+      return comp > best.comp ? { ...o, comp } : best;
+    }, { base_salary: null as number | null, bonus: null as number | null, equity: null as number | null, total_comp: null as number | null, market_rate: null as number | null, status: "", comp: 0 });
+    totalCompGains = bestOffer.comp;
+    if ((bestOffer.market_rate || 0) > 0) {
+      bestOfferVsMarket = Math.round(((bestOffer.comp - (bestOffer.market_rate || 0)) / (bestOffer.market_rate || 1)) * 100);
+      marketValueDelta = bestOffer.comp - (bestOffer.market_rate || 0);
+    }
+  }
 
-      const apps = appsRes.data || [];
-      const history = (historyRes.data || []) as { overall_score: number; created_at: string }[];
-      const offers = (offersRes.data || []) as { base_salary: number; bonus: number; equity: number; total_comp: number; market_rate: number; status: string }[];
+  // Overall ROI: weighted composite
+  const scoreComponent = Math.min(100, Math.max(0, 50 + fitScoreGrowth * 2));
+  const interviewComponent = Math.min(100, interviewConversionImprovement * 3);
+  const compComponent = bestOfferVsMarket > 0 ? Math.min(100, 50 + bestOfferVsMarket * 2) : 30;
+  const overallROI = Math.round(scoreComponent * 0.3 + interviewComponent * 0.35 + compComponent * 0.35);
 
-      // Fit score growth
-      let fitScoreGrowth = 0;
-      if (history.length >= 4) {
-        const half = Math.floor(history.length / 2);
-        const oldAvg = history.slice(0, half).reduce((s, h) => s + h.overall_score, 0) / half;
-        const newAvg = history.slice(half).reduce((s, h) => s + h.overall_score, 0) / (history.length - half);
-        fitScoreGrowth = Math.round(newAvg - oldAvg);
-      }
+  // Weekly trend
+  const oneWeekAgo = new Date(Date.now() - 7 * 86400000).toISOString();
+  const recentScores = history.filter(h => h.created_at >= oneWeekAgo);
+  const olderScores = history.filter(h => h.created_at < oneWeekAgo);
+  let weeklyTrend: "up" | "down" | "flat" = "flat";
+  if (recentScores.length > 0 && olderScores.length > 0) {
+    const recentAvg = recentScores.reduce((s, h) => s + h.overall_score, 0) / recentScores.length;
+    const olderAvg = olderScores.reduce((s, h) => s + h.overall_score, 0) / olderScores.length;
+    weeklyTrend = recentAvg > olderAvg + 2 ? "up" : recentAvg < olderAvg - 2 ? "down" : "flat";
+  }
 
-      // Interview conversion
-      const interviews = apps.filter(a => a.status === "interview" || a.interview_stage);
-      const interviewRate = apps.length > 0 ? (interviews.length / apps.length) * 100 : 0;
-      const interviewConversionImprovement = Math.round(interviewRate);
-
-      // Compensation gains
-      const acceptedOffers = offers.filter(o => o.status === "accepted");
-      let totalCompGains = 0;
-      let bestOfferVsMarket = 0;
-      let marketValueDelta = 0;
-
-      if (acceptedOffers.length > 0) {
-        const bestOffer = acceptedOffers.reduce((best, o) => {
-          const comp = (o.total_comp || (o.base_salary || 0) + (o.bonus || 0) + (o.equity || 0));
-          return comp > best.comp ? { ...o, comp } : best;
-        }, { comp: 0, market_rate: 0 } as any);
-        totalCompGains = bestOffer.comp;
-        if (bestOffer.market_rate > 0) {
-          bestOfferVsMarket = Math.round(((bestOffer.comp - bestOffer.market_rate) / bestOffer.market_rate) * 100);
-          marketValueDelta = bestOffer.comp - bestOffer.market_rate;
-        }
-      } else if (offers.length > 0) {
-        const bestOffer = offers.reduce((best, o) => {
-          const comp = (o.total_comp || (o.base_salary || 0) + (o.bonus || 0) + (o.equity || 0));
-          return comp > best.comp ? { ...o, comp } : best;
-        }, { comp: 0, market_rate: 0 } as any);
-        totalCompGains = bestOffer.comp;
-        if (bestOffer.market_rate > 0) {
-          bestOfferVsMarket = Math.round(((bestOffer.comp - bestOffer.market_rate) / bestOffer.market_rate) * 100);
-          marketValueDelta = bestOffer.comp - bestOffer.market_rate;
-        }
-      }
-
-      // Overall ROI: weighted composite
-      const scoreComponent = Math.min(100, Math.max(0, 50 + fitScoreGrowth * 2));
-      const interviewComponent = Math.min(100, interviewConversionImprovement * 3);
-      const compComponent = bestOfferVsMarket > 0 ? Math.min(100, 50 + bestOfferVsMarket * 2) : 30;
-      const overallROI = Math.round(scoreComponent * 0.3 + interviewComponent * 0.35 + compComponent * 0.35);
-
-      // Weekly trend
-      const oneWeekAgo = new Date(Date.now() - 7 * 86400000).toISOString();
-      const recentScores = history.filter(h => h.created_at >= oneWeekAgo);
-      const olderScores = history.filter(h => h.created_at < oneWeekAgo);
-      let weeklyTrend: "up" | "down" | "flat" = "flat";
-      if (recentScores.length > 0 && olderScores.length > 0) {
-        const recentAvg = recentScores.reduce((s, h) => s + h.overall_score, 0) / recentScores.length;
-        const olderAvg = olderScores.reduce((s, h) => s + h.overall_score, 0) / olderScores.length;
-        weeklyTrend = recentAvg > olderAvg + 2 ? "up" : recentAvg < olderAvg - 2 ? "down" : "flat";
-      }
-
-      setData({
-        overallROI: Math.max(5, Math.min(99, overallROI)),
-        marketValueDelta,
-        interviewConversionImprovement,
-        totalCompGains,
-        fitScoreGrowth,
-        appsToInterview: apps.length > 0 ? Math.round(apps.length / Math.max(1, interviews.length)) : 0,
-        bestOfferVsMarket,
-        weeklyTrend,
-      });
-    } catch (e) { logger.error(e); }
-    finally { setLoading(false); }
+  return {
+    overallROI: Math.max(5, Math.min(99, overallROI)),
+    marketValueDelta,
+    interviewConversionImprovement,
+    totalCompGains,
+    fitScoreGrowth,
+    appsToInterview: apps.length > 0 ? Math.round(apps.length / Math.max(1, interviews.length)) : 0,
+    bestOfferVsMarket,
+    weeklyTrend,
   };
+}
+
+export default function CareerROIScore() {
+  const { data: apps = [], isLoading: appsLoading } = useJobApplications();
+  const { data: history = [], isLoading: historyLoading } = useAnalysisHistory();
+  const { data: offers = [], isLoading: offersLoading } = useOffers();
+
+  const loading = appsLoading || historyLoading || offersLoading;
 
   if (loading) return <Card className="p-6 flex items-center justify-center h-48"><Loader2 className="w-6 h-6 animate-spin text-accent" /></Card>;
-  if (!data) return null;
+
+  // Sort history ascending by created_at (useAnalysisHistory may return desc)
+  const sortedHistory = [...history].sort((a, b) => a.created_at.localeCompare(b.created_at));
+
+  const data = computeROI(
+    apps.map(a => ({ status: a.status || "", interview_stage: (a as Record<string, string | null>)["interview_stage"] ?? null, applied_at: a.applied_at ?? null })),
+    sortedHistory.map(h => ({ overall_score: h.overall_score, created_at: h.created_at })),
+    offers.map(o => ({
+      base_salary: o.base_salary,
+      bonus: o.bonus,
+      equity: o.equity,
+      total_comp: o.total_comp,
+      market_rate: o.market_rate,
+      status: o.status,
+    })),
+  );
 
   const roiColor = data.overallROI >= 70 ? "hsl(var(--success))" : data.overallROI >= 40 ? "hsl(var(--accent))" : "hsl(var(--warning))";
   const chartData = [{ name: "ROI", value: data.overallROI, fill: roiColor }];

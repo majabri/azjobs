@@ -35,7 +35,7 @@ export default function ResumeComparison({ original, optimized, jobTitle }: Resu
         ? `Optimized for ${jobTitle.slice(0, 50)}`
         : `AI Optimized ${new Date().toLocaleDateString()}`;
 
-      await (supabase.from("resume_versions") as any).insert({
+      await supabase.from("resume_versions").insert({
         user_id: session.user.id,
         version_name: versionName,
         resume_text: optimized,

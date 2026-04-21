@@ -45,7 +45,7 @@ export default function EnhancedServiceHealthPanel() {
         .select("*")
         .order("service_name");
       if (error) throw error;
-      const rows = (data as any[]) ?? [];
+      const rows = data ?? [];
       setServices(rows);
 
       // Build response time history from current snapshot (simulate 24h with available data)

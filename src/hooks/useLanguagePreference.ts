@@ -27,7 +27,7 @@ export function useLanguagePreference() {
     (async () => {
       try {
         const { data, error } = await supabase
-          .from("user_preferences" as any)
+          .from("user_preferences")
           .select("preference_value")
           .eq("user_id", user.id)
           .eq("preference_key", "language")
@@ -37,7 +37,7 @@ export function useLanguagePreference() {
         // Cache this so we don't fire the same failing request on
         // every re-render or page navigation.
         if (error) {
-          const code = (error as any)?.code ?? "";
+          const code = error.code ?? "";
           const msg = (error.message ?? "").toLowerCase();
 
           if (
@@ -56,10 +56,9 @@ export function useLanguagePreference() {
           return;
         }
 
-        const row = data as any;
-        if (row?.preference_value && row.preference_value !== i18n.language) {
-          await i18n.changeLanguage(row.preference_value);
-          localStorage.setItem("icareeros_language", row.preference_value);
+        if (data?.preference_value && data.preference_value !== i18n.language) {
+          await i18n.changeLanguage(data.preference_value);
+          localStorage.setItem("icareeros_language", data.preference_value);
         }
       } catch {
         // Network-level error â localStorage fallback is already active

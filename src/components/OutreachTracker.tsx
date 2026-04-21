@@ -40,7 +40,7 @@ export default function OutreachTracker() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
-      const { data } = await supabase.from("outreach_contacts" as any).select("*").eq("user_id", session.user.id).order("created_at", { ascending: false }) as any;
+      const { data } = await supabase.from("outreach_contacts").select("*").eq("user_id", session.user.id).order("created_at", { ascending: false });
       setContacts(data || []);
     } catch (e) { logger.error(e); }
     finally { setLoading(false); }
@@ -51,7 +51,7 @@ export default function OutreachTracker() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
-      await (supabase.from("outreach_contacts" as any) as any).insert({
+      await supabase.from("outreach_contacts").insert({
         user_id: session.user.id,
         ...newContact,
       });
@@ -64,7 +64,7 @@ export default function OutreachTracker() {
 
   const updateStatus = async (id: string, status: string) => {
     try {
-      await (supabase.from("outreach_contacts" as any) as any).update({
+      await supabase.from("outreach_contacts").update({
         response_status: status,
         ...(status === "sent" ? { sent_at: new Date().toISOString() } : {}),
       }).eq("id", id);
@@ -74,7 +74,7 @@ export default function OutreachTracker() {
 
   const deleteContact = async (id: string) => {
     try {
-      await (supabase.from("outreach_contacts" as any) as any).delete().eq("id", id);
+      await supabase.from("outreach_contacts").delete().eq("id", id);
       setContacts(prev => prev.filter(c => c.id !== id));
       toast.success("Removed");
     } catch { toast.error("Failed to delete"); }

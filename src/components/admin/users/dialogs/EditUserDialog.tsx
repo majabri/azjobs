@@ -34,7 +34,7 @@ export function EditUserDialog({
         .eq("user_id", user.user_id)
         .maybeSingle()
         .then(({ data }) => {
-          setPhone((data as any)?.phone ?? "");
+          setPhone(data?.phone ?? "");
         });
     }
   }, [user]);

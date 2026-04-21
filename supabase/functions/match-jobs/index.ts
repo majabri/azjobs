@@ -33,11 +33,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { checkRateLimit } from "../_shared/rate-limit.ts";
 import { cleanJobText } from "../_shared/job-parser.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { corsHeaders } from "../_shared/cors.ts";
 
 const ANTHROPIC_API = "https://api.anthropic.com/v1/messages";
 const BATCH_SIZE = 10;          // jobs per Claude call

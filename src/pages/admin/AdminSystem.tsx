@@ -67,21 +67,21 @@ export default function AdminSystem() {
           .from("job_seeker_profiles")
           .select("user_id", { count: "exact", head: true }),
         supabase
-          .from("analysis_history" as any)
+          .from("analysis_history")
           .select("id", { count: "exact", head: true }),
         supabase
           .from("job_applications")
           .select("id", { count: "exact", head: true }),
         supabase
-          .from("agent_runs" as any)
+          .from("agent_runs")
           .select("id, user_id, status, errors, started_at")
           .order("started_at", { ascending: false })
-          .limit(100) as any,
-        (supabase as any).from("job_queue").select("id, status"),
+          .limit(100),
+        supabase.from("job_queue").select("id, status"),
         // FIX 3.10.3: Additional service checks
-        supabase.from("feature_flags" as any).select("key", { count: "exact", head: true }),
+        supabase.from("feature_flags").select("key", { count: "exact", head: true }),
         supabase.from("service_health").select("service_name, status").order("service_name"),
-        supabase.from("notifications" as any).select("id", { count: "exact", head: true }),
+        supabase.from("notifications").select("id", { count: "exact", head: true }),
       ]);
 
       const allRuns: ErrorLogEntry[] = (agentRunsRes.data || []) as ErrorLogEntry[];
@@ -99,7 +99,7 @@ export default function AdminSystem() {
 
       setCounts({
         users: profilesRes.count ?? 0,
-        analyses: (analysesRes as any).count ?? 0,
+        analyses: analysesRes.count ?? 0,
         applications: applicationsRes.count ?? 0,
         agentRuns: allRuns.length,
       });
@@ -120,10 +120,10 @@ export default function AdminSystem() {
         },
         {
           name: "Database: analysis_history",
-          status: (analysesRes as any).error ? "error" : "ok",
-          detail: (analysesRes as any).error
-            ? (analysesRes as any).error.message
-            : `${(analysesRes as any).count ?? 0} records`,
+          status: analysesRes.error ? "error" : "ok",
+          detail: analysesRes.error
+            ? analysesRes.error.message
+            : `${analysesRes.count ?? 0} records`,
         },
         {
           name: "Database: job_applications",
@@ -163,23 +163,23 @@ export default function AdminSystem() {
           detail: queueRes.error
             ? queueRes.error.message
             : `${
-                (queueRes.data || []).filter((j: any) => j.status === "pending")
+                (queueRes.data || []).filter((j) => j.status === "pending")
                   .length
               } pending, ${
-                (queueRes.data || []).filter((j: any) => j.status === "running")
+                (queueRes.data || []).filter((j) => j.status === "running")
                   .length
               } running, ${
-                (queueRes.data || []).filter((j: any) => j.status === "failed")
+                (queueRes.data || []).filter((j) => j.status === "failed")
                   .length
               } failed`,
         },
         // ── FIX 3.10.3: Three additional service checks to reach 11+ ──
         {
           name: "Feature Flags",
-          status: (featureFlagsRes as any).error ? "error" : "ok",
-          detail: (featureFlagsRes as any).error
-            ? (featureFlagsRes as any).error.message
-            : `${(featureFlagsRes as any).count ?? 0} flags configured`,
+          status: featureFlagsRes.error ? "error" : "ok",
+          detail: featureFlagsRes.error
+            ? featureFlagsRes.error.message
+            : `${featureFlagsRes.count ?? 0} flags configured`,
         },
         {
           name: "Service Health Registry",
@@ -194,10 +194,10 @@ export default function AdminSystem() {
         },
         {
           name: "Notification Service",
-          status: (notificationsRes as any).error ? "error" : "ok",
-          detail: (notificationsRes as any).error
-            ? (notificationsRes as any).error.message
-            : `${(notificationsRes as any).count ?? 0} notifications delivered`,
+          status: notificationsRes.error ? "error" : "ok",
+          detail: notificationsRes.error
+            ? notificationsRes.error.message
+            : `${notificationsRes.count ?? 0} notifications delivered`,
         },
         {
           name: "API Status",

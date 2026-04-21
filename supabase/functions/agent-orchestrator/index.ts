@@ -7,14 +7,9 @@
 // edge function.  Function-to-function HTTP calls add latency, create hidden
 // dependencies, and make local testing harder.
 import { searchJobPostings } from "../_shared/job-search.ts";
+import { corsHeaders } from "../_shared/cors.ts";
 
 // ─── CORS ─────────────────────────────────────────────────────────────────────
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
-
 // ─── Inline PostgREST / GoTrue helpers ────────────────────────────────────────
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY  = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;

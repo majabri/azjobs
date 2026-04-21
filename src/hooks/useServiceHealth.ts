@@ -24,10 +24,10 @@ export function useServiceHealth() {
     setLoading(true);
     try {
       const { data } = await supabase
-        .from("service_health" as any)
+        .from("service_health")
         .select("*")
         .order("service_name");
-      setServices((data as any[]) || []);
+      setServices((data || []) as ServiceHealthEntry[]);
     } catch (e) {
       logger.error("[useServiceHealth]", e);
     } finally {

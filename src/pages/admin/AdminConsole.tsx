@@ -388,7 +388,7 @@ function OutputBlock({ response }: { response: AdminCommandResponse }) {
   if (command === "help" && result.commands) {
     return (
       <div className="pl-4 space-y-1 text-[10px]">
-        {(result.commands as any[]).map((cmd) => (
+        {(result.commands as Array<{ name: string; description: string }>).map((cmd) => (
           <div key={cmd.name} className="flex gap-3">
             <span className="text-cyan-400 w-24 shrink-0">{cmd.name}</span>
             <span className="text-green-600">{cmd.description}</span>

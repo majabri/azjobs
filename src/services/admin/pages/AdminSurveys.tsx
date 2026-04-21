@@ -35,7 +35,7 @@ export default function AdminSurveys() {
   const loadSurveys = async () => {
     setLoading(true);
     try {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("customer_surveys")
         .select("*")
         .order("created_at", { ascending: false });
@@ -52,7 +52,7 @@ export default function AdminSurveys() {
 
   const handleDelete = async (id: string) => {
     try {
-      const { error } = await (supabase as any).from("customer_surveys").delete().eq("id", id);
+      const { error } = await supabase.from("customer_surveys").delete().eq("id", id);
       if (error) throw error;
       setSurveys((prev) => prev.filter((s) => s.id !== id));
       toast.success("Survey deleted");

@@ -10,6 +10,8 @@
 
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,7 +22,8 @@ import DashboardModeDialog from "@/components/DashboardModeDialog";
 import { login, loginWithGoogle, loginWithApple } from "@/services/user/auth";
 import { normalizeError } from "@/lib/normalizeError";
 import { supabase } from "@/integrations/supabase/client";
-import { ICareerOSLogo } from '@/components/ui/ICareerOSLogo';
+import { ICareerOSLogo } from "@/components/ui/ICareerOSLogo";
+import { loginSchema, type LoginFormValues } from "@/lib/schemas";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -28,12 +31,19 @@ export default function LoginPage() {
   const { destination, showModePrompt, setShowModePrompt, isResolving } =
     usePostLoginRedirect();
 
-  const [identifier, setIdentifier] = useState("");
-  const [password, setPassword] = useState("");
   const [loadingGoogle, setLoadingGoogle] = useState(false);
   const [loadingApple, setLoadingApple] = useState(false);
-  const [loadingEmail, setLoadingEmail] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    setError,
+    watch,
+  } = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { identifier: "", password: "" },
+  });
 
   // Role-aware redirect after authentication + role resolution
   useEffect(() => {
@@ -65,72 +75,59 @@ export default function LoginPage() {
   }
 
   const handleGoogleLogin = async () => {
-    setErrorMsg(null);
     setLoadingGoogle(true);
     try {
       const result = await loginWithGoogle();
       if (result.error) {
-        setErrorMsg(result.error);
+        setError("root", { message: result.error });
         setLoadingGoogle(false);
       }
     } catch (e) {
-      setErrorMsg(normalizeError(e));
+      setError("root", { message: normalizeError(e) });
       setLoadingGoogle(false);
     }
   };
 
   const handleAppleLogin = async () => {
-    setErrorMsg(null);
     setLoadingApple(true);
     try {
       const result = await loginWithApple();
       if (result.error) {
-        setErrorMsg(result.error);
+        setError("root", { message: result.error });
         setLoadingApple(false);
       }
     } catch (e) {
-      setErrorMsg(normalizeError(e));
+      setError("root", { message: normalizeError(e) });
       setLoadingApple(false);
     }
   };
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const onSubmit = async ({ identifier, password }: LoginFormValues) => {
     const id = identifier.trim();
-    if (!id || !password) return;
+    let loginEmail = id;
 
-    setErrorMsg(null);
-    setLoadingEmail(true);
-
-    try {
-      let loginEmail = id;
-
-      // If identifier doesn't look like an email, try resolving as admin username
-      if (!id.includes("@")) {
-        const { data: resolved, error: rpcError } = await supabase.rpc(
-          "resolve_admin_email",
-          { _username: id }
-        );
-        if (rpcError || !resolved) {
-          setErrorMsg("Invalid email or password.");
-          setLoadingEmail(false);
-          return;
-        }
-        loginEmail = resolved;
+    // If identifier doesn't look like an email, try resolving as admin username
+    if (!id.includes("@")) {
+      const { data: resolved, error: rpcError } = await supabase.rpc(
+        "resolve_admin_email",
+        { _username: id }
+      );
+      if (rpcError || !resolved) {
+        setError("identifier", { message: "Invalid email or username." });
+        return;
       }
+      loginEmail = resolved;
+    }
 
-      const result = await login(loginEmail, password);
-      if (result.error) {
-        setErrorMsg(result.error);
-      }
-    } catch (e) {
-      setErrorMsg(normalizeError(e));
-    } finally {
-      setLoadingEmail(false);
+    const result = await login(loginEmail, password);
+    if (result.error) {
+      setError("root", { message: result.error });
     }
   };
 
-  const loading = loadingGoogle || loadingApple || loadingEmail;
+  const loading = loadingGoogle || loadingApple || isSubmitting;
+  const identifier = watch("identifier");
+  const password = watch("password");
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-6">
@@ -191,7 +188,7 @@ export default function LoginPage() {
         </div>
 
         {/* Login form */}
-        <form onSubmit={handleLogin} className="space-y-4 text-left">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 text-left">
           <div className="space-y-1">
             <Label htmlFor="identifier">Email</Label>
             <Input
@@ -199,14 +196,16 @@ export default function LoginPage() {
               type="text"
               autoComplete="off"
               placeholder=""
-              value={identifier}
-              onChange={(e) => setIdentifier(e.target.value)}
               disabled={loading}
-              required
               spellCheck={false}
               autoCapitalize="none"
               autoCorrect="off"
+              aria-invalid={!!errors.identifier}
+              {...register("identifier")}
             />
+            {errors.identifier && (
+              <p role="alert" className="text-xs text-destructive">{errors.identifier.message}</p>
+            )}
           </div>
 
           <div className="space-y-1">
@@ -225,25 +224,27 @@ export default function LoginPage() {
               type="password"
               autoComplete="off"
               placeholder=""
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
               disabled={loading}
-              required
+              aria-invalid={!!errors.password}
+              {...register("password")}
             />
+            {errors.password && (
+              <p role="alert" className="text-xs text-destructive">{errors.password.message}</p>
+            )}
           </div>
 
-          {errorMsg && (
+          {errors.root && (
             <p role="alert" className="text-sm text-destructive">
-              {errorMsg}
+              {errors.root.message}
             </p>
           )}
 
           <Button
             type="submit"
-              className="w-full gradient-indigo text-white"
-                          disabled={loading || !identifier.trim() || !password}
+            className="w-full gradient-indigo text-white"
+            disabled={loading || !identifier?.trim() || !password}
           >
-            {loadingEmail ? "Signing in\u2026" : "Sign in"}
+            {isSubmitting ? "Signing in\u2026" : "Sign in"}
           </Button>
         </form>
 

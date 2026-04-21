@@ -106,7 +106,7 @@ export default function SupportPage() {
 
   // Ticket detail dialog
   const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
-  const [ticketResponses, setTicketResponses] = useState<any[]>([]);
+  const [ticketResponses, setTicketResponses] = useState<{ id: string; author_id: string; message: string; is_admin_response: boolean; created_at: string }[]>([]);
   const [loadingResponses, setLoadingResponses] = useState(false);
 
   useEffect(() => {
@@ -385,7 +385,7 @@ export default function SupportPage() {
                           .select("*")
                           .eq("ticket_id", ticket.id)
                           .order("created_at", { ascending: true });
-                        setTicketResponses((data as any[]) || []);
+                        setTicketResponses(data || []);
                       } catch { setTicketResponses([]); }
                       setLoadingResponses(false);
                     }}
@@ -461,7 +461,7 @@ export default function SupportPage() {
                       </p>
                     ) : (
                       <div className="space-y-3">
-                        {ticketResponses.map((r: any) => (
+                        {ticketResponses.map((r) => (
                           <div
                             key={r.id}
                             className={`rounded-lg p-3 text-sm ${

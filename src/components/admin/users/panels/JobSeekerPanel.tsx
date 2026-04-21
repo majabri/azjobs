@@ -41,7 +41,7 @@ export function JobSeekerPanel({
         ),
         supabase.from("user_roles").select("user_id, role"),
         supabase.from("job_applications").select("user_id"),
-        supabase.from("analysis_history" as any).select("user_id") as any,
+        supabase.from("analysis_history").select("user_id"),
       ]);
 
       const rolesMap = new Map<string, string>();
@@ -53,12 +53,12 @@ export function JobSeekerPanel({
       }
 
       const analysisCountMap = new Map<string, number>();
-      for (const a of ((analysesRes.data as any[]) || [])) {
+      for (const a of (analysesRes.data || [])) {
         analysisCountMap.set(a.user_id, (analysisCountMap.get(a.user_id) ?? 0) + 1);
       }
 
-      const merged: JobSeekerRecord[] = ((profilesRes.data as any[]) || [])
-        .map((p: any) => ({
+      const merged: JobSeekerRecord[] = (profilesRes.data || [])
+        .map((p) => ({
           user_id: p.user_id,
           full_name: p.full_name,
           email: p.email,

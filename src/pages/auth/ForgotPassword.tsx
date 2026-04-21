@@ -6,6 +6,8 @@
 
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,47 +15,47 @@ import { Target, ArrowLeft, Mail } from "lucide-react";
 import { sendPasswordResetEmail } from "@/services/user/auth";
 import { normalizeError } from "@/lib/normalizeError";
 import { supabase } from "@/integrations/supabase/client";
+import { forgotPasswordSchema, type ForgotPasswordFormValues } from "@/lib/schemas";
 
 export default function ForgotPasswordPage() {
-  const [identifier, setIdentifier] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const id = identifier.trim();
-    if (!id) return;
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    setError,
+  } = useForm<ForgotPasswordFormValues>({
+    resolver: zodResolver(forgotPasswordSchema),
+    defaultValues: { email: "" },
+  });
 
-    setErrorMsg(null);
-    setLoading(true);
-    try {
-      let email = id;
+  const onSubmit = async ({ email }: ForgotPasswordFormValues) => {
+    const id = email.trim();
+    let resolvedEmail = id;
 
-      // If it doesn't look like an email, try resolving as a username
-      if (!id.includes("@")) {
-        const { data: resolved, error: rpcError } = await supabase.rpc(
-          "resolve_admin_email",
-          { _username: id },
-        );
-        if (rpcError || !resolved) {
-          setErrorMsg("We couldn't find an account with that username.");
-          setLoading(false);
-          return;
-        }
-        email = resolved;
+    // If it doesn't look like an email, try resolving as a username
+    if (!id.includes("@")) {
+      const { data: resolved, error: rpcError } = await supabase.rpc(
+        "resolve_admin_email",
+        { _username: id },
+      );
+      if (rpcError || !resolved) {
+        setError("email", { message: "We couldn't find an account with that username." });
+        return;
       }
+      resolvedEmail = resolved;
+    }
 
-      const result = await sendPasswordResetEmail(email);
+    try {
+      const result = await sendPasswordResetEmail(resolvedEmail);
       if (result.error) {
-        setErrorMsg(result.error);
+        setError("root", { message: result.error });
       } else {
         setSuccess(true);
       }
     } catch (e) {
-      setErrorMsg(normalizeError(e));
-    } finally {
-      setLoading(false);
+      setError("root", { message: normalizeError(e) });
     }
   };
 
@@ -98,36 +100,38 @@ export default function ForgotPasswordPage() {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4 text-left">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 text-left">
           <div className="space-y-1">
-            <Label htmlFor="identifier">Email or Username</Label>
+            <Label htmlFor="email">Email or Username</Label>
             <Input
-              id="identifier"
+              id="email"
               type="text"
               autoComplete="username"
               placeholder="you@example.com or username"
-              value={identifier}
-              onChange={(e) => setIdentifier(e.target.value)}
-              disabled={loading}
-              required
+              disabled={isSubmitting}
               spellCheck={false}
               autoCapitalize="none"
               autoCorrect="off"
+              aria-invalid={!!errors.email}
+              {...register("email")}
             />
+            {errors.email && (
+              <p role="alert" className="text-xs text-destructive">{errors.email.message}</p>
+            )}
           </div>
 
-          {errorMsg && (
+          {errors.root && (
             <p role="alert" className="text-sm text-destructive">
-              {errorMsg}
+              {errors.root.message}
             </p>
           )}
 
           <Button
             type="submit"
             className="w-full"
-            disabled={loading || !identifier.trim()}
+            disabled={isSubmitting}
           >
-            {loading ? "Sending link\u2026" : "Send Reset Link"}
+            {isSubmitting ? "Sending link\u2026" : "Send Reset Link"}
           </Button>
         </form>
 

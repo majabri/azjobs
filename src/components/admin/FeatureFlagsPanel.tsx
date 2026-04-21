@@ -28,10 +28,10 @@ export default function FeatureFlagsPanel() {
   const load = async () => {
     setLoading(true);
     const { data } = await supabase
-      .from("feature_flags" as any)
+      .from("feature_flags")
       .select("*")
       .order("key");
-    setFlags((data as any[]) || []);
+    setFlags(data || []);
     setLoading(false);
   };
 
@@ -40,8 +40,8 @@ export default function FeatureFlagsPanel() {
   const toggle = async (flag: FeatureFlag) => {
     setToggling(flag.id);
     const { error } = await supabase
-      .from("feature_flags" as any)
-      .update({ enabled: !flag.enabled, updated_at: new Date().toISOString() } as any)
+      .from("feature_flags")
+      .update({ enabled: !flag.enabled, updated_at: new Date().toISOString() })
       .eq("id", flag.id);
 
     if (error) {

@@ -5,7 +5,10 @@
  */
 
 import { supabase } from "@/integrations/supabase/client";
+import type { Database, Json } from "@/integrations/supabase/types";
 import type { UserProfile } from "./types";
+
+type ProfileInsert = Database["public"]["Tables"]["job_seeker_profiles"]["Insert"];
 
 export async function loadUserProfile(userId: string): Promise<UserProfile | null> {
   const { data, error } = await supabase
@@ -22,10 +25,10 @@ export async function loadUserProfile(userId: string): Promise<UserProfile | nul
     phone: data.phone || "",
     location: data.location || "",
     summary: data.summary || "",
-    linkedin_url: (data as any).linkedin_url || "",
+    linkedin_url: data.linkedin_url || "",
     skills: (data.skills as string[]) || [],
-    work_experience: (data.work_experience as unknown as any[]) || [],
-    education: (data.education as unknown as any[]) || [],
+    work_experience: (data.work_experience as unknown[]) || [],
+    education: (data.education as unknown[]) || [],
     certifications: (data.certifications as string[]) || [],
     preferred_job_types: (data.preferred_job_types as string[]) || [],
     career_level: data.career_level || "",
@@ -34,12 +37,12 @@ export async function loadUserProfile(userId: string): Promise<UserProfile | nul
     salary_max: data.salary_max || "",
     remote_only: data.remote_only || false,
     min_match_score: data.min_match_score ?? 60,
-    search_mode: (data as any).search_mode || "balanced",
+    search_mode: data.search_mode || "balanced",
   };
 }
 
 export async function saveUserProfile(userId: string, profile: UserProfile): Promise<{ ok: boolean; error?: string }> {
-  const payload = {
+  const payload: ProfileInsert = {
     user_id: userId,
     full_name: profile.full_name || null,
     email: profile.email || null,
@@ -48,8 +51,8 @@ export async function saveUserProfile(userId: string, profile: UserProfile): Pro
     summary: profile.summary || null,
     linkedin_url: profile.linkedin_url || null,
     skills: profile.skills.length ? profile.skills : null,
-    work_experience: profile.work_experience.length ? profile.work_experience : null,
-    education: profile.education.length ? profile.education : null,
+    work_experience: profile.work_experience.length ? (profile.work_experience as Json) : null,
+    education: profile.education.length ? (profile.education as Json) : null,
     certifications: profile.certifications.length ? profile.certifications : null,
     preferred_job_types: profile.preferred_job_types.length ? profile.preferred_job_types : null,
     career_level: profile.career_level || null,
@@ -62,7 +65,7 @@ export async function saveUserProfile(userId: string, profile: UserProfile): Pro
     updated_at: new Date().toISOString(),
   };
 
-  const { error } = await supabase.from("job_seeker_profiles").upsert(payload as any, { onConflict: "user_id" });
+  const { error } = await supabase.from("job_seeker_profiles").upsert(payload, { onConflict: "user_id" });
   if (error) return { ok: false, error: error.message };
   return { ok: true };
 }

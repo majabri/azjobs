@@ -7,6 +7,8 @@
 
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,15 +16,22 @@ import { Target, CheckCircle, Loader2 } from "lucide-react";
 import { updatePassword } from "@/services/user/auth";
 import { normalizeError } from "@/lib/normalizeError";
 import { supabase } from "@/integrations/supabase/client";
+import { resetPasswordSchema, type ResetPasswordFormValues } from "@/lib/schemas";
 
 export default function ResetPasswordPage() {
   const navigate = useNavigate();
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [checking, setChecking] = useState(true);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    setError,
+  } = useForm<ResetPasswordFormValues>({
+    resolver: zodResolver(resetPasswordSchema),
+    defaultValues: { password: "", confirmPassword: "" },
+  });
 
   // Wait for Supabase to exchange the recovery token for a session
   useEffect(() => {
@@ -48,32 +57,16 @@ export default function ResetPasswordPage() {
     };
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!password || !confirmPassword) return;
-
-    if (password !== confirmPassword) {
-      setErrorMsg("Passwords do not match.");
-      return;
-    }
-    if (password.length < 8) {
-      setErrorMsg("Password must be at least 8 characters.");
-      return;
-    }
-
-    setErrorMsg(null);
-    setLoading(true);
+  const onSubmit = async ({ password }: ResetPasswordFormValues) => {
     try {
       const result = await updatePassword(password);
       if (result.error) {
-        setErrorMsg(result.error);
+        setError("root", { message: result.error });
       } else {
         setSuccess(true);
       }
     } catch (e) {
-      setErrorMsg(normalizeError(e));
-    } finally {
-      setLoading(false);
+      setError("root", { message: normalizeError(e) });
     }
   };
 
@@ -123,7 +116,7 @@ export default function ResetPasswordPage() {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4 text-left">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 text-left">
           <div className="space-y-1">
             <Label htmlFor="password">New Password</Label>
             <Input
@@ -131,13 +124,15 @@ export default function ResetPasswordPage() {
               type="password"
               autoComplete="new-password"
               placeholder="At least 8 characters"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={loading}
-              required
-              minLength={8}
+              disabled={isSubmitting}
+              aria-invalid={!!errors.password}
+              {...register("password")}
             />
+            {errors.password && (
+              <p role="alert" className="text-xs text-destructive">{errors.password.message}</p>
+            )}
           </div>
+
           <div className="space-y-1">
             <Label htmlFor="confirmPassword">Confirm New Password</Label>
             <Input
@@ -145,25 +140,27 @@ export default function ResetPasswordPage() {
               type="password"
               autoComplete="new-password"
               placeholder="Repeat password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              disabled={loading}
-              required
+              disabled={isSubmitting}
+              aria-invalid={!!errors.confirmPassword}
+              {...register("confirmPassword")}
             />
+            {errors.confirmPassword && (
+              <p role="alert" className="text-xs text-destructive">{errors.confirmPassword.message}</p>
+            )}
           </div>
 
-          {errorMsg && (
+          {errors.root && (
             <p role="alert" className="text-sm text-destructive">
-              {errorMsg}
+              {errors.root.message}
             </p>
           )}
 
           <Button
             type="submit"
             className="w-full"
-            disabled={loading || !password || !confirmPassword}
+            disabled={isSubmitting}
           >
-            {loading ? "Updating password\u2026" : "Update Password"}
+            {isSubmitting ? "Updating password\u2026" : "Update Password"}
           </Button>
         </form>
       </div>

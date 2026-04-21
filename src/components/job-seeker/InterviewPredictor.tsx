@@ -44,8 +44,8 @@ export default function InterviewPredictor({ jobDescription, resumeText }: Inter
       });
 
       if (predictError) {
-        if ((predictError as any).status === 429) { toast.error("Rate limit reached"); return; }
-        if ((predictError as any).status === 402) { toast.error("AI credits exhausted"); return; }
+        if ((predictError as { status?: number }).status === 429) { toast.error("Rate limit reached"); return; }
+        if ((predictError as { status?: number }).status === 402) { toast.error("AI credits exhausted"); return; }
         throw predictError;
       }
 

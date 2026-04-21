@@ -107,7 +107,9 @@ export const trackPageView = (path: string, title?: string): void => {
  * Send event to configured analytics provider
  */
 const sendEventToProvider = (event: AnalyticsEvent): void => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- gtag/plausible are browser globals not in TS window type
   if (config.provider === 'ga4' && typeof window !== 'undefined' && (window as any).gtag) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (window as any).gtag('event', event.action, {
       event_category: event.category,
       event_label: event.label,
@@ -116,7 +118,9 @@ const sendEventToProvider = (event: AnalyticsEvent): void => {
     return;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- plausible is a browser global
   if (config.provider === 'plausible' && typeof window !== 'undefined' && (window as any).plausible) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (window as any).plausible(event.action, {
       props: {
         category: event.category,

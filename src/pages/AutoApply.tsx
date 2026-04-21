@@ -7,15 +7,15 @@ import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import {
-  ArrowLeft, Bot, Settings, Play, CheckCircle2, Loader2,
-  Briefcase, MapPin, DollarSign, FileText, Eye, Copy,
-  Shield, Target, Package, Mail,
-  ChevronDown, ChevronUp, Search, X, ExternalLink, Zap,
+  Bot, Play,
+  Eye, Shield, Zap,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import UserMenu from "@/components/UserMenu";
-import { analyzeJobFit, FitAnalysis } from "@/lib/analysisEngine";
+import { analyzeJobFit } from "@/lib/analysisEngine";
+import { AutoApplyPreferences } from "@/components/auto-apply/AutoApplyPreferences";
+import { QueuedJobCard, QueuedApplication } from "@/components/auto-apply/QueuedJobCard";
 import { logger } from '@/lib/logger';
 
 interface AutoApplyPrefs {
@@ -28,19 +28,6 @@ interface AutoApplyPrefs {
   minMatchScore: number;
   applyMode: "manual" | "smart" | "full-auto";
   riskTolerance: number;
-}
-
-interface QueuedApplication {
-  id: string;
-  jobTitle: string;
-  company: string;
-  location: string;
-  matchScore: number;
-  status: "review" | "analyzed" | "generating" | "ready" | "approved" | "skipped";
-  resume?: string;
-  coverLetter?: string;
-  jobDescription?: string;
-  analysis?: FitAnalysis | null;
 }
 
 const defaultPrefs: AutoApplyPrefs = {
@@ -97,13 +84,13 @@ export default function AutoApplyPage() {
         .maybeSingle();
       if (data) {
         setPrefs({
-          jobTitles: ((data as any).target_job_titles as string[]) || [],
-          salaryMin: (data as any).salary_min || "",
-          salaryMax: (data as any).salary_max || "",
-          locations: (data as any).location ? [(data as any).location] : [],
-          remoteOnly: (data as any).remote_only || false,
+          jobTitles: (data.target_job_titles as string[]) || [],
+          salaryMin: data.salary_min || "",
+          salaryMax: data.salary_max || "",
+          locations: data.location ? [data.location] : [],
+          remoteOnly: data.remote_only || false,
           requireReview: true,
-          minMatchScore: (data as any).min_match_score ?? 60,
+          minMatchScore: data.min_match_score ?? 60,
           applyMode: "manual",
           riskTolerance: 50,
         });
@@ -121,7 +108,7 @@ export default function AutoApplyPage() {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) return;
-        await supabase.from("job_seeker_profiles").update({ min_match_score: prefs.minMatchScore } as any).eq("user_id", session.user.id);
+        await supabase.from("job_seeker_profiles").update({ min_match_score: prefs.minMatchScore }).eq("user_id", session.user.id);
       } catch (e) { logger.error("Failed to save match score:", e); }
     }, 500);
     return () => clearTimeout(timer);
@@ -171,11 +158,11 @@ export default function AutoApplyPage() {
 
   const getBestResumeText = async (userId: string): Promise<{ text: string; source: "resume_version" | "profile" | "none" }> => {
     const { data: versions } = await supabase
-      .from("resume_versions" as any)
+      .from("resume_versions")
       .select("resume_text")
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
-      .limit(1) as any;
+      .limit(1);
 
     const latestResume = versions?.[0]?.resume_text?.trim?.() || "";
     if (latestResume) {
@@ -215,15 +202,16 @@ export default function AutoApplyPage() {
       const { data, error: searchError } = await supabase.functions.invoke("search-jobs", {
         body: {
           skills: (profile?.skills as string[]) || [],
-          jobTypes: (profile as any)?.preferred_job_types || [],
+          jobTypes: profile?.preferred_job_types || [],
           location: prefs.locations.join(", ") || (profile?.location as string) || "",
-          careerLevel: (profile as any)?.career_level || "",
+          careerLevel: profile?.career_level || "",
           targetTitles: prefs.jobTitles,
           query: prefs.remoteOnly ? "remote positions only" : "",
         },
       });
 
       if (searchError) throw new Error(searchError.message || "Search failed");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- edge function returns untyped JSON payload
       const jobs = (data?.jobs || []) as any[];
 
       const resumeLookup = await getBestResumeText(session.user.id);
@@ -399,7 +387,7 @@ export default function AutoApplyPage() {
         company: item.company,
         status: "applied",
         notes: `Auto-Apply Agent. Match: ${item.matchScore}%`,
-      } as any);
+      });
       setQueue((prev) => prev.map(q => q.id === item.id ? { ...q, status: "approved" as const } : q));
       toast.success(`${item.jobTitle} at ${item.company} tracked!`);
     } catch {
@@ -414,28 +402,6 @@ export default function AutoApplyPage() {
   const reviewCount = queue.filter(q => q.status === "review").length;
   const analyzedCount = queue.filter(q => q.status === "analyzed").length;
   const readyCount = queue.filter(q => q.status === "ready").length;
-
-  const statusLabel = (s: QueuedApplication["status"]) => {
-    switch (s) {
-      case "review": return "Review";
-      case "analyzed": return "Analyzed";
-      case "ready": return "Package Ready";
-      case "approved": return "Tracked";
-      case "skipped": return "Skipped";
-      default: return s;
-    }
-  };
-
-  const statusColor = (s: QueuedApplication["status"]) => {
-    switch (s) {
-      case "review": return "border-warning/30 text-warning";
-      case "analyzed": return "border-primary/30 text-primary";
-      case "ready": return "border-accent/30 text-accent";
-      case "approved": return "border-success/30 text-success";
-      case "skipped": return "border-muted text-muted-foreground";
-      default: return "";
-    }
-  };
 
   return (
     <div className="bg-background">
@@ -516,120 +482,19 @@ export default function AutoApplyPage() {
         )}
 
         {/* Preferences (loaded from profile, customizable) */}
-        <Card className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <Settings className="w-5 h-5 text-primary" />
-              <h2 className="font-display font-bold text-primary text-lg">Job Preferences</h2>
-            </div>
-            {profileLoaded && (
-              <Badge variant="outline" className="text-xs text-muted-foreground">Loaded from profile</Badge>
-            )}
-          </div>
-
-          <div className="space-y-4">
-            {/* Job Titles */}
-            <div>
-              <Label className="text-sm font-semibold">Target Job Titles</Label>
-              <div className="flex gap-2 mt-1">
-                <Input value={titleInput} onChange={e => setTitleInput(e.target.value)} placeholder="e.g. Security Engineer" onKeyDown={e => e.key === "Enter" && addTitle()} />
-                <Button variant="outline" size="sm" onClick={addTitle}>Add</Button>
-              </div>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {prefs.jobTitles.map((t, i) => (
-                  <Badge key={i} variant="secondary" className="cursor-pointer" onClick={() => setPrefs({ ...prefs, jobTitles: prefs.jobTitles.filter((_, idx) => idx !== i) })}>
-                    {t} <X className="w-3 h-3 ml-1" />
-                  </Badge>
-                ))}
-              </div>
-            </div>
-
-            {/* Salary Range */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label className="text-sm font-semibold">Min Salary</Label>
-                <div className="flex items-center gap-1 mt-1">
-                  <DollarSign className="w-4 h-4 text-muted-foreground" />
-                  <Input value={prefs.salaryMin} onChange={e => setPrefs({ ...prefs, salaryMin: e.target.value })} placeholder="80,000" />
-                </div>
-              </div>
-              <div>
-                <Label className="text-sm font-semibold">Max Salary</Label>
-                <div className="flex items-center gap-1 mt-1">
-                  <DollarSign className="w-4 h-4 text-muted-foreground" />
-                  <Input value={prefs.salaryMax} onChange={e => setPrefs({ ...prefs, salaryMax: e.target.value })} placeholder="150,000" />
-                </div>
-              </div>
-            </div>
-
-            {/* Locations */}
-            <div>
-              <Label className="text-sm font-semibold">Preferred Locations</Label>
-              <div className="flex gap-2 mt-1">
-                <Input value={locationInput} onChange={e => setLocationInput(e.target.value)} placeholder="e.g. Washington DC" onKeyDown={e => e.key === "Enter" && addLocation()} />
-                <Button variant="outline" size="sm" onClick={addLocation}>Add</Button>
-              </div>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {prefs.locations.map((l, i) => (
-                  <Badge key={i} variant="secondary" className="cursor-pointer" onClick={() => setPrefs({ ...prefs, locations: prefs.locations.filter((_, idx) => idx !== i) })}>
-                    <MapPin className="w-3 h-3 mr-1" />{l} <X className="w-3 h-3 ml-1" />
-                  </Badge>
-                ))}
-              </div>
-            </div>
-
-            {/* Toggles */}
-            <div className="flex flex-wrap gap-6">
-              <div className="flex items-center gap-2">
-                <Switch checked={prefs.remoteOnly} onCheckedChange={v => setPrefs({ ...prefs, remoteOnly: v })} />
-                <Label className="text-sm">Remote Only</Label>
-              </div>
-              <div className="flex items-center gap-2">
-                <Switch checked={prefs.requireReview} onCheckedChange={v => setPrefs({ ...prefs, requireReview: v })} />
-                <Label className="text-sm">Require Review</Label>
-              </div>
-            </div>
-
-            {/* Min Score */}
-            <div>
-              <Label className="text-sm font-semibold">Minimum Match Score: {prefs.minMatchScore}%</Label>
-              <input
-                type="range" min={30} max={90} value={prefs.minMatchScore}
-                onChange={e => setPrefs({ ...prefs, minMatchScore: parseInt(e.target.value) })}
-                className="w-full mt-1 accent-[hsl(var(--accent))]"
-              />
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>More Jobs (30%)</span>
-                <span>Higher Quality (90%)</span>
-              </div>
-            </div>
-
-            {/* Risk Tolerance */}
-            <div>
-              <Label className="text-sm font-semibold">Risk Tolerance: {prefs.riskTolerance}%</Label>
-              <input
-                type="range" min={10} max={90} value={prefs.riskTolerance}
-                onChange={e => setPrefs({ ...prefs, riskTolerance: parseInt(e.target.value) })}
-                className="w-full mt-1 accent-[hsl(var(--accent))]"
-              />
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>Conservative (safe bets only)</span>
-                <span>Aggressive (stretch roles)</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-6 flex items-center gap-3">
-            <Button className="gradient-indigo text-white shadow-indigo-500/20 hover:opacity-90" disabled={isSearching} onClick={runAutoSearch}>
-              {isSearching ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Searching...</> : <><Search className="w-4 h-4 mr-2" /> Find & Queue Jobs</>}
-            </Button>
-            {queue.length > 0 && (
-              <Button variant="outline" size="sm" onClick={() => { setQueue([]); toast.success("Queue cleared"); }}>
-                Clear Queue
-              </Button>
-            )}
-          </div>
-        </Card>
+        <AutoApplyPreferences
+          prefs={prefs}
+          setPrefs={setPrefs}
+          profileLoaded={profileLoaded}
+          titleInput={titleInput}
+          setTitleInput={setTitleInput}
+          locationInput={locationInput}
+          setLocationInput={setLocationInput}
+          isSearching={isSearching}
+          queueLength={queue.length}
+          onSearch={runAutoSearch}
+          onClearQueue={() => { setQueue([]); toast.success("Queue cleared"); }}
+        />
 
         {/* Application Queue */}
         {queue.length > 0 && (
@@ -640,168 +505,20 @@ export default function AutoApplyPage() {
             </div>
 
             <div className="space-y-3">
-              {queue.map(item => {
-                const isExpanded = expandedId === item.id;
-                const isGenerating = generatingId === item.id;
-                const isAnalyzing = analyzingId === item.id;
-
-                return (
-                  <Card key={item.id} className={`overflow-hidden transition-all ${
-                    item.status === "skipped" ? "opacity-50" :
-                    item.status === "approved" ? "border-success/30" :
-                    item.status === "ready" ? "border-accent/30" : ""
-                  }`}>
-                    <div className="p-4 flex items-center gap-4">
-                      {/* Score */}
-                      <div className="flex-shrink-0 text-center">
-                        <div className={`text-xl font-display font-bold ${
-                          item.matchScore >= 70 ? "text-success" :
-                          item.matchScore >= 50 ? "text-warning" : "text-destructive"
-                        }`}>{item.matchScore}%</div>
-                        <div className="text-[10px] text-muted-foreground">match</div>
-                      </div>
-
-                      {/* Info */}
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-foreground truncate">{item.jobTitle}</h3>
-                        <p className="text-sm text-muted-foreground">{item.company} · {item.location}</p>
-                      </div>
-
-                      {/* Status */}
-                      <Badge variant="outline" className={`text-xs ${statusColor(item.status)}`}>
-                        {statusLabel(item.status)}
-                      </Badge>
-
-                      {/* Actions */}
-                      <div className="flex items-center gap-1 flex-wrap">
-                        {item.status === "review" && (
-                          <>
-                            <Button size="sm" className="text-xs gradient-indigo text-white" onClick={() => { analyzeItem(item); setExpandedId(item.id); }} disabled={isAnalyzing}>
-                              {isAnalyzing ? <Loader2 className="w-3 h-3 animate-spin" /> : <><Target className="w-3 h-3 mr-1" /> Analyze Fit</>}
-                            </Button>
-                            <Button size="sm" variant="outline" className="text-xs" onClick={() => setExpandedId(isExpanded ? null : item.id)}>
-                              <Eye className="w-3 h-3 mr-1" /> View Job
-                            </Button>
-                            <Button size="sm" variant="ghost" className="text-xs text-muted-foreground" onClick={() => skipJob(item.id)}>Skip</Button>
-                          </>
-                        )}
-                        {item.status === "analyzed" && (
-                          <>
-                            <Button size="sm" variant="outline" className="text-xs" onClick={() => setExpandedId(isExpanded ? null : item.id)}>
-                              <Eye className="w-3 h-3 mr-1" /> {isExpanded ? "Collapse" : "Review Analysis"}
-                            </Button>
-                            <Button size="sm" className="text-xs gradient-indigo text-white" onClick={() => generatePackage(item)} disabled={isGenerating}>
-                              {isGenerating ? <Loader2 className="w-3 h-3 animate-spin" /> : <><Package className="w-3 h-3 mr-1" /> Generate Package</>}
-                            </Button>
-                            <Button size="sm" variant="outline" className="text-xs" onClick={() => {
-                              const jobDesc = `${item.jobTitle} at ${item.company}\n${item.jobDescription}`;
-                              const url = `/job-seeker?prefillJob=${encodeURIComponent(jobDesc)}`;
-                              window.open(url, "_blank");
-                            }}>
-                              <ExternalLink className="w-3 h-3 mr-1" /> Full Analysis
-                            </Button>
-                            <Button size="sm" variant="ghost" className="text-xs text-muted-foreground" onClick={() => skipJob(item.id)}>Skip</Button>
-                          </>
-                        )}
-                        {item.status === "ready" && (
-                          <>
-                            <Button size="sm" className="text-xs" onClick={() => approveAndTrack(item)}>
-                              <CheckCircle2 className="w-3 h-3 mr-1" /> Track Application
-                            </Button>
-                            <Button size="sm" variant="ghost" onClick={() => setExpandedId(isExpanded ? null : item.id)}>
-                              {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Expanded Panel */}
-                    {isExpanded && (
-                      <div className="border-t border-border p-4 space-y-4 bg-muted/20">
-                        {/* Job Description */}
-                        {item.jobDescription && (
-                          <div>
-                            <h4 className="text-sm font-semibold text-primary flex items-center gap-1 mb-2">
-                              <Briefcase className="w-3.5 h-3.5" /> Job Description
-                            </h4>
-                            <pre className="text-xs whitespace-pre-wrap font-mono bg-card p-3 rounded-lg border border-border max-h-40 overflow-y-auto">
-                              {item.jobDescription}
-                            </pre>
-                          </div>
-                        )}
-
-                        {/* Analysis Results */}
-                        {item.analysis && (
-                          <div>
-                            <h4 className="text-sm font-semibold text-primary flex items-center gap-1 mb-2">
-                              <Target className="w-3.5 h-3.5" /> Fit Analysis
-                            </h4>
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
-                              <div className="text-center p-2 bg-card rounded-lg border border-border">
-                                <div className="text-lg font-bold text-primary">{item.analysis.overallScore}%</div>
-                                <div className="text-[10px] text-muted-foreground">Overall</div>
-                              </div>
-                              <div className="text-center p-2 bg-card rounded-lg border border-border">
-                                <div className="text-lg font-bold text-accent">{item.analysis.interviewProbability}%</div>
-                                <div className="text-[10px] text-muted-foreground">Interview Prob.</div>
-                              </div>
-                              <div className="text-center p-2 bg-card rounded-lg border border-border">
-                                <div className="text-lg font-bold text-success">{item.analysis.matchedSkills.filter(s => s.matched).length}</div>
-                                <div className="text-[10px] text-muted-foreground">Skills Matched</div>
-                              </div>
-                              <div className="text-center p-2 bg-card rounded-lg border border-border">
-                                <div className="text-lg font-bold text-warning">{item.analysis.gaps.length}</div>
-                                <div className="text-[10px] text-muted-foreground">Gaps</div>
-                              </div>
-                            </div>
-                            {item.analysis.topActions && item.analysis.topActions.length > 0 && (
-                              <div>
-                                <p className="text-xs font-semibold text-foreground mb-1">Top Actions:</p>
-                                <ul className="text-xs text-muted-foreground space-y-1">
-                                  {item.analysis.topActions.map((a, i) => (
-                                    <li key={i} className="flex items-start gap-1">
-                                      <span className="text-accent">•</span> {a}
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
-                          </div>
-                        )}
-
-                        {/* Generated Materials */}
-                        {item.resume && (
-                          <div>
-                            <div className="flex items-center justify-between mb-2">
-                              <h4 className="text-sm font-semibold text-primary flex items-center gap-1">
-                                <FileText className="w-3.5 h-3.5" /> Tailored Resume
-                              </h4>
-                              <Button variant="ghost" size="sm" className="text-xs" onClick={() => { navigator.clipboard.writeText(item.resume!); toast.success("Copied!"); }}>
-                                <Copy className="w-3 h-3 mr-1" /> Copy
-                              </Button>
-                            </div>
-                            <pre className="text-xs whitespace-pre-wrap font-mono bg-card p-3 rounded-lg border border-border max-h-48 overflow-y-auto">{item.resume}</pre>
-                          </div>
-                        )}
-                        {item.coverLetter && (
-                          <div>
-                            <div className="flex items-center justify-between mb-2">
-                              <h4 className="text-sm font-semibold text-primary flex items-center gap-1">
-                                <Mail className="w-3.5 h-3.5" /> Cover Letter
-                              </h4>
-                              <Button variant="ghost" size="sm" className="text-xs" onClick={() => { navigator.clipboard.writeText(item.coverLetter!); toast.success("Copied!"); }}>
-                                <Copy className="w-3 h-3 mr-1" /> Copy
-                              </Button>
-                            </div>
-                            <pre className="text-xs whitespace-pre-wrap font-mono bg-card p-3 rounded-lg border border-border max-h-48 overflow-y-auto">{item.coverLetter}</pre>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </Card>
-                );
-              })}
+              {queue.map(item => (
+                <QueuedJobCard
+                  key={item.id}
+                  item={item}
+                  isExpanded={expandedId === item.id}
+                  isGenerating={generatingId === item.id}
+                  isAnalyzing={analyzingId === item.id}
+                  onToggleExpand={() => setExpandedId(expandedId === item.id ? null : item.id)}
+                  onAnalyze={() => analyzeItem(item)}
+                  onGeneratePackage={() => generatePackage(item)}
+                  onApproveAndTrack={() => approveAndTrack(item)}
+                  onSkip={() => skipJob(item.id)}
+                />
+              ))}
             </div>
           </div>
         )}

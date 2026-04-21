@@ -1,11 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { CheckCircle2, Circle, Upload, UserCircle, Search, Target, Bot, ChevronDown, ChevronUp } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { logger } from '@/lib/logger';
+import { CheckCircle2, Circle, Upload, UserCircle, Search, Target, ChevronDown, ChevronUp } from "lucide-react";
+import { useJobSeekerProfile } from "@/hooks/queries/useJobSeekerProfile";
+import { useResumeVersions } from "@/hooks/queries/useResumeVersions";
+import { useAnalysisHistory } from "@/hooks/queries/useAnalysisHistory";
+import { useJobApplications } from "@/hooks/queries/useJobApplications";
 
 interface ChecklistItem {
   id: string;
@@ -18,41 +20,28 @@ interface ChecklistItem {
 
 export default function OnboardingChecklist() {
   const navigate = useNavigate();
-  const [items, setItems] = useState<ChecklistItem[]>([]);
-  const [loading, setLoading] = useState(true);
   const [collapsed, setCollapsed] = useState(false);
 
-  useEffect(() => { checkProgress(); }, []);
+  const { data: profile, isLoading: profileLoading } = useJobSeekerProfile();
+  const { data: resumeVersions = [], isLoading: resumeLoading } = useResumeVersions();
+  const { data: analysisHistory = [], isLoading: analysisLoading } = useAnalysisHistory(1);
+  const { data: jobApplications = [], isLoading: appsLoading } = useJobApplications();
 
-  const checkProgress = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      const [profileRes, resumeRes, analysisRes, appRes] = await Promise.all([
-        supabase.from("job_seeker_profiles").select("full_name, skills").eq("user_id", session.user.id).maybeSingle(),
-        supabase.from("resume_versions").select("id").eq("user_id", session.user.id).limit(1),
-        supabase.from("analysis_history").select("id").eq("user_id", session.user.id).limit(1),
-        supabase.from("job_applications").select("id").eq("user_id", session.user.id).limit(1),
-      ]);
-
-      const profile = profileRes.data;
-      const hasProfile = !!(profile?.full_name && (profile?.skills as string[])?.length > 0);
-      const hasResume = !!(resumeRes.data && resumeRes.data.length > 0);
-      const hasAnalysis = !!(analysisRes.data && analysisRes.data.length > 0);
-      const hasApp = !!(appRes.data && appRes.data.length > 0);
-
-      setItems([
-        { id: "profile", label: "Complete your profile", description: "Add your name, skills, and experience", icon: UserCircle, route: "/profile", completed: hasProfile },
-        { id: "resume", label: "Upload a resume", description: "Upload a PDF/DOCX to your resume vault", icon: Upload, route: "/profile", completed: hasResume },
-        { id: "analyze", label: "Run your first analysis", description: "Paste a job description and see your fit score", icon: Target, route: "/job-seeker", completed: hasAnalysis },
-        { id: "search", label: "Search for jobs", description: "Let AI find matching opportunities", icon: Search, route: "/job-search", completed: hasApp || hasAnalysis },
-      ]);
-    } catch (e) { logger.error(e); }
-    finally { setLoading(false); }
-  };
+  const loading = profileLoading || resumeLoading || analysisLoading || appsLoading;
 
   if (loading) return null;
+
+  const hasProfile = !!(profile?.full_name && (profile?.skills as string[])?.length > 0);
+  const hasResume = resumeVersions.length > 0;
+  const hasAnalysis = analysisHistory.length > 0;
+  const hasApp = jobApplications.length > 0;
+
+  const items: ChecklistItem[] = [
+    { id: "profile", label: "Complete your profile", description: "Add your name, skills, and experience", icon: UserCircle, route: "/profile", completed: hasProfile },
+    { id: "resume", label: "Upload a resume", description: "Upload a PDF/DOCX to your resume vault", icon: Upload, route: "/profile", completed: hasResume },
+    { id: "analyze", label: "Run your first analysis", description: "Paste a job description and see your fit score", icon: Target, route: "/job-seeker", completed: hasAnalysis },
+    { id: "search", label: "Search for jobs", description: "Let AI find matching opportunities", icon: Search, route: "/job-search", completed: hasApp || hasAnalysis },
+  ];
 
   const completedCount = items.filter(i => i.completed).length;
   const allDone = completedCount === items.length;

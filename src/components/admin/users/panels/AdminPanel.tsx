@@ -32,9 +32,9 @@ export function AdminPanel({
       const { data: rolesData } = await supabase
         .from("user_roles")
         .select("user_id, created_at")
-        .eq("role", "admin" as any);
+        .eq("role", "admin");
 
-      const adminIds = ((rolesData as any[]) || []).map((r) => r.user_id);
+      const adminIds = (rolesData || []).map((r) => r.user_id);
 
       if (adminIds.length === 0) {
         setRecords([]);
@@ -48,11 +48,11 @@ export function AdminPanel({
         .in("user_id", adminIds);
 
       const profileMap = new Map<string, { full_name: string | null; email: string | null; username: string | null }>();
-      for (const p of ((profilesData as any[]) || [])) {
+      for (const p of (profilesData || [])) {
         profileMap.set(p.user_id, { full_name: p.full_name, email: p.email, username: p.username });
       }
 
-      const merged: AdminRecord[] = ((rolesData as any[]) || []).map((r) => {
+      const merged: AdminRecord[] = (rolesData || []).map((r) => {
         const profile = profileMap.get(r.user_id);
         return {
           user_id: r.user_id,

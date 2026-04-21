@@ -100,7 +100,7 @@ export default function ApplicationToolkit({
       job_url: jobLink || null,
       status: "applied",
       notes: `Fit score: ${overallScore}%`,
-    } as any);
+    });
 
     if (error) {
       toast.error("Failed to save application");
@@ -114,7 +114,7 @@ export default function ApplicationToolkit({
   const handleUpdateStatus = async (id: string, status: string) => {
     await supabase
       .from("job_applications")
-      .update({ status, updated_at: new Date().toISOString() } as any)
+      .update({ status, updated_at: new Date().toISOString() })
       .eq("id", id);
     setApplications((prev) =>
       prev.map((a) => (a.id === id ? { ...a, status } : a))

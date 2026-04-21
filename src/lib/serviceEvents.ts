@@ -29,11 +29,11 @@ interface EmitEventOptions {
  */
 export async function emitServiceEvent({ eventName, payload = {}, emittedBy }: EmitEventOptions): Promise<void> {
   try {
-    await supabase.from("service_events" as any).insert({
+    await supabase.from("service_events").insert({
       event_name: eventName,
       payload,
       emitted_by: emittedBy,
-    } as any);
+    });
   } catch (e) {
     // Silent failure — event system should never break the caller
     logger.warn("[emitServiceEvent] Failed to emit:", eventName, e);

@@ -48,12 +48,12 @@ export default function AdminAudit() {
     setLoading(true);
     try {
       const [cmdRes, runRes] = await Promise.all([
-        (supabase as any)
+        supabase
           .from("admin_command_log")
           .select("*")
           .order("executed_at", { ascending: false })
           .limit(200),
-        (supabase as any)
+        supabase
           .from("agent_runs")
           .select("id, user_id, status, started_at, completed_at, errors, jobs_found, jobs_matched, applications_sent")
           .order("started_at", { ascending: false })
@@ -85,7 +85,7 @@ export default function AdminAudit() {
       }
 
       // Agent run entries
-      for (const run of (runRes.data || []) as any[]) {
+      for (const run of (runRes.data || [])) {
         const failed = run.status === "failed" || run.status === "completed_with_errors";
         auditEntries.push({
           id: `run-${run.id}`,

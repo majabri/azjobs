@@ -24,7 +24,7 @@ export async function saveResumeVersion(userId: string, name: string, text: stri
     version_name: name,
     resume_text: text,
     job_type: jobType || null,
-  } as any);
+  });
   return { ok: !error };
 }
 
@@ -40,21 +40,11 @@ export async function deleteResumeVersion(id: string): Promise<void> {
 export async function optimize(jobDescriptions: string[]): Promise<string | null> {
   logger.info("[ResumeService] optimize() called for", jobDescriptions.length, "jobs");
   try {
-    const { data: { session } } = await supabase.auth.getSession();
-    const token = session?.access_token;
-    if (!token) { logger.warn("[ResumeService] No session for optimize"); return null; }
-
-    const resp = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/rewrite-resume`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ jobDescriptions }),
-      }
-    );
-    if (!resp.ok) { logger.error("[ResumeService] optimize failed:", resp.status); return null; }
-    const data = await resp.json();
-    return data.resumeText ?? null;
+    const { data, error: invokeError } = await supabase.functions.invoke("rewrite-resume", {
+      body: { jobDescriptions },
+    });
+    if (invokeError) { logger.error("[ResumeService] optimize failed:", invokeError.message); return null; }
+    return (data as { resumeText?: string })?.resumeText ?? null;
   } catch (e) {
     logger.error("[ResumeService] optimize error:", e);
     return null;

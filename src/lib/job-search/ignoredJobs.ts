@@ -25,7 +25,7 @@ export async function ignoreJob(input: { title: string; company: string; url?: s
     job_title: input.title.trim(),
     company: input.company.trim(),
     job_url: input.url?.trim() || null,
-  } as any);
+  });
   return !error;
 }
 

@@ -42,18 +42,18 @@ export default function UserRoleManagementPanel() {
 
       // Get all roles
       const { data: roles, error: rErr } = await supabase
-        .from("user_roles" as any)
+        .from("user_roles")
         .select("user_id, role");
       if (rErr) throw rErr;
 
       const roleMap = new Map<string, string[]>();
-      for (const r of (roles as any[]) ?? []) {
+      for (const r of (roles ?? [])) {
         const list = roleMap.get(r.user_id) || [];
         list.push(r.role);
         roleMap.set(r.user_id, list);
       }
 
-      const result: UserWithRoles[] = ((profiles as any[]) ?? []).map((p) => ({
+      const result: UserWithRoles[] = (profiles ?? []).map((p) => ({
         user_id: p.user_id,
         email: p.email,
         full_name: p.full_name,
@@ -102,7 +102,7 @@ export default function UserRoleManagementPanel() {
       // Remove roles
       for (const role of toRemove) {
         await supabase
-          .from("user_roles" as any)
+          .from("user_roles")
           .delete()
           .eq("user_id", editUser.user_id)
           .eq("role", role);
@@ -111,8 +111,8 @@ export default function UserRoleManagementPanel() {
       // Add roles
       for (const role of toAdd) {
         await supabase
-          .from("user_roles" as any)
-          .insert({ user_id: editUser.user_id, role } as any);
+          .from("user_roles")
+          .insert({ user_id: editUser.user_id, role });
       }
 
       toast.success("Roles updated successfully");

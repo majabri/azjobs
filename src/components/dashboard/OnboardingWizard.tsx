@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import {
-  Upload, UserCircle, Target, Sparkles, ChevronRight, CheckCircle2,
+  Upload, Target, Sparkles, ChevronRight, CheckCircle2,
   Loader2, FileText, ArrowRight, Rocket,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,17 +14,19 @@ import { parseDocument } from "@/lib/api/parseDocument";
 import { extractProfileFromResume } from "@/lib/analysisEngine";
 import { toast } from "sonner";
 import { logger } from '@/lib/logger';
+import { useJobSeekerProfile, PROFILE_QUERY_KEY } from "@/hooks/queries/useJobSeekerProfile";
+import { useResumeVersions, RESUME_VERSIONS_QUERY_KEY } from "@/hooks/queries/useResumeVersions";
+import { useQueryClient } from "@tanstack/react-query";
 
 type WizardStep = "welcome" | "resume" | "preferences" | "done";
 
 export default function OnboardingWizard() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [step, setStep] = useState<WizardStep>("welcome");
-  const [loading, setLoading] = useState(true);
-  const [shouldShow, setShouldShow] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [extracting, setExtracting] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   // Preferences
@@ -34,32 +36,19 @@ export default function OnboardingWizard() {
   const [salaryMin, setSalaryMin] = useState("");
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => { checkOnboardingStatus(); }, []);
+  // Use React Query hooks for onboarding status check
+  const { data: profile, isLoading: profileLoading } = useJobSeekerProfile();
+  const { data: resumeVersions = [], isLoading: resumeLoading } = useResumeVersions();
 
-  const checkOnboardingStatus = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { setLoading(false); return; }
+  const loading = profileLoading || resumeLoading;
 
-      const [profileRes, resumeRes] = await Promise.all([
-        supabase.from("job_seeker_profiles").select("full_name, skills, target_job_titles").eq("user_id", session.user.id).maybeSingle(),
-        supabase.from("resume_versions").select("id").eq("user_id", session.user.id).limit(1),
-      ]);
+  // Derive onboarding state from hook data
+  const hasProfile = !!(profile?.full_name && (profile?.skills as string[])?.length > 0);
+  const hasResume = resumeVersions.length > 0;
+  const shouldShow = !hasProfile && !hasResume;
 
-      const profile = profileRes.data;
-      const hasProfile = !!(profile?.full_name && (profile?.skills as string[])?.length > 0);
-      const hasResume = !!(resumeRes.data && resumeRes.data.length > 0);
-
-      if (!hasProfile && !hasResume) {
-        setShouldShow(true);
-      }
-      
-      if (profile?.target_job_titles) {
-        setJobTitles(profile.target_job_titles as string[]);
-      }
-    } catch (e) { logger.error(e); }
-    finally { setLoading(false); }
-  };
+  // Pre-fill job titles from profile when data arrives
+  const profileTitles = profile?.target_job_titles as string[] | null;
 
   const handleResumeUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -80,7 +69,8 @@ export default function OnboardingWizard() {
         user_id: session.user.id,
         version_name: "Default",
         resume_text: result.text,
-      } as any);
+      });
+      queryClient.invalidateQueries({ queryKey: RESUME_VERSIONS_QUERY_KEY });
 
       // Extract profile via edge function
       const { data: extractedResult } = await supabase.functions.invoke('extract-profile-fields', {
@@ -90,8 +80,9 @@ export default function OnboardingWizard() {
       if (extractedResult) {
         const { profile: extracted } = extractedResult;
         const local = extractProfileFromResume(result.text);
-        
+
         if (extracted) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic upsert payload from edge fn response
           const payload: any = {
             user_id: session.user.id,
             full_name: extracted.full_name || null,
@@ -110,7 +101,8 @@ export default function OnboardingWizard() {
           };
 
           await supabase.from("job_seeker_profiles").upsert(payload, { onConflict: "user_id" });
-          
+          queryClient.invalidateQueries({ queryKey: PROFILE_QUERY_KEY });
+
           if (local.jobTitles.length) setJobTitles(local.jobTitles);
           toast.success("Resume uploaded & profile auto-filled!");
         }
@@ -138,7 +130,8 @@ export default function OnboardingWizard() {
         remote_only: remoteOnly,
         salary_min: salaryMin || null,
         updated_at: new Date().toISOString(),
-      } as any, { onConflict: "user_id" });
+      }, { onConflict: "user_id" });
+      queryClient.invalidateQueries({ queryKey: PROFILE_QUERY_KEY });
       toast.success("Preferences saved!");
       setStep("done");
     } catch { toast.error("Failed to save"); }
@@ -151,6 +144,11 @@ export default function OnboardingWizard() {
   };
 
   if (loading || !shouldShow || dismissed) return null;
+
+  // Pre-fill titles from profile (lazy — only on first non-null load)
+  if (profileTitles?.length && jobTitles.length === 0) {
+    setJobTitles(profileTitles);
+  }
 
   const steps = [
     { key: "welcome", label: "Welcome" },

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,23 +16,13 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { useInterviewSchedules, useCreateInterviewSchedule, useDeleteInterviewSchedule } from "@/hooks/queries/useInterviewSchedules";
+import { useJobPostings } from "@/hooks/queries/useJobPostings";
+import { useQueryClient } from "@tanstack/react-query";
+import { INTERVIEW_SCHEDULES_QUERY_KEY } from "@/hooks/queries/useInterviewSchedules";
+import type { Database } from "@/integrations/supabase/types";
 
-interface Interview {
-  id: string;
-  candidate_name: string;
-  candidate_email: string | null;
-  interview_type: string;
-  scheduled_at: string;
-  duration_minutes: number;
-  location: string | null;
-  meeting_link: string | null;
-  notes: string | null;
-  status: string;
-  feedback: string | null;
-  rating: number | null;
-  job_posting_id: string | null;
-  created_at: string;
-}
+type InterviewScheduleRow = Database["public"]["Tables"]["interview_schedules"]["Row"];
 
 interface JobPostingOption {
   id: string;
@@ -48,14 +38,11 @@ const statusColors: Record<string, string> = {
 };
 
 export default function InterviewScheduling() {
-  const [interviews, setInterviews] = useState<Interview[]>([]);
-  const [jobPostings, setJobPostings] = useState<JobPostingOption[]>([]);
-  const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [editing, setEditing] = useState<Interview | null>(null);
+  const [editing, setEditing] = useState<InterviewScheduleRow | null>(null);
   const [saving, setSaving] = useState(false);
 
-  // Form
+  // Form state
   const [candidateName, setCandidateName] = useState("");
   const [candidateEmail, setCandidateEmail] = useState("");
   const [interviewType, setInterviewType] = useState("screening");
@@ -69,26 +56,13 @@ export default function InterviewScheduling() {
   const [rating, setRating] = useState("");
   const [jobPostingId, setJobPostingId] = useState("none");
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  const { data: interviews = [], isLoading: loading } = useInterviewSchedules();
+  const { data: jobPostingsData = [] } = useJobPostings();
+  const jobPostings: JobPostingOption[] = jobPostingsData.map(jp => ({ id: jp.id, title: jp.title, company: jp.company }));
 
-  const loadData = async () => {
-    setLoading(true);
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
-
-    const [intRes, jpRes] = await Promise.all([
-      supabase.from("interview_schedules").select("*").eq("user_id", session.user.id).order("scheduled_at", { ascending: true }),
-      supabase.from("job_postings").select("id, title, company").eq("user_id", session.user.id),
-    ]);
-
-    if (intRes.error) toast.error("Failed to load interviews");
-    else setInterviews((intRes.data as Interview[]) || []);
-
-    setJobPostings((jpRes.data as JobPostingOption[]) || []);
-    setLoading(false);
-  };
+  const createScheduleMutation = useCreateInterviewSchedule();
+  const deleteScheduleMutation = useDeleteInterviewSchedule();
+  const queryClient = useQueryClient();
 
   const resetForm = () => {
     setCandidateName(""); setCandidateEmail(""); setInterviewType("screening");
@@ -97,7 +71,7 @@ export default function InterviewScheduling() {
     setJobPostingId("none"); setEditing(null);
   };
 
-  const openEdit = (i: Interview) => {
+  const openEdit = (i: InterviewScheduleRow) => {
     setEditing(i);
     setCandidateName(i.candidate_name); setCandidateEmail(i.candidate_email || "");
     setInterviewType(i.interview_type); setScheduledAt(i.scheduled_at.slice(0, 16));
@@ -114,11 +88,8 @@ export default function InterviewScheduling() {
       return;
     }
     setSaving(true);
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) { toast.error("Please sign in"); setSaving(false); return; }
 
     const payload = {
-      user_id: session.user.id,
       candidate_name: candidateName,
       candidate_email: candidateEmail || null,
       interview_type: interviewType,
@@ -134,27 +105,27 @@ export default function InterviewScheduling() {
       updated_at: new Date().toISOString(),
     };
 
-    let error;
-    if (editing) {
-      ({ error } = await supabase.from("interview_schedules").update(payload).eq("id", editing.id));
-    } else {
-      ({ error } = await supabase.from("interview_schedules").insert(payload));
-    }
-
-    if (error) toast.error("Failed to save");
-    else {
-      toast.success(editing ? "Updated!" : "Scheduled!");
+    try {
+      if (editing) {
+        // Update uses direct supabase (no update mutation in hook yet)
+        const { error } = await supabase.from("interview_schedules").update(payload).eq("id", editing.id);
+        if (error) throw error;
+        queryClient.invalidateQueries({ queryKey: INTERVIEW_SCHEDULES_QUERY_KEY });
+        toast.success("Updated!");
+      } else {
+        await createScheduleMutation.mutateAsync(payload);
+      }
       resetForm();
       setDialogOpen(false);
-      loadData();
+    } catch {
+      toast.error("Failed to save");
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   const handleDelete = async (id: string) => {
-    const { error } = await supabase.from("interview_schedules").delete().eq("id", id);
-    if (error) toast.error("Failed to delete");
-    else { toast.success("Deleted"); loadData(); }
+    await deleteScheduleMutation.mutateAsync(id);
   };
 
   const upcoming = interviews.filter((i) => i.status === "scheduled" && new Date(i.scheduled_at) >= new Date());
@@ -310,7 +281,11 @@ export default function InterviewScheduling() {
   );
 }
 
-function InterviewCard({ interview: i, onEdit, onDelete }: { interview: Interview; onEdit: (i: Interview) => void; onDelete: (id: string) => void }) {
+function InterviewCard({ interview: i, onEdit, onDelete }: {
+  interview: InterviewScheduleRow;
+  onEdit: (i: InterviewScheduleRow) => void;
+  onDelete: (id: string) => void;
+}) {
   return (
     <Card className="hover:border-primary/30 transition-colors">
       <CardContent className="p-4">

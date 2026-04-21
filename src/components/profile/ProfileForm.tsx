@@ -22,6 +22,7 @@ import {
   Form, FormControl, FormField, FormItem, FormLabel, FormMessage
 } from "@/components/ui/form";
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import { parseDocument } from "@/lib/api/parseDocument";
 import { extractProfileFromResume } from "@/lib/analysisEngine";
 import { toast } from "sonner";
@@ -162,7 +163,7 @@ export default function ProfileForm({ initialData }: Props) {
       .limit(1)
       .maybeSingle();
     if (data?.gaps && Array.isArray(data.gaps)) {
-      const gaps = (data.gaps as any[]).slice(0, 5).map(g => g.area || g.skill || g).filter(s => typeof s === "string");
+      const gaps = (data.gaps as Array<{ area?: string; skill?: string } | string>).slice(0, 5).map(g => typeof g === "string" ? g : (g as { area?: string; skill?: string }).area || (g as { area?: string; skill?: string }).skill || String(g)).filter(s => typeof s === "string");
       setMissingSkills(gaps);
     }
   };
@@ -196,7 +197,7 @@ export default function ProfileForm({ initialData }: Props) {
         updated_at: new Date().toISOString(),
       };
       
-      const { error } = await supabase.from("job_seeker_profiles").upsert(payload as any, { onConflict: "user_id" });
+      const { error } = await supabase.from("job_seeker_profiles").upsert(payload as Parameters<ReturnType<typeof supabase.from<"job_seeker_profiles">>["upsert"]>[0], { onConflict: "user_id" });
       if (error) throw error;
       toast.success("Profile saved!");
     } catch (e) {
@@ -224,7 +225,7 @@ export default function ProfileForm({ initialData }: Props) {
         search_mode: data.search_mode,
       };
       await supabase.from("search_presets").insert({
-        user_id: session.user.id, name: presetName.trim(), criteria: criteria as any,
+        user_id: session.user.id, name: presetName.trim(), criteria: criteria as Json,
       });
       setPresetName("");
       toast.success("Search preset saved!");

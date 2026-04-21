@@ -130,6 +130,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       if (user) {
         supabase
           .from("profiles")
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- theme column exists in DB but not in generated types
           .update({ theme: next } as any)
           .eq("id", user.id)
           .then(({ error }) => {

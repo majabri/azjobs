@@ -31,9 +31,9 @@ export function useAgentSystem() {
   const loadRecentRuns = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
-    const { data } = await supabase.from("agent_runs" as any)
+    const { data } = await supabase.from("agent_runs")
       .select("*").eq("user_id", session.user.id)
-      .order("started_at", { ascending: false }).limit(5) as any;
+      .order("started_at", { ascending: false }).limit(5);
     setRecentRuns(data || []);
   }, []);
 
@@ -43,7 +43,7 @@ export function useAgentSystem() {
       if (!session) return;
       const { data } = await supabase.from("job_seeker_profiles")
         .select("automation_mode, match_threshold, daily_apply_cap, min_match_score")
-        .eq("user_id", session.user.id).single() as any;
+        .eq("user_id", session.user.id).single();
       if (data) {
         setPrefs({
           mode: data.automation_mode || "manual",
@@ -77,7 +77,7 @@ export function useAgentSystem() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
     await supabase.from("job_seeker_profiles")
-      .update({ automation_mode: next.mode, match_threshold: next.threshold, daily_apply_cap: next.dailyCap } as any)
+      .update({ automation_mode: next.mode, match_threshold: next.threshold, daily_apply_cap: next.dailyCap })
       .eq("user_id", session.user.id);
   }, [prefs]);
 

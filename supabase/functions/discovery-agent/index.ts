@@ -10,11 +10,7 @@ import { leverAdapter }       from '../_shared/discovery/adapters/lever.ts';
 import { adzunaAdapter }      from '../_shared/discovery/adapters/adzuna.ts';
 import { usaJobsAdapter }     from '../_shared/discovery/adapters/usajobs.ts';
 import { computeDedupeHash }  from '../_shared/discovery/helpers.ts';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { corsHeaders } from "../_shared/cors.ts";
 
 // ── Title quality filter ───────────────────────────────────────────────────────
 // Rejects resume blobs and other noise from job_seeker_profiles.target_titles.

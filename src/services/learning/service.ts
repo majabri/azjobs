@@ -5,13 +5,14 @@
  */
 
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import { logger } from '@/lib/logger';
 
 export interface LearningEvent {
   id: string;
   outcome: string;
-  features: Record<string, any>;
-  insights: Record<string, any> | null;
+  features: Record<string, unknown>;
+  insights: Record<string, unknown> | null;
   created_at: string;
 }
 
@@ -29,15 +30,15 @@ export async function loadLearningEvents(userId: string): Promise<LearningEvent[
 export async function recordLearningEvent(
   userId: string,
   outcome: string,
-  features: Record<string, any>,
+  features: Record<string, unknown>,
   applicationId?: string,
   jobId?: string,
 ): Promise<void> {
   await supabase.from("learning_events").insert({
     user_id: userId,
     outcome,
-    features,
+    features: features as Json,
     application_id: applicationId || null,
     job_id: jobId || null,
-  } as any);
+  });
 }

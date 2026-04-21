@@ -1,3 +1,4 @@
+import { corsHeaders } from "../_shared/cors.ts";
 /**
  * run-job-agent — Per-user job search agent (Supabase Edge Function, Deno)
  *
@@ -29,11 +30,6 @@ import {
   scoreJobHeuristic,
   profileHash,
 } from "../_shared/job-matching.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 
 const SUPABASE_URL  = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY   = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;

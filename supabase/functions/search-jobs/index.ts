@@ -1,3 +1,4 @@
+import { corsHeaders } from "../_shared/cors.ts";
 // supabase/functions/search-jobs/index.ts
 // iCareerOS Job Search — v6
 // Four-mode search: handles every combination of criteria + profile completeness.
@@ -15,11 +16,6 @@
 //   - expires_at is a GENERATED column on job_postings (scraped_at + 7 days)
 
 import { createClient } from 'npm:@supabase/supabase-js@2'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
 
 interface SearchRequest {
   searchTerm?: string

@@ -32,10 +32,10 @@ export default function ReferralDashboard() {
       if (!session) return;
 
       const { data } = await supabase
-        .from("referrals" as any)
+        .from("referrals")
         .select("*")
         .eq("referrer_id", session.user.id)
-        .order("created_at", { ascending: false }) as any;
+        .order("created_at", { ascending: false });
 
       setReferrals(data || []);
 
@@ -58,7 +58,7 @@ export default function ReferralDashboard() {
 
       const code = `${referralCode}-${Date.now().toString(36)}`;
 
-      const { error } = await (supabase.from("referrals" as any) as any).insert({
+      const { error } = await supabase.from("referrals").insert({
         referrer_id: session.user.id,
         referred_email: inviteEmail.trim(),
         referral_code: code,

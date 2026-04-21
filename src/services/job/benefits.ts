@@ -24,14 +24,14 @@ let catalogCache: CatalogEntry[] | null = null;
 async function loadCatalog(): Promise<CatalogEntry[]> {
   if (catalogCache) return catalogCache;
   const { data, error } = await supabase
-    .from("benefits_catalog" as any)
+    .from("benefits_catalog")
     .select("id, category, label, keywords");
   if (error || !data) return [];
-  catalogCache = (data as any[]).map(row => ({
+  catalogCache = data.map(row => ({
     id: row.id,
     category: row.category,
     label: row.label,
-    keywords: row.keywords || [],
+    keywords: (row.keywords as string[]) || [],
   }));
   return catalogCache;
 }

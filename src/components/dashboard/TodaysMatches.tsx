@@ -24,6 +24,8 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useJobSeekerProfile } from "@/hooks/queries/useJobSeekerProfile";
+import { useJobApplications } from "@/hooks/queries/useJobApplications";
 import HelpTooltip from "@/components/HelpTooltip";
 import {
   detectFakeJobFlags,
@@ -213,13 +215,24 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
   const navigate = useNavigate();
   const [jobs, setJobs] = useState<JobMatch[]>([]);
   const [loading, setLoading] = useState(false);
-  const [hasProfile, setHasProfile] = useState(false);
   const [lastFetched, setLastFetched] = useState<string | null>(null);
   const [historicalOutcomes, setHistoricalOutcomes] = useState<HistoricalOutcomes | undefined>();
   const [savingJobKeys, setSavingJobKeys] = useState<Record<string, boolean>>({});
   const [ignoredList, setIgnoredList] = useState<IgnoredJob[]>([]);
-  const [savedApps, setSavedApps] = useState<{ job_title: string; company: string; job_url: string | null }[]>([]);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+
+  // React Query hooks for profile and saved applications
+  const { data: profileData } = useJobSeekerProfile();
+  const { data: appsData = [] } = useJobApplications();
+
+  const savedApps = appsData.map(a => ({
+    job_title: a.job_title ?? null,
+    company: a.company ?? null,
+    job_url: a.job_url ?? null,
+  }));
+
+  // Derive hasProfile from React Query data (no direct Supabase call needed)
+  const hasProfile = !!(profileData?.skills?.length || profileData?.target_job_titles?.length || profileData?.career_level);
 
   useEffect(() => {
     checkAndFetch();
@@ -251,30 +264,18 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
     } = await supabase.auth.getSession();
     if (!session) return;
 
-    const [{ data: profile }, outcomes, ignored] = await Promise.all([
-      supabase
-        .from("job_seeker_profiles")
-        .select("skills, preferred_job_types, location, career_level, target_job_titles")
-        .eq("user_id", session.user.id)
-        .maybeSingle(),
+    const [outcomes, ignored] = await Promise.all([
       loadHistoricalOutcomes(session.user.id),
       getIgnoredJobs(),
     ]);
     setIgnoredList(ignored);
 
-    // Load saved/applied applications
-    const { data: appData } = await supabase
-      .from("job_applications")
-      .select("job_title, company, job_url")
-      .eq("user_id", session.user.id);
-    if (appData) setSavedApps(appData as any);
+    // Profile data comes from React Query (useJobSeekerProfile above)
+    // savedApps comes from React Query (useJobApplications above)
+    // hasProfile is derived from those hooks as well
 
-    // Show "complete profile" only if truly empty — no skills AND no target titles
-    if (!profile?.skills?.length && !profile?.target_job_titles?.length && !profile?.career_level) {
-      setHasProfile(false);
-      return;
-    }
-    setHasProfile(true);
+    if (!hasProfile) return;
+
     setHistoricalOutcomes(outcomes);
 
     const cacheKey = `icareeros_daily_jobs_v2_${session.user.id}`;
@@ -293,7 +294,7 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
               );
             })
             .filter((job: JobMatch) => !isJobIgnored(job, ignored))
-            .filter((job: JobMatch) => !isJobAlreadySaved(job, (appData || []) as { job_title: string; company: string; job_url: string | null }[]));
+            .filter((job: JobMatch) => !isJobAlreadySaved(job, savedApps as { job_title: string; company: string; job_url: string | null }[]));
 
           if (vettedCachedJobs.length > 0) {
             setJobs(vettedCachedJobs);
@@ -305,7 +306,8 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
       } catch (e) { logger.warn("Cache read error:", e); }
     }
 
-    fetchJobs(profile, session, cacheKey, outcomes);
+    // profileData comes from React Query hook
+    if (profileData) fetchJobs(profileData, session, cacheKey, outcomes);
   };
 
   const enrichJobs = (rawJobs: any[], skills: string[], targetTitles: string[], outcomes?: HistoricalOutcomes): JobMatch[] => {
@@ -480,7 +482,7 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
 
       const enriched = enrichJobs(Array.from(uniqueByUrl.values()), profile.skills || [], enrichTitles, outcomes)
         .filter(job => !isJobIgnored(job, ignoredList))
-        .filter(job => !isJobAlreadySaved(job, savedApps));
+        .filter(job => !isJobAlreadySaved(job, savedApps as { job_title: string; company: string; job_url: string | null }[]));
 
       setJobs(enriched);
       setVisibleCount(PAGE_SIZE);
@@ -494,23 +496,18 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
   };
 
   const handleRefresh = async () => {
+    if (!profileData) return;
     const {
       data: { session },
     } = await supabase.auth.getSession();
     if (!session) return;
-    const { data: profile } = await supabase
-      .from("job_seeker_profiles")
-      .select("skills, preferred_job_types, location, career_level, target_job_titles")
-      .eq("user_id", session.user.id)
-      .maybeSingle();
-    if (!profile) return;
     const cacheKey = `icareeros_daily_jobs_v2_${session.user.id}`;
     localStorage.removeItem(cacheKey);
     // Signal agent to force a fresh discovery run on this refresh
-    supabase.from("user_job_agents")
+    supabase.from("user_job_agents" as Parameters<typeof supabase.from>[0])
       .upsert({ user_id: session.user.id, status: "pending", next_run_at: new Date().toISOString() }, { onConflict: "user_id" })
-      .then(() => fetchJobs(profile, session, cacheKey, historicalOutcomes))
-      .catch(() => fetchJobs(profile, session, cacheKey, historicalOutcomes));
+      .then(() => fetchJobs(profileData, session, cacheKey, historicalOutcomes))
+      .catch(() => fetchJobs(profileData, session, cacheKey, historicalOutcomes));
   };
 
   const handleAnalyzeFit = (job: JobMatch) => {

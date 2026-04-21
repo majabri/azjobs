@@ -73,7 +73,7 @@ export default function AdminTickets() {
   const load = async () => {
     setLoading(true);
     try {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("support_tickets")
         .select("*")
         .order("created_at", { ascending: false });
@@ -97,7 +97,7 @@ export default function AdminTickets() {
       if (newStatus === "resolved" || newStatus === "closed") {
         updates.resolved_at = new Date().toISOString();
       }
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("support_tickets")
         .update(updates)
         .eq("id", ticketId);

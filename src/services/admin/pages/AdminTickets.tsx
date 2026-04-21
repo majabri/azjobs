@@ -164,7 +164,7 @@ export default function AdminTickets() {
     try {
       // Update status if changed
       if (newStatus !== selectedTicket.status) {
-        const updatePayload: Record<string, any> = {
+        const updatePayload: { status: string; updated_at: string; resolved_at?: string } = {
           status: newStatus,
           updated_at: new Date().toISOString(),
         };
@@ -172,7 +172,7 @@ export default function AdminTickets() {
 
         await supabase
           .from("support_tickets")
-          .update(updatePayload as any)
+          .update(updatePayload)
           .eq("id", selectedTicket.id);
       }
 
@@ -183,7 +183,7 @@ export default function AdminTickets() {
           author_id: user.id,
           message: newResponse.trim(),
           is_admin_response: true,
-        } as any);
+        });
       }
 
       toast({ title: "Ticket updated successfully" });

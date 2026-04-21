@@ -34,7 +34,7 @@ export default function SmartNotificationEngine() {
       .from("offers")
       .select("job_title, company, deadline, status")
       .eq("user_id", userId)
-      .eq("status", "negotiating") as any;
+      .eq("status", "negotiating");
 
     for (const offer of (offers || [])) {
       if (!offer.deadline) continue;
@@ -62,11 +62,11 @@ export default function SmartNotificationEngine() {
       const targetNum = parseInt(String(profile.salary_target).replace(/[^0-9]/g, ""));
       if (targetNum > 0) {
         const { data: analyses } = await supabase
-          .from("analysis_history" as any)
+          .from("analysis_history")
           .select("overall_score")
           .eq("user_id", userId)
           .order("created_at", { ascending: false })
-          .limit(5) as any;
+          .limit(5);
 
         const avgScore = analyses?.length
           ? Math.round(analyses.reduce((s: number, a: any) => s + a.overall_score, 0) / analyses.length)
@@ -108,11 +108,11 @@ export default function SmartNotificationEngine() {
     // 4. Weekly insights (only on Mondays or if no recent insight)
     if (now.getDay() === 1 || notifications.length === 0) {
       const { data: recentAnalyses } = await supabase
-        .from("analysis_history" as any)
+        .from("analysis_history")
         .select("overall_score, created_at")
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
-        .limit(10) as any;
+        .limit(10);
 
       if (recentAnalyses?.length >= 2) {
         const recent = recentAnalyses.slice(0, 5);

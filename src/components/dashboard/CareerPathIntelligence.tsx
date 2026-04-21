@@ -38,20 +38,20 @@ export default function CareerPathIntelligence() {
 
       // Get recent analysis history for context
       const { data: history } = await supabase
-        .from("analysis_history" as any)
+        .from("analysis_history")
         .select("job_title, overall_score, gaps, matched_skills")
         .eq("user_id", session.user.id)
         .order("created_at", { ascending: false })
-        .limit(5) as any;
+        .limit(5);
 
       const { data, error } = await supabase.functions.invoke("career-path-analysis", {
         body: {
           skills: profile.skills,
-          careerLevel: (profile as any).career_level,
+          careerLevel: profile.career_level,
           experience: profile.work_experience,
           education: profile.education,
           certifications: profile.certifications,
-          targetTitles: (profile as any).target_job_titles,
+          targetTitles: profile.target_job_titles,
           recentAnalyses: history || [],
         },
       });

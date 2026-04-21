@@ -70,12 +70,12 @@ export default function AdminAgentRunDetail() {
     setLoading(true);
     try {
       const [runRes, logsRes] = await Promise.all([
-        (supabase as any)
+        supabase
           .from("agent_runs")
           .select("*")
           .eq("id", runId)
           .single(),
-        (supabase as any)
+        supabase
           .from("admin_logs")
           .select("*")
           .eq("run_id", runId)
@@ -95,7 +95,7 @@ export default function AdminAgentRunDetail() {
     if (!run) return;
     setActionLoading(true);
     try {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("agent_runs")
         .update({ status: "pending", errors: [], completed_at: null })
         .eq("id", run.id);
@@ -113,7 +113,7 @@ export default function AdminAgentRunDetail() {
     if (!run) return;
     setActionLoading(true);
     try {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("agent_runs")
         .update({ status: "cancelled", completed_at: new Date().toISOString() })
         .eq("id", run.id);

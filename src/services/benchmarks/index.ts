@@ -3,7 +3,14 @@
 // Queries tables that exist in the current schema. Gracefully skips missing ones.
 // =============================================================================
 
-import { createClient, SupabaseClient } from '@supabase/supabase-js'
+import { createClient } from '@supabase/supabase-js'
+
+// Benchmarks queries tables that may not be in the generated schema types
+// (scraper_runs, discovered_jobs, user_agent_instances, etc.). An untyped
+// client is intentional here — this script must degrade gracefully when tables
+// are missing rather than failing at compile time.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnySupabase = ReturnType<typeof createClient<any>>
 
 const SUPABASE_URL = process.env.SUPABASE_URL ?? process.env.VITE_SUPABASE_URL ?? ''
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY ?? process.env.VITE_SUPABASE_ANON_KEY ?? ''
@@ -13,10 +20,10 @@ if (!SUPABASE_URL || !SUPABASE_KEY) {
   process.exit(1)
 }
 
-const supabase: SupabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY)
+const supabase: AnySupabase = createClient(SUPABASE_URL, SUPABASE_KEY)
 
 // Safe query wrapper — returns null on any error instead of throwing
-async function safeQuery<T>(fn: () => Promise<{ data: T | null; error: any; count?: number | null }>): Promise<{ data: T | null; count: number | null }> {
+async function safeQuery<T>(fn: () => PromiseLike<{ data: T | null; error: { message: string } | null; count?: number | null }>): Promise<{ data: T | null; count: number | null }> {
   try {
     const result = await fn()
     if (result.error) {
@@ -37,25 +44,25 @@ async function runBenchmarks() {
 
   // ── Job Postings (main table that always exists) ────────────────────────
   const { count: totalJobs } = await safeQuery(() =>
-    supabase.from('job_postings').select('*', { count: 'exact', head: true }) as any
+    supabase.from('job_postings').select('*', { count: 'exact', head: true })
   )
 
   const { count: recentJobs } = await safeQuery(() =>
     (supabase.from('job_postings')
       .select('*', { count: 'exact', head: true })
-      .gte('scraped_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())) as any
+      .gte('scraped_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()))
   )
 
   const { count: flaggedJobs } = await safeQuery(() =>
     (supabase.from('job_postings')
       .select('*', { count: 'exact', head: true })
-      .eq('is_flagged', true)) as any
+      .eq('is_flagged', true))
   )
 
   const { count: highQualityJobs } = await safeQuery(() =>
     (supabase.from('job_postings')
       .select('*', { count: 'exact', head: true })
-      .gte('quality_score', 70)) as any
+      .gte('quality_score', 70))
   )
 
   console.log(`║ 📊 JOB POSTINGS`)
@@ -70,14 +77,15 @@ async function runBenchmarks() {
       .select('source_board, status, jobs_inserted, jobs_found, started_at')
       .gte('started_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
       .order('started_at', { ascending: false })
-      .limit(20)) as any
+      .limit(20))
   )
 
-  const runs = (scraperRuns ?? []) as any[]
-  const successful = runs.filter((r: any) => r.status === 'success')
-  const failed = runs.filter((r: any) => r.status === 'failed')
-  const totalInserted = successful.reduce((acc: number, r: any) => acc + (r.jobs_inserted ?? 0), 0)
-  const boardsSeen = [...new Set(runs.map((r: any) => r.source_board))].filter(Boolean)
+  type ScraperRun = { status: string; jobs_inserted: number | null; source_board: string | null };
+  const runs: ScraperRun[] = (scraperRuns ?? []) as ScraperRun[];
+  const successful = runs.filter((r) => r.status === 'success')
+  const failed = runs.filter((r) => r.status === 'failed')
+  const totalInserted = successful.reduce((acc, r) => acc + (r.jobs_inserted ?? 0), 0)
+  const boardsSeen = [...new Set(runs.map((r) => r.source_board))].filter(Boolean)
 
   console.log(`║`)
   console.log(`║ ⚡ SCRAPER RUNS (last 24h)`)
@@ -87,13 +95,13 @@ async function runBenchmarks() {
 
   // ── Discovered Jobs ─────────────────────────────────────────────────────
   const { count: discoveredTotal } = await safeQuery(() =>
-    (supabase.from('discovered_jobs').select('*', { count: 'exact', head: true })) as any
+    (supabase.from('discovered_jobs').select('*', { count: 'exact', head: true }))
   )
 
   const { count: discoveredRecent } = await safeQuery(() =>
     (supabase.from('discovered_jobs')
       .select('*', { count: 'exact', head: true })
-      .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())) as any
+      .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()))
   )
 
   console.log(`║`)
@@ -103,13 +111,13 @@ async function runBenchmarks() {
 
   // ── Users ───────────────────────────────────────────────────────────────
   const { count: totalUsers } = await safeQuery(() =>
-    (supabase.from('job_seeker_profiles').select('*', { count: 'exact', head: true })) as any
+    (supabase.from('job_seeker_profiles').select('*', { count: 'exact', head: true }))
   )
 
   const { count: usersWithPrefs } = await safeQuery(() =>
     (supabase.from('user_search_preferences')
       .select('*', { count: 'exact', head: true })
-      .eq('alerts_enabled', true)) as any
+      .eq('alerts_enabled', true))
   )
 
   console.log(`║`)
@@ -121,11 +129,12 @@ async function runBenchmarks() {
   const { data: agentData } = await safeQuery(() =>
     (supabase.from('user_agent_instances')
       .select('agent_type, status')
-      .limit(1000)) as any
+      .limit(1000))
   )
 
   if (agentData) {
-    const agents = agentData as any[]
+    type AgentInstance = { agent_type: string; status: string };
+    const agents = agentData as AgentInstance[];
     const byType: Record<string, number> = {}
     const byStatus: Record<string, number> = {}
     for (const a of agents) {
@@ -145,12 +154,14 @@ async function runBenchmarks() {
   const { data: flags } = await safeQuery(() =>
     (supabase.from('feature_flags')
       .select('key, enabled')
-      .like('key', 'discovery_%')) as any
+      .like('key', 'discovery_%'))
   )
 
   if (flags) {
-    const enabledFlags = (flags as any[]).filter((f: any) => f.enabled).map((f: any) => f.key)
-    const disabledFlags = (flags as any[]).filter((f: any) => !f.enabled).map((f: any) => f.key)
+    type FeatureFlag = { key: string; enabled: boolean };
+    const typedFlags = flags as FeatureFlag[];
+    const enabledFlags = typedFlags.filter((f) => f.enabled).map((f) => f.key)
+    const disabledFlags = typedFlags.filter((f) => !f.enabled).map((f) => f.key)
     console.log(`║`)
     console.log(`║ 🚩 DISCOVERY FLAGS`)
     console.log(`║   Enabled: ${enabledFlags.join(', ') || 'none'}`)

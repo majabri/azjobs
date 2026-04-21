@@ -74,19 +74,19 @@ export default function AdminDashboard() {
     try {
       const [profilesRes, analysesRes, applicationsRes, agentRunsRes] = await Promise.all([
         supabase.from("job_seeker_profiles").select("user_id, last_active_at", { count: "exact" }),
-        supabase.from("analysis_history" as any).select("id", { count: "exact" }),
+        supabase.from("analysis_history").select("id", { count: "exact" }),
         supabase.from("job_applications").select("id", { count: "exact" }),
-        supabase.from("agent_runs" as any)
+        supabase.from("agent_runs")
           .select("id, status, jobs_found, jobs_matched, applications_sent, started_at, completed_at, errors, user_id")
           .order("started_at", { ascending: false })
           .limit(200),
       ]);
 
-      const runs: RecentAgentRun[] = (agentRunsRes.data as any[]) || [];
+      const runs: RecentAgentRun[] = (agentRunsRes.data || []) as RecentAgentRun[];
       const today = new Date().toISOString().split("T")[0];
-      const profiles = (profilesRes.data as any[]) || [];
+      const profiles = profilesRes.data || [];
 
-      const activeToday = profiles.filter((p: any) =>
+      const activeToday = profiles.filter((p) =>
         p.last_active_at && p.last_active_at.startsWith(today)
       ).length;
 
@@ -116,12 +116,12 @@ export default function AdminDashboard() {
       setDailyStats(Object.values(dayMap));
 
       // Avg processing time
-      const completed = (agentRunsRes.data as any[])?.filter(
-        (r: any) => r.completed_at && r.started_at
-      ) || [];
+      const completed = runs.filter(
+        (r) => r.completed_at && r.started_at
+      );
       if (completed.length > 0) {
-        const avg = completed.reduce((sum: number, r: any) => {
-          return sum + (new Date(r.completed_at).getTime() - new Date(r.started_at).getTime());
+        const avg = completed.reduce((sum: number, r) => {
+          return sum + (new Date(r.completed_at!).getTime() - new Date(r.started_at!).getTime());
         }, 0) / completed.length;
         setAvgProcessingMs(avg);
       }
@@ -129,7 +129,7 @@ export default function AdminDashboard() {
       setStats({
         totalUsers: profilesRes.count ?? 0,
         activeUsersToday: activeToday,
-        totalAnalyses: (analysesRes as any).count ?? 0,
+        totalAnalyses: analysesRes.count ?? 0,
         totalApplications: applicationsRes.count ?? 0,
         totalAgentRuns: runs.length,
         failedAgentRuns: failed,

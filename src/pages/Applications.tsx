@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +13,9 @@ import { supabase } from "@/integrations/supabase/client";
 import UserMenu from "@/components/UserMenu";
 import { DragDropContext, Droppable, Draggable, type DropResult } from "@hello-pangea/dnd";
 import ApplicationTimeline from "@/components/applications/ApplicationTimeline";
+import { useJobApplications, useUpdateApplicationStatus, useDeleteApplication } from "@/hooks/queries/useJobApplications";
+import { useQueryClient } from "@tanstack/react-query";
+import { JOB_APPLICATIONS_QUERY_KEY } from "@/hooks/queries/useJobApplications";
 
 interface JobApplication {
   id: string;
@@ -46,8 +49,15 @@ const statusColors: Record<string, string> = {
 
 export default function ApplicationsPage() {
   const navigate = useNavigate();
-  const [applications, setApplications] = useState<JobApplication[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const queryClient = useQueryClient();
+
+  // ── React Query data fetching ──
+  const { data: applicationsData, isLoading } = useJobApplications();
+  const updateStatusMutation = useUpdateApplicationStatus();
+  const deleteMutation = useDeleteApplication();
+
+  const applications = (applicationsData || []) as JobApplication[];
+
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<"kanban" | "list" | "timeline">("kanban");
   const [editingFollowUp, setEditingFollowUp] = useState<string | null>(null);
@@ -57,24 +67,13 @@ export default function ApplicationsPage() {
   const [newTitle, setNewTitle] = useState("");
   const [newCompany, setNewCompany] = useState("");
 
-  useEffect(() => { loadApplications(); }, []);
-
-  const loadApplications = async () => {
-    setIsLoading(true);
-    const { data } = await supabase.from("job_applications").select("*").order("applied_at", { ascending: false });
-    if (data) setApplications(data as unknown as JobApplication[]);
-    setIsLoading(false);
-  };
-
   const handleUpdateStatus = async (id: string, status: string) => {
-    await supabase.from("job_applications").update({ status, updated_at: new Date().toISOString() } as any).eq("id", id);
-    setApplications((prev) => prev.map((a) => (a.id === id ? { ...a, status } : a)));
+    await updateStatusMutation.mutateAsync({ id, status });
     toast.success(`Moved to ${status}`);
   };
 
   const handleDelete = async (id: string) => {
-    await supabase.from("job_applications").delete().eq("id", id);
-    setApplications((prev) => prev.filter((a) => a.id !== id));
+    await deleteMutation.mutateAsync(id);
     toast.success("Application removed");
   };
 
@@ -85,10 +84,8 @@ export default function ApplicationsPage() {
       follow_up_notes: followUpNotes,
       followed_up: false,
       updated_at: new Date().toISOString(),
-    } as any).eq("id", id);
-    setApplications((prev) =>
-      prev.map((a) => a.id === id ? { ...a, follow_up_date: new Date(followUpDate).toISOString(), follow_up_notes: followUpNotes, followed_up: false } : a)
-    );
+    }).eq("id", id);
+    queryClient.invalidateQueries({ queryKey: JOB_APPLICATIONS_QUERY_KEY });
     setEditingFollowUp(null);
     setFollowUpDate("");
     setFollowUpNotes("");
@@ -96,8 +93,8 @@ export default function ApplicationsPage() {
   };
 
   const handleMarkFollowedUp = async (id: string) => {
-    await supabase.from("job_applications").update({ followed_up: true, updated_at: new Date().toISOString() } as any).eq("id", id);
-    setApplications((prev) => prev.map((a) => (a.id === id ? { ...a, followed_up: true } : a)));
+    await supabase.from("job_applications").update({ followed_up: true, updated_at: new Date().toISOString() }).eq("id", id);
+    queryClient.invalidateQueries({ queryKey: JOB_APPLICATIONS_QUERY_KEY });
     toast.success("Marked as followed up!");
   };
 
@@ -110,12 +107,12 @@ export default function ApplicationsPage() {
       job_title: newTitle.trim(),
       company: newCompany.trim(),
       status: "applied",
-    } as any);
+    });
     if (error) { toast.error("Failed to add"); return; }
     setNewTitle("");
     setNewCompany("");
     setAddingApp(false);
-    loadApplications();
+    queryClient.invalidateQueries({ queryKey: JOB_APPLICATIONS_QUERY_KEY });
     toast.success("Application added!");
   };
 
@@ -236,7 +233,7 @@ export default function ApplicationsPage() {
             <Loader2 className="w-5 h-5 animate-spin mr-2" /> Loading…
           </div>
         ) : viewMode === "timeline" ? (
-          <ApplicationTimeline applications={filtered as any} />
+          <ApplicationTimeline applications={filtered} />
         ) : viewMode === "kanban" ? (
           /* KANBAN VIEW */
           <DragDropContext onDragEnd={onDragEnd}>

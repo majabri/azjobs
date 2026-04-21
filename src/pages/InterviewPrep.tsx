@@ -13,6 +13,10 @@ import { toast } from "sonner";
 import UserMenu from "@/components/UserMenu";
 import { DollarSign } from "lucide-react";
 import { logger } from '@/lib/logger';
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useAuthReady } from "@/hooks/useAuthReady";
+
+const INTERVIEW_SESSIONS_QUERY_KEY = ["interview_sessions"];
 
 function ExpectedOfferRange({ jobTitle }: { jobTitle: string }) {
   const title = jobTitle.toLowerCase();
@@ -50,22 +54,28 @@ export default function InterviewPrepPage() {
   const [saving, setSaving] = useState(false);
   const chatRef = useRef<HTMLDivElement>(null);
 
-  // Past sessions
-  const [sessions, setSessions] = useState<any[]>([]);
-  const [loadingSessions, setLoadingSessions] = useState(true);
+  const queryClient = useQueryClient();
+  const { user, isReady } = useAuthReady();
 
-  useEffect(() => { loadSessions(); }, []);
+  // Past sessions — interview_sessions is not in generated Supabase types
+  const { data: sessions = [] } = useQuery({
+    queryKey: [...INTERVIEW_SESSIONS_QUERY_KEY, user?.id],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- interview_sessions not in generated Supabase types
+    queryFn: async (): Promise<any[]> => {
+      if (!user) return [];
+      const { data } = await supabase
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- table not in generated types
+        .from("interview_sessions" as any)
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(10);
+      return data || [];
+    },
+    enabled: isReady && !!user,
+  });
+
   useEffect(() => { chatRef.current?.scrollTo(0, chatRef.current.scrollHeight); }, [messages]);
-
-  const loadSessions = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-      const { data } = await supabase.from("interview_sessions" as any).select("*").eq("user_id", session.user.id).order("created_at", { ascending: false }).limit(10) as any;
-      setSessions(data || []);
-    } catch (e) { logger.error(e); }
-    finally { setLoadingSessions(false); }
-  };
 
   const startInterview = async () => {
     if (!jobTitle.trim()) { toast.error("Enter a job title"); return; }
@@ -152,14 +162,15 @@ export default function InterviewPrepPage() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
-      await (supabase.from("interview_sessions" as any) as any).insert({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- interview_sessions not in generated Supabase types
+      await supabase.from("interview_sessions" as any).insert({
         user_id: session.user.id,
         job_title: jobTitle,
         messages: messages.filter(m => m.role !== "system"),
         readiness_score: readinessScore,
       });
       toast.success("Session saved!");
-      loadSessions();
+      queryClient.invalidateQueries({ queryKey: INTERVIEW_SESSIONS_QUERY_KEY });
     } catch { toast.error("Failed to save"); }
     finally { setSaving(false); }
   };

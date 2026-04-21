@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,29 +9,15 @@ import {
   ArrowLeft, Plus, DollarSign, TrendingUp, Trash2,
   CheckCircle, XCircle, Clock, Loader2, Scale, Bell, AlertTriangle,
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import UserMenu from "@/components/UserMenu";
 import { toast } from "sonner";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend,
 } from "recharts";
+import { useOffers, useAddOffer, useUpdateOffer, useDeleteOffer } from "@/hooks/queries/useOffers";
+import type { Database } from "@/integrations/supabase/types";
 
-interface Offer {
-  id: string;
-  job_title: string;
-  company: string;
-  base_salary: number | null;
-  bonus: number | null;
-  equity: number | null;
-  total_comp: number | null;
-  market_rate: number | null;
-  status: string;
-  notes: string | null;
-  negotiation_strategy: any;
-  created_at: string;
-  updated_at: string;
-  deadline: string | null;
-}
+type OfferRow = Database["public"]["Tables"]["offers"]["Row"];
 
 const STATUS_CONFIG: Record<string, { label: string; icon: typeof Clock; className: string }> = {
   negotiating: { label: "Negotiating", icon: Clock, className: "bg-warning/10 text-warning border-warning/20" },
@@ -55,80 +41,44 @@ function getDeadlineInfo(deadline: string | null): { label: string; urgent: bool
 
 export default function Offers() {
   const navigate = useNavigate();
-  const [offers, setOffers] = useState<Offer[]>([]);
-  const [loading, setLoading] = useState(true);
   const [comparing, setComparing] = useState<string[]>([]);
   const [showAdd, setShowAdd] = useState(false);
-  const [saving, setSaving] = useState(false);
 
   const [form, setForm] = useState({ job_title: "", company: "", base_salary: "", bonus: "", equity: "", notes: "", deadline: "" });
 
-  useEffect(() => { loadOffers(); }, []);
-
-  const loadOffers = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-      const { data, error } = await supabase
-        .from("offers")
-        .select("*")
-        .eq("user_id", session.user.id)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      setOffers((data || []) as Offer[]);
-    } catch { toast.error("Failed to load offers"); }
-    finally { setLoading(false); }
-  };
+  const { data: offers = [], isLoading: loading } = useOffers();
+  const addOfferMutation = useAddOffer();
+  const updateOfferMutation = useUpdateOffer();
+  const deleteOfferMutation = useDeleteOffer();
 
   const addOffer = async () => {
     if (!form.job_title || !form.company) { toast.error("Title and company required"); return; }
-    setSaving(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error("Not authenticated");
-      const base = Number(form.base_salary) || 0;
-      const bonus = Number(form.bonus) || 0;
-      const equity = Number(form.equity) || 0;
-
-      const insertData: Record<string, any> = {
-        user_id: session.user.id,
-        job_title: form.job_title,
-        company: form.company,
-        base_salary: base,
-        bonus,
-        equity,
-        total_comp: base + bonus + equity,
-        notes: form.notes || null,
-        deadline: form.deadline ? new Date(form.deadline).toISOString() : null,
-      };
-
-      const { error } = await supabase.from("offers").insert(insertData as any);
-      if (error) throw error;
-      toast.success("Offer saved");
-      setForm({ job_title: "", company: "", base_salary: "", bonus: "", equity: "", notes: "", deadline: "" });
-      setShowAdd(false);
-      loadOffers();
-    } catch (e: any) { toast.error(e.message || "Failed to save offer"); }
-    finally { setSaving(false); }
+    const base = Number(form.base_salary) || 0;
+    const bonus = Number(form.bonus) || 0;
+    const equity = Number(form.equity) || 0;
+    await addOfferMutation.mutateAsync({
+      job_title: form.job_title,
+      company: form.company,
+      base_salary: base,
+      bonus,
+      equity,
+      total_comp: base + bonus + equity,
+      notes: form.notes || null,
+      deadline: form.deadline ? new Date(form.deadline).toISOString() : null,
+      status: "negotiating",
+    });
+    setForm({ job_title: "", company: "", base_salary: "", bonus: "", equity: "", notes: "", deadline: "" });
+    setShowAdd(false);
   };
 
   const updateStatus = async (id: string, status: string) => {
-    try {
-      const { error } = await (supabase.from("offers") as any).update({ status, updated_at: new Date().toISOString() }).eq("id", id);
-      if (error) throw error;
-      setOffers(prev => prev.map(o => o.id === id ? { ...o, status } : o));
-      toast.success(`Offer marked as ${status}`);
-    } catch { toast.error("Failed to update"); }
+    await updateOfferMutation.mutateAsync({ id, updates: { status } });
+    toast.success(`Offer marked as ${status}`);
   };
 
   const deleteOffer = async (id: string) => {
-    try {
-      const { error } = await (supabase.from("offers") as any).delete().eq("id", id);
-      if (error) throw error;
-      setOffers(prev => prev.filter(o => o.id !== id));
-      setComparing(prev => prev.filter(c => c !== id));
-      toast.success("Offer removed");
-    } catch { toast.error("Failed to delete"); }
+    await deleteOfferMutation.mutateAsync(id);
+    setComparing(prev => prev.filter(c => c !== id));
   };
 
   const toggleCompare = (id: string) => {
@@ -180,8 +130,8 @@ export default function Offers() {
                   <Input type="date" value={form.deadline} onChange={e => setForm({ ...form, deadline: e.target.value })} />
                 </div>
                 <Input placeholder="Notes (optional)" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} />
-                <Button onClick={addOffer} disabled={saving} className="w-full gradient-indigo text-white">
-                  {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
+                <Button onClick={addOffer} disabled={addOfferMutation.isPending} className="w-full gradient-indigo text-white">
+                  {addOfferMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
                   Save Offer
                 </Button>
               </div>

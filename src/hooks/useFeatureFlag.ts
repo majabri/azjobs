@@ -25,13 +25,13 @@ export function useFeatureFlag(key: string): FeatureFlagResult {
     (async () => {
       try {
         const { data, error } = await supabase
-          .from("feature_flags" as any)
+          .from("feature_flags")
           .select("enabled")
           .eq("key", key)
           .maybeSingle();
 
         if (!cancelled && !error && data) {
-          const val = (data as any).enabled ?? true;
+          const val = data.enabled ?? true;
           cache.set(key, val);
           setEnabled(val);
         }

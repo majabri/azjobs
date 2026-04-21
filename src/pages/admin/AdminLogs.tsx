@@ -48,7 +48,7 @@ export default function AdminLogs() {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const loadLogs = useCallback(async (scrollToBottom = false) => {
-    let query = (supabase as any)
+    let query = supabase
       .from("admin_logs")
       .select("*")
       .order("timestamp", { ascending: false })
@@ -93,7 +93,7 @@ export default function AdminLogs() {
   };
 
   const retryRun = async (runId: string) => {
-    await (supabase as any)
+    await supabase
       .from("agent_runs")
       .update({ status: "pending" })
       .eq("id", runId);
@@ -304,7 +304,7 @@ function ErrorViewerPanel({ onRetry }: { onRetry: () => void }) {
 
   useEffect(() => {
     (async () => {
-      const { data } = await (supabase as any)
+      const { data } = await supabase
         .from("agent_runs")
         .select("id, user_id, status, errors, started_at, completed_at, jobs_found, jobs_matched, applications_sent")
         .in("status", ["failed", "completed_with_errors"])
@@ -316,7 +316,7 @@ function ErrorViewerPanel({ onRetry }: { onRetry: () => void }) {
   }, []);
 
   const retryRun = async (runId: string) => {
-    await (supabase as any)
+    await supabase
       .from("agent_runs")
       .update({ status: "pending", errors: [] })
       .eq("id", runId);

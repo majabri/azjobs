@@ -52,10 +52,10 @@ export default function ScoreReport() {
   const loadReport = async () => {
     try {
       const { data, error } = await supabase
-        .from("analysis_history" as any)
+        .from("analysis_history")
         .select("overall_score, matched_skills, gaps, strengths, improvement_plan, job_title, company, summary, created_at")
         .eq("id", analysisId!)
-        .maybeSingle() as any;
+        .maybeSingle();
 
       if (error || !data) { setNotFound(true); return; }
       setReport(data);
@@ -93,10 +93,10 @@ export default function ScoreReport() {
     </div>
   );
 
-  const matchedSkills = (report.matched_skills as any[]) || [];
-  const matched = matchedSkills.filter((s: any) => typeof s === "object" ? s.matched : true);
-  const unmatched = matchedSkills.filter((s: any) => typeof s === "object" ? !s.matched : false);
-  const gaps = (report.gaps as any[]) || [];
+  const matchedSkills = (Array.isArray(report.matched_skills) ? report.matched_skills : []) as Array<{ matched: boolean; [k: string]: unknown }>;
+  const matched = matchedSkills.filter((s) => typeof s === "object" ? s.matched : true);
+  const unmatched = matchedSkills.filter((s) => typeof s === "object" ? !s.matched : false);
+  const gaps = (Array.isArray(report.gaps) ? report.gaps : []) as Array<Record<string, unknown>>;
   const strengths = (report.strengths as string[]) || [];
   const plan = (report.improvement_plan as string[]) || [];
   const scoreColor = report.overall_score >= 75 ? "text-success" : report.overall_score >= 50 ? "text-accent" : "text-destructive";

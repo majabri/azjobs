@@ -47,7 +47,7 @@ export default function AdaptiveSearchStrategy() {
         .order("applied_at", { ascending: false });
 
       // Load analyses
-      const { data: analyses } = await (supabase.from("analysis_history" as any) as any)
+      const { data: analyses } = await supabase.from("analysis_history")
         .select("overall_score, gaps, matched_skills, created_at")
         .eq("user_id", session.user.id)
         .order("created_at", { ascending: false })
@@ -64,7 +64,7 @@ export default function AdaptiveSearchStrategy() {
       const conversionRate = totalApps > 0 ? Math.round((interviews / totalApps) * 100) : 0;
 
       // Score trend
-      const scores = allAnalyses.map((a: any) => a.overall_score as number).filter(Boolean);
+      const scores = allAnalyses.map((a) => a.overall_score as number).filter(Boolean);
       const avgScore = scores.length ? Math.round(scores.reduce((s: number, v: number) => s + v, 0) / scores.length) : 0;
       const recentScores = scores.slice(0, 5);
       const olderScores = scores.slice(5, 10);
@@ -90,8 +90,8 @@ export default function AdaptiveSearchStrategy() {
 
       // Common gaps across analyses
       const gapCounts: Record<string, number> = {};
-      allAnalyses.forEach((a: any) => {
-        ((a.gaps || []) as any[]).forEach((g: any) => {
+      allAnalyses.forEach((a) => {
+        (Array.isArray(a.gaps) ? a.gaps : []).forEach((g: { area: string }) => {
           gapCounts[g.area] = (gapCounts[g.area] || 0) + 1;
         });
       });

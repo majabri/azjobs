@@ -40,12 +40,12 @@ export default function AdminAlertsPanel() {
     setLoading(true);
     try {
       const { data, error } = await supabase
-        .from("admin_alerts" as any)
+        .from("admin_alerts")
         .select("*")
         .order("created_at", { ascending: false })
         .limit(50);
       if (error) throw error;
-      setAlerts((data as any[]) ?? []);
+      setAlerts(data ?? []);
     } catch {
       /* silent */
     }
@@ -63,12 +63,12 @@ export default function AdminAlertsPanel() {
     setResolving(alertId);
     try {
       const { error } = await supabase
-        .from("admin_alerts" as any)
+        .from("admin_alerts")
         .update({
           status: "resolved",
           resolved_by: user.id,
           resolved_at: new Date().toISOString(),
-        } as any)
+        })
         .eq("id", alertId);
       if (error) throw error;
       toast.success("Alert resolved");

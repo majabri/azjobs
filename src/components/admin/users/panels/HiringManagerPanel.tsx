@@ -42,7 +42,7 @@ export function HiringManagerPanel({
       for (const r of rolesRes.data || []) rolesMap.set(r.user_id, r.role);
 
       const profileMap = new Map<string, { full_name: string | null; email: string | null }>();
-      for (const p of (profilesRes.data as any[] || [])) {
+      for (const p of (profilesRes.data || [])) {
         profileMap.set(p.user_id, { full_name: p.full_name, email: p.email });
       }
 

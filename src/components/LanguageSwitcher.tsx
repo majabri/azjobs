@@ -39,19 +39,19 @@ export default function LanguageSwitcher() {
       // Persist to DB if logged in and table is available
       if (user && !tableUnavailable) {
         try {
-          const { error } = await supabase.from("user_preferences" as any).upsert(
+          const { error } = await supabase.from("user_preferences").upsert(
             {
               user_id: user.id,
               preference_key: "language",
               preference_value: code,
               updated_at: new Date().toISOString(),
-            } as any,
+            },
             { onConflict: "user_id,preference_key" }
           );
 
           if (error) {
             const msg = (error.message ?? "").toLowerCase();
-            const errCode = (error as any)?.code ?? "";
+            const errCode = error.code ?? "";
             if (
               msg.includes("does not exist") ||
               msg.includes("relation") ||

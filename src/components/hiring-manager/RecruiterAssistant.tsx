@@ -59,7 +59,7 @@ export default function RecruiterAssistant() {
             availability,
             userName: profile?.full_name || "",
             skills: (profile?.skills as string[]) || [],
-            careerLevel: (profile as any)?.career_level || "",
+            careerLevel: profile?.career_level || "",
           }),
         }
       );

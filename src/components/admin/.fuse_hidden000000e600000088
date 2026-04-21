@@ -1,0 +1,252 @@
+import { useState, useEffect, useCallback } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { Users, Search, Loader2, Edit } from "lucide-react";
+import { logger } from '@/lib/logger';
+
+interface UserWithRoles {
+  user_id: string;
+  email: string | null;
+  full_name: string | null;
+  created_at: string;
+  roles: string[];
+}
+
+const ALL_ROLES = ["admin", "moderator", "user", "job_seeker", "employer", "talent"];
+
+export default function UserRoleManagementPanel() {
+  const [users, setUsers] = useState<UserWithRoles[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [editUser, setEditUser] = useState<UserWithRoles | null>(null);
+  const [editRoles, setEditRoles] = useState<string[]>([]);
+  const [saving, setSaving] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      // Get profiles
+      const { data: profiles, error: pErr } = await supabase
+        .from("profiles")
+        .select("user_id, email, full_name, created_at")
+        .order("created_at", { ascending: false })
+        .limit(200);
+      if (pErr) throw pErr;
+
+      // Get all roles
+      const { data: roles, error: rErr } = await supabase
+        .from("user_roles" as any)
+        .select("user_id, role");
+      if (rErr) throw rErr;
+
+      const roleMap = new Map<string, string[]>();
+      for (const r of (roles as any[]) ?? []) {
+        const list = roleMap.get(r.user_id) || [];
+        list.push(r.role);
+        roleMap.set(r.user_id, list);
+      }
+
+      const result: UserWithRoles[] = ((profiles as any[]) ?? []).map((p) => ({
+        user_id: p.user_id,
+        email: p.email,
+        full_name: p.full_name,
+        created_at: p.created_at,
+        roles: roleMap.get(p.user_id) || [],
+      }));
+
+      setUsers(result);
+    } catch (e) {
+      logger.error(e);
+    }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const filtered = users.filter((u) => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return (
+      u.email?.toLowerCase().includes(q) ||
+      u.full_name?.toLowerCase().includes(q) ||
+      u.user_id.includes(q)
+    );
+  });
+
+  const handleEditOpen = (user: UserWithRoles) => {
+    setEditUser(user);
+    setEditRoles([...user.roles]);
+  };
+
+  const toggleRole = (role: string) => {
+    setEditRoles((prev) =>
+      prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role]
+    );
+  };
+
+  const handleSaveRoles = async () => {
+    if (!editUser) return;
+    setSaving(true);
+    try {
+      const currentRoles = editUser.roles;
+      const toAdd = editRoles.filter((r) => !currentRoles.includes(r));
+      const toRemove = currentRoles.filter((r) => !editRoles.includes(r));
+
+      // Remove roles
+      for (const role of toRemove) {
+        await supabase
+          .from("user_roles" as any)
+          .delete()
+          .eq("user_id", editUser.user_id)
+          .eq("role", role);
+      }
+
+      // Add roles
+      for (const role of toAdd) {
+        await supabase
+          .from("user_roles" as any)
+          .insert({ user_id: editUser.user_id, role } as any);
+      }
+
+      toast.success("Roles updated successfully");
+      setEditUser(null);
+      load();
+    } catch {
+      toast.error("Failed to update roles");
+    }
+    setSaving(false);
+  };
+
+  const roleBadgeColor = (role: string): "default" | "secondary" | "destructive" | "outline" => {
+    if (role === "admin") return "destructive";
+    if (role === "employer") return "default";
+    return "secondary";
+  };
+
+  return (
+    <>
+      <Card className="border-border">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Users className="w-4 h-4 text-accent" /> User Role Management
+            </CardTitle>
+            <div className="relative w-64">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+              <Input
+                className="pl-8 h-8 text-xs"
+                placeholder="Search by email, name, or ID..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-xs">Email</TableHead>
+                    <TableHead className="text-xs">Created</TableHead>
+                    <TableHead className="text-xs">Roles</TableHead>
+                    <TableHead className="text-xs w-20">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filtered.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center text-muted-foreground text-sm py-8">
+                        No users found
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filtered.slice(0, 50).map((u) => (
+                      <TableRow key={u.user_id}>
+                        <TableCell className="text-xs">
+                          <div>
+                            <span className="font-medium">{u.email || "—"}</span>
+                            {u.full_name && <span className="text-muted-foreground ml-1">({u.full_name})</span>}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">
+                          {new Date(u.created_at).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {u.roles.length === 0 ? (
+                              <span className="text-xs text-muted-foreground">No roles</span>
+                            ) : (
+                              u.roles.map((r) => (
+                                <Badge key={r} variant={roleBadgeColor(r)} className="text-[10px]">
+                                  {r}
+                                </Badge>
+                              ))
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => handleEditOpen(u)}>
+                            <Edit className="w-3 h-3 mr-1" /> Edit
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+              {filtered.length > 50 && (
+                <p className="text-xs text-muted-foreground text-center mt-2">Showing 50 of {filtered.length} users</p>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Edit Roles Modal */}
+      <Dialog open={!!editUser} onOpenChange={(open) => !open && setEditUser(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Roles</DialogTitle>
+          </DialogHeader>
+          {editUser && (
+            <div className="space-y-4">
+              <div className="text-sm">
+                <span className="font-medium">{editUser.email}</span>
+                {editUser.full_name && <span className="text-muted-foreground ml-1">({editUser.full_name})</span>}
+              </div>
+              <div className="space-y-3">
+                {ALL_ROLES.map((role) => (
+                  <div key={role} className="flex items-center gap-2">
+                    <Checkbox
+                      id={`role-${role}`}
+                      checked={editRoles.includes(role)}
+                      onCheckedChange={() => toggleRole(role)}
+                    />
+                    <label htmlFor={`role-${role}`} className="text-sm capitalize cursor-pointer">{role.replace("_", " ")}</label>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditUser(null)}>Cancel</Button>
+            <Button onClick={handleSaveRoles} disabled={saving}>
+              {saving ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null} Save Roles
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}

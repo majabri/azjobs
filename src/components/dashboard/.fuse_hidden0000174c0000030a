@@ -1,0 +1,150 @@
+import { useEffect, useCallback } from "react";
+import { supabase } from "@/integrations/supabase/client";
+
+/**
+ * SmartNotificationEngine runs once on mount and generates contextual 
+ * notifications based on user data: missed opportunities, deadline reminders,
+ * under-market nudges, and personalized weekly insights.
+ * 
+ * Renders nothing — pure side-effect component.
+ */
+export default function SmartNotificationEngine() {
+  const generate = useCallback(async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+
+    const userId = session.user.id;
+    const now = new Date();
+
+    // Check if we already generated notifications today
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+    const { data: existing } = await supabase
+      .from("notifications")
+      .select("id")
+      .eq("user_id", userId)
+      .gte("created_at", todayStart)
+      .limit(1);
+
+    if (existing && existing.length > 0) return; // Already ran today
+
+    const notifications: { user_id: string; type: string; title: string; message: string; action_url: string }[] = [];
+
+    // 1. Offer deadline reminders
+    const { data: offers } = await supabase
+      .from("offers")
+      .select("job_title, company, deadline, status")
+      .eq("user_id", userId)
+      .eq("status", "negotiating") as any;
+
+    for (const offer of (offers || [])) {
+      if (!offer.deadline) continue;
+      const daysLeft = Math.ceil((new Date(offer.deadline).getTime() - now.getTime()) / 86400000);
+      if (daysLeft > 0 && daysLeft <= 3) {
+        notifications.push({
+          user_id: userId,
+          type: "urgent",
+          title: `⏰ Offer expires in ${daysLeft} day${daysLeft > 1 ? "s" : ""}`,
+          message: `Your offer from ${offer.company} for ${offer.job_title} needs a decision soon.`,
+          action_url: "/offers",
+        });
+      }
+    }
+
+    // 2. Under-market salary nudge
+    const { data: profile } = await supabase
+      .from("job_seeker_profiles")
+      .select("salary_target, salary_min")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    const acceptedOffers = (offers || []).filter((o: any) => o.status === "accepted");
+    if (profile?.salary_target && acceptedOffers.length === 0) {
+      const targetNum = parseInt(String(profile.salary_target).replace(/[^0-9]/g, ""));
+      if (targetNum > 0) {
+        const { data: analyses } = await supabase
+          .from("analysis_history")
+          .select("overall_score")
+          .eq("user_id", userId)
+          .order("created_at", { ascending: false })
+          .limit(5) as any;
+
+        const avgScore = analyses?.length
+          ? Math.round(analyses.reduce((s: number, a: any) => s + a.overall_score, 0) / analyses.length)
+          : 0;
+
+        if (avgScore > 0 && avgScore < 60) {
+          notifications.push({
+            user_id: userId,
+            type: "insight",
+            title: "💰 You may be under-targeting",
+            message: `Your avg fit score is ${avgScore}%. Optimizing your resume could unlock roles paying $${Math.round(targetNum * 1.15).toLocaleString()}+.`,
+            action_url: "/job-seeker",
+          });
+        }
+      }
+    }
+
+    // 3. Missed opportunity alerts (stale applications)
+    const twoWeeksAgo = new Date(now.getTime() - 14 * 86400000).toISOString();
+    const { data: staleApps } = await supabase
+      .from("job_applications")
+      .select("job_title, company")
+      .eq("user_id", userId)
+      .eq("status", "applied")
+      .eq("followed_up", false)
+      .lt("applied_at", twoWeeksAgo)
+      .limit(3);
+
+    if (staleApps && staleApps.length > 0) {
+      notifications.push({
+        user_id: userId,
+        type: "action",
+        title: `📬 ${staleApps.length} application${staleApps.length > 1 ? "s" : ""} need follow-up`,
+        message: `${staleApps.map(a => `${a.job_title} at ${a.company}`).join(", ")} — following up increases response rate by 30%.`,
+        action_url: "/applications",
+      });
+    }
+
+    // 4. Weekly insights (only on Mondays or if no recent insight)
+    if (now.getDay() === 1 || notifications.length === 0) {
+      const { data: recentAnalyses } = await supabase
+        .from("analysis_history")
+        .select("overall_score, created_at")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(10) as any;
+
+      if (recentAnalyses?.length >= 2) {
+        const recent = recentAnalyses.slice(0, 5);
+        const older = recentAnalyses.slice(5);
+        const recentAvg = Math.round(recent.reduce((s: number, a: any) => s + a.overall_score, 0) / recent.length);
+        const olderAvg = older.length > 0 ? Math.round(older.reduce((s: number, a: any) => s + a.overall_score, 0) / older.length) : recentAvg;
+        const delta = recentAvg - olderAvg;
+
+        notifications.push({
+          user_id: userId,
+          type: "insight",
+          title: "📊 Your Weekly Career Update",
+          message: delta > 0
+            ? `Your fit scores improved by +${delta}% (avg ${recentAvg}%). Keep optimizing to maintain momentum.`
+            : delta < 0
+            ? `Your fit scores dipped ${delta}% (avg ${recentAvg}%). Consider refreshing your resume or targeting different roles.`
+            : `Your fit scores are holding steady at ${recentAvg}%. Try analyzing new job postings to find better matches.`,
+          action_url: "/dashboard",
+        });
+      }
+    }
+
+    // Insert all
+    if (notifications.length > 0) {
+      await supabase.from("notifications").insert(notifications);
+    }
+  }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(generate, 2000); // Delay to avoid blocking initial render
+    return () => clearTimeout(timer);
+  }, [generate]);
+
+  return null;
+}

@@ -72,7 +72,7 @@ export default function AdminQueue() {
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
-    const { data } = await (supabase as any)
+    const { data } = await supabase
       .from("job_queue")
       .select("*")
       .order("created_at", { ascending: false })
@@ -92,7 +92,7 @@ export default function AdminQueue() {
   }, [jobs, load]);
 
   const retryJob = async (id: string) => {
-    await (supabase as any)
+    await supabase
       .from("job_queue")
       .update({ status: "pending", error: null, started_at: null })
       .eq("id", id);
@@ -101,7 +101,7 @@ export default function AdminQueue() {
   };
 
   const cancelJob = async (id: string) => {
-    await (supabase as any)
+    await supabase
       .from("job_queue")
       .update({ status: "cancelled", completed_at: new Date().toISOString() })
       .eq("id", id);
@@ -110,7 +110,7 @@ export default function AdminQueue() {
   };
 
   const clearQueue = async (statuses: string[]) => {
-    const { error } = await (supabase as any)
+    const { error } = await supabase
       .from("job_queue")
       .delete()
       .in("status", statuses);

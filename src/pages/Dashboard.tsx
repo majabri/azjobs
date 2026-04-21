@@ -1,4 +1,4 @@
-import { useState, useEffect, forwardRef } from "react";
+import { useState, forwardRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -6,9 +6,8 @@ import {
   BarChart3, Target, TrendingUp, Sparkles,
   Briefcase, Clock, DollarSign,
 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { useAnalysisHistory } from "@/hooks/queries/useAnalysisHistory";
 import OnboardingWizard from "@/components/dashboard/OnboardingWizard";
-import { toast } from "sonner";
 import { ScoreRingInline } from "@/components/ScoreDisplay";
 import HelpTooltip from "@/components/HelpTooltip";
 import TodaysMatches from "@/components/dashboard/TodaysMatches";
@@ -19,7 +18,6 @@ import AgentControlCenter from "@/components/auto-apply/AgentControlCenter";
 import CompensationDashboard from "@/components/dashboard/CompensationDashboard";
 import CareerROIScore from "@/components/dashboard/CareerROIScore";
 import SmartNotificationEngine from "@/components/dashboard/SmartNotificationEngine";
-import { logger } from '@/lib/logger';
 
 interface AnalysisRecord {
   id: string;
@@ -35,31 +33,12 @@ interface AnalysisRecord {
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const [analyses, setAnalyses] = useState<AnalysisRecord[]>([]);
-  const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"overview" | "compensation" | "insights">("overview");
 
-  useEffect(() => { loadAnalyses(); }, []);
-
-  const loadAnalyses = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-      const { data, error } = await supabase
-        .from("analysis_history" as any)
-        .select("*")
-        .eq("user_id", session.user.id)
-        .order("created_at", { ascending: false })
-        .limit(10) as any;
-      if (error) throw error;
-      setAnalyses(data || []);
-      supabase.from("job_seeker_profiles").update({ last_active_at: new Date().toISOString() } as any).eq("user_id", session.user.id).then(() => {});
-    } catch (e) {
-      logger.error(e);
-      toast.error("Failed to load history");
-    } finally { setLoading(false); }
-  };
+  // ── React Query data fetching ──
+  const { data: analysesData, isLoading: loading } = useAnalysisHistory(10);
+  const analyses = (analysesData || []) as AnalysisRecord[];
 
   const scoreColor = (score: number) => score >= 70 ? "text-success" : score >= 45 ? "text-warning" : "text-destructive";
   const avgScore = analyses.length ? Math.round(analyses.reduce((s, a) => s + a.overall_score, 0) / analyses.length) : 0;
@@ -126,8 +105,9 @@ export default function Dashboard() {
                 <h2 className="font-display text-lg font-bold text-foreground mb-4">Recent Analyses</h2>
                 <div className="space-y-3">
                   {analyses.map(a => {
-                    const matchedCount = (a.matched_skills as any[])?.filter((s: any) => s.matched).length || 0;
-                    const totalSkills = (a.matched_skills as any[])?.length || 0;
+                    const skillsArr = Array.isArray(a.matched_skills) ? a.matched_skills as Array<{ matched: boolean }> : [];
+                    const matchedCount = skillsArr.filter((s) => s.matched).length || 0;
+                    const totalSkills = skillsArr.length || 0;
                     return (
                       <div key={a.id} className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden hover:shadow-md transition-shadow">
                         <button className="w-full text-left p-5 flex items-center gap-5" onClick={() => setExpandedId(expandedId === a.id ? null : a.id)}>

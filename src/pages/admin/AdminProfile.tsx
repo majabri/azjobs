@@ -43,12 +43,11 @@ export default function AdminProfile() {
 
       if (error) throw error;
 
-      const row = data as any;
       setProfile({
-        full_name: row?.full_name ?? "",
-        email: row?.email ?? user?.email ?? "",
-        phone: row?.phone ?? "",
-        username: row?.username ?? "",
+        full_name: data?.full_name ?? "",
+        email: data?.email ?? user?.email ?? "",
+        phone: data?.phone ?? "",
+        username: data?.username ?? "",
       });
     } catch (e) {
       logger.error(e);
@@ -69,7 +68,7 @@ export default function AdminProfile() {
           email: profile.email || null,
           phone: profile.phone || null,
           updated_at: new Date().toISOString(),
-        } as any)
+        })
         .eq("user_id", user.id);
 
       if (error) throw error;

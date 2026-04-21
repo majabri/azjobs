@@ -1,13 +1,8 @@
+import { corsHeaders } from "../_shared/cors.ts";
 // iCareerOS v5 â job-alerts Edge Function
 // Zero-dependency: uses Deno.serve + inline PostgREST client.
 // Checks active alerts, finds new matching jobs, publishes notification events.
 // Called by pg_cron every hour or manually.
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY  = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;

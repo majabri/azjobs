@@ -1,3 +1,4 @@
+import { corsHeaders } from "../_shared/cors.ts";
 /**
  * iCareerOS — event-processor Edge Function
  * HIGH-008 Phase 3: Async Event Coordination
@@ -21,11 +22,6 @@
 const SUPABASE_URL    = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY     = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ANON_KEY        = Deno.env.get("SUPABASE_ANON_KEY")!;
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin":  "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 
 // ─── PostgREST helpers ────────────────────────────────────────────────────────
 

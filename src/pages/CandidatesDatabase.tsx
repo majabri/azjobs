@@ -299,7 +299,7 @@ export default function CandidatesDatabase() {
                       {Array.isArray(c.work_experience) && c.work_experience.length > 0 && (
                         <div>
                           <p className="font-medium text-xs text-muted-foreground mb-1">Experience</p>
-                          {(c.work_experience as any[]).map((w: any, i: number) => (
+                          {(c.work_experience as Array<{ title?: string; company?: string; startDate?: string; endDate?: string }>).map((w, i) => (
                             <div key={i} className="mb-2">
                               <p className="font-medium">{w.title} at {w.company}</p>
                               {w.startDate && (

@@ -34,7 +34,7 @@ export function useUpdateJobSeekerProfile() {
       if (!user) throw new Error("Not authenticated");
       const { data, error } = await supabase
         .from("job_seeker_profiles")
-        .update({ ...updates, updated_at: new Date().toISOString() } as any)
+        .update({ ...updates, updated_at: new Date().toISOString() })
         .eq("user_id", user.id)
         .select()
         .single();

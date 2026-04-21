@@ -182,10 +182,8 @@ export default function AdminSettings() {
   const load = async () => {
     setLoading(true);
     try {
-      const { data, error } = await (supabase
-        .from("admin_settings" as any)
-        .select("*")
-        .order("key") as any);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- admin_settings table not in generated Supabase types
+      const { data, error } = await (supabase.from("admin_settings" as any).select("*").order("key"));
       if (error) throw error;
       setSettings((data || []) as SettingRow[]);
       setEdits({});
@@ -208,14 +206,12 @@ export default function AdminSettings() {
     setSaving(true);
     try {
       for (const [key, value] of Object.entries(edits)) {
-        const { error } = await (supabase
-          .from("admin_settings" as any)
-          .update({
-            value: value as any,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- admin_settings table not in generated Supabase types
+        const { error } = await supabase.from("admin_settings" as any).update({
+            value,
             updated_by: user?.id ?? null,
             updated_at: new Date().toISOString(),
-          })
-          .eq("key", key) as any);
+          }).eq("key", key);
         if (error) throw error;
       }
       toast.success("Settings saved");

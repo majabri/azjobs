@@ -48,7 +48,7 @@ export default function FeedbackCollector({ applicationId, currentStatus, applie
           follow_up_notes: `Outcome: ${outcome} (logged ${new Date().toLocaleDateString()})`,
           updated_at: new Date().toISOString(),
           ...(responseDays !== null ? { response_days: responseDays } : {}),
-        } as any)
+        })
         .eq("id", applicationId);
 
       onStatusUpdate(applicationId, newStatus);

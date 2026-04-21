@@ -18,7 +18,7 @@ export async function loadApplications(): Promise<JobApplication[]> {
 
 export async function updateApplicationStatus(id: string, status: string): Promise<void> {
   await supabase.from("job_applications")
-    .update({ status, updated_at: new Date().toISOString() } as any)
+    .update({ status, updated_at: new Date().toISOString() })
     .eq("id", id);
 }
 
@@ -32,12 +32,12 @@ export async function setFollowUp(id: string, date: string, notes: string): Prom
     follow_up_notes: notes,
     followed_up: false,
     updated_at: new Date().toISOString(),
-  } as any).eq("id", id);
+  }).eq("id", id);
 }
 
 export async function markFollowedUp(id: string): Promise<void> {
   await supabase.from("job_applications")
-    .update({ followed_up: true, updated_at: new Date().toISOString() } as any)
+    .update({ followed_up: true, updated_at: new Date().toISOString() })
     .eq("id", id);
 }
 

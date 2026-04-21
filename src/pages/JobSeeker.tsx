@@ -4,6 +4,7 @@ import { analyzeJobFit, type FitAnalysis } from "@/lib/analysisEngine";
 import AnalysisForm from "@/components/job-seeker/AnalysisForm";
 import AnalysisResults from "@/components/job-seeker/AnalysisResults";
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { logger } from '@/lib/logger';
@@ -53,12 +54,12 @@ export default function JobSeekerPage() {
               job_description: jobDesc.slice(0, 5000),
               resume_text: resume.slice(0, 5000),
               overall_score: result.overallScore,
-              matched_skills: result.matchedSkills as any,
-              gaps: result.gaps as any,
-              strengths: result.strengths as any,
-              improvement_plan: result.improvementPlan as any,
+              matched_skills: result.matchedSkills as unknown as Json,
+              gaps: result.gaps as unknown as Json,
+              strengths: result.strengths as unknown as Json,
+              improvement_plan: result.improvementPlan as unknown as Json,
               summary: result.summary,
-            } as any);
+            });
           }
         } catch (e) { logger.error("Failed to save analysis:", e); }
       }

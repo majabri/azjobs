@@ -20,7 +20,7 @@ export async function createTicket(
       description: payload.description.trim(),
       priority: payload.priority,
       email: payload.email || null,
-    } as any)
+    })
     .select()
     .single();
 

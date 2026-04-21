@@ -38,7 +38,7 @@ export default function PortfolioEditor() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
       setUserId(session.user.id);
-      const { data } = await supabase.from("user_portfolio_items" as any).select("*").eq("user_id", session.user.id).order("display_order", { ascending: true }) as any;
+      const { data } = await supabase.from("user_portfolio_items").select("*").eq("user_id", session.user.id).order("display_order", { ascending: true });
       setItems(data || []);
     } catch (e) { logger.error(e); }
     finally { setLoading(false); }
@@ -50,7 +50,7 @@ export default function PortfolioEditor() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
-      await (supabase.from("user_portfolio_items" as any) as any).insert({
+      await supabase.from("user_portfolio_items").insert({
         user_id: session.user.id,
         ...newItem,
         display_order: items.length,
@@ -65,7 +65,7 @@ export default function PortfolioEditor() {
 
   const deleteItem = async (id: string) => {
     try {
-      await (supabase.from("user_portfolio_items" as any) as any).delete().eq("id", id);
+      await supabase.from("user_portfolio_items").delete().eq("id", id);
       setItems(prev => prev.filter(i => i.id !== id));
       toast.success("Removed");
     } catch { toast.error("Failed to delete"); }

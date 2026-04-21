@@ -7,6 +7,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Search, ChevronDown, UserPlus, Trash2, Target, Briefcase, Shield } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 import { logger } from "@/lib/logger";
 
 import { callAdminManageUser } from "@/services/admin/userService";
@@ -49,7 +50,7 @@ export default function AdminUsers() {
     try {
       const { error } = await supabase
         .from("user_roles")
-        .upsert({ user_id: userId, role: newRole as any } as any, { onConflict: "user_id" });
+        .upsert({ user_id: userId, role: newRole as Database["public"]["Enums"]["app_role"] }, { onConflict: "user_id" });
       if (error) throw error;
       toast.success("Role updated");
       reload();

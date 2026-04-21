@@ -44,10 +44,10 @@ export default function ProfilePage() {
         phone: data?.phone || "",
         location: data?.location || "",
         summary: data?.summary || "",
-        linkedin_url: (data as any)?.linkedin_url || "",
+        linkedin_url: data?.linkedin_url || "",
         skills: (data?.skills as string[]) || [],
-        work_experience: (data?.work_experience as any[]) || [],
-        education: (data?.education as any[]) || [],
+        work_experience: (data?.work_experience as Array<Record<string, unknown>>) || [],
+        education: (data?.education as Array<Record<string, unknown>>) || [],
         certifications: (data?.certifications as string[]) || [],
         preferred_job_types: (data?.preferred_job_types as string[]) || [],
         career_level: data?.career_level || "",
@@ -56,7 +56,7 @@ export default function ProfilePage() {
         salary_max: data?.salary_max || "",
         remote_only: data?.remote_only || false,
         min_match_score: data?.min_match_score ?? 60,
-        search_mode: (data as any)?.search_mode || "balanced",
+        search_mode: data?.search_mode || "balanced",
       });
     } catch (e) {
       logger.error(e);
@@ -69,12 +69,11 @@ export default function ProfilePage() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { toast.error("Please sign in"); return; }
-      const resp = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/export-my-data`,
-        { method: "GET", headers: { Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY } },
-      );
-      if (!resp.ok) { const json = await resp.json(); throw new Error(json.error ?? "Failed to export data"); }
-      const blob = await resp.blob();
+      const { data: exportData, error: exportError } = await supabase.functions.invoke("export-my-data", {
+        method: "GET",
+      });
+      if (exportError) throw new Error(exportError.message ?? "Failed to export data");
+      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;

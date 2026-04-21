@@ -50,7 +50,7 @@ export default function AdminSurveys() {
   const load = async () => {
     setLoading(true);
     try {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("customer_surveys")
         .select("*")
         .order("created_at", { ascending: false });
@@ -68,7 +68,7 @@ export default function AdminSurveys() {
     if (!confirm("Delete this survey response? This cannot be undone.")) return;
     setDeletingId(surveyId);
     try {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("customer_surveys")
         .delete()
         .eq("id", surveyId);
