@@ -19,6 +19,8 @@ import SalaryProjection from "@/components/career/SalaryProjection";
 import ProgressMetrics from "@/components/career/ProgressMetrics";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { logger } from '@/lib/logger';
+import { useJobSeekerProfile, useUpdateJobSeekerProfile } from "@/hooks/queries/useJobSeekerProfile";
+import { useAnalysisHistory } from "@/hooks/queries/useAnalysisHistory";
 
 interface CareerInsight {
   currentLevel: string;
@@ -31,8 +33,10 @@ interface CareerInsight {
 
 export default function CareerPage() {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const { data: profile, isLoading: loadingProfile } = useJobSeekerProfile();
+  const { data: history, isLoading: loadingHistory } = useAnalysisHistory(20);
+  const updateProfile = useUpdateJobSeekerProfile();
+
   const [analyzing, setAnalyzing] = useState(false);
   const [insight, setInsight] = useState<CareerInsight | null>(null);
   const [editingGoals, setEditingGoals] = useState(false);
@@ -40,77 +44,42 @@ export default function CareerPage() {
   const [goalsShort, setGoalsShort] = useState("");
   const [goalsLong, setGoalsLong] = useState("");
   const [salaryTarget, setSalaryTarget] = useState("");
-  const [careerLevel, setCareerLevel] = useState("");
-  const [targetTitles, setTargetTitles] = useState<string[]>([]);
-  const [salaryMin, setSalaryMin] = useState("");
-  const [salaryMax, setSalaryMax] = useState("");
 
-  // Score trend data
-  const [scoreTrend, setScoreTrend] = useState<{ date: string; score: number }[]>([]);
+  const scoreTrend = (history || []).map((h: any) => ({
+    date: new Date(h.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+    score: h.overall_score,
+  })).reverse(); // Chronological
 
-  useEffect(() => { loadData(); }, []);
-
-  const loadData = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      const [profileRes, historyRes] = await Promise.all([
-        supabase.from("job_seeker_profiles").select("*").eq("user_id", session.user.id).maybeSingle(),
-        supabase.from("analysis_history" as any).select("overall_score, created_at").eq("user_id", session.user.id).order("created_at", { ascending: true }).limit(20) as any,
-      ]);
-
-      if (profileRes.data) {
-        const p = profileRes.data as any;
-        setGoalsShort(p.career_goals_short || "");
-        setGoalsLong(p.career_goals_long || "");
-        setSalaryTarget(p.salary_target || "");
-        setCareerLevel(p.career_level || "");
-        setTargetTitles(p.target_job_titles || []);
-        setSalaryMin(p.salary_min || "");
-        setSalaryMax(p.salary_max || "");
-      }
-
-      if (historyRes.data?.length) {
-        setScoreTrend(historyRes.data.map((h: any) => ({
-          date: new Date(h.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-          score: h.overall_score,
-        })));
-      }
-    } catch (e) { logger.error(e); }
-    finally { setLoading(false); }
+  const handleEditClick = () => {
+    if (profile) {
+      setGoalsShort(profile.career_goals_short || "");
+      setGoalsLong(profile.career_goals_long || "");
+      setSalaryTarget(profile.salary_target || "");
+    }
+    setEditingGoals(true);
   };
 
   const saveGoals = async () => {
-    setSaving(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-      await supabase.from("job_seeker_profiles").update({
+      await updateProfile.mutateAsync({
         career_goals_short: goalsShort || null,
         career_goals_long: goalsLong || null,
         salary_target: salaryTarget || null,
-        updated_at: new Date().toISOString(),
-      } as any).eq("user_id", session.user.id);
+      });
       toast.success("Career goals saved!");
       setEditingGoals(false);
-    } catch { toast.error("Failed to save"); }
-    finally { setSaving(false); }
+    } catch {
+      // Error handled in hook 
+    }
   };
 
   const analyzeCareer = async () => {
     setAnalyzing(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { toast.error("Please sign in"); return; }
-
-      const { data: profile } = await supabase.from("job_seeker_profiles").select("*").eq("user_id", session.user.id).maybeSingle();
       if (!profile || !(profile.skills as string[])?.length) {
         toast.error("Complete your profile first");
         return;
       }
-
-      const { data: history } = await supabase.from("analysis_history" as any).select("job_title, overall_score, gaps, matched_skills").eq("user_id", session.user.id).order("created_at", { ascending: false }).limit(5) as any;
 
       const { data: insightData, error: insightError } = await supabase.functions.invoke('career-path-analysis', {
         body: {
@@ -120,7 +89,7 @@ export default function CareerPage() {
           education: profile.education,
           certifications: profile.certifications,
           targetTitles: (profile as any).target_job_titles,
-          recentAnalyses: history || [],
+          recentAnalyses: (history || []).slice(0, 5), // last 5 for context
           includeRoadmap: true,
         },
       });
@@ -130,7 +99,15 @@ export default function CareerPage() {
     finally { setAnalyzing(false); }
   };
 
-  if (loading) return <div className="min-h-screen bg-background flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-accent" /></div>;
+  if (loadingProfile || loadingHistory) return <div className="min-h-screen bg-background flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-accent" /></div>;
+
+  const careerLevel = (profile as any)?.career_level || "";
+  const targetTitles = (profile as any)?.target_job_titles || [];
+  const salaryMin = (profile as any)?.salary_min || "";
+  const salaryMax = (profile as any)?.salary_max || "";
+  const profileSalaryTarget = (profile as any)?.salary_target || "";
+  const profileGoalsShort = (profile as any)?.career_goals_short || "";
+  const profileGoalsLong = (profile as any)?.career_goals_long || "";
 
   return (
     <div className="bg-background">
@@ -150,11 +127,11 @@ export default function CareerPage() {
           </Card>
           <Card className="p-4">
             <p className="text-xs text-muted-foreground mb-1">Salary Range</p>
-            <p className="font-display font-bold text-primary">{salaryMin && salaryMax ? `$${salaryMin}–$${salaryMax}` : "Not set"}</p>
+            <p className="font-display font-bold text-primary">{salaryMin && salaryMax ? \`$\${salaryMin}–$\${salaryMax}\` : "Not set"}</p>
           </Card>
           <Card className="p-4">
             <p className="text-xs text-muted-foreground mb-1">Salary Target</p>
-            <p className="font-display font-bold text-accent">{salaryTarget ? `$${salaryTarget}` : "Not set"}</p>
+            <p className="font-display font-bold text-accent">{profileSalaryTarget ? \`$\${profileSalaryTarget}\` : "Not set"}</p>
           </Card>
         </div>
 
@@ -162,8 +139,8 @@ export default function CareerPage() {
         <Card className="p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-display font-bold text-primary text-lg flex items-center gap-2"><Target className="w-5 h-5 text-accent" /> Career Goals</h2>
-            <Button variant="ghost" size="sm" onClick={() => editingGoals ? saveGoals() : setEditingGoals(true)} disabled={saving}>
-              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : editingGoals ? <><Check className="w-4 h-4 mr-1" /> Save</> : <><Edit2 className="w-4 h-4 mr-1" /> Edit</>}
+            <Button variant="ghost" size="sm" onClick={() => editingGoals ? saveGoals() : handleEditClick()} disabled={updateProfile.isPending}>
+              {updateProfile.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : editingGoals ? <><Check className="w-4 h-4 mr-1" /> Save</> : <><Edit2 className="w-4 h-4 mr-1" /> Edit</>}
             </Button>
           </div>
           {editingGoals ? (
@@ -188,11 +165,11 @@ export default function CareerPage() {
             <div className="space-y-3">
               <div>
                 <p className="text-xs text-muted-foreground">Short-term</p>
-                <p className="text-sm text-foreground">{goalsShort || "No short-term goal set yet"}</p>
+                <p className="text-sm text-foreground">{profileGoalsShort || "No short-term goal set yet"}</p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Long-term</p>
-                <p className="text-sm text-foreground">{goalsLong || "No long-term goal set yet"}</p>
+                <p className="text-sm text-foreground">{profileGoalsLong || "No long-term goal set yet"}</p>
               </div>
             </div>
           )}
@@ -315,7 +292,7 @@ export default function CareerPage() {
           careerLevel={careerLevel}
           salaryMin={salaryMin}
           salaryMax={salaryMax}
-          salaryTarget={salaryTarget}
+          salaryTarget={profileSalaryTarget}
           targetTitles={targetTitles}
           experience={[]}
         />
