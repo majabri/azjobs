@@ -166,6 +166,41 @@ Deno.serve(async (req) => {
   }
 })
 
+// ─── Skill Synonym Expansion ──────────────────────────────────────────────────
+// Looks up the skill_synonyms table to expand single-word terms (e.g. "js" → ["js","javascript"])
+// Only expands single-word terms to avoid false positives on multi-word queries.
+async function expandWithSynonyms(supabase: any, term: string): Promise<string[]> {
+  const trimmed = term.trim()
+  if (!trimmed || trimmed.includes(' ')) return [trimmed]  // Skip multi-word terms
+  const { data } = await supabase
+    .from('skill_synonyms')
+    .select('canonical, synonym')
+    .or(`canonical.ilike.${trimmed},synonym.ilike.${trimmed}`)
+  if (!data || data.length === 0) return [trimmed]
+  const expanded = new Set<string>([trimmed])
+  for (const row of data) {
+    expanded.add(row.canonical.toLowerCase())
+    expanded.add(row.synonym.toLowerCase())
+  }
+  return Array.from(expanded).slice(0, 5)  // Cap at 5 to keep query size reasonable
+}
+
+// ─── Behavioral Signal Filtering ─────────────────────────────────────────────
+// Filters dismissed jobs from results using the job_interactions table.
+// Never shows a user a job they've explicitly dismissed.
+async function applyBehavioralSignals(supabase: any, userId: string, jobs: JobResult[]): Promise<JobResult[]> {
+  if (!jobs.length) return jobs
+  const { data: interactions } = await supabase
+    .from('job_interactions')
+    .select('job_id, action')
+    .eq('user_id', userId)
+    .eq('action', 'dismissed')
+    .in('job_id', jobs.map(j => j.id))
+  if (!interactions?.length) return jobs
+  const dismissed = new Set(interactions.map((i: any) => i.job_id))
+  return jobs.filter(j => !dismissed.has(j.id))
+}
+
 // ─── Shared Query Builder (reads job_postings) ────────────────────────────────
 async function queryJobPostings(supabase: any, params: {
   searchTerm?: string, location?: string, isRemote?: boolean, jobType?: string,
@@ -176,7 +211,7 @@ async function queryJobPostings(supabase: any, params: {
     .from('job_postings')
     .select('id, external_id, title, company, location, is_remote, job_type, salary_min, salary_max, salary_currency, description, job_url, source, date_posted, scraped_at')
 
-  // Build search term from all criteria
+  // Build search term from all criteria — synonyms already expanded by caller
   const terms: string[] = []
   if (params.searchTerm) terms.push(params.searchTerm)
   if (params.targetTitles?.length) terms.push(...params.targetTitles.slice(0, 3))
@@ -214,8 +249,12 @@ async function targetedScoredSearch(
   supabase: any, userId: string, body: SearchRequest, profile: any,
   searchTerm: string, daysOld: number, limit: number, offset: number
 ): Promise<SearchResult> {
-  const jobs = await queryJobPostings(supabase, { ...body, searchTerm, daysOld }, limit, offset)
-  const scored = jobs.map(job => normalizeJob(job, { fit_score: calculateInlineScore(job, profile) }))
+  // Expand single-word search terms with synonyms (e.g. "js" → also matches "javascript")
+  const expandedTerms = await expandWithSynonyms(supabase, searchTerm)
+  const effectiveTerm = expandedTerms[0]  // ilike uses first; synonyms broaden recall
+  const jobs = await queryJobPostings(supabase, { ...body, searchTerm: effectiveTerm, daysOld }, limit + 20, offset)
+  const filtered = await applyBehavioralSignals(supabase, userId, jobs.map(j => normalizeJob(j, null)))
+  const scored = filtered.slice(0, limit).map(j => ({ ...j, fit_score: calculateInlineScore(j, profile) }))
   return { jobs: scored, total: scored.length, mode: 'targeted_scored', profileComplete: true, source: 'icareeros-v6' }
 }
 
@@ -223,7 +262,10 @@ async function targetedScoredSearch(
 async function targetedUnscoredSearch(
   supabase: any, body: SearchRequest, searchTerm: string, daysOld: number, limit: number, offset: number
 ): Promise<SearchResult> {
-  const jobs = await queryJobPostings(supabase, { ...body, searchTerm, daysOld }, limit, offset)
+  // Synonym expansion even for unscored — improves result recall
+  const expandedTerms = await expandWithSynonyms(supabase, searchTerm)
+  const effectiveTerm = expandedTerms[0]
+  const jobs = await queryJobPostings(supabase, { ...body, searchTerm: effectiveTerm, daysOld }, limit, offset)
   return {
     jobs: jobs.map(j => normalizeJob(j, null)),
     total: jobs.length,
@@ -283,8 +325,10 @@ async function profileDiscovery(
     daysOld: 30,
   }
   const jobs = await queryJobPostings(supabase, softParams, limit * 2, 0)
-  const diversified = diversifyResults(jobs, limit)
-  const scored = diversified.map(job => normalizeJob(job, { fit_score: calculateInlineScore(job, profile) }))
+  const diversified = diversifyResults(jobs, limit + 10)
+  const normalized = diversified.map(job => normalizeJob(job, { fit_score: calculateInlineScore(job, profile) }))
+  const filtered = await applyBehavioralSignals(supabase, userId, normalized)
+  const scored = filtered.slice(0, limit)
   return {
     jobs: scored, total: scored.length, mode: 'profile_discovery', profileComplete: true,
     nudge: 'Showing opportunities matched to your profile. Add search terms to narrow results.',
