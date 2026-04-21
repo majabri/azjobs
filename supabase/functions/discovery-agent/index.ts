@@ -7,6 +7,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { remoteOkAdapter }    from '../_shared/discovery/adapters/remoteok.ts';
 import { greenhouseAdapter }  from '../_shared/discovery/adapters/greenhouse.ts';
 import { leverAdapter }       from '../_shared/discovery/adapters/lever.ts';
+import { adzunaAdapter }      from '../_shared/discovery/adapters/adzuna.ts';
+import { usaJobsAdapter }     from '../_shared/discovery/adapters/usajobs.ts';
 import { computeDedupeHash }  from '../_shared/discovery/helpers.ts';
 
 const corsHeaders = {
@@ -68,6 +70,8 @@ Deno.serve(async (req) => {
       'discovery_board_remoteok',
       'discovery_board_greenhouse',
       'discovery_board_lever',
+      'discovery_board_adzuna',
+      'discovery_board_usajobs',
     ]);
 
   const flags: Record<string, boolean> = {};
@@ -100,6 +104,8 @@ Deno.serve(async (req) => {
   // ── Adapter registry ─────────────────────────────────────────────────────────
   const adapters = [
     ...(flags['discovery_board_remoteok']   ? [remoteOkAdapter]   : []),
+    ...(flags['discovery_board_adzuna']     ? [adzunaAdapter]     : []),
+    ...(flags['discovery_board_usajobs']    ? [usaJobsAdapter]    : []),
     ...(flags['discovery_board_greenhouse'] ? [greenhouseAdapter] : []),
     ...(flags['discovery_board_lever']      ? [leverAdapter]      : []),
   ];
