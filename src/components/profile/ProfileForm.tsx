@@ -295,17 +295,11 @@ export default function ProfileForm({ initialData }: Props) {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.access_token) {
-          const resp = await fetch(
-            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extract-profile-fields`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
-              body: JSON.stringify({ resumeText: result.text }),
-            }
-          );
-          if (resp.ok) {
-            const data = await resp.json();
-            extracted = data.profile;
+          const { data: fnData, error: fnError } = await supabase.functions.invoke("extract-profile-fields", {
+            body: { resumeText: result.text },
+          });
+          if (!fnError && fnData) {
+            extracted = fnData.profile;
           }
         }
       } catch (aiErr) {

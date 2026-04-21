@@ -196,17 +196,10 @@ export default function AccountSettings() {
         data: { session },
       } = await supabase.auth.getSession();
       if (!session) throw new Error("Not authenticated");
-      const resp = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-own-account`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
-          },
-        }
-      );
-      if (!resp.ok) throw new Error("Failed to delete account");
+      const { error: deleteError } = await supabase.functions.invoke("delete-own-account", {
+        body: {},
+      });
+      if (deleteError) throw new Error(deleteError.message || "Failed to delete account");
       await supabase.auth.signOut();
       navigate("/");
     } catch (e) {

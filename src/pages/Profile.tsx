@@ -91,12 +91,10 @@ export default function ProfilePage() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { toast.error("Please sign in"); return; }
-      const resp = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-own-account`,
-        { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY } },
-      );
-      const json = await resp.json();
-      if (!resp.ok) throw new Error(json.error ?? "Failed to delete account");
+      const { error: deleteError } = await supabase.functions.invoke("delete-own-account", {
+        body: {},
+      });
+      if (deleteError) throw new Error(deleteError.message ?? "Failed to delete account");
       await supabase.auth.signOut();
       toast.success("Your account has been deleted.");
       navigate("/", { replace: true });
