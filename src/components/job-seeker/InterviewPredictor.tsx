@@ -39,19 +39,16 @@ export default function InterviewPredictor({ jobDescription, resumeText }: Inter
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { toast.error("Please sign in"); return; }
 
-      const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/interview-predictor`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify({ jobDescription: jobDescription.slice(0, 4000), resumeText: resumeText.slice(0, 4000) }),
+      const { data, error: predictError } = await supabase.functions.invoke('interview-predictor', {
+        body: { jobDescription: jobDescription.slice(0, 4000), resumeText: resumeText.slice(0, 4000) },
       });
 
-      if (!resp.ok) {
-        if (resp.status === 429) { toast.error("Rate limit reached"); return; }
-        if (resp.status === 402) { toast.error("AI credits exhausted"); return; }
-        throw new Error("Failed");
+      if (predictError) {
+        if ((predictError as any).status === 429) { toast.error("Rate limit reached"); return; }
+        if ((predictError as any).status === 402) { toast.error("AI credits exhausted"); return; }
+        throw predictError;
       }
 
-      const data = await resp.json();
       setPredictions(data.questions || []);
       toast.success(`Generated ${data.questions?.length || 0} predicted questions`);
     } catch {
@@ -69,18 +66,15 @@ export default function InterviewPredictor({ jobDescription, resumeText }: Inter
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
-      const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/interview-predictor`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify({
+      const { data, error: evalError } = await supabase.functions.invoke('interview-predictor', {
+        body: {
           mode: "evaluate",
           question: predictions[idx].question,
           answer,
           jobDescription: jobDescription?.slice(0, 2000),
-        }),
+        },
       });
-      if (!resp.ok) throw new Error("Failed");
-      const data = await resp.json();
+      if (evalError) throw evalError;
       setAnswerFeedback(prev => ({ ...prev, [idx]: data }));
     } catch {
       toast.error("Failed to evaluate");

@@ -23,12 +23,8 @@ export default function LearningInsights() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
 
-      const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/learning-insights`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
-      });
-      if (!resp.ok) throw new Error("Failed");
-      const data = await resp.json();
+      const { data, error: insightsError } = await supabase.functions.invoke('learning-insights', { body: {} });
+      if (insightsError) throw insightsError;
       setInsights(data.insights || []);
     } catch { toast.error("Failed to generate insights"); }
     finally { setLoading(false); }
