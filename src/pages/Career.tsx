@@ -112,10 +112,8 @@ export default function CareerPage() {
 
       const { data: history } = await supabase.from("analysis_history" as any).select("job_title, overall_score, gaps, matched_skills").eq("user_id", session.user.id).order("created_at", { ascending: false }).limit(5) as any;
 
-      const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/career-path-analysis`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify({
+      const { data: insightData, error: insightError } = await supabase.functions.invoke('career-path-analysis', {
+        body: {
           skills: profile.skills,
           careerLevel: (profile as any).career_level,
           experience: profile.work_experience,
@@ -124,10 +122,10 @@ export default function CareerPage() {
           targetTitles: (profile as any).target_job_titles,
           recentAnalyses: history || [],
           includeRoadmap: true,
-        }),
+        },
       });
-      if (!resp.ok) throw new Error("Analysis failed");
-      setInsight(await resp.json());
+      if (insightError) throw new Error("Analysis failed");
+      setInsight(insightData);
     } catch { toast.error("Failed to analyze career path"); }
     finally { setAnalyzing(false); }
   };

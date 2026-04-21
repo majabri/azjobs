@@ -262,13 +262,11 @@ export default function ProfileForm({ initialData }: Props) {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { toast.error("Please sign in"); return; }
-      const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/extract-profile-fields`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify({ resumeText: `Skills: ${data.skills.join(", ")}. Experience: ${data.work_experience.map(w => `${w.title} at ${w.company}`).join("; ")}` }),
+      const { data: extractResult, error: extractError } = await supabase.functions.invoke('extract-profile-fields', {
+        body: { resumeText: `Skills: ${data.skills.join(", ")}. Experience: ${data.work_experience.map(w => `${w.title} at ${w.company}`).join("; ")}` },
       });
-      if (!resp.ok) throw new Error("Failed");
-      const { profile: extracted } = await resp.json();
+      if (extractError) throw extractError;
+      const { profile: extracted } = extractResult;
       if (extracted?.target_job_titles?.length || extracted?.job_titles?.length) {
         const current = data.target_job_titles || [];
         const suggestions = (extracted.target_job_titles || extracted.job_titles || []).filter((t: string) => !current.includes(t));
