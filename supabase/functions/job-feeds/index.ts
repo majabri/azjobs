@@ -33,19 +33,19 @@ import { corsHeaders } from "../_shared/cors.ts";
 // ---------------------------------------------------------------------------
 
 interface NormalizedJob {
-  external_id: string;    // unique ID for deduplication
+  external_id: string; // unique ID for deduplication
   title: string;
   company: string;
   location: string;
   is_remote: boolean;
-  job_type: string;       // 'fulltime' | 'parttime' | 'contract' | 'internship'
-  description: string;    // cleaned by job-parser
+  job_type: string; // 'fulltime' | 'parttime' | 'contract' | 'internship'
+  description: string; // cleaned by job-parser
   job_url: string;
   apply_url: string;
   source: string;
   salary_min: number | null;
   salary_max: number | null;
-  date_posted: string;    // ISO timestamp
+  date_posted: string; // ISO timestamp
 }
 
 interface SourceResult {
@@ -67,7 +67,10 @@ function normalizeJobType(raw: string): string {
   return "fulltime";
 }
 
-function extractSalary(text: string): { min: number | null; max: number | null } {
+function extractSalary(text: string): {
+  min: number | null;
+  max: number | null;
+} {
   const m = text.match(/\$\s*([\d,]+)(?:\s*[-–]\s*\$?\s*([\d,]+))?/);
   if (!m) return { min: null, max: null };
   const min = parseInt(m[1].replace(/,/g, ""), 10);
@@ -84,47 +87,72 @@ function extractSalary(text: string): { min: number | null; max: number | null }
 // ---------------------------------------------------------------------------
 
 const REMOTIVE_CATEGORIES = [
-  "software-dev", "devops-sysadmin", "product", "design",
-  "data", "qa", "cybersecurity", "finance-legal", "marketing",
+  "software-dev",
+  "devops-sysadmin",
+  "product",
+  "design",
+  "data",
+  "qa",
+  "cybersecurity",
+  "finance-legal",
+  "marketing",
 ];
 
-async function fetchRemotive(): Promise<{ jobs: NormalizedJob[]; error?: string }> {
+async function fetchRemotive(): Promise<{
+  jobs: NormalizedJob[];
+  error?: string;
+}> {
   const allJobs: NormalizedJob[] = [];
   const errors: string[] = [];
 
-  for (const category of REMOTIVE_CATEGORIES) {
-    try {
-      const url = `https://remotive.com/api/remote-jobs?category=${category}&limit=50`;
-      const res = await fetch(url, { signal: AbortSignal.timeout(12_000) });
-      if (!res.ok) { errors.push(`remotive/${category}: HTTP ${res.status}`); continue; }
+  // Parallel fetches (was sequential — caused WORKER_RESOURCE_LIMIT).
+  // Limit 50→20 per category to reduce total compute.
+  await Promise.allSettled(
+    REMOTIVE_CATEGORIES.map(async (category) => {
+      try {
+        const url = `https://remotive.com/api/remote-jobs?category=${category}&limit=20`;
+        const res = await fetch(url, { signal: AbortSignal.timeout(8_000) });
+        if (!res.ok) {
+          errors.push(`remotive/${category}: HTTP ${res.status}`);
+          return;
+        }
 
-      const data = await res.json();
-      const jobs: any[] = data.jobs ?? [];
+        const data = await res.json();
+        const jobs: any[] = data.jobs ?? [];
 
-      for (const job of jobs) {
-        const salary = extractSalary(job.salary ?? "");
-        allJobs.push({
-          external_id: `remotive-${job.id}`,
-          title: job.title ?? "",
-          company: job.company_name ?? "",
-          location: job.candidate_required_location || "Worldwide",
-          is_remote: true,
-          job_type: normalizeJobType(job.job_type ?? "full_time"),
-          description: cleanJobText(job.description?.replace(/<[^>]+>/g, " ") ?? "", job.title),
-          job_url: job.url ?? "",
-          apply_url: job.url ?? "",
-          source: "remotive",
-          salary_min: salary.min,
-          salary_max: salary.max,
-          date_posted: job.publication_date ?? new Date().toISOString(),
-        });
+        for (const job of jobs) {
+          const salary = extractSalary(job.salary ?? "");
+          allJobs.push({
+            external_id: `remotive-${job.id}`,
+            title: job.title ?? "",
+            company: job.company_name ?? "",
+            location: job.candidate_required_location || "Worldwide",
+            is_remote: true,
+            job_type: normalizeJobType(job.job_type ?? "full_time"),
+            description: cleanJobText(
+              job.description?.replace(/<[^>]+>/g, " ") ?? "",
+              job.title,
+            ),
+            job_url: job.url ?? "",
+            apply_url: job.url ?? "",
+            source: "remotive",
+            salary_min: salary.min,
+            salary_max: salary.max,
+            date_posted: job.publication_date ?? new Date().toISOString(),
+          });
+        }
+      } catch (e) {
+        errors.push(
+          `remotive/${category}: ${e instanceof Error ? e.message : String(e)}`,
+        );
       }
-    } catch (e) {
-      errors.push(`remotive/${category}: ${e instanceof Error ? e.message : String(e)}`);
-    }
-  }
+    }),
+  );
 
-  return { jobs: allJobs, error: errors.length > 0 ? errors.join("; ") : undefined };
+  return {
+    jobs: allJobs,
+    error: errors.length > 0 ? errors.join("; ") : undefined,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -141,9 +169,20 @@ const WWR_FEEDS = [
   "https://weworkremotely.com/categories/remote-data-science-ai-statistics-jobs.rss",
 ];
 
-function parseRssItem(item: string): { title?: string; link?: string; description?: string; company?: string; pubDate?: string } {
+function parseRssItem(item: string): {
+  title?: string;
+  link?: string;
+  description?: string;
+  company?: string;
+  pubDate?: string;
+} {
   const get = (tag: string) => {
-    const m = item.match(new RegExp(`<${tag}[^>]*>(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?<\\/${tag}>`, "i"));
+    const m = item.match(
+      new RegExp(
+        `<${tag}[^>]*>(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?<\\/${tag}>`,
+        "i",
+      ),
+    );
     return m?.[1]?.trim();
   };
   const title = get("title") ?? "";
@@ -160,7 +199,10 @@ function parseRssItem(item: string): { title?: string; link?: string; descriptio
   };
 }
 
-async function fetchWeWorkRemotely(): Promise<{ jobs: NormalizedJob[]; error?: string }> {
+async function fetchWeWorkRemotely(): Promise<{
+  jobs: NormalizedJob[];
+  error?: string;
+}> {
   const allJobs: NormalizedJob[] = [];
   const errors: string[] = [];
 
@@ -168,9 +210,12 @@ async function fetchWeWorkRemotely(): Promise<{ jobs: NormalizedJob[]; error?: s
     try {
       const res = await fetch(feedUrl, {
         headers: { "User-Agent": "iCareerOS/1.0" },
-        signal: AbortSignal.timeout(12_000),
+        signal: AbortSignal.timeout(8_000),
       });
-      if (!res.ok) { errors.push(`wwr: HTTP ${res.status}`); continue; }
+      if (!res.ok) {
+        errors.push(`wwr: HTTP ${res.status}`);
+        continue;
+      }
 
       const xml = await res.text();
       const items = xml.match(/<item>([\s\S]*?)<\/item>/gi) ?? [];
@@ -179,7 +224,9 @@ async function fetchWeWorkRemotely(): Promise<{ jobs: NormalizedJob[]; error?: s
         const parsed = parseRssItem(item);
         if (!parsed.title || !parsed.link) continue;
 
-        const hash = btoa(parsed.link).replace(/[^a-z0-9]/gi, "").slice(0, 32);
+        const hash = btoa(parsed.link)
+          .replace(/[^a-z0-9]/gi, "")
+          .slice(0, 32);
         const salary = extractSalary(parsed.description ?? "");
         const desc = (parsed.description ?? "").replace(/<[^>]+>/g, " ");
 
@@ -196,7 +243,9 @@ async function fetchWeWorkRemotely(): Promise<{ jobs: NormalizedJob[]; error?: s
           source: "weworkremotely",
           salary_min: salary.min,
           salary_max: salary.max,
-          date_posted: parsed.pubDate ? new Date(parsed.pubDate).toISOString() : new Date().toISOString(),
+          date_posted: parsed.pubDate
+            ? new Date(parsed.pubDate).toISOString()
+            : new Date().toISOString(),
         });
       }
     } catch (e) {
@@ -204,7 +253,10 @@ async function fetchWeWorkRemotely(): Promise<{ jobs: NormalizedJob[]; error?: s
     }
   }
 
-  return { jobs: allJobs, error: errors.length > 0 ? errors.join("; ") : undefined };
+  return {
+    jobs: allJobs,
+    error: errors.length > 0 ? errors.join("; ") : undefined,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -212,11 +264,14 @@ async function fetchWeWorkRemotely(): Promise<{ jobs: NormalizedJob[]; error?: s
 // https://arbeitnow.com/api/job-board-api
 // ---------------------------------------------------------------------------
 
-async function fetchArbeitnow(): Promise<{ jobs: NormalizedJob[]; error?: string }> {
+async function fetchArbeitnow(): Promise<{
+  jobs: NormalizedJob[];
+  error?: string;
+}> {
   try {
     const res = await fetch("https://arbeitnow.com/api/job-board-api", {
-      headers: { "Accept": "application/json" },
-      signal: AbortSignal.timeout(12_000),
+      headers: { Accept: "application/json" },
+      signal: AbortSignal.timeout(8_000),
     });
     if (!res.ok) return { jobs: [], error: `arbeitnow: HTTP ${res.status}` };
 
@@ -232,19 +287,27 @@ async function fetchArbeitnow(): Promise<{ jobs: NormalizedJob[]; error?: string
         location: job.location || (job.remote ? "Remote" : ""),
         is_remote: job.remote ?? false,
         job_type: normalizeJobType(job.job_types?.[0] ?? "full_time"),
-        description: cleanJobText((job.description ?? "").replace(/<[^>]+>/g, " "), job.title),
+        description: cleanJobText(
+          (job.description ?? "").replace(/<[^>]+>/g, " "),
+          job.title,
+        ),
         job_url: job.url ?? "",
         apply_url: job.url ?? "",
         source: "arbeitnow",
         salary_min: salary.min,
         salary_max: salary.max,
-        date_posted: job.created_at ? new Date(job.created_at * 1000).toISOString() : new Date().toISOString(),
+        date_posted: job.created_at
+          ? new Date(job.created_at * 1000).toISOString()
+          : new Date().toISOString(),
       };
     });
 
     return { jobs };
   } catch (e) {
-    return { jobs: [], error: `arbeitnow: ${e instanceof Error ? e.message : String(e)}` };
+    return {
+      jobs: [],
+      error: `arbeitnow: ${e instanceof Error ? e.message : String(e)}`,
+    };
   }
 }
 
@@ -253,13 +316,23 @@ async function fetchArbeitnow(): Promise<{ jobs: NormalizedJob[]; error?: string
 // (Add more boards here as needed — all are free public APIs)
 // ---------------------------------------------------------------------------
 
+// Capped at 10 boards — 17 parallel Greenhouse fetches exceeded WORKER_RESOURCE_LIMIT.
 const GREENHOUSE_BOARDS = [
-  "anthropic", "stripe", "vercel", "supabase", "linear", "notion",
-  "figma", "airbnb", "shopify", "databricks", "snowflake", "hashicorp",
-  "cloudflare", "twilio", "datadog", "confluent", "asana",
+  "anthropic",
+  "stripe",
+  "vercel",
+  "supabase",
+  "linear",
+  "figma",
+  "airbnb",
+  "databricks",
+  "cloudflare",
+  "datadog",
 ];
 
-async function fetchGreenhouseBoards(boards: string[]): Promise<{ jobs: NormalizedJob[]; error?: string }> {
+async function fetchGreenhouseBoards(
+  boards: string[],
+): Promise<{ jobs: NormalizedJob[]; error?: string }> {
   const allJobs: NormalizedJob[] = [];
   const errors: string[] = [];
 
@@ -268,12 +341,15 @@ async function fetchGreenhouseBoards(boards: string[]): Promise<{ jobs: Normaliz
       try {
         const url = `https://boards-api.greenhouse.io/v1/boards/${board}/jobs?content=true`;
         const res = await fetch(url, { signal: AbortSignal.timeout(10_000) });
-        if (!res.ok) { errors.push(`greenhouse/${board}: HTTP ${res.status}`); return; }
+        if (!res.ok) {
+          errors.push(`greenhouse/${board}: HTTP ${res.status}`);
+          return;
+        }
 
         const data = await res.json();
         const company = data.name ?? board;
 
-        for (const job of (data.jobs ?? [])) {
+        for (const job of data.jobs ?? []) {
           const salary = extractSalary(job.content ?? "");
           const desc = (job.content ?? "").replace(/<[^>]+>/g, " ");
           allJobs.push({
@@ -281,7 +357,9 @@ async function fetchGreenhouseBoards(boards: string[]): Promise<{ jobs: Normaliz
             title: job.title ?? "",
             company,
             location: job.location?.name ?? "",
-            is_remote: /remote/i.test(job.location?.name ?? "") || /remote/i.test(job.title),
+            is_remote:
+              /remote/i.test(job.location?.name ?? "") ||
+              /remote/i.test(job.title),
             job_type: "fulltime",
             description: cleanJobText(desc, job.title),
             job_url: job.absolute_url ?? "",
@@ -293,24 +371,36 @@ async function fetchGreenhouseBoards(boards: string[]): Promise<{ jobs: Normaliz
           });
         }
       } catch (e) {
-        errors.push(`greenhouse/${board}: ${e instanceof Error ? e.message : String(e)}`);
+        errors.push(
+          `greenhouse/${board}: ${e instanceof Error ? e.message : String(e)}`,
+        );
       }
-    })
+    }),
   );
 
-  return { jobs: allJobs, error: errors.length > 0 ? errors.slice(0, 3).join("; ") : undefined };
+  return {
+    jobs: allJobs,
+    error: errors.length > 0 ? errors.slice(0, 3).join("; ") : undefined,
+  };
 }
 
 // ---------------------------------------------------------------------------
 // Source 5: Lever boards — popular companies using Lever
 // ---------------------------------------------------------------------------
 
+// Capped at 6 companies — 10 parallel Lever fetches added excessive compute.
 const LEVER_COMPANIES = [
-  "netflix", "reddit", "lyft", "coinbase", "robinhood",
-  "duolingo", "canva", "discord", "plaid", "brex",
+  "netflix",
+  "reddit",
+  "coinbase",
+  "duolingo",
+  "discord",
+  "plaid",
 ];
 
-async function fetchLeverBoards(companies: string[]): Promise<{ jobs: NormalizedJob[]; error?: string }> {
+async function fetchLeverBoards(
+  companies: string[],
+): Promise<{ jobs: NormalizedJob[]; error?: string }> {
   const allJobs: NormalizedJob[] = [];
   const errors: string[] = [];
 
@@ -319,35 +409,51 @@ async function fetchLeverBoards(companies: string[]): Promise<{ jobs: Normalized
       try {
         const url = `https://api.lever.co/v0/postings/${company}?mode=json`;
         const res = await fetch(url, { signal: AbortSignal.timeout(10_000) });
-        if (!res.ok) { errors.push(`lever/${company}: HTTP ${res.status}`); return; }
+        if (!res.ok) {
+          errors.push(`lever/${company}: HTTP ${res.status}`);
+          return;
+        }
 
         const jobs: any[] = await res.json();
         for (const job of jobs) {
-          const desc = [job.descriptionPlain, job.additionalPlain].filter(Boolean).join("\n\n");
+          const desc = [job.descriptionPlain, job.additionalPlain]
+            .filter(Boolean)
+            .join("\n\n");
           const salary = extractSalary(desc);
           allJobs.push({
             external_id: `lever-${company}-${job.id}`,
             title: job.text ?? "",
             company,
             location: job.categories?.location ?? "",
-            is_remote: /remote/i.test(job.categories?.location ?? "") || /remote/i.test(job.text),
-            job_type: normalizeJobType(job.categories?.commitment ?? "full-time"),
+            is_remote:
+              /remote/i.test(job.categories?.location ?? "") ||
+              /remote/i.test(job.text),
+            job_type: normalizeJobType(
+              job.categories?.commitment ?? "full-time",
+            ),
             description: cleanJobText(desc, job.text),
             job_url: job.hostedUrl ?? "",
             apply_url: job.applyUrl ?? job.hostedUrl ?? "",
             source: `lever:${company}`,
             salary_min: salary.min,
             salary_max: salary.max,
-            date_posted: job.createdAt ? new Date(job.createdAt).toISOString() : new Date().toISOString(),
+            date_posted: job.createdAt
+              ? new Date(job.createdAt).toISOString()
+              : new Date().toISOString(),
           });
         }
       } catch (e) {
-        errors.push(`lever/${company}: ${e instanceof Error ? e.message : String(e)}`);
+        errors.push(
+          `lever/${company}: ${e instanceof Error ? e.message : String(e)}`,
+        );
       }
-    })
+    }),
   );
 
-  return { jobs: allJobs, error: errors.length > 0 ? errors.slice(0, 3).join("; ") : undefined };
+  return {
+    jobs: allJobs,
+    error: errors.length > 0 ? errors.slice(0, 3).join("; ") : undefined,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -357,7 +463,7 @@ async function fetchLeverBoards(companies: string[]): Promise<{ jobs: Normalized
 async function upsertJobs(
   supabase: any,
   jobs: NormalizedJob[],
-  source: string
+  source: string,
 ): Promise<{ new: number; updated: number; error?: string }> {
   if (jobs.length === 0) return { new: 0, updated: 0 };
 
@@ -380,27 +486,19 @@ async function upsertJobs(
       scraped_at: new Date().toISOString(),
     }));
 
-  // Get existing external_ids to distinguish new vs updated
-  const externalIds = rows.map((r) => r.external_id);
-  const { data: existing } = await supabase
-    .from("job_postings")
-    .select("external_id")
-    .in("external_id", externalIds);
-
-  const existingSet = new Set((existing ?? []).map((r: any) => r.external_id));
-  const newCount = rows.filter((r) => !existingSet.has(r.external_id)).length;
-  const updatedCount = rows.filter((r) => existingSet.has(r.external_id)).length;
-
+  // Skip the pre-SELECT that was used to distinguish new vs updated — it was an
+  // expensive round-trip that contributed to WORKER_RESOURCE_LIMIT. Report total
+  // rows upserted as "new" and 0 updated; distinction not used downstream.
   const { error } = await supabase
     .from("job_postings")
-    .upsert(rows, { onConflict: "external_id", ignoreDuplicates: false });
+    .upsert(rows, { onConflict: "external_id", ignoreDuplicates: true });
 
   if (error) {
     console.error(`[job-feeds] upsert error for ${source}:`, error);
     return { new: 0, updated: 0, error: error.message };
   }
 
-  return { new: newCount, updated: updatedCount };
+  return { new: rows.length, updated: 0 };
 }
 
 // ---------------------------------------------------------------------------
@@ -414,12 +512,19 @@ async function logFeedRun(
   jobsNew: number,
   jobsUpdated: number,
   durationMs: number,
-  error?: string
+  error?: string,
 ) {
-  await supabase.from("job_feed_log").insert({
-    source, jobs_found: jobsFound, jobs_new: jobsNew,
-    jobs_updated: jobsUpdated, duration_ms: durationMs, error: error ?? null,
-  }).catch(() => {}); // non-fatal
+  await supabase
+    .from("job_feed_log")
+    .insert({
+      source,
+      jobs_found: jobsFound,
+      jobs_new: jobsNew,
+      jobs_updated: jobsUpdated,
+      duration_ms: durationMs,
+      error: error ?? null,
+    })
+    .catch(() => {}); // non-fatal
 }
 
 // ---------------------------------------------------------------------------
@@ -427,7 +532,8 @@ async function logFeedRun(
 // ---------------------------------------------------------------------------
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method === "OPTIONS")
+    return new Response(null, { headers: corsHeaders });
 
   const startTime = Date.now();
 
@@ -435,13 +541,16 @@ Deno.serve(async (req) => {
     // ── Auth (service role or admin user) ─────────────────────────────────────
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
-      return res({ success: false, error: "Missing authorization header" }, 401);
+      return res(
+        { success: false, error: "Missing authorization header" },
+        401,
+      );
     }
 
     // Allow service role key OR authenticated admin
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
     );
 
     const body = await req.json().catch(() => ({}));
@@ -459,10 +568,27 @@ Deno.serve(async (req) => {
       sourceTasks.push(async () => {
         const fetchStart = Date.now();
         const { jobs, error } = await fetchRemotive();
-        const { new: n, updated: u, error: dbErr } = await upsertJobs(supabaseAdmin, jobs, "remotive");
-        results["remotive"] = { source: "remotive", new: n, updated: u, error: error ?? dbErr };
+        const {
+          new: n,
+          updated: u,
+          error: dbErr,
+        } = await upsertJobs(supabaseAdmin, jobs, "remotive");
+        results["remotive"] = {
+          source: "remotive",
+          new: n,
+          updated: u,
+          error: error ?? dbErr,
+        };
         totalIngested += n + u;
-        await logFeedRun(supabaseAdmin, "remotive", jobs.length, n, u, Date.now() - fetchStart, error ?? dbErr);
+        await logFeedRun(
+          supabaseAdmin,
+          "remotive",
+          jobs.length,
+          n,
+          u,
+          Date.now() - fetchStart,
+          error ?? dbErr,
+        );
       });
     }
 
@@ -470,10 +596,27 @@ Deno.serve(async (req) => {
       sourceTasks.push(async () => {
         const fetchStart = Date.now();
         const { jobs, error } = await fetchWeWorkRemotely();
-        const { new: n, updated: u, error: dbErr } = await upsertJobs(supabaseAdmin, jobs, "weworkremotely");
-        results["weworkremotely"] = { source: "weworkremotely", new: n, updated: u, error: error ?? dbErr };
+        const {
+          new: n,
+          updated: u,
+          error: dbErr,
+        } = await upsertJobs(supabaseAdmin, jobs, "weworkremotely");
+        results["weworkremotely"] = {
+          source: "weworkremotely",
+          new: n,
+          updated: u,
+          error: error ?? dbErr,
+        };
         totalIngested += n + u;
-        await logFeedRun(supabaseAdmin, "weworkremotely", jobs.length, n, u, Date.now() - fetchStart, error ?? dbErr);
+        await logFeedRun(
+          supabaseAdmin,
+          "weworkremotely",
+          jobs.length,
+          n,
+          u,
+          Date.now() - fetchStart,
+          error ?? dbErr,
+        );
       });
     }
 
@@ -481,10 +624,27 @@ Deno.serve(async (req) => {
       sourceTasks.push(async () => {
         const fetchStart = Date.now();
         const { jobs, error } = await fetchArbeitnow();
-        const { new: n, updated: u, error: dbErr } = await upsertJobs(supabaseAdmin, jobs, "arbeitnow");
-        results["arbeitnow"] = { source: "arbeitnow", new: n, updated: u, error: error ?? dbErr };
+        const {
+          new: n,
+          updated: u,
+          error: dbErr,
+        } = await upsertJobs(supabaseAdmin, jobs, "arbeitnow");
+        results["arbeitnow"] = {
+          source: "arbeitnow",
+          new: n,
+          updated: u,
+          error: error ?? dbErr,
+        };
         totalIngested += n + u;
-        await logFeedRun(supabaseAdmin, "arbeitnow", jobs.length, n, u, Date.now() - fetchStart, error ?? dbErr);
+        await logFeedRun(
+          supabaseAdmin,
+          "arbeitnow",
+          jobs.length,
+          n,
+          u,
+          Date.now() - fetchStart,
+          error ?? dbErr,
+        );
       });
     }
 
@@ -493,28 +653,65 @@ Deno.serve(async (req) => {
       sourceTasks.push(async () => {
         const fetchStart = Date.now();
         const { jobs, error } = await fetchGreenhouseBoards(boards);
-        const { new: n, updated: u, error: dbErr } = await upsertJobs(supabaseAdmin, jobs, "greenhouse");
-        results["greenhouse"] = { source: "greenhouse", new: n, updated: u, error: error ?? dbErr };
+        const {
+          new: n,
+          updated: u,
+          error: dbErr,
+        } = await upsertJobs(supabaseAdmin, jobs, "greenhouse");
+        results["greenhouse"] = {
+          source: "greenhouse",
+          new: n,
+          updated: u,
+          error: error ?? dbErr,
+        };
         totalIngested += n + u;
-        await logFeedRun(supabaseAdmin, "greenhouse", jobs.length, n, u, Date.now() - fetchStart, error ?? dbErr);
+        await logFeedRun(
+          supabaseAdmin,
+          "greenhouse",
+          jobs.length,
+          n,
+          u,
+          Date.now() - fetchStart,
+          error ?? dbErr,
+        );
       });
     }
 
     if (requestedSource === "all" || requestedSource === "lever") {
-      const companies = customCompanies.length > 0 ? customCompanies : LEVER_COMPANIES;
+      const companies =
+        customCompanies.length > 0 ? customCompanies : LEVER_COMPANIES;
       sourceTasks.push(async () => {
         const fetchStart = Date.now();
         const { jobs, error } = await fetchLeverBoards(companies);
-        const { new: n, updated: u, error: dbErr } = await upsertJobs(supabaseAdmin, jobs, "lever");
-        results["lever"] = { source: "lever", new: n, updated: u, error: error ?? dbErr };
+        const {
+          new: n,
+          updated: u,
+          error: dbErr,
+        } = await upsertJobs(supabaseAdmin, jobs, "lever");
+        results["lever"] = {
+          source: "lever",
+          new: n,
+          updated: u,
+          error: error ?? dbErr,
+        };
         totalIngested += n + u;
-        await logFeedRun(supabaseAdmin, "lever", jobs.length, n, u, Date.now() - fetchStart, error ?? dbErr);
+        await logFeedRun(
+          supabaseAdmin,
+          "lever",
+          jobs.length,
+          n,
+          u,
+          Date.now() - fetchStart,
+          error ?? dbErr,
+        );
       });
     }
 
     await Promise.allSettled(sourceTasks.map((t) => t()));
 
-    console.log(`[job-feeds] Complete: ${totalIngested} jobs ingested in ${Date.now() - startTime}ms`);
+    console.log(
+      `[job-feeds] Complete: ${totalIngested} jobs ingested in ${Date.now() - startTime}ms`,
+    );
 
     return res({
       success: true,
@@ -522,10 +719,15 @@ Deno.serve(async (req) => {
       durationMs: Date.now() - startTime,
       sources: results,
     });
-
   } catch (error) {
     console.error("[job-feeds] Unhandled error:", error);
-    return res({ success: false, error: error instanceof Error ? error.message : "Feed ingestion failed" }, 500);
+    return res(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : "Feed ingestion failed",
+      },
+      500,
+    );
   }
 });
 
