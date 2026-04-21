@@ -37,11 +37,12 @@ import {
 } from "@/lib/job-search";
 import { saveJobToApplications } from "@/lib/job-search";
 import { getIgnoredJobs, ignoreJob, isJobIgnored, isJobAlreadySaved, type IgnoredJob } from "@/lib/job-search";
-import { searchJobs as searchJobsService } from "@/services/job/api";
+import { searchJobs as searchJobsService, markJobInteraction } from "@/services/job/api";
 import type { JobResult } from "@/services/job/types";
 import { logger } from '@/lib/logger';
 
 interface JobMatch {
+  id?: string;         // job_postings UUID — present for DB-sourced jobs; used for job_interactions
   title: string;
   company: string;
   location: string;
@@ -439,6 +440,7 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
 
       // ── Map to JobMatch ────────────────────────────────────────────────
       const mappedJobs: JobMatch[] = rawResults.map((jr: any) => ({
+        id:          jr.id || undefined,
         title:       jr.title || "",
         company:     jr.company || "",
         location:    jr.location || "",
@@ -545,6 +547,9 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
         toast.info("Job already saved");
         return;
       }
+
+      // Record interaction for behavioral signal filtering (fire-and-forget)
+      if (job.id) markJobInteraction(job.id, "saved").catch(() => {});
 
       toast.success("Job saved to Applications");
     } finally {
@@ -754,6 +759,8 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
                         if (ok) {
                           setJobs(prev => prev.filter(j => getJobSaveKey(j) !== saveKey));
                           setIgnoredList(prev => [...prev, { id: '', job_title: job.title, company: job.company, job_url: job.url }]);
+                          // Record dismissal for behavioral signal filtering (fire-and-forget)
+                          if (job.id) markJobInteraction(job.id, "dismissed").catch(() => {});
                           toast.success("Job hidden");
                         }
                       }}

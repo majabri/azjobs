@@ -178,17 +178,40 @@ export async function pollMatchScores(jobIds: string[]): Promise<Map<string, Par
 }
 
 // ---------------------------------------------------------------------------
-// Mark job interaction (seen / saved / ignored / applied)
+// Mark job interaction — writes to job_interactions table (RLS, user-scoped).
+// action must match the table check constraint: viewed|saved|applied|dismissed|shared
+// jobId may be a UUID (from job_postings) or any external text id.
 // ---------------------------------------------------------------------------
 
-export async function markJobInteraction(jobId: string, action: "seen" | "saved" | "ignored" | "applied"): Promise<void> {
+const ACTION_MAP: Record<string, string> = {
+  seen:    "viewed",
+  ignored: "dismissed",
+  saved:   "saved",
+  applied: "applied",
+};
+
+export async function markJobInteraction(
+  jobId: string,
+  action: "seen" | "saved" | "ignored" | "applied" | "viewed" | "dismissed" | "shared"
+): Promise<void> {
   const { data: { session } } = await supabase.auth.getSession();
-  if (!session) return;
-  await supabase.rpc("mark_job_interaction", {
-    p_user_id: session.user.id,
-    p_job_id: jobId,
-    p_action: action,
-  }).catch(() => {}); // non-fatal
+  if (!session || !jobId) return;
+
+  const mappedAction = ACTION_MAP[action] ?? action;
+  const validActions = ["viewed", "saved", "applied", "dismissed", "shared"];
+  if (!validActions.includes(mappedAction)) return;
+
+  // Try to determine if jobId looks like a UUID (job_postings.id) or an external string id
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const isUuid = uuidRegex.test(jobId);
+
+  await (supabase as any).from("job_interactions").insert({
+    user_id:         session.user.id,
+    job_id:          isUuid ? jobId : null,
+    external_job_id: !isUuid ? jobId : null,
+    action:          mappedAction,
+    metadata:        {},
+  }).catch(() => {}); // non-fatal — interaction tracking must never break the UI
 }
 
 // ---------------------------------------------------------------------------
