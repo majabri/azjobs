@@ -14,20 +14,11 @@ export async function runAdminCommand(
   if (!session) return { ok: false, error: "Not authenticated" };
 
   try {
-    const resp = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-command`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({ command, args }),
-      }
-    );
-    const result = await resp.json();
-    if (!resp.ok) return { ok: false, error: result.error || "Command failed" };
-    return { ok: true, data: result };
+    const { data, error } = await supabase.functions.invoke("admin-command", {
+      body: { command, args },
+    });
+    if (error) return { ok: false, error: error.message || "Command failed" };
+    return { ok: true, data };
   } catch (e: any) {
     return { ok: false, error: e.message || "Network error" };
   }

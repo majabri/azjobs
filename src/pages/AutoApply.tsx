@@ -212,28 +212,19 @@ export default function AutoApplyPage() {
         .eq("user_id", session.user.id)
         .maybeSingle();
 
-      const resp = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/search-jobs`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({
-            skills: (profile?.skills as string[]) || [],
-            jobTypes: (profile as any)?.preferred_job_types || [],
-            location: prefs.locations.join(", ") || (profile?.location as string) || "",
-            careerLevel: (profile as any)?.career_level || "",
-            targetTitles: prefs.jobTitles,
-            query: prefs.remoteOnly ? "remote positions only" : "",
-          }),
-        }
-      );
+      const { data, error: searchError } = await supabase.functions.invoke("search-jobs", {
+        body: {
+          skills: (profile?.skills as string[]) || [],
+          jobTypes: (profile as any)?.preferred_job_types || [],
+          location: prefs.locations.join(", ") || (profile?.location as string) || "",
+          careerLevel: (profile as any)?.career_level || "",
+          targetTitles: prefs.jobTitles,
+          query: prefs.remoteOnly ? "remote positions only" : "",
+        },
+      });
 
-      if (!resp.ok) throw new Error("Search failed");
-      const data = await resp.json();
-      const jobs = (data.jobs || []) as any[];
+      if (searchError) throw new Error(searchError.message || "Search failed");
+      const jobs = (data?.jobs || []) as any[];
 
       const resumeLookup = await getBestResumeText(session.user.id);
       const resumeText = resumeLookup.text;

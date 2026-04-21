@@ -152,30 +152,20 @@ export default function AdminTickets() {
       if (!ticket) return;
 
       // Call the support-service Edge Function
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/support-service`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token || ''}`,
-          },
-          body: JSON.stringify({
-            action: 'triage',
-            ticketId,
-            category: ticket.category,
-            severity: ticket.severity,
-            title: ticket.title,
-            description: ticket.description,
-          }),
-        }
-      );
+      const { data: result, error: triageError } = await supabase.functions.invoke("support-service", {
+        body: {
+          action: 'triage',
+          ticketId,
+          category: ticket.category,
+          severity: ticket.severity,
+          title: ticket.title,
+          description: ticket.description,
+        },
+      });
 
-      if (!response.ok) {
-        throw new Error('Failed to run AI triage');
+      if (triageError) {
+        throw new Error(triageError.message || 'Failed to run AI triage');
       }
-
-      const result = await response.json();
 
       // Update ticket with triage result
       const { error: updateError } = await supabase

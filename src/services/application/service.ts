@@ -61,17 +61,11 @@ export async function apply(jobs: ApplyPayload[]): Promise<number> {
     const token = session?.access_token;
     if (!token) { logger.warn("[ApplicationService] No session for apply"); return 0; }
 
-    const resp = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/agent-orchestrator`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ action: "apply", jobs }),
-      }
-    );
-    if (!resp.ok) { logger.error("[ApplicationService] apply failed:", resp.status); return 0; }
-    const data = await resp.json();
-    return data.applied ?? 0;
+    const { data, error: fnError } = await supabase.functions.invoke("agent-orchestrator", {
+      body: { action: "apply", jobs },
+    });
+    if (fnError) { logger.error("[ApplicationService] apply failed:", fnError.message); return 0; }
+    return data?.applied ?? 0;
   } catch (e) {
     logger.error("[ApplicationService] apply error:", e);
     return 0;
