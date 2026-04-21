@@ -1,3 +1,6 @@
+# macOS Google Drive FUSE mount artifacts
+**/.fuse_hidden*
+
 # Logs
 logs
 *.log
