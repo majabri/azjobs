@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DiscoveryHealthPanel } from "./DiscoveryHealthPanel";
+import { JobIngestionHealthPanel } from "./JobIngestionHealthPanel";
 import {
   Shield,
   CheckCircle2,
@@ -359,6 +360,9 @@ export default function AdminSystem() {
 
       {/* Discovery Agent Board Health */}
       <DiscoveryHealthPanel />
+
+      {/* Job Ingestion Health — Python scraper pipeline + Discovery Agent staging */}
+      <JobIngestionHealthPanel />
 
       {/* Error Logs */}
       <Card className="border-border">
