@@ -717,14 +717,26 @@ Deno.serve(async (req) => {
       await task();
     }
 
+    const durationMs = Date.now() - startTime;
     console.log(
-      `[job-feeds] Complete: ${totalIngested} jobs ingested in ${Date.now() - startTime}ms`,
+      `[job-feeds] Complete: ${totalIngested} jobs ingested in ${durationMs}ms`,
     );
+
+    // Ping BetterStack heartbeat so uptime monitoring knows the cron succeeded.
+    // Fire-and-forget — a failed ping should never fail the ingestion response.
+    const heartbeatUrl = Deno.env.get("BETTERSTACK_HEARTBEAT_URL");
+    if (heartbeatUrl) {
+      fetch(heartbeatUrl).catch(() => {
+        console.warn(
+          "[job-feeds] BetterStack heartbeat ping failed (non-fatal)",
+        );
+      });
+    }
 
     return res({
       success: true,
       ingested: totalIngested,
-      durationMs: Date.now() - startTime,
+      durationMs,
       sources: results,
     });
   } catch (error) {
