@@ -6,7 +6,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useAdminRole } from "@/hooks/useAdminRole";
-import { supabase } from "@/integrations/supabase/client";
 import {
   Card,
   CardContent,
@@ -58,10 +57,13 @@ import {
   createTicket,
   getUserTickets,
   getFaqs,
+  getTicketMessages,
+  addTicketMessage,
   REQUEST_TYPE_LABELS,
   PRIORITY_LABELS,
   STATUS_LABELS,
 } from "../api";
+import type { TicketMessage } from "../api";
 import type { RequestType, Priority, SupportTicket, FaqEntry } from "../types";
 
 const CATEGORY_CARDS = [
@@ -160,16 +162,10 @@ export default function SupportPage() {
   const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(
     null,
   );
-  const [ticketResponses, setTicketResponses] = useState<
-    {
-      id: string;
-      author_id: string;
-      message: string;
-      is_admin_response: boolean;
-      created_at: string;
-    }[]
-  >([]);
-  const [loadingResponses, setLoadingResponses] = useState(false);
+  const [ticketMessages, setTicketMessages] = useState<TicketMessage[]>([]);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [replyText, setReplyText] = useState("");
+  const [sendingReply, setSendingReply] = useState(false);
 
   useEffect(() => {
     if (user?.email && !email) setEmail(user.email);
@@ -512,18 +508,15 @@ export default function SupportPage() {
                     className="cursor-pointer hover:shadow-md transition-shadow"
                     onClick={async () => {
                       setSelectedTicket(ticket);
-                      setLoadingResponses(true);
+                      setReplyText("");
+                      setLoadingMessages(true);
                       try {
-                        const { data } = await supabase
-                          .from("ticket_responses")
-                          .select("*")
-                          .eq("ticket_id", ticket.id)
-                          .order("created_at", { ascending: true });
-                        setTicketResponses(data || []);
+                        const msgs = await getTicketMessages(ticket.id);
+                        setTicketMessages(msgs);
                       } catch {
-                        setTicketResponses([]);
+                        setTicketMessages([]);
                       }
-                      setLoadingResponses(false);
+                      setLoadingMessages(false);
                     }}
                   >
                     <CardContent className="p-4">
@@ -611,48 +604,96 @@ export default function SupportPage() {
 
                   <div>
                     <Label className="text-xs text-muted-foreground mb-2 block">
-                      Responses
+                      Conversation
                     </Label>
-                    {loadingResponses ? (
+                    {loadingMessages ? (
                       <div className="flex justify-center py-4">
                         <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                       </div>
-                    ) : ticketResponses.length === 0 ? (
+                    ) : ticketMessages.length === 0 ? (
                       <p className="text-xs text-muted-foreground italic py-2">
-                        No responses yet. Our team will get back to you soon.
+                        No messages yet. Our team will get back to you soon.
                       </p>
                     ) : (
                       <div className="space-y-3">
-                        {ticketResponses.map((r) => (
+                        {ticketMessages.map((m) => (
                           <div
-                            key={r.id}
+                            key={m.id}
                             className={`rounded-lg p-3 text-sm ${
-                              r.is_admin_response
+                              m.is_staff_reply
                                 ? "bg-primary/5 border border-primary/20"
                                 : "bg-muted/50 border border-border"
                             }`}
                           >
                             <div className="flex items-center gap-2 mb-1">
                               <Badge
-                                variant={
-                                  r.is_admin_response ? "default" : "secondary"
-                                }
+                                variant={m.is_staff_reply ? "default" : "secondary"}
                                 className="text-xs"
                               >
-                                {r.is_admin_response ? "Support Team" : "You"}
+                                {m.is_staff_reply ? "Support Team" : "You"}
                               </Badge>
                               <span className="text-xs text-muted-foreground">
-                                {new Date(r.created_at).toLocaleString()}
+                                {new Date(m.created_at).toLocaleString()}
                               </span>
                             </div>
                             <p className="text-foreground whitespace-pre-wrap">
-                              {r.message}
+                              {m.body}
                             </p>
                           </div>
                         ))}
                       </div>
                     )}
                   </div>
+
+                  {/* Reply input — only shown for open/in_progress tickets */}
+                  {!["resolved", "closed"].includes(selectedTicket.status) && (
+                    <>
+                      <Separator />
+                      <div className="space-y-2">
+                        <Label className="text-xs text-muted-foreground">
+                          Add a Reply
+                        </Label>
+                        <Textarea
+                          value={replyText}
+                          onChange={(e) => setReplyText(e.target.value)}
+                          placeholder="Type your message…"
+                          rows={3}
+                        />
+                        <Button
+                          size="sm"
+                          disabled={sendingReply || !replyText.trim() || !userId}
+                          onClick={async () => {
+                            if (!userId || !replyText.trim()) return;
+                            setSendingReply(true);
+                            const result = await addTicketMessage(
+                              selectedTicket.id,
+                              userId,
+                              replyText,
+                            );
+                            if (result.ok) {
+                              setReplyText("");
+                              const msgs = await getTicketMessages(selectedTicket.id);
+                              setTicketMessages(msgs);
+                              toast({ title: "Reply sent!" });
+                            } else {
+                              toast({
+                                title: "Failed to send reply",
+                                description: result.error,
+                                variant: "destructive",
+                              });
+                            }
+                            setSendingReply(false);
+                          }}
+                        >
+                          {sendingReply ? (
+                            <><Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> Sending…</>
+                          ) : (
+                            <><Send className="mr-2 h-3.5 w-3.5" /> Send Reply</>
+                          )}
+                        </Button>
+                      </div>
+                    </>
+                  )}
                 </div>
               </>
             )}
