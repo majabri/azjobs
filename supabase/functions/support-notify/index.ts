@@ -1,31 +1,36 @@
 /**
- * support-notify — sends Resend transactional emails for the support ticket system.
+ * support-notify — sends transactional emails for the support ticket system.
  *
  * Events:
  *   ticket_created  — confirmation to the user after they submit a ticket
  *   staff_reply     — notification to the user when staff responds
  *
- * Called internally by the frontend (authenticated) or by email-inbound (service role).
- * CORS is not needed — this is an internal server-to-server function.
+ * Transport: Bluehost SMTP (replaces Resend).
+ * Called internally by the frontend or by poll-support-inbox.
+ *
+ * Required Supabase secrets:
+ *   BLUEHOST_SMTP_HOST  e.g. mail.icareeros.com
+ *   BLUEHOST_SMTP_PORT  e.g. 465 (SSL) or 587 (STARTTLS)
+ *   BLUEHOST_SMTP_USER  e.g. bugs@icareeros.com
+ *   BLUEHOST_SMTP_PASS  your Bluehost email password
  */
 
-import { corsHeaders } from "../_shared/cors.ts";
 import { log } from "../_shared/logger.ts";
+import { SMTPClient } from "npm:emailjs@4.0.3";
 
 interface NotifyPayload {
   event: "ticket_created" | "staff_reply";
-  to: string;                // recipient email
-  ticketNumber: string;      // e.g. TKT-0042
+  to: string;
+  ticketNumber: string;
   ticketTitle: string;
-  replyBody?: string;        // only for staff_reply
+  replyBody?: string;
 }
 
-const FROM = "iCareerOS Support <noreply@icareeros.com>";
+const FROM_NAME = "iCareerOS Support";
 const SUPPORT_URL = "https://icareeros.com/support";
 
 function ticketCreatedHtml(p: NotifyPayload): string {
-  return `
-<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html>
 <body style="font-family:sans-serif;max-width:540px;margin:0 auto;padding:24px;color:#1a1a1a">
   <h2 style="color:#4F46E5">Ticket Received — ${p.ticketNumber}</h2>
@@ -38,12 +43,11 @@ function ticketCreatedHtml(p: NotifyPayload): string {
   <hr style="border:none;border-top:1px solid #eee;margin:24px 0"/>
   <p style="font-size:12px;color:#888">iCareerOS · <a href="https://icareeros.com" style="color:#888">icareeros.com</a></p>
 </body>
-</html>`.trim();
+</html>`;
 }
 
 function staffReplyHtml(p: NotifyPayload): string {
-  return `
-<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html>
 <body style="font-family:sans-serif;max-width:540px;margin:0 auto;padding:24px;color:#1a1a1a">
   <h2 style="color:#4F46E5">New Reply — ${p.ticketNumber}</h2>
@@ -53,23 +57,38 @@ function staffReplyHtml(p: NotifyPayload): string {
   <hr style="border:none;border-top:1px solid #eee;margin:24px 0"/>
   <p style="font-size:12px;color:#888">iCareerOS · <a href="https://icareeros.com" style="color:#888">icareeros.com</a></p>
 </body>
-</html>`.trim();
+</html>`;
 }
 
 Deno.serve(async (req) => {
+  // CORS pre-flight (not normally needed for server-to-server, but harmless)
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
-
-  const apiKey = Deno.env.get("RESEND_API_KEY");
-  if (!apiKey) {
-    log("error", "support-notify: RESEND_API_KEY not set");
-    return new Response(JSON.stringify({ error: "Email gateway not configured" }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
+    return new Response(null, {
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "authorization, content-type",
+      },
     });
   }
 
+  // ── SMTP config from secrets ─────────────────────────────────────────────
+  const smtpHost = Deno.env.get("BLUEHOST_SMTP_HOST");
+  const smtpPort = parseInt(Deno.env.get("BLUEHOST_SMTP_PORT") ?? "465", 10);
+  const smtpUser = Deno.env.get("BLUEHOST_SMTP_USER");
+  const smtpPass = Deno.env.get("BLUEHOST_SMTP_PASS");
+
+  if (!smtpHost || !smtpUser || !smtpPass) {
+    log("error", "support-notify: SMTP secrets not configured");
+    return new Response(
+      JSON.stringify({ error: "Email gateway not configured" }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
+  }
+
+  // ── Parse payload ────────────────────────────────────────────────────────
   let payload: NotifyPayload;
   try {
     payload = await req.json();
@@ -80,7 +99,7 @@ Deno.serve(async (req) => {
     });
   }
 
-  const { event, to, ticketNumber, ticketTitle, replyBody } = payload;
+  const { event, to, ticketNumber, ticketTitle } = payload;
   if (!event || !to || !ticketNumber || !ticketTitle) {
     return new Response(JSON.stringify({ error: "Missing required fields" }), {
       status: 400,
@@ -98,26 +117,43 @@ Deno.serve(async (req) => {
       ? ticketCreatedHtml(payload)
       : staffReplyHtml(payload);
 
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ from: FROM, to, subject, html }),
-  });
+  // ── Send via SMTP ────────────────────────────────────────────────────────
+  try {
+    // Port 465 = implicit TLS (ssl:true); port 587 = STARTTLS (tls:true)
+    const useSsl = smtpPort === 465;
+    const client = new SMTPClient({
+      user: smtpUser,
+      password: smtpPass,
+      host: smtpHost,
+      port: smtpPort,
+      ssl: useSsl,
+      tls: !useSsl,
+    });
 
-  if (!res.ok) {
-    const err = await res.text();
-    log("error", "support-notify: Resend error", { event, to, ticketNumber, err });
-    return new Response(JSON.stringify({ error: "Failed to send email" }), {
-      status: 502,
+    await client.sendAsync({
+      from: `${FROM_NAME} <${smtpUser}>`,
+      to,
+      subject,
+      attachment: [{ data: html, alternative: true }],
+    });
+
+    log("info", "support-notify: email sent", { event, to, ticketNumber });
+    return new Response(JSON.stringify({ ok: true }), {
       headers: { "Content-Type": "application/json" },
     });
+  } catch (err) {
+    log("error", "support-notify: SMTP error", {
+      event,
+      to,
+      ticketNumber,
+      err: String(err),
+    });
+    return new Response(
+      JSON.stringify({ error: "Failed to send email", detail: String(err) }),
+      {
+        status: 502,
+        headers: { "Content-Type": "application/json" },
+      },
+    );
   }
-
-  log("info", "support-notify: email sent", { event, to, ticketNumber });
-  return new Response(JSON.stringify({ ok: true }), {
-    headers: { "Content-Type": "application/json" },
-  });
 });
