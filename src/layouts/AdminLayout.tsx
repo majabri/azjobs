@@ -1,4 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import {
   Sidebar,
@@ -151,11 +152,47 @@ const adminNavGroups: AdminNavGroup[] = [
   },
 ];
 
+/** Live open-ticket badge count for the Support Inbox nav item */
+function useOpenTicketCount() {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const fetch = async () => {
+      const { count: n } = await supabase
+        .from("support_tickets")
+        .select("id", { count: "exact", head: true })
+        .in("status", ["open", "waiting_on_user"]);
+      if (mounted) setCount(n ?? 0);
+    };
+    fetch();
+
+    // Keep badge live via realtime
+    const channel = supabase
+      .channel("open-ticket-count")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "support_tickets" },
+        () => { fetch(); },
+      )
+      .subscribe();
+
+    return () => {
+      mounted = false;
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  return count;
+}
+
 function AdminSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
   const navigate = useNavigate();
+  const openTicketCount = useOpenTicketCount();
 
   const isActive = (path: string) =>
     path === "/admin"
@@ -208,7 +245,16 @@ function AdminSidebar() {
                         activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
                       >
                         <item.icon className="mr-2 h-4 w-4" />
-                        {!collapsed && <span>{item.title}</span>}
+                        {!collapsed && (
+                          <span className="flex-1 flex items-center justify-between">
+                            {item.title}
+                            {item.url === "/admin/tickets" && openTicketCount > 0 && (
+                              <span className="ml-2 min-w-[18px] h-[18px] px-1 rounded-full bg-destructive text-white text-[10px] font-bold flex items-center justify-center">
+                                {openTicketCount > 99 ? "99+" : openTicketCount}
+                              </span>
+                            )}
+                          </span>
+                        )}
                       </NavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

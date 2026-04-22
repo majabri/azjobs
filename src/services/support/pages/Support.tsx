@@ -3,8 +3,9 @@
  * category cards, FAQ, and ticket status viewer with conversation thread.
  */
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useAuthReady } from "@/hooks/useAuthReady";
+import { supabase } from "@/integrations/supabase/client";
 import { useAdminRole } from "@/hooks/useAdminRole";
 import {
   Card,
@@ -166,6 +167,7 @@ export default function SupportPage() {
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [replyText, setReplyText] = useState("");
   const [sendingReply, setSendingReply] = useState(false);
+  const realtimeChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   useEffect(() => {
     if (user?.email && !email) setEmail(user.email);
@@ -190,6 +192,40 @@ export default function SupportPage() {
       .then(setFaqs)
       .catch(() => {});
   }, [loadTickets]);
+
+  // Realtime: subscribe to new messages for the open ticket dialog
+  useEffect(() => {
+    // Tear down any existing channel
+    if (realtimeChannelRef.current) {
+      supabase.removeChannel(realtimeChannelRef.current);
+      realtimeChannelRef.current = null;
+    }
+    if (!selectedTicket) return;
+
+    const channel = supabase
+      .channel(`ticket-messages-${selectedTicket.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "ticket_messages",
+          filter: `ticket_id=eq.${selectedTicket.id}`,
+        },
+        async () => {
+          // Reload full list to stay consistent with RLS filtering
+          const msgs = await getTicketMessages(selectedTicket.id);
+          setTicketMessages(msgs);
+        },
+      )
+      .subscribe();
+
+    realtimeChannelRef.current = channel;
+    return () => {
+      supabase.removeChannel(channel);
+      realtimeChannelRef.current = null;
+    };
+  }, [selectedTicket?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

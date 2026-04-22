@@ -197,10 +197,27 @@ export default function AdminTickets() {
       setReplyText((prev) => ({ ...prev, [ticketId]: "" }));
       await loadMessages(ticketId);
 
-      // Auto-move to in_progress if still open
       const ticket = tickets.find((t) => t.id === ticketId);
+
+      // Auto-move to in_progress if still open and it's a user-facing reply
       if (ticket?.status === "open" && !isInternalNote[ticketId]) {
         await updateStatus(ticketId, "in_progress");
+      }
+
+      // Fire confirmation email to user (non-blocking, only for user-facing replies)
+      if (!isInternalNote[ticketId] && ticket) {
+        const recipientEmail = ticket.guest_email || ticket.email;
+        if (recipientEmail) {
+          supabase.functions.invoke("support-notify", {
+            body: {
+              event: "staff_reply",
+              to: recipientEmail,
+              ticketNumber: ticket.ticket_number,
+              ticketTitle: ticket.title,
+              replyBody: body,
+            },
+          }).catch(() => { /* non-critical */ });
+        }
       }
 
       toast.success(isInternalNote[ticketId] ? "Note added" : "Reply sent");

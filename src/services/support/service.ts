@@ -41,7 +41,25 @@ export async function createTicket(
     .single();
 
   if (error) return { ok: false, error: error.message };
-  return { ok: true, ticket: data as unknown as SupportTicket };
+
+  const ticket = data as unknown as SupportTicket;
+
+  // Fire-and-forget confirmation email (non-blocking)
+  if (payload.email || userId) {
+    const to = payload.email;
+    if (to) {
+      supabase.functions.invoke("support-notify", {
+        body: {
+          event: "ticket_created",
+          to,
+          ticketNumber: ticket.ticket_number,
+          ticketTitle: ticket.title,
+        },
+      }).catch(() => { /* non-critical */ });
+    }
+  }
+
+  return { ok: true, ticket };
 }
 
 export async function getUserTickets(userId: string): Promise<SupportTicket[]> {
