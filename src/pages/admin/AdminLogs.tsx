@@ -4,10 +4,26 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  ScrollText, RefreshCw, ChevronDown, ChevronRight, AlertCircle,
-  Info, AlertTriangle, Clock, Filter, XCircle, CheckCircle2, ExternalLink,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  ScrollText,
+  RefreshCw,
+  ChevronDown,
+  ChevronRight,
+  AlertCircle,
+  Info,
+  AlertTriangle,
+  Clock,
+  Filter,
+  XCircle,
+  CheckCircle2,
+  ExternalLink,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -24,9 +40,21 @@ interface LogEntry {
 }
 
 const LEVEL_CONFIG = {
-  info: { icon: <Info className="w-3.5 h-3.5" />, color: "text-blue-400", bg: "bg-blue-500/10 border-blue-500/20" },
-  warn: { icon: <AlertTriangle className="w-3.5 h-3.5" />, color: "text-yellow-400", bg: "bg-yellow-500/10 border-yellow-500/20" },
-  error: { icon: <AlertCircle className="w-3.5 h-3.5" />, color: "text-red-400", bg: "bg-red-500/10 border-red-500/20" },
+  info: {
+    icon: <Info className="w-3.5 h-3.5" />,
+    color: "text-blue-400",
+    bg: "bg-blue-500/10 border-blue-500/20",
+  },
+  warn: {
+    icon: <AlertTriangle className="w-3.5 h-3.5" />,
+    color: "text-yellow-400",
+    bg: "bg-yellow-500/10 border-yellow-500/20",
+  },
+  error: {
+    icon: <AlertCircle className="w-3.5 h-3.5" />,
+    color: "text-red-400",
+    bg: "bg-red-500/10 border-red-500/20",
+  },
 };
 
 export default function AdminLogs() {
@@ -47,28 +75,37 @@ export default function AdminLogs() {
   const bottomRef = useRef<HTMLDivElement>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const loadLogs = useCallback(async (scrollToBottom = false) => {
-    let query = (supabase as any)
-      .from("admin_logs")
-      .select("*")
-      .order("timestamp", { ascending: false })
-      .limit(200);
+  const loadLogs = useCallback(
+    async (scrollToBottom = false) => {
+      let query = supabase
+        .from("admin_logs")
+        .select("*")
+        .order("timestamp", { ascending: false })
+        .limit(200);
 
-    if (filters.user_id.trim()) query = query.ilike("user_id::text", `%${filters.user_id.trim()}%`);
-    if (filters.agent_id.trim()) query = query.ilike("agent_id", `%${filters.agent_id.trim()}%`);
-    if (filters.run_id.trim()) query = query.ilike("run_id::text", `%${filters.run_id.trim()}%`);
-    if (filters.status !== "all") query = query.eq("status", filters.status);
-    if (filters.level !== "all") query = query.eq("level", filters.level);
+      if (filters.user_id.trim())
+        query = query.ilike("user_id::text", `%${filters.user_id.trim()}%`);
+      if (filters.agent_id.trim())
+        query = query.ilike("agent_id", `%${filters.agent_id.trim()}%`);
+      if (filters.run_id.trim())
+        query = query.ilike("run_id::text", `%${filters.run_id.trim()}%`);
+      if (filters.status !== "all") query = query.eq("status", filters.status);
+      if (filters.level !== "all") query = query.eq("level", filters.level);
 
-    const { data, error } = await query;
-    if (!error && data) {
-      setLogs((data as LogEntry[]).reverse());
-      if (scrollToBottom) {
-        setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+      const { data, error } = await query;
+      if (!error && data) {
+        setLogs((data as LogEntry[]).reverse());
+        if (scrollToBottom) {
+          setTimeout(
+            () => bottomRef.current?.scrollIntoView({ behavior: "smooth" }),
+            100,
+          );
+        }
       }
-    }
-    setLoading(false);
-  }, [filters]);
+      setLoading(false);
+    },
+    [filters],
+  );
 
   useEffect(() => {
     setLoading(true);
@@ -81,19 +118,25 @@ export default function AdminLogs() {
     } else if (intervalRef.current) {
       clearInterval(intervalRef.current);
     }
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
   }, [autoRefresh, loadLogs]);
 
   const toggleExpand = (id: string) => {
     setExpandedIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) { next.delete(id); } else { next.add(id); }
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
       return next;
     });
   };
 
   const retryRun = async (runId: string) => {
-    await (supabase as any)
+    await supabase
       .from("agent_runs")
       .update({ status: "pending" })
       .eq("id", runId);
@@ -107,7 +150,9 @@ export default function AdminLogs() {
           <h1 className="font-display text-2xl font-bold text-foreground flex items-center gap-2">
             <ScrollText className="w-6 h-6 text-accent" /> Logs & Error Viewer
           </h1>
-          <p className="text-muted-foreground text-sm mt-1">Real-time structured log streaming</p>
+          <p className="text-muted-foreground text-sm mt-1">
+            Real-time structured log streaming
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <Button
@@ -115,7 +160,9 @@ export default function AdminLogs() {
             size="sm"
             onClick={() => setAutoRefresh((v) => !v)}
           >
-            <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${autoRefresh ? "animate-spin" : ""}`} />
+            <RefreshCw
+              className={`w-3.5 h-3.5 mr-1.5 ${autoRefresh ? "animate-spin" : ""}`}
+            />
             {autoRefresh ? "Live" : "Paused"}
           </Button>
           <Button variant="outline" size="sm" onClick={() => loadLogs()}>
@@ -136,22 +183,31 @@ export default function AdminLogs() {
             <Input
               placeholder="user_id"
               value={filters.user_id}
-              onChange={(e) => setFilters((f) => ({ ...f, user_id: e.target.value }))}
+              onChange={(e) =>
+                setFilters((f) => ({ ...f, user_id: e.target.value }))
+              }
               className="text-xs h-8"
             />
             <Input
               placeholder="agent_id"
               value={filters.agent_id}
-              onChange={(e) => setFilters((f) => ({ ...f, agent_id: e.target.value }))}
+              onChange={(e) =>
+                setFilters((f) => ({ ...f, agent_id: e.target.value }))
+              }
               className="text-xs h-8"
             />
             <Input
               placeholder="run_id"
               value={filters.run_id}
-              onChange={(e) => setFilters((f) => ({ ...f, run_id: e.target.value }))}
+              onChange={(e) =>
+                setFilters((f) => ({ ...f, run_id: e.target.value }))
+              }
               className="text-xs h-8"
             />
-            <Select value={filters.status} onValueChange={(v) => setFilters((f) => ({ ...f, status: v }))}>
+            <Select
+              value={filters.status}
+              onValueChange={(v) => setFilters((f) => ({ ...f, status: v }))}
+            >
               <SelectTrigger className="text-xs h-8">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
@@ -161,7 +217,10 @@ export default function AdminLogs() {
                 <SelectItem value="failed">Failed</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={filters.level} onValueChange={(v) => setFilters((f) => ({ ...f, level: v }))}>
+            <Select
+              value={filters.level}
+              onValueChange={(v) => setFilters((f) => ({ ...f, level: v }))}
+            >
               <SelectTrigger className="text-xs h-8">
                 <SelectValue placeholder="Level" />
               </SelectTrigger>
@@ -201,7 +260,8 @@ export default function AdminLogs() {
               {logs.map((log) => {
                 const cfg = LEVEL_CONFIG[log.level] || LEVEL_CONFIG.info;
                 const expanded = expandedIds.has(log.id);
-                const hasMetadata = log.metadata && Object.keys(log.metadata).length > 0;
+                const hasMetadata =
+                  log.metadata && Object.keys(log.metadata).length > 0;
                 return (
                   <div
                     key={log.id}
@@ -213,11 +273,17 @@ export default function AdminLogs() {
                       <span className="text-muted-foreground text-[10px] w-[140px] shrink-0 pt-0.5">
                         {new Date(log.timestamp).toLocaleString()}
                       </span>
-                      <span className={`flex items-center gap-1 w-12 shrink-0 ${cfg.color}`}>
+                      <span
+                        className={`flex items-center gap-1 w-12 shrink-0 ${cfg.color}`}
+                      >
                         {cfg.icon}
-                        <span className="uppercase text-[10px] font-bold">{log.level}</span>
+                        <span className="uppercase text-[10px] font-bold">
+                          {log.level}
+                        </span>
                       </span>
-                      <span className="flex-1 text-foreground leading-relaxed">{log.message}</span>
+                      <span className="flex-1 text-foreground leading-relaxed">
+                        {log.message}
+                      </span>
                       <div className="flex items-center gap-2 shrink-0">
                         {log.status && (
                           <Badge
@@ -246,7 +312,9 @@ export default function AdminLogs() {
                             size="sm"
                             variant="ghost"
                             className="h-5 text-[10px] px-1.5 text-muted-foreground hover:text-foreground"
-                            onClick={() => navigate(`/admin/agent-runs/${log.run_id}`)}
+                            onClick={() =>
+                              navigate(`/admin/agent-runs/${log.run_id}`)
+                            }
                             title="Go to Run"
                           >
                             <ExternalLink className="w-3 h-3 mr-0.5" /> Run
@@ -269,9 +337,13 @@ export default function AdminLogs() {
                     {/* Metadata info row */}
                     {(log.user_id || log.agent_id || log.run_id) && (
                       <div className="flex items-center gap-3 mt-0.5 ml-[164px] text-[10px] text-muted-foreground">
-                        {log.user_id && <span>user:{log.user_id.slice(0, 8)}…</span>}
+                        {log.user_id && (
+                          <span>user:{log.user_id.slice(0, 8)}…</span>
+                        )}
                         {log.agent_id && <span>agent:{log.agent_id}</span>}
-                        {log.run_id && <span>run:{log.run_id.slice(0, 8)}…</span>}
+                        {log.run_id && (
+                          <span>run:{log.run_id.slice(0, 8)}…</span>
+                        )}
                       </div>
                     )}
                     {/* Expandable metadata */}
@@ -304,9 +376,11 @@ function ErrorViewerPanel({ onRetry }: { onRetry: () => void }) {
 
   useEffect(() => {
     (async () => {
-      const { data } = await (supabase as any)
+      const { data } = await supabase
         .from("agent_runs")
-        .select("id, user_id, status, errors, started_at, completed_at, jobs_found, jobs_matched, applications_sent")
+        .select(
+          "id, user_id, status, errors, started_at, completed_at, jobs_found, jobs_matched, applications_sent",
+        )
         .in("status", ["failed", "completed_with_errors"])
         .order("started_at", { ascending: false })
         .limit(50);
@@ -316,7 +390,7 @@ function ErrorViewerPanel({ onRetry }: { onRetry: () => void }) {
   }, []);
 
   const retryRun = async (runId: string) => {
-    await (supabase as any)
+    await supabase
       .from("agent_runs")
       .update({ status: "pending", errors: [] })
       .eq("id", runId);
@@ -327,7 +401,11 @@ function ErrorViewerPanel({ onRetry }: { onRetry: () => void }) {
   const toggle = (id: string) => {
     setExpanded((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) { next.delete(id); } else { next.add(id); }
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
       return next;
     });
   };
@@ -336,7 +414,8 @@ function ErrorViewerPanel({ onRetry }: { onRetry: () => void }) {
     <Card className="border-destructive/20">
       <CardHeader className="pb-3">
         <CardTitle className="text-base flex items-center gap-2">
-          <XCircle className="w-4 h-4 text-destructive" /> Error Viewer — Failed Agent Runs
+          <XCircle className="w-4 h-4 text-destructive" /> Error Viewer — Failed
+          Agent Runs
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -366,10 +445,12 @@ function ErrorViewerPanel({ onRetry }: { onRetry: () => void }) {
                       <XCircle className="w-4 h-4 text-destructive shrink-0" />
                       <div>
                         <p className="text-xs font-medium text-foreground">
-                          Run {err.id.slice(0, 8)}… · user:{err.user_id?.slice(0, 8)}…
+                          Run {err.id.slice(0, 8)}… · user:
+                          {err.user_id?.slice(0, 8)}…
                         </p>
                         <p className="text-[10px] text-muted-foreground">
-                          {new Date(err.started_at).toLocaleString()} · {err.status}
+                          {new Date(err.started_at).toLocaleString()} ·{" "}
+                          {err.status}
                         </p>
                       </div>
                     </div>
@@ -378,7 +459,10 @@ function ErrorViewerPanel({ onRetry }: { onRetry: () => void }) {
                         size="sm"
                         variant="outline"
                         className="h-6 text-xs"
-                        onClick={(e) => { e.stopPropagation(); retryRun(err.id); }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          retryRun(err.id);
+                        }}
                       >
                         Retry Run
                       </Button>
@@ -394,9 +478,14 @@ function ErrorViewerPanel({ onRetry }: { onRetry: () => void }) {
                       {/* Error messages */}
                       {err.errors?.length > 0 && (
                         <div>
-                          <p className="text-[10px] font-sans font-semibold text-muted-foreground uppercase mb-1">Error Messages</p>
+                          <p className="text-[10px] font-sans font-semibold text-muted-foreground uppercase mb-1">
+                            Error Messages
+                          </p>
                           {err.errors.map((e: string, i: number) => (
-                            <p key={i} className="text-destructive bg-destructive/10 px-2 py-1 rounded mb-1">
+                            <p
+                              key={i}
+                              className="text-destructive bg-destructive/10 px-2 py-1 rounded mb-1"
+                            >
                               {e}
                             </p>
                           ))}
@@ -404,13 +493,19 @@ function ErrorViewerPanel({ onRetry }: { onRetry: () => void }) {
                       )}
                       {/* Input payload */}
                       <div>
-                        <p className="text-[10px] font-sans font-semibold text-muted-foreground uppercase mb-1">Input Payload</p>
+                        <p className="text-[10px] font-sans font-semibold text-muted-foreground uppercase mb-1">
+                          Input Payload
+                        </p>
                         <pre className="bg-muted/30 rounded p-2 text-muted-foreground overflow-auto">
-                          {JSON.stringify({
-                            jobs_found: err.jobs_found,
-                            jobs_matched: err.jobs_matched,
-                            applications_sent: err.applications_sent,
-                          }, null, 2)}
+                          {JSON.stringify(
+                            {
+                              jobs_found: err.jobs_found,
+                              jobs_matched: err.jobs_matched,
+                              applications_sent: err.applications_sent,
+                            },
+                            null,
+                            2,
+                          )}
                         </pre>
                       </div>
                     </div>

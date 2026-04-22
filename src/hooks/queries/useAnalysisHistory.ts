@@ -12,11 +12,11 @@ export function useAnalysisHistory(limit: number = 20) {
     queryFn: async () => {
       if (!user) throw new Error("Not authenticated");
       const { data, error } = await supabase
-        .from("analysis_history" as any)
+        .from("analysis_history")
         .select("*")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
-        .limit(limit) as any;
+        .limit(limit);
 
       if (error) throw error;
       return data;

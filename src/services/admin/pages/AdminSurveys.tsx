@@ -4,10 +4,26 @@
  */
 
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, User, Briefcase, Users, Phone, Mail, PhoneCall, Trash2, MessageSquare } from "lucide-react";
+import {
+  Loader2,
+  User,
+  Briefcase,
+  Users,
+  Phone,
+  Mail,
+  PhoneCall,
+  Trash2,
+  MessageSquare,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -22,9 +38,20 @@ interface Survey {
   created_at: string;
 }
 
-const ROLE_LABELS: Record<string, { label: string; icon: typeof User; color: string }> = {
-  job_seeker: { label: "Job Seeker", icon: User, color: "bg-blue-500/10 text-blue-500" },
-  hiring_manager: { label: "Hiring Manager", icon: Briefcase, color: "bg-purple-500/10 text-purple-500" },
+const ROLE_LABELS: Record<
+  string,
+  { label: string; icon: typeof User; color: string }
+> = {
+  job_seeker: {
+    label: "Job Seeker",
+    icon: User,
+    color: "bg-blue-500/10 text-blue-500",
+  },
+  hiring_manager: {
+    label: "Hiring Manager",
+    icon: Briefcase,
+    color: "bg-purple-500/10 text-purple-500",
+  },
   both: { label: "Both", icon: Users, color: "bg-accent/10 text-accent" },
 };
 
@@ -35,7 +62,7 @@ export default function AdminSurveys() {
   const loadSurveys = async () => {
     setLoading(true);
     try {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("customer_surveys")
         .select("*")
         .order("created_at", { ascending: false });
@@ -48,11 +75,16 @@ export default function AdminSurveys() {
     }
   };
 
-  useEffect(() => { loadSurveys(); }, []);
+  useEffect(() => {
+    loadSurveys();
+  }, []);
 
   const handleDelete = async (id: string) => {
     try {
-      const { error } = await (supabase as any).from("customer_surveys").delete().eq("id", id);
+      const { error } = await supabase
+        .from("customer_surveys")
+        .delete()
+        .eq("id", id);
       if (error) throw error;
       setSurveys((prev) => prev.filter((s) => s.id !== id));
       toast.success("Survey deleted");
@@ -110,12 +142,18 @@ export default function AdminSurveys() {
                           {roleInfo.label}
                         </Badge>
                         {survey.wants_callback && (
-                          <Badge variant="outline" className="text-xs gap-1 border-warning text-warning">
+                          <Badge
+                            variant="outline"
+                            className="text-xs gap-1 border-warning text-warning"
+                          >
                             <PhoneCall className="w-3 h-3" /> Wants Callback
                           </Badge>
                         )}
                         <span className="text-xs text-muted-foreground">
-                          {format(new Date(survey.created_at), "MMM d, yyyy 'at' h:mm a")}
+                          {format(
+                            new Date(survey.created_at),
+                            "MMM d, yyyy 'at' h:mm a",
+                          )}
                         </span>
                       </div>
                       <div className="flex items-center gap-3 text-sm text-muted-foreground">
@@ -130,7 +168,9 @@ export default function AdminSurveys() {
                           </span>
                         )}
                         {!survey.email && !survey.phone && (
-                          <span className="italic">No contact info provided</span>
+                          <span className="italic">
+                            No contact info provided
+                          </span>
                         )}
                       </div>
                     </div>
@@ -146,11 +186,15 @@ export default function AdminSurveys() {
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {answerEntries.length === 0 ? (
-                    <p className="text-sm text-muted-foreground italic">No answers provided</p>
+                    <p className="text-sm text-muted-foreground italic">
+                      No answers provided
+                    </p>
                   ) : (
                     answerEntries.map(([question, answer], i) => (
                       <div key={i} className="space-y-1">
-                        <p className="text-xs font-semibold text-primary">{question}</p>
+                        <p className="text-xs font-semibold text-primary">
+                          {question}
+                        </p>
                         <p className="text-sm text-foreground bg-muted/50 rounded-lg p-3 leading-relaxed">
                           {answer}
                         </p>

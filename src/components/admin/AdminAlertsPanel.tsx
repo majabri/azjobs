@@ -40,12 +40,12 @@ export default function AdminAlertsPanel() {
     setLoading(true);
     try {
       const { data, error } = await supabase
-        .from("admin_alerts" as any)
+        .from("admin_alerts")
         .select("*")
         .order("created_at", { ascending: false })
         .limit(50);
       if (error) throw error;
-      setAlerts((data as any[]) ?? []);
+      setAlerts(data ?? []);
     } catch {
       /* silent */
     }
@@ -63,12 +63,11 @@ export default function AdminAlertsPanel() {
     setResolving(alertId);
     try {
       const { error } = await supabase
-        .from("admin_alerts" as any)
+        .from("admin_alerts")
         .update({
           status: "resolved",
-          resolved_by: user.id,
           resolved_at: new Date().toISOString(),
-        } as any)
+        })
         .eq("id", alertId);
       if (error) throw error;
       toast.success("Alert resolved");
@@ -79,7 +78,9 @@ export default function AdminAlertsPanel() {
     setResolving(null);
   };
 
-  const unresolvedCount = alerts.filter((a) => a.status === "unresolved").length;
+  const unresolvedCount = alerts.filter(
+    (a) => a.status === "unresolved",
+  ).length;
 
   return (
     <Card className="border-border">
@@ -88,19 +89,30 @@ export default function AdminAlertsPanel() {
           <CardTitle className="text-base flex items-center gap-2">
             <Bell className="w-4 h-4 text-accent" /> Admin Alerts
             {unresolvedCount > 0 && (
-              <Badge variant="destructive" className="text-[10px]">{unresolvedCount}</Badge>
+              <Badge variant="destructive" className="text-[10px]">
+                {unresolvedCount}
+              </Badge>
             )}
           </CardTitle>
-          <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={load}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 text-xs"
+            onClick={load}
+          >
             Refresh
           </Button>
         </div>
       </CardHeader>
       <CardContent>
         {loading ? (
-          <div className="flex justify-center py-4"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
+          <div className="flex justify-center py-4">
+            <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+          </div>
         ) : alerts.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-4">No alerts. All clear!</p>
+          <p className="text-sm text-muted-foreground text-center py-4">
+            No alerts. All clear!
+          </p>
         ) : (
           <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
             {alerts.map((alert) => (
@@ -111,15 +123,21 @@ export default function AdminAlertsPanel() {
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <Badge className={`text-[10px] ${severityColors[alert.severity] ?? ""}`}>
+                      <Badge
+                        className={`text-[10px] ${severityColors[alert.severity] ?? ""}`}
+                      >
                         {alert.severity}
                       </Badge>
                       <Badge variant="outline" className="text-[10px]">
                         {alert.alert_type.replace(/_/g, " ")}
                       </Badge>
                       {alert.status === "resolved" && (
-                        <Badge variant="outline" className="text-[10px] text-muted-foreground">
-                          <CheckCircle2 className="w-2.5 h-2.5 mr-0.5" /> Resolved
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] text-muted-foreground"
+                        >
+                          <CheckCircle2 className="w-2.5 h-2.5 mr-0.5" />{" "}
+                          Resolved
                         </Badge>
                       )}
                     </div>
@@ -136,7 +154,11 @@ export default function AdminAlertsPanel() {
                       onClick={() => handleResolve(alert.id)}
                       disabled={resolving === alert.id}
                     >
-                      {resolving === alert.id ? <Loader2 className="w-3 h-3 animate-spin" /> : "Resolve"}
+                      {resolving === alert.id ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        "Resolve"
+                      )}
                     </Button>
                   )}
                 </div>

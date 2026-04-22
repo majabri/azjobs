@@ -33,16 +33,12 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { checkRateLimit } from "../_shared/rate-limit.ts";
 import { cleanJobText } from "../_shared/job-parser.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { corsHeaders } from "../_shared/cors.ts";
 
 const ANTHROPIC_API = "https://api.anthropic.com/v1/messages";
-const BATCH_SIZE = 10;          // jobs per Claude call
-const MAX_JOB_CHARS = 2_000;    // trim job descriptions to keep prompts focused
-const MAX_JOBS_PER_RUN = 200;   // cap to prevent runaway costs
+const BATCH_SIZE = 10; // jobs per Claude call
+const MAX_JOB_CHARS = 2_000; // trim job descriptions to keep prompts focused
+const MAX_JOBS_PER_RUN = 200; // cap to prevent runaway costs
 
 // ---------------------------------------------------------------------------
 // Types
@@ -92,14 +88,19 @@ interface MatchResult {
 // Profile loader
 // ---------------------------------------------------------------------------
 
-async function loadUserProfile(supabase: any, userId: string): Promise<UserProfile | null> {
+async function loadUserProfile(
+  supabase: any,
+  userId: string,
+): Promise<UserProfile | null> {
   const { data, error } = await supabase
     .from("job_seeker_profiles")
-    .select(`
+    .select(
+      `
       user_id, full_name, skills, certifications, target_job_titles,
       career_level, location, preferred_job_types, salary_min, salary_max,
       summary, work_experience, automation_mode
-    `)
+    `,
+    )
     .eq("user_id", userId)
     .maybeSingle();
 
@@ -116,7 +117,7 @@ async function loadUserProfile(supabase: any, userId: string): Promise<UserProfi
   }
 
   const isRemote = (data.preferred_job_types ?? []).some((t: string) =>
-    /remote/i.test(t)
+    /remote/i.test(t),
   );
 
   return {
@@ -144,11 +145,13 @@ async function fetchUnmatchedJobs(
   userId: string,
   limit: number,
   jobIds?: string[],
-  forceRescore = false
+  forceRescore = false,
 ): Promise<JobPosting[]> {
   let query = supabase
     .from("job_postings")
-    .select("id, title, company, location, is_remote, description, salary_min, salary_max, job_type")
+    .select(
+      "id, title, company, location, is_remote, description, salary_min, salary_max, job_type",
+    )
     .eq("status", "active")
     .order("date_posted", { ascending: false })
     .limit(limit);
@@ -197,7 +200,10 @@ Summary: ${profile.summary || "Not provided"}
 
   const jobsText = jobs
     .map((job, i) => {
-      const cleanDesc = cleanJobText(job.description ?? "", job.title).slice(0, MAX_JOB_CHARS);
+      const cleanDesc = cleanJobText(job.description ?? "", job.title).slice(
+        0,
+        MAX_JOB_CHARS,
+      );
       const salary = job.salary_min
         ? `$${job.salary_min.toLocaleString()}${job.salary_max ? ` - $${job.salary_max.toLocaleString()}` : "+"}`
         : "Not listed";
@@ -251,7 +257,7 @@ Rules:
 
 async function scoreWithClaude(
   apiKey: string,
-  prompt: string
+  prompt: string,
 ): Promise<MatchResult[]> {
   const response = await fetch(ANTHROPIC_API, {
     method: "POST",
@@ -261,7 +267,7 @@ async function scoreWithClaude(
       "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({
-      model: "claude-haiku-4-5-20251001",  // Fastest + cheapest for batch scoring
+      model: "claude-haiku-4-5-20251001", // Fastest + cheapest for batch scoring
       max_tokens: 4_000,
       messages: [{ role: "user", content: prompt }],
     }),
@@ -270,20 +276,28 @@ async function scoreWithClaude(
 
   if (!response.ok) {
     const err = await response.text();
-    throw new Error(`Claude API error ${response.status}: ${err.slice(0, 200)}`);
+    throw new Error(
+      `Claude API error ${response.status}: ${err.slice(0, 200)}`,
+    );
   }
 
   const data = await response.json();
   const text = data.content?.[0]?.text ?? "[]";
 
   // Claude sometimes wraps JSON in markdown fences — strip them
-  const clean = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+  const clean = text
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/\s*```$/i, "")
+    .trim();
 
   try {
     const parsed = JSON.parse(clean);
     return Array.isArray(parsed) ? parsed : [];
   } catch {
-    console.error("[match-jobs] Failed to parse Claude response:", text.slice(0, 500));
+    console.error(
+      "[match-jobs] Failed to parse Claude response:",
+      text.slice(0, 500),
+    );
     return [];
   }
 }
@@ -295,7 +309,7 @@ async function scoreWithClaude(
 async function saveMatches(
   supabase: any,
   userId: string,
-  matches: MatchResult[]
+  matches: MatchResult[],
 ): Promise<number> {
   if (matches.length === 0) return 0;
 
@@ -308,7 +322,9 @@ async function saveMatches(
     strengths: m.strengths ?? [],
     red_flags: m.red_flags ?? [],
     match_summary: m.match_summary ?? "",
-    effort_level: ["easy", "moderate", "hard"].includes(m.effort_level) ? m.effort_level : "moderate",
+    effort_level: ["easy", "moderate", "hard"].includes(m.effort_level)
+      ? m.effort_level
+      : "moderate",
     response_prob: Math.max(0, Math.min(100, m.response_prob ?? 50)),
     smart_tag: m.smart_tag ?? "good_fit",
     scored_at: new Date().toISOString(),
@@ -330,34 +346,45 @@ async function saveMatches(
 // ---------------------------------------------------------------------------
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method === "OPTIONS")
+    return new Response(null, { headers: corsHeaders });
 
   try {
     // ── Auth ─────────────────────────────────────────────────────────────────
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
-      return res({ success: false, error: "Missing authorization header" }, 401);
+      return res(
+        { success: false, error: "Missing authorization header" },
+        401,
+      );
     }
 
     const supabaseAnon = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      { global: { headers: { Authorization: authHeader } } }
+      { global: { headers: { Authorization: authHeader } } },
     );
-    const { data, error: authError } = await (supabaseAnon.auth as any).getClaims(
-      authHeader.replace("Bearer ", "")
-    );
-    if (authError || !data?.claims) return res({ success: false, error: "Invalid or expired token" }, 401);
+    const { data, error: authError } = await (
+      supabaseAnon.auth as any
+    ).getClaims(authHeader.replace("Bearer ", ""));
+    if (authError || !data?.claims)
+      return res({ success: false, error: "Invalid or expired token" }, 401);
     const authenticatedUserId: string = data.claims.sub;
 
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
     );
 
     // ── Rate limit ────────────────────────────────────────────────────────────
     if (!checkRateLimit(`match-jobs:${authenticatedUserId}`, 5, 60_000)) {
-      return res({ success: false, error: "Too many match requests – please wait a moment." }, 429);
+      return res(
+        {
+          success: false,
+          error: "Too many match requests – please wait a moment.",
+        },
+        429,
+      );
     }
 
     // ── Parse body ────────────────────────────────────────────────────────────
@@ -370,22 +397,55 @@ Deno.serve(async (req) => {
     // ── Load profile ──────────────────────────────────────────────────────────
     const profile = await loadUserProfile(supabaseAdmin, userId);
     if (!profile) {
-      return res({ success: false, error: "Career profile not found. Please complete your profile first." }, 404);
+      return res(
+        {
+          success: false,
+          error:
+            "Career profile not found. Please complete your profile first.",
+        },
+        404,
+      );
     }
     if (profile.skills.length === 0 && profile.targetTitles.length === 0) {
-      return res({ success: false, error: "Please add skills or target job titles to your profile before running matching." }, 400);
+      return res(
+        {
+          success: false,
+          error:
+            "Please add skills or target job titles to your profile before running matching.",
+        },
+        400,
+      );
     }
 
     // ── Fetch unscored jobs ────────────────────────────────────────────────────
-    const jobs = await fetchUnmatchedJobs(supabaseAdmin, userId, limit, jobIds, forceRescore);
+    const jobs = await fetchUnmatchedJobs(
+      supabaseAdmin,
+      userId,
+      limit,
+      jobIds,
+      forceRescore,
+    );
     if (jobs.length === 0) {
-      return res({ success: true, scored: 0, topMatches: [], skipped: 0, message: "All recent jobs already matched. Check back later for new postings." });
+      return res({
+        success: true,
+        scored: 0,
+        topMatches: [],
+        skipped: 0,
+        message:
+          "All recent jobs already matched. Check back later for new postings.",
+      });
     }
 
     // ── Claude API key ─────────────────────────────────────────────────────────
     const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
     if (!apiKey) {
-      return res({ success: false, error: "AI matching not configured. Please set ANTHROPIC_API_KEY." }, 500);
+      return res(
+        {
+          success: false,
+          error: "AI matching not configured. Please set ANTHROPIC_API_KEY.",
+        },
+        500,
+      );
     }
 
     // ── Batch scoring ──────────────────────────────────────────────────────────
@@ -394,7 +454,9 @@ Deno.serve(async (req) => {
 
     for (let i = 0; i < jobs.length; i += BATCH_SIZE) {
       const batch = jobs.slice(i, i + BATCH_SIZE);
-      console.log(`[match-jobs] Scoring batch ${Math.floor(i / BATCH_SIZE) + 1} (${batch.length} jobs) for user ${userId}`);
+      console.log(
+        `[match-jobs] Scoring batch ${Math.floor(i / BATCH_SIZE) + 1} (${batch.length} jobs) for user ${userId}`,
+      );
 
       try {
         const prompt = buildMatchingPrompt(profile, batch);
@@ -402,13 +464,18 @@ Deno.serve(async (req) => {
 
         // Validate: only accept results where job_id matches a job in the batch
         const validJobIds = new Set(batch.map((j) => j.id));
-        const validMatches = matches.filter((m) => m.job_id && validJobIds.has(m.job_id));
+        const validMatches = matches.filter(
+          (m) => m.job_id && validJobIds.has(m.job_id),
+        );
 
         const saved = await saveMatches(supabaseAdmin, userId, validMatches);
         totalScored += saved;
         allMatches.push(...validMatches);
       } catch (batchError) {
-        console.error(`[match-jobs] Batch ${Math.floor(i / BATCH_SIZE) + 1} failed:`, batchError);
+        console.error(
+          `[match-jobs] Batch ${Math.floor(i / BATCH_SIZE) + 1} failed:`,
+          batchError,
+        );
         // Continue with next batch — partial results are better than none
       }
     }
@@ -426,7 +493,9 @@ Deno.serve(async (req) => {
         skillGaps: m.skill_gaps,
       }));
 
-    console.log(`[match-jobs] Complete: scored ${totalScored}/${jobs.length} jobs for user ${userId}`);
+    console.log(
+      `[match-jobs] Complete: scored ${totalScored}/${jobs.length} jobs for user ${userId}`,
+    );
 
     return res({
       success: true,
@@ -434,10 +503,15 @@ Deno.serve(async (req) => {
       skipped: jobs.length - totalScored,
       topMatches,
     });
-
   } catch (error) {
     console.error("[match-jobs] Unhandled error:", error);
-    return res({ success: false, error: error instanceof Error ? error.message : "Matching failed" }, 500);
+    return res(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : "Matching failed",
+      },
+      500,
+    );
   }
 });
 

@@ -24,20 +24,22 @@ let catalogCache: CatalogEntry[] | null = null;
 async function loadCatalog(): Promise<CatalogEntry[]> {
   if (catalogCache) return catalogCache;
   const { data, error } = await supabase
-    .from("benefits_catalog" as any)
+    .from("benefits_catalog")
     .select("id, category, label, keywords");
   if (error || !data) return [];
-  catalogCache = (data as any[]).map(row => ({
+  catalogCache = data.map((row) => ({
     id: row.id,
     category: row.category,
     label: row.label,
-    keywords: row.keywords || [],
+    keywords: (row.keywords as string[]) || [],
   }));
   return catalogCache;
 }
 
 /** Extract benefits from a job description text */
-export async function extractBenefits(description: string): Promise<BenefitMatch[]> {
+export async function extractBenefits(
+  description: string,
+): Promise<BenefitMatch[]> {
   const catalog = await loadCatalog();
   if (!catalog.length) return [];
 
@@ -45,7 +47,9 @@ export async function extractBenefits(description: string): Promise<BenefitMatch
   const matches: BenefitMatch[] = [];
 
   for (const entry of catalog) {
-    const found = entry.keywords.some(kw => descLower.includes(kw.toLowerCase()));
+    const found = entry.keywords.some((kw) =>
+      descLower.includes(kw.toLowerCase()),
+    );
     if (found) {
       matches.push({
         catalogId: entry.id,
@@ -61,13 +65,18 @@ export async function extractBenefits(description: string): Promise<BenefitMatch
 /** Score how well a job's benefits match user preferences */
 export function scoreBenefitsMatch(
   jobBenefits: BenefitMatch[],
-  userPreferredCategories: string[]
+  userPreferredCategories: string[],
 ): number {
   if (!userPreferredCategories.length || !jobBenefits.length) return 0;
 
-  const jobCategories = new Set(jobBenefits.map(b => b.category));
-  const matchCount = userPreferredCategories.filter(c => jobCategories.has(c)).length;
+  const jobCategories = new Set(jobBenefits.map((b) => b.category));
+  const matchCount = userPreferredCategories.filter((c) =>
+    jobCategories.has(c),
+  ).length;
 
   // +10 points max for benefits match
-  return Math.min(10, Math.round((matchCount / userPreferredCategories.length) * 10));
+  return Math.min(
+    10,
+    Math.round((matchCount / userPreferredCategories.length) * 10),
+  );
 }

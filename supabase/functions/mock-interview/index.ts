@@ -3,58 +3,70 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { checkRateLimit } from "../_shared/rate-limit.ts";
 import { z } from "https://deno.land/x/zod@v3.23.8/mod.ts";
 import { callAnthropic } from "../_shared/anthropic.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+import { corsHeaders } from "../_shared/cors.ts";
 
 const InputSchema = z.object({
-  messages: z.array(z.object({ role: z.string(), content: z.string().max(10000) })).min(1).max(50),
+  messages: z
+    .array(z.object({ role: z.string(), content: z.string().max(10000) }))
+    .min(1)
+    .max(50),
   jobTitle: z.string().min(1).max(500),
   jobDescription: z.string().max(10000).optional(),
 });
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method === "OPTIONS")
+    return new Response(null, { headers: corsHeaders });
 
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Missing authorization" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      { global: { headers: { Authorization: authHeader } } }
+      { global: { headers: { Authorization: authHeader } } },
     );
 
     const token = authHeader.replace("Bearer ", "");
     const { data, error: authError } = await supabase.auth.getClaims(token);
     if (authError || !data?.claims) {
       return new Response(JSON.stringify({ error: "Invalid token" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const userId: string = data.claims.sub as string;
 
     if (!checkRateLimit(`mock-interview:${userId}`, 20, 60_000)) {
-      return new Response(JSON.stringify({ error: "Too many requests – please slow down" }), {
-        status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "Too many requests – please slow down" }),
+        {
+          status: 429,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
 
     const rawInput = await req.json();
     const parsed = InputSchema.safeParse(rawInput);
     if (!parsed.success) {
-      return new Response(JSON.stringify({ error: "Invalid input", details: parsed.error.flatten().fieldErrors }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({
+          error: "Invalid input",
+          details: parsed.error.flatten().fieldErrors,
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
     const { messages, jobTitle, jobDescription } = parsed.data;
 
@@ -77,7 +89,10 @@ RULES:
 
     const result = await callAnthropic({
       system: systemPrompt,
-      messages: messages.map((m: any) => ({ role: m.role as "user" | "assistant", content: m.content })),
+      messages: messages.map((m: any) => ({
+        role: m.role as "user" | "assistant",
+        content: m.content,
+      })),
     });
 
     return new Response(JSON.stringify({ content: result.content }), {
@@ -85,8 +100,14 @@ RULES:
     });
   } catch (e) {
     console.error("mock-interview error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({
+        error: e instanceof Error ? e.message : "Unknown error",
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   }
 });

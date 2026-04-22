@@ -1,12 +1,18 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Loader2, CheckCircle, AlertCircle, X, MessageSquare } from 'lucide-react';
-import { logger } from '@/lib/logger';
+import React, { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Loader2,
+  CheckCircle,
+  AlertCircle,
+  X,
+  MessageSquare,
+} from "lucide-react";
+import { logger } from "@/lib/logger";
 
 interface SupportTicket {
   id: string;
@@ -20,37 +26,37 @@ interface SupportTicket {
   updated_at: string;
 }
 
-type ToastType = 'success' | 'error' | null;
+type ToastType = "success" | "error" | null;
 
 export default function SupportPage() {
-  const [activeTab, setActiveTab] = useState<'submit' | 'tickets'>('submit');
+  const [activeTab, setActiveTab] = useState<"submit" | "tickets">("submit");
   const [loading, setLoading] = useState(false);
   const [ticketsLoading, setTicketsLoading] = useState(false);
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<{ type: ToastType; message: string }>({
     type: null,
-    message: ''
+    message: "",
   });
 
   const [formData, setFormData] = useState({
-    category: 'bug',
-    severity: 'medium',
-    title: '',
-    description: '',
-    stepsToReproduce: '',
-    environment: ''
+    category: "bug",
+    severity: "medium",
+    title: "",
+    description: "",
+    stepsToReproduce: "",
+    environment: "",
   });
 
   useEffect(() => {
-    if (activeTab === 'tickets') {
+    if (activeTab === "tickets") {
       fetchTickets();
     }
   }, [activeTab]);
 
   const showToast = (type: ToastType, message: string) => {
     setToast({ type, message });
-    setTimeout(() => setToast({ type: null, message: '' }), 4000);
+    setTimeout(() => setToast({ type: null, message: "" }), 4000);
   };
 
   const fetchTickets = async () => {
@@ -58,23 +64,25 @@ export default function SupportPage() {
       setTicketsLoading(true);
       setError(null);
 
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) {
-        setError('Please sign in to view your tickets');
+        setError("Please sign in to view your tickets");
         return;
       }
 
       const { data: ticketsData, error: ticketsError } = await supabase
-        .from('support_tickets')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+        .from("support_tickets")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
 
       if (ticketsError) throw ticketsError;
-      setTickets(ticketsData || []);
+      setTickets((ticketsData as unknown as SupportTicket[]) || []);
     } catch (err) {
-      logger.error('Error fetching tickets:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load tickets');
+      logger.error("Error fetching tickets:", err);
+      setError(err instanceof Error ? err.message : "Failed to load tickets");
     } finally {
       setTicketsLoading(false);
     }
@@ -82,18 +90,18 @@ export default function SupportPage() {
 
   const generateTicketNumber = (): string => {
     const num = Math.floor(Math.random() * 10000);
-    return `iCOS-${String(num).padStart(4, '0')}`;
+    return `iCOS-${String(num).padStart(4, "0")}`;
   };
 
   const handleFormChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
+    >,
   ) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
@@ -102,60 +110,62 @@ export default function SupportPage() {
 
     // Validate
     if (!formData.title.trim()) {
-      showToast('error', 'Title is required');
+      showToast("error", "Title is required");
       return;
     }
     if (!formData.description.trim()) {
-      showToast('error', 'Description is required');
+      showToast("error", "Description is required");
       return;
     }
 
     try {
       setLoading(true);
 
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) {
-        showToast('error', 'Please sign in to submit a support ticket');
+        showToast("error", "Please sign in to submit a support ticket");
         return;
       }
 
       const ticketNumber = generateTicketNumber();
 
       const { error: insertError } = await supabase
-        .from('support_tickets')
+        .from("support_tickets")
         .insert({
           user_id: user.id,
           ticket_number: ticketNumber,
-          category: formData.category,
-          severity: formData.severity,
           title: formData.title.trim(),
           description: formData.description.trim(),
-          steps_to_reproduce: formData.stepsToReproduce.trim() || null,
-          environment: formData.environment.trim() || null,
-          status: 'open'
-        });
+          email: user.email || null,
+          status: "open",
+        } as any);
 
       if (insertError) throw insertError;
 
-      showToast('success', `Ticket ${ticketNumber} submitted successfully!`);
+      showToast("success", `Ticket ${ticketNumber} submitted successfully!`);
 
       // Reset form
       setFormData({
-        category: 'bug',
-        severity: 'medium',
-        title: '',
-        description: '',
-        stepsToReproduce: '',
-        environment: ''
+        category: "bug",
+        severity: "medium",
+        title: "",
+        description: "",
+        stepsToReproduce: "",
+        environment: "",
       });
 
       // Switch to tickets tab
       setTimeout(() => {
-        setActiveTab('tickets');
+        setActiveTab("tickets");
       }, 2000);
     } catch (err) {
-      logger.error('Error submitting ticket:', err);
-      showToast('error', err instanceof Error ? err.message : 'Failed to submit ticket');
+      logger.error("Error submitting ticket:", err);
+      showToast(
+        "error",
+        err instanceof Error ? err.message : "Failed to submit ticket",
+      );
     } finally {
       setLoading(false);
     }
@@ -163,31 +173,31 @@ export default function SupportPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'open':
-        return 'bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30';
-      case 'in_progress':
-        return 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/30';
-      case 'resolved':
-        return 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/30';
-      case 'closed':
-        return 'bg-muted text-muted-foreground border-border';
+      case "open":
+        return "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/30";
+      case "in_progress":
+        return "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/30";
+      case "resolved":
+        return "bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/30";
+      case "closed":
+        return "bg-muted text-muted-foreground border-border";
       default:
-        return 'bg-muted text-muted-foreground border-border';
+        return "bg-muted text-muted-foreground border-border";
     }
   };
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
-      case 'critical':
-        return 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/30';
-      case 'high':
-        return 'bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/30';
-      case 'medium':
-        return 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/30';
-      case 'low':
-        return 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/30';
+      case "critical":
+        return "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/30";
+      case "high":
+        return "bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/30";
+      case "medium":
+        return "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/30";
+      case "low":
+        return "bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/30";
       default:
-        return 'bg-muted text-muted-foreground border-border';
+        return "bg-muted text-muted-foreground border-border";
     }
   };
 
@@ -196,7 +206,9 @@ export default function SupportPage() {
       <div className="max-w-4xl mx-auto px-4 py-12">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground mb-2">Support & Help Center</h1>
+          <h1 className="text-3xl font-bold text-foreground mb-2">
+            Support & Help Center
+          </h1>
           <p className="text-muted-foreground">
             Submit bug reports, feature requests, and general support tickets
           </p>
@@ -205,21 +217,21 @@ export default function SupportPage() {
         {/* Tabs */}
         <div className="flex gap-4 mb-8 border-b border-border">
           <button
-            onClick={() => setActiveTab('submit')}
+            onClick={() => setActiveTab("submit")}
             className={`px-4 py-3 font-medium transition-colors border-b-2 ${
-              activeTab === 'submit'
-                ? 'text-primary border-primary'
-                : 'text-muted-foreground border-transparent hover:text-foreground'
+              activeTab === "submit"
+                ? "text-primary border-primary"
+                : "text-muted-foreground border-transparent hover:text-foreground"
             }`}
           >
             Submit Ticket
           </button>
           <button
-            onClick={() => setActiveTab('tickets')}
+            onClick={() => setActiveTab("tickets")}
             className={`px-4 py-3 font-medium transition-colors border-b-2 ${
-              activeTab === 'tickets'
-                ? 'text-primary border-primary'
-                : 'text-muted-foreground border-transparent hover:text-foreground'
+              activeTab === "tickets"
+                ? "text-primary border-primary"
+                : "text-muted-foreground border-transparent hover:text-foreground"
             }`}
           >
             My Tickets
@@ -233,27 +245,29 @@ export default function SupportPage() {
         )}
 
         {/* Submit Tab */}
-        {activeTab === 'submit' && (
+        {activeTab === "submit" && (
           <Card className="bg-card border-border">
             <div className="p-8">
-              <h2 className="text-2xl font-bold text-foreground mb-6">Create Support Ticket</h2>
+              <h2 className="text-2xl font-bold text-foreground mb-6">
+                Create Support Ticket
+              </h2>
 
               {toast.type && (
                 <div
                   className={`mb-6 p-4 rounded-lg flex items-center gap-3 border ${
-                    toast.type === 'success'
-                      ? 'bg-green-900/30 border-green-700 text-green-300'
-                      : 'bg-red-900/30 border-red-700 text-red-300'
+                    toast.type === "success"
+                      ? "bg-green-900/30 border-green-700 text-green-300"
+                      : "bg-red-900/30 border-red-700 text-red-300"
                   }`}
                 >
-                  {toast.type === 'success' ? (
+                  {toast.type === "success" ? (
                     <CheckCircle className="w-5 h-5 flex-shrink-0" />
                   ) : (
                     <AlertCircle className="w-5 h-5 flex-shrink-0" />
                   )}
                   <span className="flex-1">{toast.message}</span>
                   <button
-                    onClick={() => setToast({ type: null, message: '' })}
+                    onClick={() => setToast({ type: null, message: "" })}
                     className="text-current hover:opacity-75"
                   >
                     <X className="w-4 h-4" />
@@ -373,7 +387,7 @@ export default function SupportPage() {
                       Submitting...
                     </>
                   ) : (
-                    'Submit Ticket'
+                    "Submit Ticket"
                   )}
                 </Button>
               </form>
@@ -382,7 +396,7 @@ export default function SupportPage() {
         )}
 
         {/* Tickets Tab */}
-        {activeTab === 'tickets' && (
+        {activeTab === "tickets" && (
           <div>
             {ticketsLoading ? (
               <div className="flex items-center justify-center py-12">
@@ -391,17 +405,19 @@ export default function SupportPage() {
             ) : tickets.length === 0 ? (
               <Card className="bg-card border-border p-12 text-center">
                 <MessageSquare className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground mb-4">You haven't submitted any tickets yet</p>
+                <p className="text-muted-foreground mb-4">
+                  You haven't submitted any tickets yet
+                </p>
                 <Button
                   className="bg-primary hover:bg-primary/90 text-foreground"
-                  onClick={() => setActiveTab('submit')}
+                  onClick={() => setActiveTab("submit")}
                 >
                   Create Your First Ticket
                 </Button>
               </Card>
             ) : (
               <div className="space-y-4">
-                {tickets.map(ticket => (
+                {tickets.map((ticket) => (
                   <Card
                     key={ticket.id}
                     className="bg-card border-border p-6 hover:border-primary/50 transition-colors"
@@ -438,7 +454,8 @@ export default function SupportPage() {
                     <div className="flex justify-between items-center text-sm text-muted-foreground">
                       <span>Category: {ticket.category}</span>
                       <span>
-                        Created {new Date(ticket.created_at).toLocaleDateString()}
+                        Created{" "}
+                        {new Date(ticket.created_at).toLocaleDateString()}
                       </span>
                     </div>
                   </Card>

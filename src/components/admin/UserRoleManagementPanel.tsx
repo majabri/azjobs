@@ -4,12 +4,25 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Users, Search, Loader2, Edit } from "lucide-react";
-import { logger } from '@/lib/logger';
+import { logger } from "@/lib/logger";
 
 interface UserWithRoles {
   user_id: string;
@@ -19,7 +32,14 @@ interface UserWithRoles {
   roles: string[];
 }
 
-const ALL_ROLES = ["admin", "moderator", "user", "job_seeker", "employer", "talent"];
+const ALL_ROLES = [
+  "admin",
+  "moderator",
+  "user",
+  "job_seeker",
+  "employer",
+  "talent",
+];
 
 export default function UserRoleManagementPanel() {
   const [users, setUsers] = useState<UserWithRoles[]>([]);
@@ -42,18 +62,18 @@ export default function UserRoleManagementPanel() {
 
       // Get all roles
       const { data: roles, error: rErr } = await supabase
-        .from("user_roles" as any)
+        .from("user_roles")
         .select("user_id, role");
       if (rErr) throw rErr;
 
       const roleMap = new Map<string, string[]>();
-      for (const r of (roles as any[]) ?? []) {
+      for (const r of roles ?? []) {
         const list = roleMap.get(r.user_id) || [];
         list.push(r.role);
         roleMap.set(r.user_id, list);
       }
 
-      const result: UserWithRoles[] = ((profiles as any[]) ?? []).map((p) => ({
+      const result: UserWithRoles[] = (profiles ?? []).map((p) => ({
         user_id: p.user_id,
         email: p.email,
         full_name: p.full_name,
@@ -63,12 +83,14 @@ export default function UserRoleManagementPanel() {
 
       setUsers(result);
     } catch (e) {
-      logger.error(e);
+      logger.error(e instanceof Error ? e.message : String(e));
     }
     setLoading(false);
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const filtered = users.filter((u) => {
     if (!search) return true;
@@ -87,7 +109,7 @@ export default function UserRoleManagementPanel() {
 
   const toggleRole = (role: string) => {
     setEditRoles((prev) =>
-      prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role]
+      prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role],
     );
   };
 
@@ -102,17 +124,17 @@ export default function UserRoleManagementPanel() {
       // Remove roles
       for (const role of toRemove) {
         await supabase
-          .from("user_roles" as any)
+          .from("user_roles")
           .delete()
           .eq("user_id", editUser.user_id)
-          .eq("role", role);
+          .eq("role", role as any);
       }
 
       // Add roles
       for (const role of toAdd) {
         await supabase
-          .from("user_roles" as any)
-          .insert({ user_id: editUser.user_id, role } as any);
+          .from("user_roles")
+          .insert({ user_id: editUser.user_id, role: role as any });
       }
 
       toast.success("Roles updated successfully");
@@ -124,7 +146,9 @@ export default function UserRoleManagementPanel() {
     setSaving(false);
   };
 
-  const roleBadgeColor = (role: string): "default" | "secondary" | "destructive" | "outline" => {
+  const roleBadgeColor = (
+    role: string,
+  ): "default" | "secondary" | "destructive" | "outline" => {
     if (role === "admin") return "destructive";
     if (role === "employer") return "default";
     return "secondary";
@@ -151,7 +175,9 @@ export default function UserRoleManagementPanel() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex justify-center py-8"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
+            <div className="flex justify-center py-8">
+              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+            </div>
           ) : (
             <div className="overflow-x-auto">
               <Table>
@@ -166,7 +192,10 @@ export default function UserRoleManagementPanel() {
                 <TableBody>
                   {filtered.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center text-muted-foreground text-sm py-8">
+                      <TableCell
+                        colSpan={4}
+                        className="text-center text-muted-foreground text-sm py-8"
+                      >
                         No users found
                       </TableCell>
                     </TableRow>
@@ -175,8 +204,14 @@ export default function UserRoleManagementPanel() {
                       <TableRow key={u.user_id}>
                         <TableCell className="text-xs">
                           <div>
-                            <span className="font-medium">{u.email || "—"}</span>
-                            {u.full_name && <span className="text-muted-foreground ml-1">({u.full_name})</span>}
+                            <span className="font-medium">
+                              {u.email || "—"}
+                            </span>
+                            {u.full_name && (
+                              <span className="text-muted-foreground ml-1">
+                                ({u.full_name})
+                              </span>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell className="text-xs text-muted-foreground">
@@ -185,10 +220,16 @@ export default function UserRoleManagementPanel() {
                         <TableCell>
                           <div className="flex flex-wrap gap-1">
                             {u.roles.length === 0 ? (
-                              <span className="text-xs text-muted-foreground">No roles</span>
+                              <span className="text-xs text-muted-foreground">
+                                No roles
+                              </span>
                             ) : (
                               u.roles.map((r) => (
-                                <Badge key={r} variant={roleBadgeColor(r)} className="text-[10px]">
+                                <Badge
+                                  key={r}
+                                  variant={roleBadgeColor(r)}
+                                  className="text-[10px]"
+                                >
                                   {r}
                                 </Badge>
                               ))
@@ -196,7 +237,12 @@ export default function UserRoleManagementPanel() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => handleEditOpen(u)}>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 text-xs"
+                            onClick={() => handleEditOpen(u)}
+                          >
                             <Edit className="w-3 h-3 mr-1" /> Edit
                           </Button>
                         </TableCell>
@@ -206,7 +252,9 @@ export default function UserRoleManagementPanel() {
                 </TableBody>
               </Table>
               {filtered.length > 50 && (
-                <p className="text-xs text-muted-foreground text-center mt-2">Showing 50 of {filtered.length} users</p>
+                <p className="text-xs text-muted-foreground text-center mt-2">
+                  Showing 50 of {filtered.length} users
+                </p>
               )}
             </div>
           )}
@@ -214,7 +262,10 @@ export default function UserRoleManagementPanel() {
       </Card>
 
       {/* Edit Roles Modal */}
-      <Dialog open={!!editUser} onOpenChange={(open) => !open && setEditUser(null)}>
+      <Dialog
+        open={!!editUser}
+        onOpenChange={(open) => !open && setEditUser(null)}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Edit Roles</DialogTitle>
@@ -223,7 +274,11 @@ export default function UserRoleManagementPanel() {
             <div className="space-y-4">
               <div className="text-sm">
                 <span className="font-medium">{editUser.email}</span>
-                {editUser.full_name && <span className="text-muted-foreground ml-1">({editUser.full_name})</span>}
+                {editUser.full_name && (
+                  <span className="text-muted-foreground ml-1">
+                    ({editUser.full_name})
+                  </span>
+                )}
               </div>
               <div className="space-y-3">
                 {ALL_ROLES.map((role) => (
@@ -233,16 +288,26 @@ export default function UserRoleManagementPanel() {
                       checked={editRoles.includes(role)}
                       onCheckedChange={() => toggleRole(role)}
                     />
-                    <label htmlFor={`role-${role}`} className="text-sm capitalize cursor-pointer">{role.replace("_", " ")}</label>
+                    <label
+                      htmlFor={`role-${role}`}
+                      className="text-sm capitalize cursor-pointer"
+                    >
+                      {role.replace("_", " ")}
+                    </label>
                   </div>
                 ))}
               </div>
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditUser(null)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setEditUser(null)}>
+              Cancel
+            </Button>
             <Button onClick={handleSaveRoles} disabled={saving}>
-              {saving ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null} Save Roles
+              {saving ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-1" />
+              ) : null}{" "}
+              Save Roles
             </Button>
           </DialogFooter>
         </DialogContent>

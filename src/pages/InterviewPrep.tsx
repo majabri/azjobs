@@ -5,18 +5,38 @@ import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import {
-  ArrowLeft, Send, Loader2, MessageSquare, Bot, User, BarChart3,
-  Save, RefreshCw, Sparkles,
+  ArrowLeft,
+  Send,
+  Loader2,
+  MessageSquare,
+  Bot,
+  User,
+  BarChart3,
+  Save,
+  RefreshCw,
+  Sparkles,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import UserMenu from "@/components/UserMenu";
 import { DollarSign } from "lucide-react";
-import { logger } from '@/lib/logger';
+import { logger } from "@/lib/logger";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useAuthReady } from "@/hooks/useAuthReady";
+
+const INTERVIEW_SESSIONS_QUERY_KEY = ["interview_sessions"];
 
 function ExpectedOfferRange({ jobTitle }: { jobTitle: string }) {
   const title = jobTitle.toLowerCase();
-  const seniorityMultiplier = title.includes("senior") ? 1.3 : title.includes("lead") || title.includes("staff") ? 1.5 : title.includes("director") || title.includes("vp") ? 1.8 : title.includes("junior") || title.includes("entry") ? 0.75 : 1;
+  const seniorityMultiplier = title.includes("senior")
+    ? 1.3
+    : title.includes("lead") || title.includes("staff")
+      ? 1.5
+      : title.includes("director") || title.includes("vp")
+        ? 1.8
+        : title.includes("junior") || title.includes("entry")
+          ? 0.75
+          : 1;
   const base = Math.round(95000 * seniorityMultiplier);
   const low = Math.round(base * 0.85);
   const high = Math.round(base * 1.2);
@@ -25,8 +45,13 @@ function ExpectedOfferRange({ jobTitle }: { jobTitle: string }) {
     <div className="flex items-center gap-4">
       <DollarSign className="w-5 h-5 text-accent flex-shrink-0" />
       <div>
-        <p className="text-sm font-semibold text-foreground">{fmt(low)} – {fmt(high)}</p>
-        <p className="text-[10px] text-muted-foreground">Estimated based on role seniority. Use Compensation tab for detailed benchmarks.</p>
+        <p className="text-sm font-semibold text-foreground">
+          {fmt(low)} – {fmt(high)}
+        </p>
+        <p className="text-[10px] text-muted-foreground">
+          Estimated based on role seniority. Use Compensation tab for detailed
+          benchmarks.
+        </p>
       </div>
     </div>
   );
@@ -50,30 +75,44 @@ export default function InterviewPrepPage() {
   const [saving, setSaving] = useState(false);
   const chatRef = useRef<HTMLDivElement>(null);
 
-  // Past sessions
-  const [sessions, setSessions] = useState<any[]>([]);
-  const [loadingSessions, setLoadingSessions] = useState(true);
+  const queryClient = useQueryClient();
+  const { user, isReady } = useAuthReady();
 
-  useEffect(() => { loadSessions(); }, []);
-  useEffect(() => { chatRef.current?.scrollTo(0, chatRef.current.scrollHeight); }, [messages]);
+  // Past sessions — interview_sessions is not in generated Supabase types
+  const { data: sessions = [] } = useQuery({
+    queryKey: [...INTERVIEW_SESSIONS_QUERY_KEY, user?.id],
 
-  const loadSessions = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-      const { data } = await supabase.from("interview_sessions" as any).select("*").eq("user_id", session.user.id).order("created_at", { ascending: false }).limit(10) as any;
-      setSessions(data || []);
-    } catch (e) { logger.error(e); }
-    finally { setLoadingSessions(false); }
-  };
+    queryFn: async (): Promise<any[]> => {
+      if (!user) return [];
+      const { data } = await supabase
+
+        .from("interview_sessions" as any)
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(10);
+      return data || [];
+    },
+    enabled: isReady && !!user,
+  });
+
+  useEffect(() => {
+    chatRef.current?.scrollTo(0, chatRef.current.scrollHeight);
+  }, [messages]);
 
   const startInterview = async () => {
-    if (!jobTitle.trim()) { toast.error("Enter a job title"); return; }
+    if (!jobTitle.trim()) {
+      toast.error("Enter a job title");
+      return;
+    }
     setStarted(true);
     setMessages([]);
     setReadinessScore(null);
 
-    const systemMsg: ChatMessage = { role: "system", content: `Mock interview for: ${jobTitle}` };
+    const systemMsg: ChatMessage = {
+      role: "system",
+      content: `Mock interview for: ${jobTitle}`,
+    };
     const assistantGreeting: ChatMessage = {
       role: "assistant",
       content: `Welcome! I'll be conducting a mock interview for the **${jobTitle}** position. I'll ask you questions one at a time, then provide feedback on your answers.\n\nLet's begin.\n\n**Tell me about yourself and why you're interested in this role.**`,
@@ -90,18 +129,38 @@ export default function InterviewPrepPage() {
     setStreaming(true);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) return;
 
-      const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mock-interview`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify({ messages: updatedMessages.filter(m => m.role !== "system"), jobTitle, jobDescription: jobDesc }),
-      });
+      const resp = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/mock-interview`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            messages: updatedMessages.filter((m) => m.role !== "system"),
+            jobTitle,
+            jobDescription: jobDesc,
+          }),
+        },
+      );
 
       if (!resp.ok) {
-        if (resp.status === 429) { toast.error("Rate limit reached. Try again shortly."); setStreaming(false); return; }
-        if (resp.status === 402) { toast.error("AI credits exhausted."); setStreaming(false); return; }
+        if (resp.status === 429) {
+          toast.error("Rate limit reached. Try again shortly.");
+          setStreaming(false);
+          return;
+        }
+        if (resp.status === 402) {
+          toast.error("AI credits exhausted.");
+          setStreaming(false);
+          return;
+        }
         throw new Error("Failed");
       }
 
@@ -128,40 +187,60 @@ export default function InterviewPrepPage() {
             const delta = parsed.choices?.[0]?.delta?.content;
             if (delta) {
               assistantContent += delta;
-              setMessages(prev => {
+              setMessages((prev) => {
                 const last = prev[prev.length - 1];
                 if (last?.role === "assistant" && prev.length > 2) {
-                  return prev.map((m, i) => i === prev.length - 1 ? { ...m, content: assistantContent } : m);
+                  return prev.map((m, i) =>
+                    i === prev.length - 1
+                      ? { ...m, content: assistantContent }
+                      : m,
+                  );
                 }
-                return [...prev, { role: "assistant", content: assistantContent }];
+                return [
+                  ...prev,
+                  { role: "assistant", content: assistantContent },
+                ];
               });
             }
-          } catch { /* partial JSON */ }
+          } catch {
+            /* partial JSON */
+          }
         }
       }
 
       // Check for readiness score in response
       const scoreMatch = assistantContent.match(/readiness[:\s]*(\d+)/i);
       if (scoreMatch) setReadinessScore(parseInt(scoreMatch[1]));
-    } catch { toast.error("AI service is temporarily unavailable. Please try again later."); }
-    finally { setStreaming(false); }
+    } catch {
+      toast.error(
+        "AI service is temporarily unavailable. Please try again later.",
+      );
+    } finally {
+      setStreaming(false);
+    }
   };
 
   const saveSession = async () => {
     setSaving(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) return;
-      await (supabase.from("interview_sessions" as any) as any).insert({
+
+      await supabase.from("interview_sessions" as any).insert({
         user_id: session.user.id,
         job_title: jobTitle,
-        messages: messages.filter(m => m.role !== "system"),
+        messages: messages.filter((m) => m.role !== "system"),
         readiness_score: readinessScore,
       });
       toast.success("Session saved!");
-      loadSessions();
-    } catch { toast.error("Failed to save"); }
-    finally { setSaving(false); }
+      queryClient.invalidateQueries({ queryKey: INTERVIEW_SESSIONS_QUERY_KEY });
+    } catch {
+      toast.error("Failed to save");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const loadSession = (sess: any) => {
@@ -177,8 +256,13 @@ export default function InterviewPrepPage() {
         {!started ? (
           <div className="max-w-xl mx-auto space-y-6">
             <div className="text-center mb-8">
-              <h1 className="font-display text-3xl font-bold text-primary mb-2">Interview Simulation</h1>
-              <p className="text-muted-foreground">Practice with an AI interviewer that gives real-time feedback on your answers.</p>
+              <h1 className="font-display text-3xl font-bold text-primary mb-2">
+                Interview Simulation
+              </h1>
+              <p className="text-muted-foreground">
+                Practice with an AI interviewer that gives real-time feedback on
+                your answers.
+              </p>
             </div>
 
             {/* Expected Offer Range Card */}
@@ -186,7 +270,9 @@ export default function InterviewPrepPage() {
               <Card className="p-4 border-accent/20 bg-accent/5">
                 <div className="flex items-center gap-2 mb-2">
                   <BarChart3 className="w-4 h-4 text-accent" />
-                  <span className="text-sm font-bold text-foreground">Expected Offer Range</span>
+                  <span className="text-sm font-bold text-foreground">
+                    Expected Offer Range
+                  </span>
                 </div>
                 <ExpectedOfferRange jobTitle={jobTitle} />
               </Card>
@@ -194,14 +280,31 @@ export default function InterviewPrepPage() {
 
             <Card className="p-6 space-y-4">
               <div>
-                <label className="text-sm font-semibold text-foreground block mb-1">Job Title</label>
-                <input className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value={jobTitle} onChange={e => setJobTitle(e.target.value)} placeholder="e.g. Senior Software Engineer" />
+                <label className="text-sm font-semibold text-foreground block mb-1">
+                  Job Title
+                </label>
+                <input
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  value={jobTitle}
+                  onChange={(e) => setJobTitle(e.target.value)}
+                  placeholder="e.g. Senior Software Engineer"
+                />
               </div>
               <div>
-                <label className="text-sm font-semibold text-foreground block mb-1">Job Description (optional)</label>
-                <Textarea value={jobDesc} onChange={e => setJobDesc(e.target.value)} placeholder="Paste the job description for more targeted questions..." rows={4} />
+                <label className="text-sm font-semibold text-foreground block mb-1">
+                  Job Description (optional)
+                </label>
+                <Textarea
+                  value={jobDesc}
+                  onChange={(e) => setJobDesc(e.target.value)}
+                  placeholder="Paste the job description for more targeted questions..."
+                  rows={4}
+                />
               </div>
-              <Button className="gradient-indigo text-white shadow-indigo-500/20 hover:opacity-90 w-full" onClick={startInterview}>
+              <Button
+                className="gradient-indigo text-white shadow-indigo-500/20 hover:opacity-90 w-full"
+                onClick={startInterview}
+              >
                 <Sparkles className="w-4 h-4 mr-2" /> Start Mock Interview
               </Button>
             </Card>
@@ -209,15 +312,29 @@ export default function InterviewPrepPage() {
             {/* Past Sessions */}
             {sessions.length > 0 && (
               <div>
-                <h3 className="text-sm font-semibold text-foreground mb-3">Previous Sessions</h3>
+                <h3 className="text-sm font-semibold text-foreground mb-3">
+                  Previous Sessions
+                </h3>
                 <div className="space-y-2">
                   {sessions.map((s: any) => (
-                    <button key={s.id} onClick={() => loadSession(s)} className="w-full text-left p-3 rounded-lg bg-card border border-border hover:border-accent/30 transition-colors">
+                    <button
+                      key={s.id}
+                      onClick={() => loadSession(s)}
+                      className="w-full text-left p-3 rounded-lg bg-card border border-border hover:border-accent/30 transition-colors"
+                    >
                       <div className="flex items-center justify-between">
-                        <span className="font-medium text-foreground text-sm">{s.job_title}</span>
-                        {s.readiness_score && <Badge variant="outline" className="text-xs">{s.readiness_score}% ready</Badge>}
+                        <span className="font-medium text-foreground text-sm">
+                          {s.job_title}
+                        </span>
+                        {s.readiness_score && (
+                          <Badge variant="outline" className="text-xs">
+                            {s.readiness_score}% ready
+                          </Badge>
+                        )}
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1">{new Date(s.created_at).toLocaleDateString()}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {new Date(s.created_at).toLocaleDateString()}
+                      </p>
                     </button>
                   ))}
                 </div>
@@ -229,46 +346,106 @@ export default function InterviewPrepPage() {
             {/* Chat Header */}
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h2 className="font-display font-bold text-primary">Interview: {jobTitle}</h2>
-                {readinessScore && <Badge className="bg-accent/10 text-accent border-accent/20">Readiness: {readinessScore}%</Badge>}
+                <h2 className="font-display font-bold text-primary">
+                  Interview: {jobTitle}
+                </h2>
+                {readinessScore && (
+                  <Badge className="bg-accent/10 text-accent border-accent/20">
+                    Readiness: {readinessScore}%
+                  </Badge>
+                )}
               </div>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={saveSession} disabled={saving}>
-                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Save className="w-4 h-4 mr-1" /> Save</>}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={saveSession}
+                  disabled={saving}
+                >
+                  {saving ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4 mr-1" /> Save
+                    </>
+                  )}
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => { setStarted(false); setMessages([]); }}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setStarted(false);
+                    setMessages([]);
+                  }}
+                >
                   <RefreshCw className="w-4 h-4 mr-1" /> New
                 </Button>
               </div>
             </div>
 
             {/* Messages */}
-            <div ref={chatRef} className="flex-1 overflow-y-auto space-y-4 pb-4">
-              {messages.filter(m => m.role !== "system").map((msg, i) => (
-                <div key={i} className={`flex gap-3 ${msg.role === "user" ? "justify-end" : ""}`}>
-                  {msg.role === "assistant" && (
-                    <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0"><Bot className="w-4 h-4 text-accent" /></div>
-                  )}
-                  <div className={`max-w-[75%] rounded-2xl px-4 py-3 text-sm ${msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-card border border-border text-foreground"}`}>
-                    <div className="whitespace-pre-wrap">{msg.content}</div>
+            <div
+              ref={chatRef}
+              className="flex-1 overflow-y-auto space-y-4 pb-4"
+            >
+              {messages
+                .filter((m) => m.role !== "system")
+                .map((msg, i) => (
+                  <div
+                    key={i}
+                    className={`flex gap-3 ${msg.role === "user" ? "justify-end" : ""}`}
+                  >
+                    {msg.role === "assistant" && (
+                      <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center flex-shrink-0">
+                        <Bot className="w-4 h-4 text-accent" />
+                      </div>
+                    )}
+                    <div
+                      className={`max-w-[75%] rounded-2xl px-4 py-3 text-sm ${msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-card border border-border text-foreground"}`}
+                    >
+                      <div className="whitespace-pre-wrap">{msg.content}</div>
+                    </div>
+                    {msg.role === "user" && (
+                      <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                        <User className="w-4 h-4 text-primary" />
+                      </div>
+                    )}
                   </div>
-                  {msg.role === "user" && (
-                    <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0"><User className="w-4 h-4 text-primary" /></div>
-                  )}
-                </div>
-              ))}
+                ))}
               {streaming && (
                 <div className="flex gap-3">
-                  <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center"><Loader2 className="w-4 h-4 animate-spin text-accent" /></div>
-                  <div className="bg-card border border-border rounded-2xl px-4 py-3"><span className="text-sm text-muted-foreground">Thinking...</span></div>
+                  <div className="w-8 h-8 rounded-full bg-accent/20 flex items-center justify-center">
+                    <Loader2 className="w-4 h-4 animate-spin text-accent" />
+                  </div>
+                  <div className="bg-card border border-border rounded-2xl px-4 py-3">
+                    <span className="text-sm text-muted-foreground">
+                      Thinking...
+                    </span>
+                  </div>
                 </div>
               )}
             </div>
 
             {/* Input */}
             <div className="flex gap-3 pt-4 border-t border-border">
-              <Textarea value={input} onChange={e => setInput(e.target.value)} placeholder="Type your answer..." rows={2} className="flex-1" onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }}} />
-              <Button className="gradient-indigo text-white" onClick={sendMessage} disabled={streaming || !input.trim()}>
+              <Textarea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Type your answer..."
+                rows={2}
+                className="flex-1"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                  }
+                }}
+              />
+              <Button
+                className="gradient-indigo text-white"
+                onClick={sendMessage}
+                disabled={streaming || !input.trim()}
+              >
                 <Send className="w-4 h-4" />
               </Button>
             </div>

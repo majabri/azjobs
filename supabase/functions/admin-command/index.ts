@@ -1,12 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { checkRateLimit } from "../_shared/rate-limit.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
+import { corsHeaders } from "../_shared/cors.ts";
 
 // ~100 years effective ban duration
 const PERMANENT_BAN_DURATION = "876600h";
@@ -34,13 +29,22 @@ async function handleAgentRetry(
 
   const { data, error } = await adminClient
     .from("agent_runs")
-    .update({ status: "pending", started_at: null, completed_at: null, errors: [] })
+    .update({
+      status: "pending",
+      started_at: null,
+      completed_at: null,
+      errors: [],
+    })
     .eq("id", run_id)
     .select("id, status, user_id")
     .single();
 
   if (error) return { error: error.message };
-  return { success: true, run: data, message: `Run ${run_id} queued for retry` };
+  return {
+    success: true,
+    run: data,
+    message: `Run ${run_id} queued for retry`,
+  };
 }
 
 async function handleAgentRun(
@@ -71,7 +75,8 @@ async function handleAgentRun(
     success: true,
     run_id: data.id,
     status: data.status,
-    message: "Agent run created. It will be picked up by the agent orchestrator.",
+    message:
+      "Agent run created. It will be picked up by the agent orchestrator.",
   };
 }
 
@@ -84,15 +89,17 @@ async function handleQueueClear(
     .in("status", ["pending", "failed"]);
 
   if (error) return { error: error.message };
-  return { success: true, cleared: count ?? 0, message: `Cleared ${count ?? 0} jobs from queue` };
+  return {
+    success: true,
+    cleared: count ?? 0,
+    message: `Cleared ${count ?? 0} jobs from queue`,
+  };
 }
 
 async function handleQueueStats(
   adminClient: any,
 ): Promise<Record<string, unknown>> {
-  const { data, error } = await adminClient
-    .from("job_queue")
-    .select("status");
+  const { data, error } = await adminClient.from("job_queue").select("status");
 
   if (error) return { error: error.message };
 
@@ -114,7 +121,8 @@ async function handleUserDisable(
   const { email } = args;
   if (!email) return { error: "email is required" };
 
-  const { data: users, error: listErr } = await adminClient.auth.admin.listUsers();
+  const { data: users, error: listErr } =
+    await adminClient.auth.admin.listUsers();
   if (listErr) return { error: listErr.message };
 
   const target = users.users.find((u: any) => u.email === email);
@@ -125,7 +133,11 @@ async function handleUserDisable(
   });
 
   if (error) return { error: error.message };
-  return { success: true, message: `User ${email} has been disabled`, user_id: target.id };
+  return {
+    success: true,
+    message: `User ${email} has been disabled`,
+    user_id: target.id,
+  };
 }
 
 async function handleUserPromote(
@@ -135,7 +147,8 @@ async function handleUserPromote(
   const { email } = args;
   if (!email) return { error: "email is required" };
 
-  const { data: users, error: listErr } = await adminClient.auth.admin.listUsers();
+  const { data: users, error: listErr } =
+    await adminClient.auth.admin.listUsers();
   if (listErr) return { error: listErr.message };
 
   const target = users.users.find((u: any) => u.email === email);
@@ -146,7 +159,11 @@ async function handleUserPromote(
     .upsert({ user_id: target.id, role: "admin" }, { onConflict: "user_id" });
 
   if (error) return { error: error.message };
-  return { success: true, message: `User ${email} promoted to admin`, user_id: target.id };
+  return {
+    success: true,
+    message: `User ${email} promoted to admin`,
+    user_id: target.id,
+  };
 }
 
 async function handleSystemHealth(
@@ -158,16 +175,21 @@ async function handleSystemHealth(
   const { error: dbErr, count } = await adminClient
     .from("user_roles")
     .select("id", { count: "exact", head: true });
-  checks.database = dbErr ? { status: "error", detail: dbErr.message } : { status: "ok", users: count };
+  checks.database = dbErr
+    ? { status: "error", detail: dbErr.message }
+    : { status: "ok", users: count };
 
   // Queue check
   const { data: qData, error: qErr } = await adminClient
     .from("job_queue")
     .select("status");
-  const qStats = (qData || []).reduce((acc: Record<string, number>, r: { status: string }) => {
-    acc[r.status] = (acc[r.status] || 0) + 1;
-    return acc;
-  }, {});
+  const qStats = (qData || []).reduce(
+    (acc: Record<string, number>, r: { status: string }) => {
+      acc[r.status] = (acc[r.status] || 0) + 1;
+      return acc;
+    },
+    {},
+  );
   checks.queue = qErr
     ? { status: "error", detail: qErr.message }
     : { status: "ok", stats: qStats };
@@ -180,9 +202,8 @@ async function handleSystemHealth(
     .order("started_at", { ascending: false })
     .limit(1);
 
-  checks.last_error = (errData && errData.length > 0)
-    ? { timestamp: errData[0].started_at }
-    : null;
+  checks.last_error =
+    errData && errData.length > 0 ? { timestamp: errData[0].started_at } : null;
 
   checks.api = { status: "ok", timestamp: new Date().toISOString() };
 
@@ -216,8 +237,12 @@ serve(async (req) => {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    const { data: { user: callerUser }, error: authErr } = await callerClient.auth.getUser();
-    if (authErr || !callerUser) return respond({ error: "Invalid session" }, 401);
+    const {
+      data: { user: callerUser },
+      error: authErr,
+    } = await callerClient.auth.getUser();
+    if (authErr || !callerUser)
+      return respond({ error: "Invalid session" }, 401);
 
     // ── Auth: require admin role ────────────────────────────────────────────
     const { data: roleData } = await callerClient
@@ -232,11 +257,17 @@ serve(async (req) => {
 
     // ── Rate limiting: 30 commands per minute per admin ─────────────────────
     if (!checkRateLimit(`admin-command:${callerUser.id}`, 30, 60_000)) {
-      return respond({ error: "Rate limit exceeded. Max 30 commands per minute." }, 429);
+      return respond(
+        { error: "Rate limit exceeded. Max 30 commands per minute." },
+        429,
+      );
     }
 
     const body = await req.json();
-    const { command, args = {} } = body as { command: string; args: Record<string, string> };
+    const { command, args = {} } = body as {
+      command: string;
+      args: Record<string, string>;
+    };
 
     // ── Validate command against registry ───────────────────────────────────
     if (!command || !COMMAND_REGISTRY.has(command)) {
@@ -293,7 +324,13 @@ serve(async (req) => {
       executed_at: new Date().toISOString(),
     });
 
-    return respond({ command, args, result, success, timestamp: new Date().toISOString() });
+    return respond({
+      command,
+      args,
+      result,
+      success,
+      timestamp: new Date().toISOString(),
+    });
   } catch (err) {
     console.error("admin-command error:", err);
     return respond({ error: "Internal server error" }, 500);

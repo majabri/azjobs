@@ -1,13 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { corsHeaders } from "../_shared/cors.ts";
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method === "OPTIONS")
+    return new Response(null, { headers: corsHeaders });
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -47,7 +44,9 @@ serve(async (req) => {
             user_id: pref.user_id,
             type: "job_alert",
             title: `${jobs.length} new job${jobs.length > 1 ? "s" : ""} match your profile`,
-            message: jobs.map((j: any) => `${j.title} at ${j.company}`).join(", "),
+            message: jobs
+              .map((j: any) => `${j.title} at ${j.company}`)
+              .join(", "),
             action_url: "/job-search",
           });
         }
@@ -64,7 +63,10 @@ serve(async (req) => {
           .limit(5);
 
         if (analyses?.length) {
-          const avg = Math.round(analyses.reduce((s: number, a: any) => s + a.overall_score, 0) / analyses.length);
+          const avg = Math.round(
+            analyses.reduce((s: number, a: any) => s + a.overall_score, 0) /
+              analyses.length,
+          );
           notifications.push({
             user_id: targetId,
             type: "insight",
@@ -102,9 +104,12 @@ serve(async (req) => {
     });
   } catch (e: any) {
     console.error("generate-notifications error:", e);
-    return new Response(JSON.stringify({ error: e?.message ?? "Unknown error" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ error: e?.message ?? "Unknown error" }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   }
 });

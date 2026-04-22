@@ -5,7 +5,13 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
@@ -22,7 +28,7 @@ import {
   XCircle,
   Link as LinkIcon,
 } from "lucide-react";
-import { logger } from '@/lib/logger';
+import { logger } from "@/lib/logger";
 
 interface Invitation {
   id: string;
@@ -57,7 +63,9 @@ export default function InvitePage() {
 
   const fetchData = useCallback(async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return;
 
       // Fetch user's invitations
@@ -67,18 +75,18 @@ export default function InvitePage() {
         .eq("inviter_id", user.id)
         .order("created_at", { ascending: false });
 
-      setInvitations(invites || []);
+      setInvitations((invites as unknown as Invitation[]) || []);
 
       // Calculate today's remaining
       const today = new Date().toISOString().split("T")[0];
-      const todayCount = (invites || []).filter(
-        (inv) => inv.created_at.startsWith(today)
+      const todayCount = (invites || []).filter((inv) =>
+        inv.created_at.startsWith(today),
       ).length;
       setInvitesRemaining(Math.max(0, DAILY_LIMIT - todayCount));
 
       // Find active code invite (most recent pending code)
       const activeCodeInvite = (invites || []).find(
-        (inv) => inv.invite_type === "code" && inv.status === "pending"
+        (inv) => inv.invite_type === "code" && inv.status === "pending",
       );
       setActiveCode(activeCodeInvite?.invite_code || null);
 
@@ -171,7 +179,7 @@ export default function InvitePage() {
 
   function handleCopyLink() {
     const pendingToken = invitations.find(
-      (inv) => inv.status === "pending" && inv.invite_type === "code"
+      (inv) => inv.status === "pending" && inv.invite_type === "code",
     );
     if (pendingToken) {
       const url = `https://icareeros.com/auth/signup?invite=${pendingToken.token}`;
@@ -180,11 +188,31 @@ export default function InvitePage() {
     }
   }
 
-  const statusConfig: Record<string, { label: string; color: string; icon: typeof CheckCircle2 }> = {
-    pending: { label: "Pending", color: "bg-[hsl(var(--primary))]/10 text-[hsl(var(--primary))] border-[hsl(var(--primary))]/20", icon: Clock },
-    accepted: { label: "Accepted", color: "bg-green-500/10 text-green-600 border-green-500/20", icon: CheckCircle2 },
-    expired: { label: "Expired", color: "bg-gray-500/10 text-gray-500 border-gray-500/20", icon: XCircle },
-    revoked: { label: "Revoked", color: "bg-red-500/10 text-red-500 border-red-500/20", icon: XCircle },
+  const statusConfig: Record<
+    string,
+    { label: string; color: string; icon: typeof CheckCircle2 }
+  > = {
+    pending: {
+      label: "Pending",
+      color:
+        "bg-[hsl(var(--primary))]/10 text-[hsl(var(--primary))] border-[hsl(var(--primary))]/20",
+      icon: Clock,
+    },
+    accepted: {
+      label: "Accepted",
+      color: "bg-green-500/10 text-green-600 border-green-500/20",
+      icon: CheckCircle2,
+    },
+    expired: {
+      label: "Expired",
+      color: "bg-gray-500/10 text-gray-500 border-gray-500/20",
+      icon: XCircle,
+    },
+    revoked: {
+      label: "Revoked",
+      color: "bg-red-500/10 text-red-500 border-red-500/20",
+      icon: XCircle,
+    },
   };
 
   if (isLoading) {
@@ -196,7 +224,9 @@ export default function InvitePage() {
   }
 
   const limitReached = invitesRemaining <= 0;
-  const acceptedCount = invitations.filter((i) => i.status === "accepted").length;
+  const acceptedCount = invitations.filter(
+    (i) => i.status === "accepted",
+  ).length;
 
   return (
     <div className="max-w-3xl mx-auto space-y-6 p-4 md:p-6">
@@ -212,12 +242,13 @@ export default function InvitePage() {
       <Card>
         <CardContent className="pt-6">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium">
-              Invites Remaining Today
-            </span>
+            <span className="text-sm font-medium">Invites Remaining Today</span>
             <span className="text-2xl font-bold text-[hsl(var(--primary))]">
               {invitesRemaining}
-              <span className="text-sm font-normal text-muted-foreground"> / {DAILY_LIMIT}</span>
+              <span className="text-sm font-normal text-muted-foreground">
+                {" "}
+                / {DAILY_LIMIT}
+              </span>
             </span>
           </div>
           <Progress
@@ -342,13 +373,17 @@ export default function InvitePage() {
         </Card>
         <Card>
           <CardContent className="pt-6 text-center">
-            <div className="text-3xl font-bold text-green-600">{acceptedCount}</div>
+            <div className="text-3xl font-bold text-green-600">
+              {acceptedCount}
+            </div>
             <div className="text-sm text-muted-foreground">Accepted</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6 text-center">
-            <div className="text-3xl font-bold text-[hsl(var(--primary))]">{referrals.length}</div>
+            <div className="text-3xl font-bold text-[hsl(var(--primary))]">
+              {referrals.length}
+            </div>
             <div className="text-sm text-muted-foreground">
               <Users className="h-3.5 w-3.5 inline mr-1" />
               Your Network
@@ -386,7 +421,8 @@ export default function InvitePage() {
                             : `Code: ${inv.invite_code}`}
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          {inv.invite_type === "email" ? "Email" : "Code"} &middot;{" "}
+                          {inv.invite_type === "email" ? "Email" : "Code"}{" "}
+                          &middot;{" "}
                           {new Date(inv.created_at).toLocaleDateString()}
                         </div>
                       </div>

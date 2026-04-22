@@ -7,7 +7,7 @@ import { UserCircle, Save, Clock, ShieldCheck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuthReady } from "@/hooks/useAuthReady";
-import { logger } from '@/lib/logger';
+import { logger } from "@/lib/logger";
 
 interface ProfileData {
   full_name: string;
@@ -29,7 +29,7 @@ export default function AdminProfile() {
 
   useEffect(() => {
     if (user) loadProfile();
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- loadProfile intentionally excluded; mount-only fetch
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- loadProfile intentionally excluded; mount-only fetch
   }, [user]);
 
   const loadProfile = async () => {
@@ -43,12 +43,11 @@ export default function AdminProfile() {
 
       if (error) throw error;
 
-      const row = data as any;
       setProfile({
-        full_name: row?.full_name ?? "",
-        email: row?.email ?? user?.email ?? "",
-        phone: row?.phone ?? "",
-        username: row?.username ?? "",
+        full_name: data?.full_name ?? "",
+        email: data?.email ?? user?.email ?? "",
+        phone: data?.phone ?? "",
+        username: data?.username ?? "",
       });
     } catch (e) {
       logger.error(e);
@@ -69,7 +68,7 @@ export default function AdminProfile() {
           email: profile.email || null,
           phone: profile.phone || null,
           updated_at: new Date().toISOString(),
-        } as any)
+        })
         .eq("user_id", user.id);
 
       if (error) throw error;

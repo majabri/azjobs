@@ -1,14 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { callAnthropic } from "../_shared/anthropic.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import { corsHeaders } from "../_shared/cors.ts";
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method === "OPTIONS")
+    return new Response(null, { headers: corsHeaders });
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -21,9 +18,15 @@ serve(async (req) => {
       .eq("weekly_insights", true);
 
     if (!prefs?.length) {
-      return new Response(JSON.stringify({ message: "No users with weekly insights enabled", sent: 0 }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({
+          message: "No users with weekly insights enabled",
+          sent: 0,
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
 
     let processed = 0;
@@ -46,8 +49,14 @@ serve(async (req) => {
 
       try {
         await callAnthropic({
-          system: "Generate 3 brief, actionable career improvement tips. Return JSON array of strings.",
-          userMessage: `Profile: ${profile.career_level || "Unknown"} level, skills: ${(profile.skills as string[]).slice(0, 10).join(", ")}. Recent scores: ${(history || []).map(h => h.overall_score).join(", ") || "No analyses yet"}. Common gaps: ${(history || []).flatMap(h => (h.gaps as string[]) || []).slice(0, 5).join(", ") || "None"}`,
+          system:
+            "Generate 3 brief, actionable career improvement tips. Return JSON array of strings.",
+          userMessage: `Profile: ${profile.career_level || "Unknown"} level, skills: ${(profile.skills as string[]).slice(0, 10).join(", ")}. Recent scores: ${(history || []).map((h) => h.overall_score).join(", ") || "No analyses yet"}. Common gaps: ${
+            (history || [])
+              .flatMap((h) => (h.gaps as string[]) || [])
+              .slice(0, 5)
+              .join(", ") || "None"
+          }`,
           temperature: 0.5,
         });
         processed++;
@@ -56,13 +65,22 @@ serve(async (req) => {
       }
     }
 
-    return new Response(JSON.stringify({ message: "Weekly insights processed", processed }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ message: "Weekly insights processed", processed }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   } catch (e) {
     console.error("send-weekly-insights error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({
+        error: e instanceof Error ? e.message : "Unknown error",
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   }
 });

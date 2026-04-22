@@ -9,7 +9,7 @@ import type { SupportTicket, CreateTicketPayload, FaqEntry } from "./types";
 
 export async function createTicket(
   userId: string,
-  payload: CreateTicketPayload
+  payload: CreateTicketPayload,
 ): Promise<{ ok: boolean; ticket?: SupportTicket; error?: string }> {
   const { data, error } = await supabase
     .from("support_tickets")
@@ -20,7 +20,7 @@ export async function createTicket(
       description: payload.description.trim(),
       priority: payload.priority,
       email: payload.email || null,
-    } as any)
+    })
     .select()
     .single();
 

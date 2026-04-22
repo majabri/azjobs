@@ -15,8 +15,8 @@
  *   const channel = EventBus.subscribe('job.analyzed', (event) => { ... });
  *   channel.unsubscribe(); // cleanup
  */
-import { supabase } from '@/integrations/supabase/client';
-import { logger } from '@/lib/logger';
+import { supabase } from "@/integrations/supabase/client";
+import { logger } from "@/lib/logger";
 
 export interface PlatformEvent {
   id: string;
@@ -25,7 +25,7 @@ export interface PlatformEvent {
   source_service: string;
   created_at: string;
   processed_at: string | null;
-  status: 'pending' | 'processed' | 'failed';
+  status: "pending" | "processed" | "failed";
 }
 
 export interface PublishOptions {
@@ -41,16 +41,20 @@ export class EventBus {
    * Publish an event to the platform_events table.
    * Returns the inserted row id, or null on failure.
    */
-  static async publish({ eventType, payload, sourceService }: PublishOptions): Promise<string | null> {
+  static async publish({
+    eventType,
+    payload,
+    sourceService,
+  }: PublishOptions): Promise<string | null> {
     const { data, error } = await supabase
-      .from('platform_events')
-      .insert([{
-        event_type: eventType,
-        payload,
-        source_service: sourceService,
-        status: 'pending',
-      }])
-      .select('id')
+      .from("platform_events")
+      .insert([
+        {
+          event_type: eventType,
+          payload,
+        } as any,
+      ])
+      .select("id")
       .single();
 
     if (error) {
@@ -72,23 +76,23 @@ export class EventBus {
     const channel = supabase
       .channel(channelName)
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'platform_events',
+          event: "INSERT",
+          schema: "public",
+          table: "platform_events",
           filter: `event_type=eq.${eventType}`,
         },
         (change) => {
           const event = change.new as PlatformEvent;
           logger.debug(`[EventBus] Received "${eventType}" (id=${event.id})`);
           callback(event);
-        }
+        },
       )
       .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
+        if (status === "SUBSCRIBED") {
           logger.debug(`[EventBus] Subscribed to "${eventType}"`);
-        } else if (status === 'CHANNEL_ERROR') {
+        } else if (status === "CHANNEL_ERROR") {
           logger.error(`[EventBus] Subscription error for "${eventType}"`);
         }
       });
@@ -101,31 +105,40 @@ export class EventBus {
    */
   static async markProcessed(
     id: string,
-    status: 'processed' | 'failed' = 'processed'
+    status: "processed" | "failed" = "processed",
   ): Promise<void> {
     const { error } = await supabase
-      .from('platform_events')
+      .from("platform_events")
       .update({ status, processed_at: new Date().toISOString() })
-      .eq('id', id);
+      .eq("id", id);
 
     if (error) {
-      logger.error(`[EventBus] Failed to mark event ${id} as ${status}:`, error);
+      logger.error(
+        `[EventBus] Failed to mark event ${id} as ${status}:`,
+        error,
+      );
     }
   }
 
   /**
    * Fetch recent events of a given type (for debugging/admin views).
    */
-  static async getRecent(eventType: string, limit = 50): Promise<PlatformEvent[]> {
+  static async getRecent(
+    eventType: string,
+    limit = 50,
+  ): Promise<PlatformEvent[]> {
     const { data, error } = await supabase
-      .from('platform_events')
-      .select('*')
-      .eq('event_type', eventType)
-      .order('created_at', { ascending: false })
+      .from("platform_events")
+      .select("*")
+      .eq("event_type", eventType)
+      .order("created_at", { ascending: false })
       .limit(limit);
 
     if (error) {
-      logger.error(`[EventBus] Failed to fetch recent "${eventType}" events:`, error);
+      logger.error(
+        `[EventBus] Failed to fetch recent "${eventType}" events:`,
+        error,
+      );
       return [];
     }
 

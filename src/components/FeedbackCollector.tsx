@@ -2,7 +2,11 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  MessageSquare, ThumbsUp, ThumbsDown, Clock, CheckCircle2
+  MessageSquare,
+  ThumbsUp,
+  ThumbsDown,
+  Clock,
+  CheckCircle2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -15,13 +19,38 @@ interface FeedbackCollectorProps {
 }
 
 const OUTCOMES = [
-  { value: "no_response", label: "No Response", icon: Clock, color: "text-muted-foreground" },
-  { value: "interview", label: "Got Interview", icon: ThumbsUp, color: "text-success" },
-  { value: "rejected", label: "Rejected", icon: ThumbsDown, color: "text-destructive" },
-  { value: "offer", label: "Got Offer!", icon: CheckCircle2, color: "text-accent" },
+  {
+    value: "no_response",
+    label: "No Response",
+    icon: Clock,
+    color: "text-muted-foreground",
+  },
+  {
+    value: "interview",
+    label: "Got Interview",
+    icon: ThumbsUp,
+    color: "text-success",
+  },
+  {
+    value: "rejected",
+    label: "Rejected",
+    icon: ThumbsDown,
+    color: "text-destructive",
+  },
+  {
+    value: "offer",
+    label: "Got Offer!",
+    icon: CheckCircle2,
+    color: "text-accent",
+  },
 ];
 
-export default function FeedbackCollector({ applicationId, currentStatus, appliedAt, onStatusUpdate }: FeedbackCollectorProps) {
+export default function FeedbackCollector({
+  applicationId,
+  currentStatus,
+  appliedAt,
+  onStatusUpdate,
+}: FeedbackCollectorProps) {
   const [saving, setSaving] = useState(false);
 
   const handleOutcome = async (outcome: string) => {
@@ -38,7 +67,9 @@ export default function FeedbackCollector({ applicationId, currentStatus, applie
       // Calculate response days if we have appliedAt
       let responseDays: number | null = null;
       if (appliedAt && outcome !== "no_response") {
-        responseDays = Math.round((Date.now() - new Date(appliedAt).getTime()) / (1000 * 60 * 60 * 24));
+        responseDays = Math.round(
+          (Date.now() - new Date(appliedAt).getTime()) / (1000 * 60 * 60 * 24),
+        );
       }
 
       await supabase
@@ -48,11 +79,13 @@ export default function FeedbackCollector({ applicationId, currentStatus, applie
           follow_up_notes: `Outcome: ${outcome} (logged ${new Date().toLocaleDateString()})`,
           updated_at: new Date().toISOString(),
           ...(responseDays !== null ? { response_days: responseDays } : {}),
-        } as any)
+        })
         .eq("id", applicationId);
 
       onStatusUpdate(applicationId, newStatus);
-      toast.success("Outcome logged — this helps improve future recommendations!");
+      toast.success(
+        "Outcome logged — this helps improve future recommendations!",
+      );
     } catch {
       toast.error("Failed to save outcome");
     } finally {
@@ -63,7 +96,7 @@ export default function FeedbackCollector({ applicationId, currentStatus, applie
   return (
     <div className="flex items-center gap-1.5">
       <MessageSquare className="w-3.5 h-3.5 text-muted-foreground" />
-      {OUTCOMES.map(o => (
+      {OUTCOMES.map((o) => (
         <Button
           key={o.value}
           variant="ghost"

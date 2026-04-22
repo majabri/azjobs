@@ -1,1 +1,2 @@
+export PATH="$HOME/.bun/bin:/opt/homebrew/bin:$PATH"
 bunx lint-staged

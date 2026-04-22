@@ -4,7 +4,7 @@
  */
 
 import { supabase } from "@/integrations/supabase/client";
-import { logger } from '@/lib/logger';
+import { logger } from "@/lib/logger";
 
 export type ServiceEventName =
   | "user.created"
@@ -27,13 +27,17 @@ interface EmitEventOptions {
 /**
  * Emit a service event. Fire-and-forget — never throws.
  */
-export async function emitServiceEvent({ eventName, payload = {}, emittedBy }: EmitEventOptions): Promise<void> {
+export async function emitServiceEvent({
+  eventName,
+  payload = {},
+  emittedBy,
+}: EmitEventOptions): Promise<void> {
   try {
-    await supabase.from("service_events" as any).insert({
+    await supabase.from("service_events").insert({
       event_name: eventName,
       payload,
       emitted_by: emittedBy,
-    } as any);
+    });
   } catch (e) {
     // Silent failure — event system should never break the caller
     logger.warn("[emitServiceEvent] Failed to emit:", eventName, e);
@@ -46,14 +50,15 @@ export async function emitServiceEvent({ eventName, payload = {}, emittedBy }: E
 export async function reportServiceError(
   service: string,
   error: unknown,
-  context?: Record<string, any>
+  context?: Record<string, any>,
 ): Promise<void> {
   const message = error instanceof Error ? error.message : String(error);
   await emitServiceEvent({
     eventName: "error.detected",
     payload: {
       service,
-      error_type: error instanceof Error ? error.constructor.name : "UnknownError",
+      error_type:
+        error instanceof Error ? error.constructor.name : "UnknownError",
       message,
       ...context,
     },

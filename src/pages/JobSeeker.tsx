@@ -4,9 +4,10 @@ import { analyzeJobFit, type FitAnalysis } from "@/lib/analysisEngine";
 import AnalysisForm from "@/components/job-seeker/AnalysisForm";
 import AnalysisResults from "@/components/job-seeker/AnalysisResults";
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
-import { logger } from '@/lib/logger';
+import { logger } from "@/lib/logger";
 
 type Step = "input" | "result";
 
@@ -19,7 +20,11 @@ export default function JobSeekerPage() {
   const isDemo = useDemoMode();
   const location = useLocation();
   const navigate = useNavigate();
-  const navState = location.state as { prefillJob?: string; prefillJobLink?: string; fromSearch?: boolean } | null;
+  const navState = location.state as {
+    prefillJob?: string;
+    prefillJobLink?: string;
+    fromSearch?: boolean;
+  } | null;
   const [step, setStep] = useState<Step>("input");
   const [analysis, setAnalysis] = useState<FitAnalysis | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -27,43 +32,51 @@ export default function JobSeekerPage() {
   const [currentResume, setCurrentResume] = useState("");
   const [currentJobLink, setCurrentJobLink] = useState("");
 
-  const handleAnalyze = useCallback(async (jobDesc: string, resume: string, jobLink: string) => {
-    if (!jobDesc.trim() || !resume.trim()) return;
-    setIsAnalyzing(true);
-    setCurrentJobDesc(jobDesc);
-    setCurrentResume(resume);
-    setCurrentJobLink(jobLink);
+  const handleAnalyze = useCallback(
+    async (jobDesc: string, resume: string, jobLink: string) => {
+      if (!jobDesc.trim() || !resume.trim()) return;
+      setIsAnalyzing(true);
+      setCurrentJobDesc(jobDesc);
+      setCurrentResume(resume);
+      setCurrentJobLink(jobLink);
 
-    setTimeout(async () => {
-      const result = analyzeJobFit(jobDesc, resume);
-      setAnalysis(result);
-      setStep("result");
-      setIsAnalyzing(false);
+      setTimeout(async () => {
+        const result = analyzeJobFit(jobDesc, resume);
+        setAnalysis(result);
+        setStep("result");
+        setIsAnalyzing(false);
 
-      if (!isDemo) {
-        try {
-          const { data: { session } } = await supabase.auth.getSession();
-          if (session) {
-            const firstLine = jobDesc.trim().split("\n")[0] || "";
-            const titleMatch = firstLine.match(/^(.+?)(?:\s*[—–-]\s*|$)/);
-            const jobTitle = titleMatch?.[1]?.trim().slice(0, 100) || "Untitled Role";
-            await supabase.from("analysis_history").insert({
-              user_id: session.user.id,
-              job_title: jobTitle,
-              job_description: jobDesc.slice(0, 5000),
-              resume_text: resume.slice(0, 5000),
-              overall_score: result.overallScore,
-              matched_skills: result.matchedSkills as any,
-              gaps: result.gaps as any,
-              strengths: result.strengths as any,
-              improvement_plan: result.improvementPlan as any,
-              summary: result.summary,
-            } as any);
+        if (!isDemo) {
+          try {
+            const {
+              data: { session },
+            } = await supabase.auth.getSession();
+            if (session) {
+              const firstLine = jobDesc.trim().split("\n")[0] || "";
+              const titleMatch = firstLine.match(/^(.+?)(?:\s*[—–-]\s*|$)/);
+              const jobTitle =
+                titleMatch?.[1]?.trim().slice(0, 100) || "Untitled Role";
+              await supabase.from("analysis_history").insert({
+                user_id: session.user.id,
+                job_title: jobTitle,
+                job_description: jobDesc.slice(0, 5000),
+                resume_text: resume.slice(0, 5000),
+                overall_score: result.overallScore,
+                matched_skills: result.matchedSkills as unknown as Json,
+                gaps: result.gaps as unknown as Json,
+                strengths: result.strengths as unknown as Json,
+                improvement_plan: result.improvementPlan as unknown as Json,
+                summary: result.summary,
+              });
+            }
+          } catch (e) {
+            logger.error("Failed to save analysis:", e);
           }
-        } catch (e) { logger.error("Failed to save analysis:", e); }
-      }
-    }, 1500);
-  }, [isDemo]);
+        }
+      }, 1500);
+    },
+    [isDemo],
+  );
 
   const handleReset = () => {
     setStep("input");
@@ -73,20 +86,37 @@ export default function JobSeekerPage() {
   const handleReEvaluate = useCallback(async () => {
     // Fetch latest profile skills and append to resume before re-analyzing
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       let enrichedResume = currentResume;
       if (session) {
-        const { data: profile } = await supabase.from("job_seeker_profiles")
+        const { data: profile } = await supabase
+          .from("job_seeker_profiles")
           .select("skills, certifications, target_job_titles, career_level")
-          .eq("user_id", session.user.id).maybeSingle();
+          .eq("user_id", session.user.id)
+          .maybeSingle();
         if (profile) {
           const additions: string[] = [];
-          if (profile.skills?.length) additions.push(`Skills: ${(profile.skills as string[]).join(", ")}`);
-          if (profile.certifications?.length) additions.push(`Certifications: ${(profile.certifications as string[]).join(", ")}`);
-          if (profile.career_level) additions.push(`Career Level: ${profile.career_level}`);
-          if (profile.target_job_titles?.length) additions.push(`Target Roles: ${(profile.target_job_titles as string[]).join(", ")}`);
+          if (profile.skills?.length)
+            additions.push(
+              `Skills: ${(profile.skills as string[]).join(", ")}`,
+            );
+          if (profile.certifications?.length)
+            additions.push(
+              `Certifications: ${(profile.certifications as string[]).join(", ")}`,
+            );
+          if (profile.career_level)
+            additions.push(`Career Level: ${profile.career_level}`);
+          if (profile.target_job_titles?.length)
+            additions.push(
+              `Target Roles: ${(profile.target_job_titles as string[]).join(", ")}`,
+            );
           if (additions.length) {
-            enrichedResume = currentResume + "\n\n--- Updated Profile Skills ---\n" + additions.join("\n");
+            enrichedResume =
+              currentResume +
+              "\n\n--- Updated Profile Skills ---\n" +
+              additions.join("\n");
           }
         }
       }

@@ -3,19 +3,19 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { checkRateLimit } from "../_shared/rate-limit.ts";
 import { z } from "https://deno.land/x/zod@v3.23.8/mod.ts";
 import { callAnthropic } from "../_shared/anthropic.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+import { corsHeaders } from "../_shared/cors.ts";
 
 const InputSchema = z.object({
   resume: z.string().min(10, "Resume too short").max(50000, "Resume too long"),
-  jobDescription: z.string().min(10, "Job description too short").max(50000, "Job description too long"),
+  jobDescription: z
+    .string()
+    .min(10, "Job description too short")
+    .max(50000, "Job description too long"),
   matchedSkills: z.array(z.string().max(200)).max(100),
   gaps: z.array(z.string().max(200)).max(100),
-  tone: z.enum(["professional", "conversational", "enthusiastic"]).default("professional"),
+  tone: z
+    .enum(["professional", "conversational", "enthusiastic"])
+    .default("professional"),
 });
 
 serve(async (req) => {
@@ -28,14 +28,17 @@ serve(async (req) => {
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(
         JSON.stringify({ error: "Missing authorization header" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      { global: { headers: { Authorization: authHeader } } }
+      { global: { headers: { Authorization: authHeader } } },
     );
 
     const token = authHeader.replace("Bearer ", "");
@@ -43,14 +46,20 @@ serve(async (req) => {
     if (authError || !data?.user) {
       return new Response(
         JSON.stringify({ error: "Invalid or expired token" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
     if (!checkRateLimit(`cover-letter:${data.user.id}`, 10, 60_000)) {
       return new Response(
         JSON.stringify({ error: "Too many requests â please slow down" }),
-        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 429,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -58,16 +67,25 @@ serve(async (req) => {
     const parsed = InputSchema.safeParse(rawInput);
     if (!parsed.success) {
       return new Response(
-        JSON.stringify({ error: "Invalid input", details: parsed.error.flatten().fieldErrors }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          error: "Invalid input",
+          details: parsed.error.flatten().fieldErrors,
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
     const { resume, jobDescription, matchedSkills, gaps, tone } = parsed.data;
 
     const toneInstructions: Record<string, string> = {
-      professional: "Write in a formal, polished, and confident tone. Use precise language and maintain a structured, business-appropriate style throughout.",
-      conversational: "Write in a warm, approachable, and natural tone. Use a friendly voice that feels genuine and personable while remaining appropriate for a job application.",
-      enthusiastic: "Write in an energetic, passionate, and upbeat tone. Show genuine excitement about the role and company while highlighting achievements with enthusiasm.",
+      professional:
+        "Write in a formal, polished, and confident tone. Use precise language and maintain a structured, business-appropriate style throughout.",
+      conversational:
+        "Write in a warm, approachable, and natural tone. Use a friendly voice that feels genuine and personable while remaining appropriate for a job application.",
+      enthusiastic:
+        "Write in an energetic, passionate, and upbeat tone. Show genuine excitement about the role and company while highlighting achievements with enthusiasm.",
     };
 
     const toneGuide = toneInstructions[tone] || toneInstructions.professional;
@@ -106,13 +124,18 @@ Write a tailored cover letter for this candidate applying to this role.`;
 
     return new Response(
       JSON.stringify({ result: aiResult.content, usage: aiResult.usage }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {
     console.error("generate-cover-letter error:", e);
     return new Response(
-      JSON.stringify({ error: "An error occurred processing your request. Please try again." }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({
+        error: "An error occurred processing your request. Please try again.",
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   }
 });

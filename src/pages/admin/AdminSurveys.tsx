@@ -50,7 +50,7 @@ export default function AdminSurveys() {
   const load = async () => {
     setLoading(true);
     try {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("customer_surveys")
         .select("*")
         .order("created_at", { ascending: false });
@@ -68,7 +68,7 @@ export default function AdminSurveys() {
     if (!confirm("Delete this survey response? This cannot be undone.")) return;
     setDeletingId(surveyId);
     try {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("customer_surveys")
         .delete()
         .eq("id", surveyId);
@@ -162,7 +162,7 @@ export default function AdminSurveys() {
                     className="flex items-center justify-between gap-3 p-3 bg-muted/10 cursor-pointer hover:bg-muted/20 transition-colors"
                     onClick={() =>
                       setExpandedId((prev) =>
-                        prev === survey.id ? null : survey.id
+                        prev === survey.id ? null : survey.id,
                       )
                     }
                   >
@@ -213,7 +213,9 @@ export default function AdminSurveys() {
                           </p>
                         </div>
                         <div>
-                          <p className="text-muted-foreground mb-0.5">Submitted</p>
+                          <p className="text-muted-foreground mb-0.5">
+                            Submitted
+                          </p>
                           <p className="font-medium">
                             {new Date(survey.created_at).toLocaleString()}
                           </p>

@@ -14,7 +14,7 @@ import { Settings, Save, Clock, RefreshCw, HelpCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useAuthReady } from "@/hooks/useAuthReady";
-import { logger } from '@/lib/logger';
+import { logger } from "@/lib/logger";
 
 interface SettingRow {
   id: string;
@@ -50,57 +50,68 @@ const SETTING_HELP: Record<
   agent_rate_limit: {
     label: "Agent Rate Limit",
     help: "Maximum number of AI agent API calls allowed per user per hour. This controls how frequently users can trigger AI-powered features like resume analysis, interview prep, and cover letter generation. Setting this too low may frustrate active users; too high may increase API costs.",
-    recommendation: "Recommended: 50\u2013200. Start at 100 and adjust based on usage patterns and budget.",
+    recommendation:
+      "Recommended: 50\u2013200. Start at 100 and adjust based on usage patterns and budget.",
   },
   ai_model: {
     label: "AI Model",
     help: "The language model used for all AI-powered features across the platform, including resume scoring, job matching, interview prep questions, and auto-apply cover letters. Changing this affects quality, speed, and cost of every AI interaction.",
-    recommendation: "Recommended: gpt-4o-mini for cost efficiency, gpt-4o for higher quality, or claude-sonnet-4-20250514 for nuanced analysis.",
+    recommendation:
+      "Recommended: gpt-4o-mini for cost efficiency, gpt-4o for higher quality, or claude-sonnet-4-20250514 for nuanced analysis.",
   },
   allow_signups: {
     label: "Allow Signups",
     help: "Master switch for new user registration. When set to 0 (disabled), no new accounts can be created regardless of invite status. When set to 1 (enabled), users can register subject to other restrictions like invite-only mode. This is useful for temporarily pausing all registrations during maintenance or capacity issues.",
-    recommendation: "Recommended: Keep at 1 (enabled) unless you need to freeze registration entirely.",
+    recommendation:
+      "Recommended: Keep at 1 (enabled) unless you need to freeze registration entirely.",
   },
   auto_apply_enabled: {
     label: "Auto-Apply",
     help: "Controls whether users can use the AI-powered auto-apply feature to automatically submit tailored applications to matching job postings. When disabled, all queued and future auto-apply jobs are paused platform-wide. Existing manual applications are not affected.",
-    recommendation: "Recommended: Keep enabled. Disable temporarily if you notice quality issues with generated applications or excessive API costs.",
+    recommendation:
+      "Recommended: Keep enabled. Disable temporarily if you notice quality issues with generated applications or excessive API costs.",
   },
   default_match_threshold: {
     label: "Default Match Threshold",
     help: "The minimum match score (0\u2013100) required for a job to appear in a user\u2019s discovery feed. Higher values mean fewer but more relevant matches; lower values cast a wider net. This sets the default for new users\u2014existing users may have customized their own threshold.",
-    recommendation: "Recommended: 60\u201380. A value of 70 balances relevance with discovery breadth.",
+    recommendation:
+      "Recommended: 60\u201380. A value of 70 balances relevance with discovery breadth.",
   },
   default_user_role: {
     label: "Default User Role",
     help: "The role automatically assigned to newly registered users. Common values: \u201cjob_seeker\u201d, \u201chiring_manager\u201d, or blank to let users choose during onboarding. This determines which dashboard and features new users see on first login.",
-    recommendation: "Recommended: \u201cjob_seeker\u201d for consumer-facing platforms. Leave blank if your platform serves multiple user types.",
+    recommendation:
+      "Recommended: \u201cjob_seeker\u201d for consumer-facing platforms. Leave blank if your platform serves multiple user types.",
   },
   job_discovery_enabled: {
     label: "Job Discovery",
     help: "Controls the AI job-matching engine that surfaces relevant openings to candidates based on their profile, skills, and preferences. Turning this off hides the discovery feed for all users. The matching engine will stop processing new matches but existing saved jobs remain visible.",
-    recommendation: "Recommended: Keep enabled. Only disable during major data migrations or if the matching engine is producing poor results.",
+    recommendation:
+      "Recommended: Keep enabled. Only disable during major data migrations or if the matching engine is producing poor results.",
   },
   maintenance_mode: {
     label: "Maintenance Mode",
     help: "Puts the entire platform into read-only mode. Users will see a maintenance banner and all write operations (applications, profile edits, job posts) are blocked. Use this during deployments, database migrations, or emergency fixes. Users can still browse and read content.",
-    recommendation: "Recommended: Only enable during planned maintenance windows. Notify users in advance via the platform banner.",
+    recommendation:
+      "Recommended: Only enable during planned maintenance windows. Notify users in advance via the platform banner.",
   },
   new_user_registration: {
     label: "New User Registration",
     help: "Secondary registration control that works alongside allow_signups. Both must be enabled for new users to register. This setting is often toggled independently to temporarily pause registrations while keeping the allow_signups master switch on.",
-    recommendation: "Recommended: Keep enabled unless you need a quick way to pause signups without changing the master switch.",
+    recommendation:
+      "Recommended: Keep enabled unless you need a quick way to pause signups without changing the master switch.",
   },
   daily_apply_limit: {
     label: "Daily Apply Limit",
     help: "Maximum number of job applications a single user can submit per day, combining both manual and auto-apply submissions. Set to 0 for unlimited. This prevents spam and encourages users to focus on quality applications rather than volume.",
-    recommendation: "Recommended: 20\u201350. This balances user experience with application quality.",
+    recommendation:
+      "Recommended: 20\u201350. This balances user experience with application quality.",
   },
   max_invites_per_day: {
     label: "Max Invites Per Day",
     help: "Maximum invite emails a non-admin user can send per day. Admin users bypass this limit. Controls invite velocity during invite-only periods to prevent abuse while allowing organic growth.",
-    recommendation: "Recommended: 5\u201310 per day for regular users during invite-only mode.",
+    recommendation:
+      "Recommended: 5\u201310 per day for regular users during invite-only mode.",
   },
   max_applications_per_day: {
     label: "Max Applications Per Day",
@@ -153,7 +164,8 @@ const SETTING_HELP: Record<
   ai_calls_per_hour: {
     label: "AI Calls Per Hour",
     help: "Per-user rate limit for AI-powered features per hour (resume analysis, interview prep, cover letter generation). This is separate from agent_rate_limit and applies specifically to user-initiated AI actions. Set to 0 for unlimited.",
-    recommendation: "Recommended: 20\u201350 calls per hour. Adjust based on API budget and user activity.",
+    recommendation:
+      "Recommended: 20\u201350 calls per hour. Adjust based on API budget and user activity.",
   },
 };
 
@@ -182,10 +194,10 @@ export default function AdminSettings() {
   const load = async () => {
     setLoading(true);
     try {
-      const { data, error } = await (supabase
+      const { data, error } = await supabase
         .from("admin_settings" as any)
         .select("*")
-        .order("key") as any);
+        .order("key");
       if (error) throw error;
       setSettings((data || []) as SettingRow[]);
       setEdits({});
@@ -208,14 +220,14 @@ export default function AdminSettings() {
     setSaving(true);
     try {
       for (const [key, value] of Object.entries(edits)) {
-        const { error } = await (supabase
+        const { error } = await supabase
           .from("admin_settings" as any)
           .update({
-            value: value as any,
+            value,
             updated_by: user?.id ?? null,
             updated_at: new Date().toISOString(),
           })
-          .eq("key", key) as any);
+          .eq("key", key);
         if (error) throw error;
       }
       toast.success("Settings saved");

@@ -4,7 +4,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { logger } from '@/lib/logger';
+import { logger } from "@/lib/logger";
 
 export interface ServiceHealthEntry {
   id: string;
@@ -24,10 +24,10 @@ export function useServiceHealth() {
     setLoading(true);
     try {
       const { data } = await supabase
-        .from("service_health" as any)
+        .from("service_health")
         .select("*")
         .order("service_name");
-      setServices((data as any[]) || []);
+      setServices((data || []) as ServiceHealthEntry[]);
     } catch (e) {
       logger.error("[useServiceHealth]", e);
     } finally {
@@ -35,7 +35,9 @@ export function useServiceHealth() {
     }
   }, []);
 
-  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
 
   return { services, loading, refresh };
 }

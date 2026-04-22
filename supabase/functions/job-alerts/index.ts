@@ -1,17 +1,12 @@
+import { corsHeaders } from "../_shared/cors.ts";
 // iCareerOS v5 â job-alerts Edge Function
 // Zero-dependency: uses Deno.serve + inline PostgREST client.
 // Checks active alerts, finds new matching jobs, publishes notification events.
 // Called by pg_cron every hour or manually.
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
-
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SERVICE_KEY  = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const ANON_KEY     = Deno.env.get("SUPABASE_ANON_KEY")!;
+const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 
 function svcHeaders(prefer = "return=representation"): Record<string, string> {
   return {
@@ -26,11 +21,16 @@ async function pgGet(table: string, qs: string): Promise<any[]> {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${qs}`, {
     headers: svcHeaders(),
   });
-  if (!res.ok) throw new Error(`pgGet ${table}: ${res.status} ${await res.text()}`);
+  if (!res.ok)
+    throw new Error(`pgGet ${table}: ${res.status} ${await res.text()}`);
   return res.json();
 }
 
-async function pgPost(table: string, body: any, prefer = "return=representation"): Promise<any> {
+async function pgPost(
+  table: string,
+  body: any,
+  prefer = "return=representation",
+): Promise<any> {
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
     method: "POST",
     headers: svcHeaders(prefer),
@@ -67,11 +67,15 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { action, userId, alertId, ...rest } = await req.json().catch(() => ({} as any));
+    const { action, userId, alertId, ...rest } = await req
+      .json()
+      .catch(() => ({}) as any);
 
     // ââ check-alerts: cron / admin trigger ââââââââââââââââââââââââââââââ
     if (action === "check-alerts") {
-      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const oneDayAgo = new Date(
+        Date.now() - 24 * 60 * 60 * 1000,
+      ).toISOString();
 
       const alerts = await pgGet(
         "job_alerts",
@@ -97,17 +101,21 @@ Deno.serve(async (req) => {
             last_sent_at: new Date().toISOString(),
           });
 
-          pgPost("platform_events", {
-            event_type: "job.alert.triggered",
-            payload: {
-              user_id: alert.user_id,
-              alert_id: alert.id,
-              match_count: matches.length,
-              matches,
+          pgPost(
+            "platform_events",
+            {
+              event_type: "job.alert.triggered",
+              payload: {
+                user_id: alert.user_id,
+                alert_id: alert.id,
+                match_count: matches.length,
+                matches,
+              },
+              source_service: "job-alerts",
+              status: "pending",
             },
-            source_service: "job-alerts",
-            status: "pending",
-          }, "return=minimal").catch(() => {});
+            "return=minimal",
+          ).catch(() => {});
 
           results.push({ alert_id: alert.id, new_matches: matches.length });
         }
@@ -115,7 +123,10 @@ Deno.serve(async (req) => {
 
       return new Response(
         JSON.stringify({ status: "ok", processed: results.length, results }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -157,14 +168,20 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ error: "Unknown action. Use: check-alerts | create-alert | get-alerts | delete-alert" }),
-      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      JSON.stringify({
+        error:
+          "Unknown action. Use: check-alerts | create-alert | get-alerts | delete-alert",
+      }),
+      {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   } catch (err) {
     console.error("job-alerts error:", err);
-    return new Response(
-      JSON.stringify({ error: "Internal server error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });

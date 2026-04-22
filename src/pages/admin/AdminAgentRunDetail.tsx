@@ -5,8 +5,16 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
-  Bot, ArrowLeft, RefreshCw, StopCircle, Clock, CheckCircle2,
-  XCircle, AlertTriangle, ScrollText, ExternalLink,
+  Bot,
+  ArrowLeft,
+  RefreshCw,
+  StopCircle,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  AlertTriangle,
+  ScrollText,
+  ExternalLink,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -34,14 +42,33 @@ interface RelatedLog {
   metadata: Record<string, unknown>;
 }
 
-const STATUS_CONFIG: Record<string, { icon: React.ReactNode; color: string }> = {
-  completed: { icon: <CheckCircle2 className="w-4 h-4" />, color: "text-success border-success/30" },
-  failed: { icon: <XCircle className="w-4 h-4" />, color: "text-destructive border-destructive/30" },
-  running: { icon: <Clock className="w-4 h-4 animate-spin" />, color: "text-accent border-accent/30" },
-  pending: { icon: <Clock className="w-4 h-4" />, color: "text-muted-foreground border-border" },
-  completed_with_errors: { icon: <AlertTriangle className="w-4 h-4" />, color: "text-yellow-400 border-yellow-400/30" },
-  cancelled: { icon: <StopCircle className="w-4 h-4" />, color: "text-muted-foreground border-border" },
-};
+const STATUS_CONFIG: Record<string, { icon: React.ReactNode; color: string }> =
+  {
+    completed: {
+      icon: <CheckCircle2 className="w-4 h-4" />,
+      color: "text-success border-success/30",
+    },
+    failed: {
+      icon: <XCircle className="w-4 h-4" />,
+      color: "text-destructive border-destructive/30",
+    },
+    running: {
+      icon: <Clock className="w-4 h-4 animate-spin" />,
+      color: "text-accent border-accent/30",
+    },
+    pending: {
+      icon: <Clock className="w-4 h-4" />,
+      color: "text-muted-foreground border-border",
+    },
+    completed_with_errors: {
+      icon: <AlertTriangle className="w-4 h-4" />,
+      color: "text-yellow-400 border-yellow-400/30",
+    },
+    cancelled: {
+      icon: <StopCircle className="w-4 h-4" />,
+      color: "text-muted-foreground border-border",
+    },
+  };
 
 const LEVEL_COLOR: Record<string, string> = {
   info: "text-blue-400",
@@ -70,32 +97,30 @@ export default function AdminAgentRunDetail() {
     setLoading(true);
     try {
       const [runRes, logsRes] = await Promise.all([
-        (supabase as any)
-          .from("agent_runs")
-          .select("*")
-          .eq("id", runId)
-          .single(),
-        (supabase as any)
+        supabase.from("agent_runs").select("*").eq("id", runId).single(),
+        supabase
           .from("admin_logs")
           .select("*")
           .eq("run_id", runId)
           .order("timestamp", { ascending: true })
           .limit(100),
       ]);
-      if (runRes.data) setRun(runRes.data);
-      setLogs(logsRes.data || []);
+      if (runRes.data) setRun(runRes.data as any);
+      setLogs((logsRes.data || []) as any);
     } finally {
       setLoading(false);
     }
   }, [runId]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const retryRun = async () => {
     if (!run) return;
     setActionLoading(true);
     try {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("agent_runs")
         .update({ status: "pending", errors: [], completed_at: null })
         .eq("id", run.id);
@@ -113,7 +138,7 @@ export default function AdminAgentRunDetail() {
     if (!run) return;
     setActionLoading(true);
     try {
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("agent_runs")
         .update({ status: "cancelled", completed_at: new Date().toISOString() })
         .eq("id", run.id);
@@ -141,7 +166,12 @@ export default function AdminAgentRunDetail() {
         <div className="text-center py-20 text-muted-foreground">
           <XCircle className="w-10 h-10 mx-auto mb-3 opacity-40" />
           <p className="text-sm">Run not found</p>
-          <Button variant="ghost" size="sm" className="mt-4" onClick={() => navigate("/admin/agent-runs")}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="mt-4"
+            onClick={() => navigate("/admin/agent-runs")}
+          >
             <ArrowLeft className="w-3.5 h-3.5 mr-1.5" /> Back to Agent Runs
           </Button>
         </div>
@@ -150,7 +180,8 @@ export default function AdminAgentRunDetail() {
   }
 
   const cfg = STATUS_CONFIG[run.status] || STATUS_CONFIG.pending;
-  const isFailed = run.status === "failed" || run.status === "completed_with_errors";
+  const isFailed =
+    run.status === "failed" || run.status === "completed_with_errors";
   const isRunning = run.status === "running";
 
   return (
@@ -158,7 +189,11 @@ export default function AdminAgentRunDetail() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={() => navigate("/admin/agent-runs")}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate("/admin/agent-runs")}
+          >
             <ArrowLeft className="w-4 h-4 mr-1.5" /> Back
           </Button>
           <div>
@@ -175,7 +210,12 @@ export default function AdminAgentRunDetail() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={load} disabled={actionLoading}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={load}
+            disabled={actionLoading}
+          >
             <RefreshCw className="w-3.5 h-3.5 mr-1.5" /> Refresh
           </Button>
           {isFailed && (
@@ -184,7 +224,12 @@ export default function AdminAgentRunDetail() {
             </Button>
           )}
           {isRunning && (
-            <Button size="sm" variant="destructive" onClick={cancelRun} disabled={actionLoading}>
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={cancelRun}
+              disabled={actionLoading}
+            >
               <StopCircle className="w-3.5 h-3.5 mr-1.5" /> Cancel Run
             </Button>
           )}
@@ -194,7 +239,9 @@ export default function AdminAgentRunDetail() {
       {/* Overview */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-card rounded-xl p-4 border border-border shadow-sm">
-          <Label className="text-[10px] uppercase text-muted-foreground">Status</Label>
+          <Label className="text-[10px] uppercase text-muted-foreground">
+            Status
+          </Label>
           <div className="mt-2">
             <Badge variant="outline" className={`gap-1.5 ${cfg.color}`}>
               {cfg.icon} {run.status}
@@ -202,19 +249,32 @@ export default function AdminAgentRunDetail() {
           </div>
         </div>
         <div className="bg-card rounded-xl p-4 border border-border shadow-sm">
-          <Label className="text-[10px] uppercase text-muted-foreground">Duration</Label>
-          <p className="mt-2 font-mono text-sm font-medium">{duration(run.started_at, run.completed_at)}</p>
+          <Label className="text-[10px] uppercase text-muted-foreground">
+            Duration
+          </Label>
+          <p className="mt-2 font-mono text-sm font-medium">
+            {duration(run.started_at, run.completed_at)}
+          </p>
         </div>
         <div className="bg-card rounded-xl p-4 border border-border shadow-sm">
-          <Label className="text-[10px] uppercase text-muted-foreground">User ID</Label>
-          <p className="mt-2 font-mono text-xs text-muted-foreground truncate" title={run.user_id}>
+          <Label className="text-[10px] uppercase text-muted-foreground">
+            User ID
+          </Label>
+          <p
+            className="mt-2 font-mono text-xs text-muted-foreground truncate"
+            title={run.user_id}
+          >
             {run.user_id}
           </p>
         </div>
         <div className="bg-card rounded-xl p-4 border border-border shadow-sm">
-          <Label className="text-[10px] uppercase text-muted-foreground">Completed</Label>
+          <Label className="text-[10px] uppercase text-muted-foreground">
+            Completed
+          </Label>
           <p className="mt-2 font-mono text-xs text-muted-foreground">
-            {run.completed_at ? new Date(run.completed_at).toLocaleString() : "—"}
+            {run.completed_at
+              ? new Date(run.completed_at).toLocaleString()
+              : "—"}
           </p>
         </div>
       </div>
@@ -227,16 +287,28 @@ export default function AdminAgentRunDetail() {
         <CardContent>
           <div className="grid grid-cols-3 gap-4">
             <div className="bg-muted/30 rounded-lg p-4 text-center border border-border">
-              <div className="text-3xl font-display font-bold text-foreground">{run.jobs_found}</div>
-              <div className="text-xs text-muted-foreground mt-1">Jobs Found</div>
+              <div className="text-3xl font-display font-bold text-foreground">
+                {run.jobs_found}
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">
+                Jobs Found
+              </div>
             </div>
             <div className="bg-muted/30 rounded-lg p-4 text-center border border-border">
-              <div className="text-3xl font-display font-bold text-foreground">{run.jobs_matched}</div>
-              <div className="text-xs text-muted-foreground mt-1">Jobs Matched</div>
+              <div className="text-3xl font-display font-bold text-foreground">
+                {run.jobs_matched}
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">
+                Jobs Matched
+              </div>
             </div>
             <div className="bg-muted/30 rounded-lg p-4 text-center border border-border">
-              <div className="text-3xl font-display font-bold text-foreground">{run.applications_sent}</div>
-              <div className="text-xs text-muted-foreground mt-1">Applications Sent</div>
+              <div className="text-3xl font-display font-bold text-foreground">
+                {run.applications_sent}
+              </div>
+              <div className="text-xs text-muted-foreground mt-1">
+                Applications Sent
+              </div>
             </div>
           </div>
         </CardContent>
@@ -253,7 +325,10 @@ export default function AdminAgentRunDetail() {
           <CardContent>
             <div className="space-y-2 font-mono text-xs">
               {run.errors.map((err, i) => (
-                <div key={i} className="bg-destructive/10 text-destructive border border-destructive/20 rounded px-3 py-2">
+                <div
+                  key={i}
+                  className="bg-destructive/10 text-destructive border border-destructive/20 rounded px-3 py-2"
+                >
                   {err}
                 </div>
               ))}
@@ -287,7 +362,8 @@ export default function AdminAgentRunDetail() {
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-sm flex items-center gap-2">
-              <ScrollText className="w-4 h-4 text-accent" /> Linked Logs ({logs.length})
+              <ScrollText className="w-4 h-4 text-accent" /> Linked Logs (
+              {logs.length})
             </CardTitle>
             <Link
               to={`/admin/logs?run_id=${run.id}`}
@@ -313,10 +389,14 @@ export default function AdminAgentRunDetail() {
                   <span className="text-muted-foreground text-[10px] w-[140px] shrink-0">
                     {new Date(log.timestamp).toLocaleString()}
                   </span>
-                  <span className={`uppercase text-[10px] font-bold w-10 shrink-0 ${LEVEL_COLOR[log.level] ?? "text-muted-foreground"}`}>
+                  <span
+                    className={`uppercase text-[10px] font-bold w-10 shrink-0 ${LEVEL_COLOR[log.level] ?? "text-muted-foreground"}`}
+                  >
                     {log.level}
                   </span>
-                  <span className="flex-1 text-foreground leading-relaxed">{log.message}</span>
+                  <span className="flex-1 text-foreground leading-relaxed">
+                    {log.message}
+                  </span>
                   {log.status && (
                     <Badge
                       variant="outline"

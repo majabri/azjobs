@@ -4,12 +4,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
+import { corsHeaders } from "../_shared/cors.ts";
 
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -21,7 +16,10 @@ serve(async (req: Request) => {
     if (!authHeader) {
       return new Response(
         JSON.stringify({ error: "Missing authorization header" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -29,23 +27,30 @@ serve(async (req: Request) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
     // Verify admin
-    const supabaseAuth = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
+    const supabaseAuth = createClient(
+      supabaseUrl,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      {
+        global: { headers: { Authorization: authHeader } },
+      },
+    );
+    const {
+      data: { user },
+      error: authError,
+    } = await supabaseAuth.auth.getUser();
     if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Check admin role
     if (user.user_metadata?.role !== "admin") {
-      return new Response(
-        JSON.stringify({ error: "Admin access required" }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Admin access required" }), {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -106,7 +111,10 @@ serve(async (req: Request) => {
           .select("user_id, username, full_name")
           .in("user_id", userIds);
 
-        const profileMap: Record<string, { username?: string; full_name?: string }> = {};
+        const profileMap: Record<
+          string,
+          { username?: string; full_name?: string }
+        > = {};
         for (const p of profiles || []) {
           profileMap[p.user_id] = p;
         }
@@ -116,7 +124,10 @@ serve(async (req: Request) => {
           .slice(0, 20)
           .map(([userId, c]) => ({
             user_id: userId,
-            username: profileMap[userId]?.username || profileMap[userId]?.full_name || "Unknown",
+            username:
+              profileMap[userId]?.username ||
+              profileMap[userId]?.full_name ||
+              "Unknown",
             total_sent: c.sent,
             total_accepted: c.accepted,
           }));
@@ -134,14 +145,16 @@ serve(async (req: Request) => {
       .gte("created_at", thirtyDaysAgo.toISOString())
       .order("created_at", { ascending: false });
 
-    const dailyActivity: Record<string, { sent: number; accepted: number }> = {};
+    const dailyActivity: Record<string, { sent: number; accepted: number }> =
+      {};
     for (const inv of recentInvitations || []) {
       const day = inv.created_at.split("T")[0];
       if (!dailyActivity[day]) dailyActivity[day] = { sent: 0, accepted: 0 };
       dailyActivity[day].sent++;
       if (inv.status === "accepted" && inv.accepted_at) {
         const acceptDay = inv.accepted_at.split("T")[0];
-        if (!dailyActivity[acceptDay]) dailyActivity[acceptDay] = { sent: 0, accepted: 0 };
+        if (!dailyActivity[acceptDay])
+          dailyActivity[acceptDay] = { sent: 0, accepted: 0 };
         dailyActivity[acceptDay].accepted++;
       }
     }
@@ -162,12 +175,16 @@ serve(async (req: Request) => {
     // Recent invites (last 50)
     const { data: recentInvites } = await supabase
       .from("invitations")
-      .select("id, inviter_id, invitee_email, invite_type, invite_code, status, created_at")
+      .select(
+        "id, inviter_id, invitee_email, invite_type, invite_code, status, created_at",
+      )
       .order("created_at", { ascending: false })
       .limit(50);
 
     // Enrich with inviter usernames
-    const inviterIds = [...new Set((recentInvites || []).map((i) => i.inviter_id))];
+    const inviterIds = [
+      ...new Set((recentInvites || []).map((i) => i.inviter_id)),
+    ];
     const { data: inviterProfiles } = await supabase
       .from("profiles")
       .select("user_id, username, full_name")
@@ -195,18 +212,24 @@ serve(async (req: Request) => {
           .sort((a, b) => b.date.localeCompare(a.date)),
         chain_stats: {
           max_depth: maxDepth,
-          avg_depth: chainCount > 0 ? Math.round((totalDepth / chainCount) * 10) / 10 : 0,
+          avg_depth:
+            chainCount > 0
+              ? Math.round((totalDepth / chainCount) * 10) / 10
+              : 0,
           total_users_in_tree: chainCount,
         },
         recent_invites: enrichedRecent,
       }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   } catch (err) {
     console.error("Unexpected error:", err);
-    return new Response(
-      JSON.stringify({ error: "Internal server error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });

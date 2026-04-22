@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import React, { ReactNode, ErrorInfo, useState } from 'react';
-import { supabase } from '@/lib/supabase';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { AlertTriangle, RotateCcw } from 'lucide-react';
-import { logger } from '@/lib/logger';
+import React, { ReactNode, ErrorInfo, useState } from "react";
+import { supabase } from "@/lib/supabase";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { AlertTriangle, RotateCcw } from "lucide-react";
+import { logger } from "@/lib/logger";
 
 interface ServiceHealthGuardProps {
   children: ReactNode;
@@ -30,7 +30,7 @@ export default class ServiceHealthGuard extends React.Component<
       hasError: false,
       error: null,
       errorInfo: null,
-      retryCount: 0
+      retryCount: 0,
     };
   }
 
@@ -39,7 +39,7 @@ export default class ServiceHealthGuard extends React.Component<
       hasError: true,
       error,
       errorInfo,
-      retryCount: 0
+      retryCount: 0,
     });
 
     // Log error to platform_events table
@@ -48,47 +48,39 @@ export default class ServiceHealthGuard extends React.Component<
 
   private logErrorToDatabase = async (error: Error, errorInfo: ErrorInfo) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-      await supabase
-        .from('platform_events')
-        .insert({
-          event_type: 'service_error',
-          service_name: this.props.serviceName,
-          severity: 'high',
-          message: error.toString(),
-          context: {
-            serviceName: this.props.serviceName,
-            errorMessage: error.message,
-            errorStack: error.stack,
-            componentStack: errorInfo.componentStack,
-            timestamp: new Date().toISOString(),
-            userId: user?.id
-          },
-          status: 'open'
-        });
+      await supabase.from("platform_events").insert({
+        event_type: "service_error",
+        payload: {
+          serviceName: this.props.serviceName,
+          errorMessage: error.message,
+          errorStack: error.stack,
+          componentStack: errorInfo.componentStack,
+          timestamp: new Date().toISOString(),
+          userId: user?.id,
+        },
+      } as any);
     } catch (err) {
       // Silently fail - don't let logging errors break the app
-      logger.error('Failed to log error to database:', err);
+      logger.error("Failed to log error to database:", err);
     }
   };
 
   private handleRetry = () => {
-    this.setState(prevState => ({
+    this.setState((prevState) => ({
       hasError: false,
       error: null,
       errorInfo: null,
-      retryCount: prevState.retryCount + 1
+      retryCount: prevState.retryCount + 1,
     }));
   };
 
   render() {
     if (this.state.hasError) {
-      const {
-        error,
-        errorInfo,
-        retryCount
-      } = this.state;
+      const { error, errorInfo, retryCount } = this.state;
 
       const defaultFallback = (
         <Card className="bg-card border-border m-4">
@@ -100,11 +92,11 @@ export default class ServiceHealthGuard extends React.Component<
                   {this.props.serviceName} Service Error
                 </h2>
                 <p className="text-muted-foreground mb-4">
-                  We encountered an error in the {this.props.serviceName} service.
-                  Our team has been notified and is working on a fix.
+                  We encountered an error in the {this.props.serviceName}{" "}
+                  service. Our team has been notified and is working on a fix.
                 </p>
 
-                {process.env.NODE_ENV === 'development' && (
+                {process.env.NODE_ENV === "development" && (
                   <details className="mb-4 p-3 bg-muted rounded text-xs text-muted-foreground/70 font-mono">
                     <summary className="cursor-pointer font-semibold mb-2">
                       Error Details (Development Only)
@@ -139,7 +131,7 @@ export default class ServiceHealthGuard extends React.Component<
                   <Button
                     variant="outline"
                     className="border-border text-muted-foreground hover:bg-muted"
-                    onClick={() => window.location.href = '/'}
+                    onClick={() => (window.location.href = "/")}
                   >
                     Back to Home
                   </Button>
@@ -147,7 +139,7 @@ export default class ServiceHealthGuard extends React.Component<
 
                 {retryCount >= 3 && (
                   <p className="text-sm text-muted-foreground mt-4">
-                    Still having issues? Please contact{' '}
+                    Still having issues? Please contact{" "}
                     <a
                       href="mailto:support@icareer.os"
                       className="text-primary hover:text-primary"

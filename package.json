@@ -13,7 +13,7 @@
     "test:watch": "vitest",
     "seed:admin": "npx tsx scripts/seed-admin.ts",
     "check:soa": "bash scripts/check-soa.sh && npx tsx scripts/check-cross-service-imports.ts",
-    "prepare": "husky"
+    "prepare": "husky || true"
   },
   "dependencies": {
     "@hello-pangea/dnd": "^17.0.0",

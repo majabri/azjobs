@@ -6,12 +6,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
-};
+import { corsHeaders } from "../_shared/cors.ts";
 
 function generateToken(): string {
   const bytes = new Uint8Array(32);
@@ -47,7 +42,7 @@ serve(async (req: Request) => {
         {
           status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        },
       );
     }
 
@@ -61,7 +56,7 @@ serve(async (req: Request) => {
       Deno.env.get("SUPABASE_ANON_KEY")!,
       {
         global: { headers: { Authorization: authHeader } },
-      }
+      },
     );
     const {
       data: { user },
@@ -88,7 +83,7 @@ serve(async (req: Request) => {
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        },
       );
     }
 
@@ -98,7 +93,7 @@ serve(async (req: Request) => {
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        },
       );
     }
 
@@ -109,7 +104,7 @@ serve(async (req: Request) => {
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        },
       );
     }
 
@@ -129,7 +124,7 @@ serve(async (req: Request) => {
           {
             status: 400,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
+          },
         );
       }
 
@@ -149,7 +144,7 @@ serve(async (req: Request) => {
           {
             status: 400,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
+          },
         );
       }
     }
@@ -157,7 +152,7 @@ serve(async (req: Request) => {
     // Check daily limit (race-condition safe via advisory lock)
     const { data: limitCheck, error: limitError } = await supabase.rpc(
       "check_and_increment_invite_limit",
-      { p_inviter_id: user.id }
+      { p_inviter_id: user.id },
     );
 
     if (limitError) {
@@ -167,7 +162,7 @@ serve(async (req: Request) => {
         {
           status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        },
       );
     }
 
@@ -181,7 +176,7 @@ serve(async (req: Request) => {
         {
           status: 429,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        },
       );
     }
 
@@ -208,7 +203,7 @@ serve(async (req: Request) => {
         invite_code: inviteCode,
         status: "pending",
         expires_at: new Date(
-          Date.now() + 7 * 24 * 60 * 60 * 1000
+          Date.now() + 7 * 24 * 60 * 60 * 1000,
         ).toISOString(),
       })
       .select()
@@ -221,7 +216,7 @@ serve(async (req: Request) => {
         {
           status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        },
       );
     }
 
@@ -231,8 +226,7 @@ serve(async (req: Request) => {
     // which auto-validates the invite and completes registration.
     // ===================================================================
     if (type === "email" && resendApiKey) {
-      const inviterName =
-        profile?.full_name || profile?.username || "Someone";
+      const inviterName = profile?.full_name || profile?.username || "Someone";
 
       // Build the magic link URL:
       // The token is the invite token â the signup page will validate it,
@@ -341,16 +335,13 @@ serve(async (req: Request) => {
       {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      },
     );
   } catch (err) {
     console.error("Unexpected error:", err);
-    return new Response(
-      JSON.stringify({ error: "Internal server error" }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });

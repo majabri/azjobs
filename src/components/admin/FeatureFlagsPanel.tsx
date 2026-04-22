@@ -16,8 +16,10 @@ interface FeatureFlag {
   id: string;
   key: string;
   enabled: boolean;
-  description: string;
+  description: string | null;
   updated_at: string;
+  created_at?: string;
+  updated_by?: string | null;
 }
 
 export default function FeatureFlagsPanel() {
@@ -28,20 +30,22 @@ export default function FeatureFlagsPanel() {
   const load = async () => {
     setLoading(true);
     const { data } = await supabase
-      .from("feature_flags" as any)
+      .from("feature_flags")
       .select("*")
       .order("key");
-    setFlags((data as any[]) || []);
+    setFlags(data || []);
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+  }, []);
 
   const toggle = async (flag: FeatureFlag) => {
     setToggling(flag.id);
     const { error } = await supabase
-      .from("feature_flags" as any)
-      .update({ enabled: !flag.enabled, updated_at: new Date().toISOString() } as any)
+      .from("feature_flags")
+      .update({ enabled: !flag.enabled, updated_at: new Date().toISOString() })
       .eq("id", flag.id);
 
     if (error) {
@@ -49,7 +53,9 @@ export default function FeatureFlagsPanel() {
     } else {
       toast.success(`${flag.key} ${!flag.enabled ? "enabled" : "disabled"}`);
       invalidateFeatureFlags();
-      setFlags(prev => prev.map(f => f.id === flag.id ? { ...f, enabled: !f.enabled } : f));
+      setFlags((prev) =>
+        prev.map((f) => (f.id === flag.id ? { ...f, enabled: !f.enabled } : f)),
+      );
     }
     setToggling(null);
   };
@@ -61,7 +67,12 @@ export default function FeatureFlagsPanel() {
           <CardTitle className="text-base flex items-center gap-2">
             <ToggleLeft className="w-4 h-4 text-accent" /> Feature Flags
           </CardTitle>
-          <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={load}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 text-xs"
+            onClick={load}
+          >
             <RefreshCw className="w-3 h-3 mr-1" /> Refresh
           </Button>
         </div>
@@ -71,22 +82,30 @@ export default function FeatureFlagsPanel() {
           <p className="text-muted-foreground text-sm">Loading…</p>
         ) : (
           <div className="space-y-3">
-            {flags.map(flag => (
-              <div key={flag.id} className="flex items-center justify-between p-3 bg-muted/20 rounded-lg border border-border">
+            {flags.map((flag) => (
+              <div
+                key={flag.id}
+                className="flex items-center justify-between p-3 bg-muted/20 rounded-lg border border-border"
+              >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium text-foreground">{flag.key}</p>
+                    <p className="text-sm font-medium text-foreground">
+                      {flag.key}
+                    </p>
                     <Badge
                       variant="outline"
-                      className={flag.enabled
-                        ? "text-success border-success/30 text-[10px]"
-                        : "text-destructive border-destructive/30 text-[10px]"
+                      className={
+                        flag.enabled
+                          ? "text-success border-success/30 text-[10px]"
+                          : "text-destructive border-destructive/30 text-[10px]"
                       }
                     >
                       {flag.enabled ? "ON" : "OFF"}
                     </Badge>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-0.5">{flag.description}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {flag.description}
+                  </p>
                 </div>
                 <Switch
                   checked={flag.enabled}

@@ -10,9 +10,22 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MessageSquare, Loader2, CheckCircle, User, Briefcase, Users } from "lucide-react";
+import {
+  MessageSquare,
+  Loader2,
+  CheckCircle,
+  User,
+  Briefcase,
+  Users,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -34,9 +47,24 @@ const HIRING_MANAGER_QUESTIONS = [
   "If you had a standardized way to compare candidates against role requirements, how would that change your workflow?",
 ];
 
-const ROLE_OPTIONS: { value: Role; label: string; icon: typeof User; desc: string }[] = [
-  { value: "job_seeker", label: "Job Seeker", icon: User, desc: "I'm looking for jobs" },
-  { value: "hiring_manager", label: "Hiring Manager", icon: Briefcase, desc: "I hire candidates" },
+const ROLE_OPTIONS: {
+  value: Role;
+  label: string;
+  icon: typeof User;
+  desc: string;
+}[] = [
+  {
+    value: "job_seeker",
+    label: "Job Seeker",
+    icon: User,
+    desc: "I'm looking for jobs",
+  },
+  {
+    value: "hiring_manager",
+    label: "Hiring Manager",
+    icon: Briefcase,
+    desc: "I hire candidates",
+  },
   { value: "both", label: "Both", icon: Users, desc: "I do both" },
 ];
 
@@ -50,10 +78,14 @@ export default function CustomerSurvey() {
   const [submitted, setSubmitted] = useState(false);
 
   const questions: string[] = [];
-  if (role === "job_seeker" || role === "both") questions.push(...JOB_SEEKER_QUESTIONS);
-  if (role === "hiring_manager" || role === "both") questions.push(...HIRING_MANAGER_QUESTIONS);
+  if (role === "job_seeker" || role === "both")
+    questions.push(...JOB_SEEKER_QUESTIONS);
+  if (role === "hiring_manager" || role === "both")
+    questions.push(...HIRING_MANAGER_QUESTIONS);
 
-  const answeredCount = questions.filter((q) => (answers[q] || "").trim().length > 0).length;
+  const answeredCount = questions.filter(
+    (q) => (answers[q] || "").trim().length > 0,
+  ).length;
   const canSubmit = role && answeredCount >= 1;
 
   const handleSubmit = async () => {
@@ -65,13 +97,13 @@ export default function CustomerSurvey() {
         if ((answers[q] || "").trim()) structuredAnswers[q] = answers[q].trim();
       });
 
-      const { error } = await supabase.from("customer_surveys" as any).insert({
+      const { error } = await supabase.from("customer_surveys").insert({
         role,
         email: email.trim() || null,
         phone: phone.trim() || null,
         wants_callback: wantsCallback,
         answers: structuredAnswers,
-      } as any);
+      });
 
       if (error) throw error;
       setSubmitted(true);
@@ -90,9 +122,12 @@ export default function CustomerSurvey() {
           <div className="w-16 h-16 rounded-full bg-accent/20 flex items-center justify-center mx-auto">
             <CheckCircle className="w-8 h-8 text-accent" />
           </div>
-          <h3 className="text-2xl font-display font-bold text-primary">Thank You!</h3>
+          <h3 className="text-2xl font-display font-bold text-primary">
+            Thank You!
+          </h3>
           <p className="text-muted-foreground">
-            Your feedback helps us build a better platform. {wantsCallback && "We'll reach out to you soon!"}
+            Your feedback helps us build a better platform.{" "}
+            {wantsCallback && "We'll reach out to you soon!"}
           </p>
         </CardContent>
       </Card>
@@ -105,9 +140,12 @@ export default function CustomerSurvey() {
         <div className="w-12 h-12 gradient-indigo rounded-xl flex items-center justify-center mx-auto mb-3 shadow-indigo-500/20">
           <MessageSquare className="w-6 h-6 text-white" />
         </div>
-        <CardTitle className="text-2xl font-display">Help Us Build the Perfect Tool</CardTitle>
+        <CardTitle className="text-2xl font-display">
+          Help Us Build the Perfect Tool
+        </CardTitle>
         <CardDescription className="text-base">
-          Tell us about your experience — your feedback shapes iCareerOS's future.
+          Tell us about your experience — your feedback shapes iCareerOS's
+          future.
         </CardDescription>
       </CardHeader>
 
@@ -132,11 +170,17 @@ export default function CustomerSurvey() {
                     setAnswers({});
                   }}
                 >
-                  <opt.icon className={`w-6 h-6 ${selected ? "text-accent" : "text-muted-foreground"}`} />
-                  <span className={`text-sm font-semibold ${selected ? "text-accent" : "text-foreground"}`}>
+                  <opt.icon
+                    className={`w-6 h-6 ${selected ? "text-accent" : "text-muted-foreground"}`}
+                  />
+                  <span
+                    className={`text-sm font-semibold ${selected ? "text-accent" : "text-foreground"}`}
+                  >
                     {opt.label}
                   </span>
-                  <span className="text-xs text-muted-foreground">{opt.desc}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {opt.desc}
+                  </span>
                 </button>
               );
             })}
@@ -159,11 +203,15 @@ export default function CustomerSurvey() {
                 </h4>
                 {JOB_SEEKER_QUESTIONS.map((q, i) => (
                   <div key={`js-${i}`} className="space-y-1.5">
-                    <Label className="text-sm text-foreground leading-snug">{q}</Label>
+                    <Label className="text-sm text-foreground leading-snug">
+                      {q}
+                    </Label>
                     <Textarea
                       placeholder="Share your experience…"
                       value={answers[q] || ""}
-                      onChange={(e) => setAnswers((prev) => ({ ...prev, [q]: e.target.value }))}
+                      onChange={(e) =>
+                        setAnswers((prev) => ({ ...prev, [q]: e.target.value }))
+                      }
                       className="min-h-[80px] resize-none"
                     />
                   </div>
@@ -178,11 +226,15 @@ export default function CustomerSurvey() {
                 </h4>
                 {HIRING_MANAGER_QUESTIONS.map((q, i) => (
                   <div key={`hm-${i}`} className="space-y-1.5">
-                    <Label className="text-sm text-foreground leading-snug">{q}</Label>
+                    <Label className="text-sm text-foreground leading-snug">
+                      {q}
+                    </Label>
                     <Textarea
                       placeholder="Share your experience…"
                       value={answers[q] || ""}
-                      onChange={(e) => setAnswers((prev) => ({ ...prev, [q]: e.target.value }))}
+                      onChange={(e) =>
+                        setAnswers((prev) => ({ ...prev, [q]: e.target.value }))
+                      }
                       className="min-h-[80px] resize-none"
                     />
                   </div>
@@ -192,10 +244,14 @@ export default function CustomerSurvey() {
 
             {/* Step 3: Contact Info (optional) */}
             <div className="space-y-3 pt-2 border-t border-border">
-              <p className="text-sm text-muted-foreground font-medium">Contact Information (optional)</p>
+              <p className="text-sm text-muted-foreground font-medium">
+                Contact Information (optional)
+              </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <Label htmlFor="survey-email" className="text-xs">Email</Label>
+                  <Label htmlFor="survey-email" className="text-xs">
+                    Email
+                  </Label>
                   <Input
                     id="survey-email"
                     type="email"
@@ -205,7 +261,9 @@ export default function CustomerSurvey() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label htmlFor="survey-phone" className="text-xs">Phone Number</Label>
+                  <Label htmlFor="survey-phone" className="text-xs">
+                    Phone Number
+                  </Label>
                   <Input
                     id="survey-phone"
                     type="tel"
@@ -240,7 +298,8 @@ export default function CustomerSurvey() {
               >
                 {loading ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin mr-2" /> Submitting…
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />{" "}
+                    Submitting…
                   </>
                 ) : (
                   "Submit Feedback"

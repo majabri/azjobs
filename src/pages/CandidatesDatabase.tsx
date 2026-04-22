@@ -6,15 +6,30 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import {
-  Search, Users, Filter, Loader2, MapPin, Briefcase, Star, Mail, Phone,
-  ChevronDown, ChevronUp, Sparkles, Target,
+  Search,
+  Users,
+  Filter,
+  Loader2,
+  MapPin,
+  Briefcase,
+  Star,
+  Mail,
+  Phone,
+  ChevronDown,
+  ChevronUp,
+  Sparkles,
+  Target,
 } from "lucide-react";
 import { toast } from "sonner";
 import { analyzeJobFit } from "@/lib/analysisEngine";
-import { logger } from '@/lib/logger';
+import { logger } from "@/lib/logger";
 
 interface CandidateProfile {
   id: string;
@@ -62,9 +77,9 @@ export default function CandidatesDatabase() {
 
     if (error) {
       toast.error("Failed to load candidates");
-      logger.error(error);
+      logger.error(error.message);
     } else {
-      setCandidates((data as CandidateProfile[]) || []);
+      setCandidates((data as unknown as CandidateProfile[]) || []);
     }
     setLoading(false);
   };
@@ -85,10 +100,16 @@ export default function CandidatesDatabase() {
             c.skills?.join(", "),
             c.career_level,
             c.certifications?.join(", "),
-          ].filter(Boolean).join("\n");
+          ]
+            .filter(Boolean)
+            .join("\n");
 
           const result = analyzeJobFit(jobDescForMatch, resumeText);
-          return { ...c, fitScore: result.overallScore, fitSummary: result.summary };
+          return {
+            ...c,
+            fitScore: result.overallScore,
+            fitSummary: result.summary,
+          };
         })
         .sort((a, b) => (b.fitScore || 0) - (a.fitScore || 0));
 
@@ -101,21 +122,36 @@ export default function CandidatesDatabase() {
     }
   };
 
-  const filtered = (matchResults.length > 0 ? matchResults : candidates).filter((c) => {
-    const q = searchQuery.toLowerCase();
-    const nameMatch = !q || c.full_name?.toLowerCase().includes(q) || c.email?.toLowerCase().includes(q);
-    const skillMatch = !skillFilter || c.skills?.some((s) => s.toLowerCase().includes(skillFilter.toLowerCase()));
-    const locMatch = !locationFilter || c.location?.toLowerCase().includes(locationFilter.toLowerCase());
-    const lvlMatch = levelFilter === "all" || c.career_level === levelFilter;
-    return nameMatch && skillMatch && locMatch && lvlMatch;
-  });
+  const filtered = (matchResults.length > 0 ? matchResults : candidates).filter(
+    (c) => {
+      const q = searchQuery.toLowerCase();
+      const nameMatch =
+        !q ||
+        c.full_name?.toLowerCase().includes(q) ||
+        c.email?.toLowerCase().includes(q);
+      const skillMatch =
+        !skillFilter ||
+        c.skills?.some((s) =>
+          s.toLowerCase().includes(skillFilter.toLowerCase()),
+        );
+      const locMatch =
+        !locationFilter ||
+        c.location?.toLowerCase().includes(locationFilter.toLowerCase());
+      const lvlMatch = levelFilter === "all" || c.career_level === levelFilter;
+      return nameMatch && skillMatch && locMatch && lvlMatch;
+    },
+  );
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="font-display text-2xl font-bold text-primary">Candidates Database</h1>
-          <p className="text-sm text-muted-foreground">{candidates.length} candidates in system</p>
+          <h1 className="font-display text-2xl font-bold text-primary">
+            Candidates Database
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            {candidates.length} candidates in system
+          </p>
         </div>
         <Button
           variant={showMatcher ? "default" : "outline"}
@@ -144,12 +180,24 @@ export default function CandidatesDatabase() {
               className="h-32 resize-none"
             />
             <div className="flex items-center gap-3">
-              <Button onClick={handleAIMatch} disabled={matching || !jobDescForMatch.trim()} className="gap-2">
-                {matching ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+              <Button
+                onClick={handleAIMatch}
+                disabled={matching || !jobDescForMatch.trim()}
+                className="gap-2"
+              >
+                {matching ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Search className="w-4 h-4" />
+                )}
                 {matching ? "Matching..." : "Find Best Candidates"}
               </Button>
               {matchResults.length > 0 && (
-                <Button variant="ghost" size="sm" onClick={() => setMatchResults([])}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setMatchResults([])}
+                >
                   Clear Results
                 </Button>
               )}
@@ -211,7 +259,10 @@ export default function CandidatesDatabase() {
           {filtered.map((c) => {
             const expanded = expandedId === c.id;
             return (
-              <Card key={c.id} className="hover:border-primary/30 transition-colors">
+              <Card
+                key={c.id}
+                className="hover:border-primary/30 transition-colors"
+              >
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between">
                     <div className="flex-1 min-w-0">
@@ -221,7 +272,13 @@ export default function CandidatesDatabase() {
                         </h3>
                         {c.fitScore !== undefined && (
                           <Badge
-                            variant={c.fitScore >= 75 ? "default" : c.fitScore >= 50 ? "secondary" : "outline"}
+                            variant={
+                              c.fitScore >= 75
+                                ? "default"
+                                : c.fitScore >= 50
+                                  ? "secondary"
+                                  : "outline"
+                            }
                             className="shrink-0"
                           >
                             <Star className="w-3 h-3 mr-1" />
@@ -229,7 +286,10 @@ export default function CandidatesDatabase() {
                           </Badge>
                         )}
                         {c.career_level && (
-                          <Badge variant="outline" className="capitalize shrink-0">
+                          <Badge
+                            variant="outline"
+                            className="capitalize shrink-0"
+                          >
                             {c.career_level}
                           </Badge>
                         )}
@@ -253,20 +313,31 @@ export default function CandidatesDatabase() {
                       </div>
                       {c.skills && c.skills.length > 0 && (
                         <div className="flex flex-wrap gap-1 mb-2">
-                          {c.skills.slice(0, expanded ? undefined : 6).map((s) => (
-                            <Badge key={s} variant="secondary" className="text-[10px] px-1.5 py-0">
-                              {s}
-                            </Badge>
-                          ))}
+                          {c.skills
+                            .slice(0, expanded ? undefined : 6)
+                            .map((s) => (
+                              <Badge
+                                key={s}
+                                variant="secondary"
+                                className="text-[10px] px-1.5 py-0"
+                              >
+                                {s}
+                              </Badge>
+                            ))}
                           {!expanded && c.skills.length > 6 && (
-                            <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                            <Badge
+                              variant="outline"
+                              className="text-[10px] px-1.5 py-0"
+                            >
                               +{c.skills.length - 6}
                             </Badge>
                           )}
                         </div>
                       )}
                       {c.fitSummary && (
-                        <p className="text-xs text-muted-foreground italic">{c.fitSummary}</p>
+                        <p className="text-xs text-muted-foreground italic">
+                          {c.fitSummary}
+                        </p>
                       )}
                     </div>
                     <Button
@@ -274,7 +345,11 @@ export default function CandidatesDatabase() {
                       size="sm"
                       onClick={() => setExpandedId(expanded ? null : c.id)}
                     >
-                      {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                      {expanded ? (
+                        <ChevronUp className="w-4 h-4" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4" />
+                      )}
                     </Button>
                   </div>
 
@@ -282,35 +357,53 @@ export default function CandidatesDatabase() {
                     <div className="mt-4 pt-4 border-t border-border space-y-3 text-sm">
                       {c.summary && (
                         <div>
-                          <p className="font-medium text-xs text-muted-foreground mb-1">Summary</p>
+                          <p className="font-medium text-xs text-muted-foreground mb-1">
+                            Summary
+                          </p>
                           <p className="text-foreground">{c.summary}</p>
                         </div>
                       )}
                       {c.certifications && c.certifications.length > 0 && (
                         <div>
-                          <p className="font-medium text-xs text-muted-foreground mb-1">Certifications</p>
+                          <p className="font-medium text-xs text-muted-foreground mb-1">
+                            Certifications
+                          </p>
                           <div className="flex flex-wrap gap-1">
                             {c.certifications.map((cert) => (
-                              <Badge key={cert} variant="outline">{cert}</Badge>
+                              <Badge key={cert} variant="outline">
+                                {cert}
+                              </Badge>
                             ))}
                           </div>
                         </div>
                       )}
-                      {Array.isArray(c.work_experience) && c.work_experience.length > 0 && (
-                        <div>
-                          <p className="font-medium text-xs text-muted-foreground mb-1">Experience</p>
-                          {(c.work_experience as any[]).map((w: any, i: number) => (
-                            <div key={i} className="mb-2">
-                              <p className="font-medium">{w.title} at {w.company}</p>
-                              {w.startDate && (
-                                <p className="text-xs text-muted-foreground">
-                                  {w.startDate} – {w.endDate || "Present"}
+                      {Array.isArray(c.work_experience) &&
+                        c.work_experience.length > 0 && (
+                          <div>
+                            <p className="font-medium text-xs text-muted-foreground mb-1">
+                              Experience
+                            </p>
+                            {(
+                              c.work_experience as Array<{
+                                title?: string;
+                                company?: string;
+                                startDate?: string;
+                                endDate?: string;
+                              }>
+                            ).map((w, i) => (
+                              <div key={i} className="mb-2">
+                                <p className="font-medium">
+                                  {w.title} at {w.company}
                                 </p>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                                {w.startDate && (
+                                  <p className="text-xs text-muted-foreground">
+                                    {w.startDate} – {w.endDate || "Present"}
+                                  </p>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                     </div>
                   )}
                 </CardContent>

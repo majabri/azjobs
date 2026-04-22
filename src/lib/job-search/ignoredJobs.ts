@@ -8,7 +8,9 @@ export interface IgnoredJob {
 }
 
 export async function getIgnoredJobs(): Promise<IgnoredJob[]> {
-  const { data: { session } } = await supabase.auth.getSession();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
   if (!session) return [];
   const { data } = await supabase
     .from("ignored_jobs")
@@ -17,15 +19,21 @@ export async function getIgnoredJobs(): Promise<IgnoredJob[]> {
   return (data as unknown as IgnoredJob[]) || [];
 }
 
-export async function ignoreJob(input: { title: string; company: string; url?: string | null }): Promise<boolean> {
-  const { data: { session } } = await supabase.auth.getSession();
+export async function ignoreJob(input: {
+  title: string;
+  company: string;
+  url?: string | null;
+}): Promise<boolean> {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
   if (!session) return false;
   const { error } = await supabase.from("ignored_jobs").insert({
     user_id: session.user.id,
     job_title: input.title.trim(),
     company: input.company.trim(),
     job_url: input.url?.trim() || null,
-  } as any);
+  });
   return !error;
 }
 
@@ -43,7 +51,12 @@ export function isJobIgnored(
   const jUrl = (job.url || "").trim().toLowerCase();
 
   return ignoredList.some((ignored) => {
-    if (jUrl && ignored.job_url && ignored.job_url.trim().toLowerCase() === jUrl) return true;
+    if (
+      jUrl &&
+      ignored.job_url &&
+      ignored.job_url.trim().toLowerCase() === jUrl
+    )
+      return true;
     return (
       ignored.job_title.trim().toLowerCase() === jTitle &&
       ignored.company.trim().toLowerCase() === jCompany
@@ -60,7 +73,8 @@ export function isJobAlreadySaved(
   const jUrl = (job.url || "").trim().toLowerCase();
 
   return savedApps.some((app) => {
-    if (jUrl && app.job_url && app.job_url.trim().toLowerCase() === jUrl) return true;
+    if (jUrl && app.job_url && app.job_url.trim().toLowerCase() === jUrl)
+      return true;
     return (
       app.job_title.trim().toLowerCase() === jTitle &&
       app.company.trim().toLowerCase() === jCompany

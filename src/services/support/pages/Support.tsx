@@ -7,7 +7,13 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useAdminRole } from "@/hooks/useAdminRole";
 import { supabase } from "@/integrations/supabase/client";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -16,32 +22,73 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import {
-  Accordion, AccordionContent, AccordionItem, AccordionTrigger,
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
 } from "@/components/ui/accordion";
 import { toast } from "@/hooks/use-toast";
 import {
-  Bug, Lightbulb, TrendingUp, MessageCircle, Search,
-  Loader2, CheckCircle2, Clock, AlertCircle, Send,
+  Bug,
+  Lightbulb,
+  TrendingUp,
+  MessageCircle,
+  Search,
+  Loader2,
+  CheckCircle2,
+  Clock,
+  AlertCircle,
+  Send,
 } from "lucide-react";
 import {
-  createTicket, getUserTickets, getFaqs,
-  REQUEST_TYPE_LABELS, PRIORITY_LABELS, STATUS_LABELS,
+  createTicket,
+  getUserTickets,
+  getFaqs,
+  REQUEST_TYPE_LABELS,
+  PRIORITY_LABELS,
+  STATUS_LABELS,
 } from "../api";
-import type {
-  RequestType, Priority, SupportTicket, FaqEntry,
-} from "../types";
+import type { RequestType, Priority, SupportTicket, FaqEntry } from "../types";
 
 const CATEGORY_CARDS = [
-  { type: "bug_report" as RequestType, label: "Report a Bug", icon: Bug, color: "text-destructive" },
-  { type: "feature_request" as RequestType, label: "Request a Feature", icon: Lightbulb, color: "text-primary" },
-  { type: "enhancement_request" as RequestType, label: "Suggest Improvement", icon: TrendingUp, color: "text-accent-foreground" },
-  { type: "general_feedback" as RequestType, label: "Contact Support", icon: MessageCircle, color: "text-muted-foreground" },
+  {
+    type: "bug_report" as RequestType,
+    label: "Report a Bug",
+    icon: Bug,
+    color: "text-destructive",
+  },
+  {
+    type: "feature_request" as RequestType,
+    label: "Request a Feature",
+    icon: Lightbulb,
+    color: "text-primary",
+  },
+  {
+    type: "enhancement_request" as RequestType,
+    label: "Suggest Improvement",
+    icon: TrendingUp,
+    color: "text-accent-foreground",
+  },
+  {
+    type: "general_feedback" as RequestType,
+    label: "Contact Support",
+    icon: MessageCircle,
+    color: "text-muted-foreground",
+  },
 ];
 
 const FAQ_CATEGORY_LABELS: Record<string, string> = {
@@ -72,10 +119,14 @@ const FAQ_CATEGORY_LABELS: Record<string, string> = {
 
 function statusIcon(status: string) {
   switch (status) {
-    case "open": return <AlertCircle className="h-4 w-4 text-warning" />;
-    case "in_progress": return <Clock className="h-4 w-4 text-primary" />;
-    case "resolved": return <CheckCircle2 className="h-4 w-4 text-accent-foreground" />;
-    default: return <CheckCircle2 className="h-4 w-4 text-muted-foreground" />;
+    case "open":
+      return <AlertCircle className="h-4 w-4 text-warning" />;
+    case "in_progress":
+      return <Clock className="h-4 w-4 text-primary" />;
+    case "resolved":
+      return <CheckCircle2 className="h-4 w-4 text-accent-foreground" />;
+    default:
+      return <CheckCircle2 className="h-4 w-4 text-muted-foreground" />;
   }
 }
 
@@ -91,7 +142,8 @@ export default function SupportPage() {
   const userId = user?.id;
 
   // Form state
-  const [requestType, setRequestType] = useState<RequestType>("general_feedback");
+  const [requestType, setRequestType] =
+    useState<RequestType>("general_feedback");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [priority, setPriority] = useState<Priority>("medium");
@@ -105,13 +157,23 @@ export default function SupportPage() {
   const [loadingTickets, setLoadingTickets] = useState(false);
 
   // Ticket detail dialog
-  const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
-  const [ticketResponses, setTicketResponses] = useState<any[]>([]);
+  const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(
+    null,
+  );
+  const [ticketResponses, setTicketResponses] = useState<
+    {
+      id: string;
+      author_id: string;
+      message: string;
+      is_admin_response: boolean;
+      created_at: string;
+    }[]
+  >([]);
   const [loadingResponses, setLoadingResponses] = useState(false);
 
   useEffect(() => {
     if (user?.email && !email) setEmail(user.email);
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- email intentionally excluded; runs once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- email intentionally excluded; runs once on mount
   }, [user?.email]);
 
   const loadTickets = useCallback(async () => {
@@ -120,24 +182,34 @@ export default function SupportPage() {
     try {
       const data = await getUserTickets(userId);
       setTickets(data);
-    } catch { /* non-critical */ }
+    } catch {
+      /* non-critical */
+    }
     setLoadingTickets(false);
   }, [userId]);
 
   useEffect(() => {
     loadTickets();
-    getFaqs().then(setFaqs).catch(() => {});
+    getFaqs()
+      .then(setFaqs)
+      .catch(() => {});
   }, [loadTickets]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userId) return;
     if (!title.trim() || title.trim().length > 100) {
-      toast({ title: "Title is required (max 100 characters)", variant: "destructive" });
+      toast({
+        title: "Title is required (max 100 characters)",
+        variant: "destructive",
+      });
       return;
     }
     if (!description.trim() || description.trim().length < 20) {
-      toast({ title: "Description must be at least 20 characters", variant: "destructive" });
+      toast({
+        title: "Description must be at least 20 characters",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -162,13 +234,19 @@ export default function SupportPage() {
       setRequestType("general_feedback");
       loadTickets();
     } else {
-      toast({ title: "Failed to submit ticket", description: result.error, variant: "destructive" });
+      toast({
+        title: "Failed to submit ticket",
+        description: result.error,
+        variant: "destructive",
+      });
     }
   };
 
   const selectCategory = (type: RequestType) => {
     setRequestType(type);
-    document.getElementById("support-form")?.scrollIntoView({ behavior: "smooth" });
+    document
+      .getElementById("support-form")
+      ?.scrollIntoView({ behavior: "smooth" });
   };
 
   // Role-based FAQ visibility:
@@ -177,7 +255,9 @@ export default function SupportPage() {
   // Job seeker (default) → sees audience='all' and audience='job_seeker'.
   const visibleFaqs = useMemo(() => {
     if (isAdmin) return faqs;
-    const allowed = new Set(isRecruiterRole(role) ? ["all", "recruiter"] : ["all", "job_seeker"]);
+    const allowed = new Set(
+      isRecruiterRole(role) ? ["all", "recruiter"] : ["all", "job_seeker"],
+    );
     return faqs.filter((f) => allowed.has(f.audience ?? "all"));
   }, [faqs, isAdmin, role]);
 
@@ -186,7 +266,7 @@ export default function SupportPage() {
     (f) =>
       !faqSearch ||
       f.question.toLowerCase().includes(faqSearch.toLowerCase()) ||
-      f.answer.toLowerCase().includes(faqSearch.toLowerCase())
+      f.answer.toLowerCase().includes(faqSearch.toLowerCase()),
   );
   const faqCategories = [...new Set(filteredFaqs.map((f) => f.category))];
 
@@ -195,7 +275,9 @@ export default function SupportPage() {
       <div className="max-w-4xl mx-auto p-4 md:p-6 space-y-8">
         {/* Header */}
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-foreground">Support Center</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground">
+            Support Center
+          </h1>
           <p className="text-muted-foreground mt-1">
             Get help, report issues, or share feedback to improve iCareerOS.
           </p>
@@ -222,7 +304,9 @@ export default function SupportPage() {
                 >
                   <CardContent className="flex flex-col items-center gap-2 p-4 text-center">
                     <cat.icon className={`h-6 w-6 ${cat.color}`} />
-                    <span className="text-xs font-medium text-foreground">{cat.label}</span>
+                    <span className="text-xs font-medium text-foreground">
+                      {cat.label}
+                    </span>
                   </CardContent>
                 </Card>
               ))}
@@ -232,41 +316,59 @@ export default function SupportPage() {
             <Card id="support-form">
               <CardHeader>
                 <CardTitle className="text-lg">Submit a Request</CardTitle>
-                <CardDescription>Fill out the form below and we'll respond as soon as possible.</CardDescription>
+                <CardDescription>
+                  Fill out the form below and we'll respond as soon as possible.
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="request-type">Request Type</Label>
-                      <Select value={requestType} onValueChange={(v) => setRequestType(v as RequestType)}>
+                      <Select
+                        value={requestType}
+                        onValueChange={(v) => setRequestType(v as RequestType)}
+                      >
                         <SelectTrigger id="request-type">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {Object.entries(REQUEST_TYPE_LABELS).map(([val, label]) => (
-                            <SelectItem key={val} value={val}>{label}</SelectItem>
-                          ))}
+                          {Object.entries(REQUEST_TYPE_LABELS).map(
+                            ([val, label]) => (
+                              <SelectItem key={val} value={val}>
+                                {label}
+                              </SelectItem>
+                            ),
+                          )}
                         </SelectContent>
                       </Select>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="priority">Priority</Label>
-                      <Select value={priority} onValueChange={(v) => setPriority(v as Priority)}>
+                      <Select
+                        value={priority}
+                        onValueChange={(v) => setPriority(v as Priority)}
+                      >
                         <SelectTrigger id="priority">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {Object.entries(PRIORITY_LABELS).map(([val, label]) => (
-                            <SelectItem key={val} value={val}>{label}</SelectItem>
-                          ))}
+                          {Object.entries(PRIORITY_LABELS).map(
+                            ([val, label]) => (
+                              <SelectItem key={val} value={val}>
+                                {label}
+                              </SelectItem>
+                            ),
+                          )}
                         </SelectContent>
                       </Select>
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="title">Title <span className="text-destructive">*</span></Label>
+                    <Label htmlFor="title">
+                      Title <span className="text-destructive">*</span>
+                    </Label>
                     <Input
                       id="title"
                       value={title}
@@ -274,11 +376,15 @@ export default function SupportPage() {
                       placeholder="Brief summary of your request"
                       maxLength={100}
                     />
-                    <p className="text-xs text-muted-foreground">{title.length}/100</p>
+                    <p className="text-xs text-muted-foreground">
+                      {title.length}/100
+                    </p>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="description">Description <span className="text-destructive">*</span></Label>
+                    <Label htmlFor="description">
+                      Description <span className="text-destructive">*</span>
+                    </Label>
                     <Textarea
                       id="description"
                       value={description}
@@ -286,7 +392,9 @@ export default function SupportPage() {
                       placeholder="Provide details (min 20 characters)..."
                       rows={5}
                     />
-                    <p className="text-xs text-muted-foreground">{description.length} characters (min 20)</p>
+                    <p className="text-xs text-muted-foreground">
+                      {description.length} characters (min 20)
+                    </p>
                   </div>
 
                   <div className="space-y-2">
@@ -300,11 +408,20 @@ export default function SupportPage() {
                     />
                   </div>
 
-                  <Button type="submit" disabled={submitting} className="w-full md:w-auto">
+                  <Button
+                    type="submit"
+                    disabled={submitting}
+                    className="w-full md:w-auto"
+                  >
                     {submitting ? (
-                      <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Submitting...</>
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
+                        Submitting...
+                      </>
                     ) : (
-                      <><Send className="mr-2 h-4 w-4" /> Submit Request</>
+                      <>
+                        <Send className="mr-2 h-4 w-4" /> Submit Request
+                      </>
                     )}
                   </Button>
                 </form>
@@ -325,12 +442,16 @@ export default function SupportPage() {
             </div>
 
             {faqCategories.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">No matching articles found.</p>
+              <p className="text-center text-muted-foreground py-8">
+                No matching articles found.
+              </p>
             ) : (
               faqCategories.map((cat) => (
                 <Card key={cat}>
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-base">{FAQ_CATEGORY_LABELS[cat] || cat}</CardTitle>
+                    <CardTitle className="text-base">
+                      {FAQ_CATEGORY_LABELS[cat] || cat}
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <Accordion type="multiple">
@@ -356,9 +477,20 @@ export default function SupportPage() {
           {/* ─── My Tickets Tab ─── */}
           <TabsContent value="tickets" className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-foreground">Your Tickets</h2>
-              <Button variant="outline" size="sm" onClick={loadTickets} disabled={loadingTickets}>
-                {loadingTickets ? <Loader2 className="h-4 w-4 animate-spin" /> : "Refresh"}
+              <h2 className="text-lg font-semibold text-foreground">
+                Your Tickets
+              </h2>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={loadTickets}
+                disabled={loadingTickets}
+              >
+                {loadingTickets ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  "Refresh"
+                )}
               </Button>
             </div>
 
@@ -367,7 +499,9 @@ export default function SupportPage() {
                 <CardContent className="flex flex-col items-center justify-center py-12 text-center">
                   <MessageCircle className="h-10 w-10 text-muted-foreground/40 mb-3" />
                   <p className="text-muted-foreground">No tickets yet.</p>
-                  <p className="text-xs text-muted-foreground">Submit a request and it will appear here.</p>
+                  <p className="text-xs text-muted-foreground">
+                    Submit a request and it will appear here.
+                  </p>
                 </CardContent>
               </Card>
             ) : (
@@ -385,8 +519,10 @@ export default function SupportPage() {
                           .select("*")
                           .eq("ticket_id", ticket.id)
                           .order("created_at", { ascending: true });
-                        setTicketResponses((data as any[]) || []);
-                      } catch { setTicketResponses([]); }
+                        setTicketResponses(data || []);
+                      } catch {
+                        setTicketResponses([]);
+                      }
                       setLoadingResponses(false);
                     }}
                   >
@@ -400,15 +536,30 @@ export default function SupportPage() {
                             </span>
                           </div>
                           <div className="flex flex-wrap gap-2 mt-2">
-                            <Badge variant="outline" className="text-xs">{ticket.ticket_number}</Badge>
-                            <Badge variant="secondary" className="text-xs">
-                              {REQUEST_TYPE_LABELS[ticket.request_type as keyof typeof REQUEST_TYPE_LABELS] || ticket.request_type}
-                            </Badge>
-                            <Badge variant={ticket.priority === "high" ? "destructive" : "outline"} className="text-xs">
-                              {PRIORITY_LABELS[ticket.priority as keyof typeof PRIORITY_LABELS] || ticket.priority}
+                            <Badge variant="outline" className="text-xs">
+                              {ticket.ticket_number}
                             </Badge>
                             <Badge variant="secondary" className="text-xs">
-                              {STATUS_LABELS[ticket.status as keyof typeof STATUS_LABELS] || ticket.status}
+                              {REQUEST_TYPE_LABELS[
+                                ticket.request_type as keyof typeof REQUEST_TYPE_LABELS
+                              ] || ticket.request_type}
+                            </Badge>
+                            <Badge
+                              variant={
+                                ticket.priority === "high"
+                                  ? "destructive"
+                                  : "outline"
+                              }
+                              className="text-xs"
+                            >
+                              {PRIORITY_LABELS[
+                                ticket.priority as keyof typeof PRIORITY_LABELS
+                              ] || ticket.priority}
+                            </Badge>
+                            <Badge variant="secondary" className="text-xs">
+                              {STATUS_LABELS[
+                                ticket.status as keyof typeof STATUS_LABELS
+                              ] || ticket.status}
                             </Badge>
                           </div>
                         </div>
@@ -425,23 +576,32 @@ export default function SupportPage() {
         </Tabs>
 
         {/* Ticket Detail Dialog */}
-        <Dialog open={!!selectedTicket} onOpenChange={(open) => !open && setSelectedTicket(null)}>
+        <Dialog
+          open={!!selectedTicket}
+          onOpenChange={(open) => !open && setSelectedTicket(null)}
+        >
           <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
             {selectedTicket && (
               <>
                 <DialogHeader>
                   <DialogTitle>{selectedTicket.title}</DialogTitle>
                   <DialogDescription className="flex flex-wrap gap-2 pt-1">
-                    <Badge variant="outline" className="font-mono text-xs">{selectedTicket.ticket_number}</Badge>
+                    <Badge variant="outline" className="font-mono text-xs">
+                      {selectedTicket.ticket_number}
+                    </Badge>
                     <Badge variant="secondary" className="text-xs">
-                      {STATUS_LABELS[selectedTicket.status as keyof typeof STATUS_LABELS] || selectedTicket.status}
+                      {STATUS_LABELS[
+                        selectedTicket.status as keyof typeof STATUS_LABELS
+                      ] || selectedTicket.status}
                     </Badge>
                   </DialogDescription>
                 </DialogHeader>
 
                 <div className="space-y-4">
                   <div>
-                    <Label className="text-xs text-muted-foreground">Your Description</Label>
+                    <Label className="text-xs text-muted-foreground">
+                      Your Description
+                    </Label>
                     <p className="text-sm text-foreground mt-1 whitespace-pre-wrap bg-muted/30 rounded-md p-3">
                       {selectedTicket.description}
                     </p>
@@ -450,7 +610,9 @@ export default function SupportPage() {
                   <Separator />
 
                   <div>
-                    <Label className="text-xs text-muted-foreground mb-2 block">Responses</Label>
+                    <Label className="text-xs text-muted-foreground mb-2 block">
+                      Responses
+                    </Label>
                     {loadingResponses ? (
                       <div className="flex justify-center py-4">
                         <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
@@ -461,7 +623,7 @@ export default function SupportPage() {
                       </p>
                     ) : (
                       <div className="space-y-3">
-                        {ticketResponses.map((r: any) => (
+                        {ticketResponses.map((r) => (
                           <div
                             key={r.id}
                             className={`rounded-lg p-3 text-sm ${
@@ -471,14 +633,21 @@ export default function SupportPage() {
                             }`}
                           >
                             <div className="flex items-center gap-2 mb-1">
-                              <Badge variant={r.is_admin_response ? "default" : "secondary"} className="text-xs">
+                              <Badge
+                                variant={
+                                  r.is_admin_response ? "default" : "secondary"
+                                }
+                                className="text-xs"
+                              >
                                 {r.is_admin_response ? "Support Team" : "You"}
                               </Badge>
                               <span className="text-xs text-muted-foreground">
                                 {new Date(r.created_at).toLocaleString()}
                               </span>
                             </div>
-                            <p className="text-foreground whitespace-pre-wrap">{r.message}</p>
+                            <p className="text-foreground whitespace-pre-wrap">
+                              {r.message}
+                            </p>
                           </div>
                         ))}
                       </div>

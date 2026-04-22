@@ -2,22 +2,28 @@ import { useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 /**
- * SmartNotificationEngine runs once on mount and generates contextual 
+ * SmartNotificationEngine runs once on mount and generates contextual
  * notifications based on user data: missed opportunities, deadline reminders,
  * under-market nudges, and personalized weekly insights.
- * 
+ *
  * Renders nothing — pure side-effect component.
  */
 export default function SmartNotificationEngine() {
   const generate = useCallback(async () => {
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
     if (!session) return;
 
     const userId = session.user.id;
     const now = new Date();
 
     // Check if we already generated notifications today
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+    const todayStart = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    ).toISOString();
     const { data: existing } = await supabase
       .from("notifications")
       .select("id")
@@ -27,18 +33,26 @@ export default function SmartNotificationEngine() {
 
     if (existing && existing.length > 0) return; // Already ran today
 
-    const notifications: { user_id: string; type: string; title: string; message: string; action_url: string }[] = [];
+    const notifications: {
+      user_id: string;
+      type: string;
+      title: string;
+      message: string;
+      action_url: string;
+    }[] = [];
 
     // 1. Offer deadline reminders
     const { data: offers } = await supabase
       .from("offers")
       .select("job_title, company, deadline, status")
       .eq("user_id", userId)
-      .eq("status", "negotiating") as any;
+      .eq("status", "negotiating");
 
-    for (const offer of (offers || [])) {
+    for (const offer of offers || []) {
       if (!offer.deadline) continue;
-      const daysLeft = Math.ceil((new Date(offer.deadline).getTime() - now.getTime()) / 86400000);
+      const daysLeft = Math.ceil(
+        (new Date(offer.deadline).getTime() - now.getTime()) / 86400000,
+      );
       if (daysLeft > 0 && daysLeft <= 3) {
         notifications.push({
           user_id: userId,
@@ -57,19 +71,26 @@ export default function SmartNotificationEngine() {
       .eq("user_id", userId)
       .maybeSingle();
 
-    const acceptedOffers = (offers || []).filter((o: any) => o.status === "accepted");
+    const acceptedOffers = (offers || []).filter(
+      (o: any) => o.status === "accepted",
+    );
     if (profile?.salary_target && acceptedOffers.length === 0) {
-      const targetNum = parseInt(String(profile.salary_target).replace(/[^0-9]/g, ""));
+      const targetNum = parseInt(
+        String(profile.salary_target).replace(/[^0-9]/g, ""),
+      );
       if (targetNum > 0) {
         const { data: analyses } = await supabase
-          .from("analysis_history" as any)
+          .from("analysis_history")
           .select("overall_score")
           .eq("user_id", userId)
           .order("created_at", { ascending: false })
-          .limit(5) as any;
+          .limit(5);
 
         const avgScore = analyses?.length
-          ? Math.round(analyses.reduce((s: number, a: any) => s + a.overall_score, 0) / analyses.length)
+          ? Math.round(
+              analyses.reduce((s: number, a: any) => s + a.overall_score, 0) /
+                analyses.length,
+            )
           : 0;
 
         if (avgScore > 0 && avgScore < 60) {
@@ -100,7 +121,7 @@ export default function SmartNotificationEngine() {
         user_id: userId,
         type: "action",
         title: `📬 ${staleApps.length} application${staleApps.length > 1 ? "s" : ""} need follow-up`,
-        message: `${staleApps.map(a => `${a.job_title} at ${a.company}`).join(", ")} — following up increases response rate by 30%.`,
+        message: `${staleApps.map((a) => `${a.job_title} at ${a.company}`).join(", ")} — following up increases response rate by 30%.`,
         action_url: "/applications",
       });
     }
@@ -108,28 +129,38 @@ export default function SmartNotificationEngine() {
     // 4. Weekly insights (only on Mondays or if no recent insight)
     if (now.getDay() === 1 || notifications.length === 0) {
       const { data: recentAnalyses } = await supabase
-        .from("analysis_history" as any)
+        .from("analysis_history")
         .select("overall_score, created_at")
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
-        .limit(10) as any;
+        .limit(10);
 
-      if (recentAnalyses?.length >= 2) {
+      if (recentAnalyses && recentAnalyses.length >= 2) {
         const recent = recentAnalyses.slice(0, 5);
         const older = recentAnalyses.slice(5);
-        const recentAvg = Math.round(recent.reduce((s: number, a: any) => s + a.overall_score, 0) / recent.length);
-        const olderAvg = older.length > 0 ? Math.round(older.reduce((s: number, a: any) => s + a.overall_score, 0) / older.length) : recentAvg;
+        const recentAvg = Math.round(
+          recent.reduce((s: number, a: any) => s + a.overall_score, 0) /
+            recent.length,
+        );
+        const olderAvg =
+          older.length > 0
+            ? Math.round(
+                older.reduce((s: number, a: any) => s + a.overall_score, 0) /
+                  older.length,
+              )
+            : recentAvg;
         const delta = recentAvg - olderAvg;
 
         notifications.push({
           user_id: userId,
           type: "insight",
           title: "📊 Your Weekly Career Update",
-          message: delta > 0
-            ? `Your fit scores improved by +${delta}% (avg ${recentAvg}%). Keep optimizing to maintain momentum.`
-            : delta < 0
-            ? `Your fit scores dipped ${delta}% (avg ${recentAvg}%). Consider refreshing your resume or targeting different roles.`
-            : `Your fit scores are holding steady at ${recentAvg}%. Try analyzing new job postings to find better matches.`,
+          message:
+            delta > 0
+              ? `Your fit scores improved by +${delta}% (avg ${recentAvg}%). Keep optimizing to maintain momentum.`
+              : delta < 0
+                ? `Your fit scores dipped ${delta}% (avg ${recentAvg}%). Consider refreshing your resume or targeting different roles.`
+                : `Your fit scores are holding steady at ${recentAvg}%. Try analyzing new job postings to find better matches.`,
           action_url: "/dashboard",
         });
       }

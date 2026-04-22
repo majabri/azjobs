@@ -1,14 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { callAnthropic } from "../_shared/anthropic.ts";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+import { corsHeaders } from "../_shared/cors.ts";
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method === "OPTIONS")
+    return new Response(null, { headers: corsHeaders });
 
   try {
     const body = await req.json();
@@ -37,9 +33,18 @@ Be honest but constructive. Return only valid JSON.`;
       });
 
       let parsed;
-      try { parsed = JSON.parse(evalResult.content); } catch { const m = evalResult.content.match(/\{[\s\S]*\}/); parsed = m ? JSON.parse(m[0]) : { score: 50, feedback: evalResult.content }; }
+      try {
+        parsed = JSON.parse(evalResult.content);
+      } catch {
+        const m = evalResult.content.match(/\{[\s\S]*\}/);
+        parsed = m
+          ? JSON.parse(m[0])
+          : { score: 50, feedback: evalResult.content };
+      }
 
-      return new Response(JSON.stringify(parsed), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify(parsed), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Predict mode: generate interview questions
@@ -75,13 +80,26 @@ Return only valid JSON.`;
     });
 
     let parsed;
-    try { parsed = JSON.parse(result.content); } catch { const m = result.content.match(/\{[\s\S]*\}/); parsed = m ? JSON.parse(m[0]) : { questions: [] }; }
+    try {
+      parsed = JSON.parse(result.content);
+    } catch {
+      const m = result.content.match(/\{[\s\S]*\}/);
+      parsed = m ? JSON.parse(m[0]) : { questions: [] };
+    }
 
-    return new Response(JSON.stringify(parsed), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify(parsed), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (e) {
     console.error("interview-predictor error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({
+        error: e instanceof Error ? e.message : "Unknown error",
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   }
 });

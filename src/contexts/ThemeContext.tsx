@@ -23,7 +23,7 @@ import {
 } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { logger } from '@/lib/logger';
+import { logger } from "@/lib/logger";
 
 export type ThemePreference = "light" | "dark" | "system";
 type ResolvedTheme = "light" | "dark";
@@ -64,7 +64,9 @@ function applyToDOM(resolved: ResolvedTheme) {
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [theme, setThemeState] = useState<ThemePreference>("system");
-  const [resolved, setResolved] = useState<ResolvedTheme>(() => resolve("system"));
+  const [resolved, setResolved] = useState<ResolvedTheme>(() =>
+    resolve("system"),
+  );
 
   // On mount / user change — read saved preference from Supabase
   useEffect(() => {
@@ -130,10 +132,15 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       if (user) {
         supabase
           .from("profiles")
+
           .update({ theme: next } as any)
           .eq("id", user.id)
           .then(({ error }) => {
-            if (error) logger.warn("[ThemeContext] Failed to persist theme:", error.message);
+            if (error)
+              logger.warn(
+                "[ThemeContext] Failed to persist theme:",
+                error.message,
+              );
           });
       }
     },

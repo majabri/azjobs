@@ -73,7 +73,7 @@ export default function AdminTickets() {
   const load = async () => {
     setLoading(true);
     try {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("support_tickets")
         .select("*")
         .order("created_at", { ascending: false });
@@ -97,7 +97,7 @@ export default function AdminTickets() {
       if (newStatus === "resolved" || newStatus === "closed") {
         updates.resolved_at = new Date().toISOString();
       }
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from("support_tickets")
         .update(updates)
         .eq("id", ticketId);
@@ -105,8 +105,10 @@ export default function AdminTickets() {
       toast.success("Ticket status updated");
       setTickets((prev) =>
         prev.map((t) =>
-          t.id === ticketId ? { ...t, ...(updates as Partial<SupportTicket>) } : t
-        )
+          t.id === ticketId
+            ? { ...t, ...(updates as Partial<SupportTicket>) }
+            : t,
+        ),
       );
     } catch (e) {
       console.error(e);
@@ -145,7 +147,8 @@ export default function AdminTickets() {
             Support Tickets
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            {tickets.length} total · {counts.open} open · {counts.in_progress} in progress
+            {tickets.length} total · {counts.open} open · {counts.in_progress}{" "}
+            in progress
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={load}>
@@ -158,7 +161,11 @@ export default function AdminTickets() {
       <div className="grid grid-cols-3 gap-4">
         {[
           { label: "Open", count: counts.open, color: "text-warning" },
-          { label: "In Progress", count: counts.in_progress, color: "text-accent" },
+          {
+            label: "In Progress",
+            count: counts.in_progress,
+            color: "text-accent",
+          },
           { label: "Resolved", count: counts.resolved, color: "text-success" },
         ].map((s) => (
           <div
@@ -228,7 +235,7 @@ export default function AdminTickets() {
                     className="flex items-center justify-between gap-3 p-3 bg-muted/10 cursor-pointer hover:bg-muted/20 transition-colors"
                     onClick={() =>
                       setExpandedId((prev) =>
-                        prev === ticket.id ? null : ticket.id
+                        prev === ticket.id ? null : ticket.id,
                       )
                     }
                   >
@@ -277,13 +284,17 @@ export default function AdminTickets() {
                           <p className="font-medium">{ticket.email ?? "—"}</p>
                         </div>
                         <div>
-                          <p className="text-muted-foreground mb-0.5">Submitted</p>
+                          <p className="text-muted-foreground mb-0.5">
+                            Submitted
+                          </p>
                           <p className="font-medium">
                             {new Date(ticket.created_at).toLocaleString()}
                           </p>
                         </div>
                         <div>
-                          <p className="text-muted-foreground mb-0.5">User ID</p>
+                          <p className="text-muted-foreground mb-0.5">
+                            User ID
+                          </p>
                           <p className="font-mono text-[10px]">
                             {ticket.user_id.slice(0, 12)}…
                           </p>
@@ -310,7 +321,9 @@ export default function AdminTickets() {
                           (s) => (
                             <Button
                               key={s}
-                              variant={ticket.status === s ? "default" : "outline"}
+                              variant={
+                                ticket.status === s ? "default" : "outline"
+                              }
                               size="sm"
                               className="h-7 text-[11px] capitalize"
                               disabled={
@@ -323,7 +336,7 @@ export default function AdminTickets() {
                             >
                               {s.replace("_", " ")}
                             </Button>
-                          )
+                          ),
                         )}
                       </div>
                     </div>

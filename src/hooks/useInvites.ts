@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { logger } from '@/lib/logger';
+import { logger } from "@/lib/logger";
 
 const DAILY_LIMIT = 5;
 
@@ -22,8 +22,14 @@ interface UseInvitesReturn {
   invitations: Invitation[];
   invitesRemaining: number;
   isLoading: boolean;
-  sendEmailInvite: (email: string) => Promise<{ success: boolean; error?: string }>;
-  generateCode: () => Promise<{ success: boolean; code?: string; error?: string }>;
+  sendEmailInvite: (
+    email: string,
+  ) => Promise<{ success: boolean; error?: string }>;
+  generateCode: () => Promise<{
+    success: boolean;
+    code?: string;
+    error?: string;
+  }>;
   refresh: () => Promise<void>;
 }
 
@@ -34,7 +40,9 @@ export function useInvites(): UseInvitesReturn {
 
   const refresh = useCallback(async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return;
 
       const { data: invites } = await supabase
@@ -43,11 +51,11 @@ export function useInvites(): UseInvitesReturn {
         .eq("inviter_id", user.id)
         .order("created_at", { ascending: false });
 
-      setInvitations(invites || []);
+      setInvitations((invites as unknown as Invitation[]) || []);
 
       const today = new Date().toISOString().split("T")[0];
-      const todayCount = (invites || []).filter(
-        (inv) => inv.created_at.startsWith(today)
+      const todayCount = (invites || []).filter((inv) =>
+        inv.created_at.startsWith(today),
       ).length;
       setInvitesRemaining(Math.max(0, DAILY_LIMIT - todayCount));
     } catch (err) {
@@ -74,7 +82,7 @@ export function useInvites(): UseInvitesReturn {
       await refresh();
       return { success: true };
     },
-    [refresh, invitesRemaining]
+    [refresh, invitesRemaining],
   );
 
   const generateCode = useCallback(async (): Promise<{

@@ -1,14 +1,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { corsHeaders } from "../_shared/cors.ts";
 
 // ~100 years effective ban duration
 const PERMANENT_BAN_DURATION = "876600h";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -28,12 +23,19 @@ serve(async (req) => {
   }
 
   // Use the caller's JWT to verify admin role
-  const callerClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
-    global: { headers: { Authorization: authHeader } },
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
+  const callerClient = createClient(
+    supabaseUrl,
+    Deno.env.get("SUPABASE_ANON_KEY")!,
+    {
+      global: { headers: { Authorization: authHeader } },
+      auth: { autoRefreshToken: false, persistSession: false },
+    },
+  );
 
-  const { data: { user: callerUser }, error: callerError } = await callerClient.auth.getUser();
+  const {
+    data: { user: callerUser },
+    error: callerError,
+  } = await callerClient.auth.getUser();
   if (callerError || !callerUser) {
     return new Response(JSON.stringify({ error: "Invalid session" }), {
       status: 401,
@@ -49,10 +51,13 @@ serve(async (req) => {
     .single();
 
   if (!roleData || roleData.role !== "admin") {
-    return new Response(JSON.stringify({ error: "Forbidden: admin role required" }), {
-      status: 403,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ error: "Forbidden: admin role required" }),
+      {
+        status: 403,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   }
 
   // Admin client with service role for privileged operations
@@ -67,19 +72,23 @@ serve(async (req) => {
     const { email, fullName, role, password, phone, username } = body;
 
     if (!email || !role) {
-      return new Response(JSON.stringify({ error: "email and role are required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "email and role are required" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
 
     // Create the auth user
-    const { data: newUser, error: createError } = await adminClient.auth.admin.createUser({
-      email,
-      password: password ? password : undefined,
-      email_confirm: true,
-      user_metadata: { full_name: fullName ?? "" },
-    });
+    const { data: newUser, error: createError } =
+      await adminClient.auth.admin.createUser({
+        email,
+        password: password ? password : undefined,
+        email_confirm: true,
+        user_metadata: { full_name: fullName ?? "" },
+      });
 
     if (createError) {
       return new Response(JSON.stringify({ error: createError.message }), {
@@ -97,10 +106,11 @@ serve(async (req) => {
 
     // Insert job_seeker_profile if relevant
     if (role === "job_seeker" || role === "recruiter") {
-      await adminClient.from("job_seeker_profiles" as any).upsert(
-        { user_id: userId, full_name: fullName ?? "", email } as any,
-        { onConflict: "user_id" },
-      );
+      await adminClient
+        .from("job_seeker_profiles" as any)
+        .upsert({ user_id: userId, full_name: fullName ?? "", email } as any, {
+          onConflict: "user_id",
+        });
     }
 
     // Sync email, full_name, phone, and optional username into profiles table
@@ -116,10 +126,9 @@ serve(async (req) => {
       .update(profileUpdate as any)
       .eq("user_id", userId);
 
-    return new Response(
-      JSON.stringify({ success: true, userId, email }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+    return new Response(JSON.stringify({ success: true, userId, email }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 
   if (action === "delete") {
@@ -134,17 +143,32 @@ serve(async (req) => {
 
     // Prevent self-deletion
     if (userId === callerUser.id) {
-      return new Response(JSON.stringify({ error: "Cannot delete your own account" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "Cannot delete your own account" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
 
     // Clean up all related database records first (non-fatal if already gone)
-    await adminClient.from("job_seeker_profiles" as any).delete().eq("user_id", userId);
-    await adminClient.from("resume_versions" as any).delete().eq("user_id", userId);
-    await adminClient.from("agent_runs" as any).delete().eq("user_id", userId);
-    await adminClient.from("learning_events" as any).delete().eq("user_id", userId);
+    await adminClient
+      .from("job_seeker_profiles" as any)
+      .delete()
+      .eq("user_id", userId);
+    await adminClient
+      .from("resume_versions" as any)
+      .delete()
+      .eq("user_id", userId);
+    await adminClient
+      .from("agent_runs" as any)
+      .delete()
+      .eq("user_id", userId);
+    await adminClient
+      .from("learning_events" as any)
+      .delete()
+      .eq("user_id", userId);
     await adminClient.from("user_roles").delete().eq("user_id", userId);
     await adminClient.from("profiles").delete().eq("user_id", userId);
     await adminClient.from("notifications").delete().eq("user_id", userId);
@@ -155,21 +179,27 @@ serve(async (req) => {
     await adminClient.from("interview_sessions").delete().eq("user_id", userId);
     await adminClient.from("ignored_jobs").delete().eq("user_id", userId);
     await adminClient.from("offers").delete().eq("user_id", userId);
-    await adminClient.from("scraped_jobs" as any).delete().eq("user_id", userId);
+    await adminClient
+      .from("scraped_jobs" as any)
+      .delete()
+      .eq("user_id", userId);
 
     // Try to delete the auth user; ignore "not found" (already gone)
-    const { error: deleteError } = await adminClient.auth.admin.deleteUser(userId);
-    if (deleteError && !deleteError.message?.toLowerCase().includes("not found")) {
+    const { error: deleteError } =
+      await adminClient.auth.admin.deleteUser(userId);
+    if (
+      deleteError &&
+      !deleteError.message?.toLowerCase().includes("not found")
+    ) {
       return new Response(JSON.stringify({ error: deleteError.message }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    return new Response(
-      JSON.stringify({ success: true }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+    return new Response(JSON.stringify({ success: true }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 
   if (action === "update") {
@@ -186,7 +216,8 @@ serve(async (req) => {
     if (newEmail) updates.email = newEmail;
     if (fullName !== undefined) {
       // Fetch existing metadata so we don't wipe other fields (e.g. must_set_password)
-      const { data: existingUser } = await adminClient.auth.admin.getUserById(userId);
+      const { data: existingUser } =
+        await adminClient.auth.admin.getUserById(userId);
       const existingMeta = existingUser?.user?.user_metadata ?? {};
       updates.user_metadata = { ...existingMeta, full_name: fullName };
     }
@@ -199,7 +230,8 @@ serve(async (req) => {
     }
 
     if (Object.keys(updates).length > 0) {
-      const { error: updateError } = await adminClient.auth.admin.updateUserById(userId, updates);
+      const { error: updateError } =
+        await adminClient.auth.admin.updateUserById(userId, updates);
       if (updateError) {
         return new Response(JSON.stringify({ error: updateError.message }), {
           status: 400,
@@ -233,10 +265,9 @@ serve(async (req) => {
         .eq("user_id", userId);
     }
 
-    return new Response(
-      JSON.stringify({ success: true }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+    return new Response(JSON.stringify({ success: true }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 
   // ── Ban / disable user ──────────────────────────────────────────────────
@@ -249,14 +280,20 @@ serve(async (req) => {
       });
     }
     if (userId === callerUser.id) {
-      return new Response(JSON.stringify({ error: "Cannot disable your own account" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "Cannot disable your own account" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
-    const { error: banError } = await adminClient.auth.admin.updateUserById(userId, {
-      ban_duration: PERMANENT_BAN_DURATION,
-    });
+    const { error: banError } = await adminClient.auth.admin.updateUserById(
+      userId,
+      {
+        ban_duration: PERMANENT_BAN_DURATION,
+      },
+    );
     if (banError) {
       return new Response(JSON.stringify({ error: banError.message }), {
         status: 400,
