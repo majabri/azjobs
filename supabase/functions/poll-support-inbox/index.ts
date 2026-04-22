@@ -61,6 +61,34 @@ function inferCategory(subject: string): string {
   return "general";
 }
 
+// ── Skip system/bounce emails that should never become tickets ───────────────
+const BOUNCE_FROM_PATTERNS = [
+  /mailer-daemon/i,
+  /mail delivery system/i,
+  /postmaster/i,
+  /no-?reply@/i,
+  /noreply@/i,
+  /cpanel@/i,
+  /whm@/i,
+  /root@/i,
+];
+
+const BOUNCE_SUBJECT_PATTERNS = [
+  /^mail delivery failed/i,
+  /^delivery status notification/i,
+  /^undelivered mail returned/i,
+  /^returned mail:/i,
+  /^auto-?reply:/i,
+  /^out of office/i,
+  /^automatic reply/i,
+];
+
+function isSystemEmail(fromAddr: string, subject: string): boolean {
+  if (BOUNCE_FROM_PATTERNS.some((p) => p.test(fromAddr))) return true;
+  if (BOUNCE_SUBJECT_PATTERNS.some((p) => p.test(subject))) return true;
+  return false;
+}
+
 // ── Strip reply history from email body ─────────────────────────────────────
 function cleanBody(text: string): string {
   // Trim lines after common reply separators (Outlook, Gmail, Apple Mail)
@@ -139,6 +167,27 @@ Deno.serve(async (req) => {
           const fromAddr = parsed.from?.value?.[0]?.address ?? "";
           const fromName = parsed.from?.value?.[0]?.name ?? fromAddr;
           const subject = (parsed.subject ?? "(no subject)").slice(0, 100);
+
+          // Skip bounces, auto-replies, and system emails
+          if (isSystemEmail(fromAddr, subject)) {
+            log("info", "poll-support-inbox: skipping system/bounce email", {
+              fromAddr,
+              subject,
+            });
+            processed++;
+            continue;
+          }
+
+          // Also skip emails sent from our own address (avoid looping)
+          if (fromAddr.toLowerCase() === imapUser!.toLowerCase()) {
+            log("info", "poll-support-inbox: skipping self-sent email", {
+              fromAddr,
+              subject,
+            });
+            processed++;
+            continue;
+          }
+
           const bodyText = cleanBody(parsed.text ?? parsed.html ?? "").slice(
             0,
             8000,
