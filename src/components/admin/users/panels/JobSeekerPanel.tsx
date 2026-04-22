@@ -1,7 +1,19 @@
 import { useState, useCallback, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Users, Bot, FileText, UserCircle, Briefcase, Clock, Shield, Activity, UserX, Pencil, Trash2 } from "lucide-react";
+import {
+  Users,
+  Bot,
+  FileText,
+  UserCircle,
+  Briefcase,
+  Clock,
+  Shield,
+  Activity,
+  UserX,
+  Pencil,
+  Trash2,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
@@ -29,16 +41,21 @@ export function JobSeekerPanel({
 }) {
   const [records, setRecords] = useState<JobSeekerRecord[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activityUser, setActivityUser] = useState<{ user_id: string; name: string } | null>(null);
+  const [activityUser, setActivityUser] = useState<{
+    user_id: string;
+    name: string;
+  } | null>(null);
   const [disablingId, setDisablingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const [profilesRes, rolesRes, appsRes, analysesRes] = await Promise.all([
-        supabase.from("job_seeker_profiles").select(
-          "user_id, full_name, email, last_active_at, automation_mode, skills"
-        ),
+        supabase
+          .from("job_seeker_profiles")
+          .select(
+            "user_id, full_name, email, last_active_at, automation_mode, skills",
+          ),
         supabase.from("user_roles").select("user_id, role"),
         supabase.from("job_applications").select("user_id"),
         supabase.from("analysis_history").select("user_id"),
@@ -48,13 +65,16 @@ export function JobSeekerPanel({
       for (const r of rolesRes.data || []) rolesMap.set(r.user_id, r.role);
 
       const appCountMap = new Map<string, number>();
-      for (const a of (appsRes.data || [])) {
+      for (const a of appsRes.data || []) {
         appCountMap.set(a.user_id, (appCountMap.get(a.user_id) ?? 0) + 1);
       }
 
       const analysisCountMap = new Map<string, number>();
-      for (const a of (analysesRes.data || [])) {
-        analysisCountMap.set(a.user_id, (analysisCountMap.get(a.user_id) ?? 0) + 1);
+      for (const a of analysesRes.data || []) {
+        analysisCountMap.set(
+          a.user_id,
+          (analysisCountMap.get(a.user_id) ?? 0) + 1,
+        );
       }
 
       const merged: JobSeekerRecord[] = (profilesRes.data || [])
@@ -80,7 +100,9 @@ export function JobSeekerPanel({
     }
   }, [onRecordsLoaded]);
 
-  useEffect(() => { load(); }, [load, reloadKey]);
+  useEffect(() => {
+    load();
+  }, [load, reloadKey]);
 
   const disableUser = async (userId: string) => {
     setDisablingId(userId);
@@ -116,7 +138,11 @@ export function JobSeekerPanel({
   return (
     <>
       <div className="grid grid-cols-3 gap-3 mb-4">
-        <MiniStat label="Total" value={records.length} icon={<Users className="w-3.5 h-3.5" />} />
+        <MiniStat
+          label="Total"
+          value={records.length}
+          icon={<Users className="w-3.5 h-3.5" />}
+        />
         <MiniStat
           label="Active automation"
           value={records.filter((r) => r.automation_mode !== "manual").length}
@@ -161,23 +187,25 @@ export function JobSeekerPanel({
                   user.automation_mode === "full-auto"
                     ? "text-success border-success/30 text-[10px]"
                     : user.automation_mode === "smart"
-                    ? "text-accent border-accent/30 text-[10px]"
-                    : "text-muted-foreground border-border text-[10px]"
+                      ? "text-accent border-accent/30 text-[10px]"
+                      : "text-muted-foreground border-border text-[10px]"
                 }
               >
                 {user.automation_mode === "full-auto"
                   ? "Autonomous"
                   : user.automation_mode === "smart"
-                  ? "Smart"
-                  : "Manual"}
+                    ? "Smart"
+                    : "Manual"}
               </Badge>
 
               <div className="hidden md:flex items-center gap-3 text-[10px] text-muted-foreground">
                 <span className="flex items-center gap-1">
-                  <FileText className="w-3 h-3" /> {user.analysis_count} analyses
+                  <FileText className="w-3 h-3" /> {user.analysis_count}{" "}
+                  analyses
                 </span>
                 <span className="flex items-center gap-1">
-                  <Briefcase className="w-3 h-3" /> {user.application_count} apps
+                  <Briefcase className="w-3 h-3" /> {user.application_count}{" "}
+                  apps
                 </span>
               </div>
 
@@ -188,7 +216,9 @@ export function JobSeekerPanel({
                   : "Never"}
               </div>
 
-              <Badge className={ROLE_COLORS[user.role] || ROLE_COLORS.job_seeker}>
+              <Badge
+                className={ROLE_COLORS[user.role] || ROLE_COLORS.job_seeker}
+              >
                 {user.role === "admin" && <Shield className="w-3 h-3 mr-1" />}
                 {user.role}
               </Badge>
@@ -205,7 +235,12 @@ export function JobSeekerPanel({
                 variant="ghost"
                 className="h-8 w-8 text-muted-foreground hover:text-accent"
                 title="View activity history"
-                onClick={() => setActivityUser({ user_id: user.user_id, name: user.full_name || user.email || user.user_id })}
+                onClick={() =>
+                  setActivityUser({
+                    user_id: user.user_id,
+                    name: user.full_name || user.email || user.user_id,
+                  })
+                }
               >
                 <Activity className="w-3.5 h-3.5" />
               </Button>

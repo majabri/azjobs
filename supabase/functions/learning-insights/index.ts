@@ -4,27 +4,31 @@ import { callAnthropic } from "../_shared/anthropic.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method === "OPTIONS")
+    return new Response(null, { headers: corsHeaders });
 
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Missing authorization" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      { global: { headers: { Authorization: authHeader } } }
+      { global: { headers: { Authorization: authHeader } } },
     );
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: authData, error: authError } = await supabase.auth.getUser(token);
+    const { data: authData, error: authError } =
+      await supabase.auth.getUser(token);
     if (authError || !authData.user) {
       return new Response(JSON.stringify({ error: "Invalid token" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -41,7 +45,9 @@ serve(async (req) => {
     // Get analysis history
     const { data: analyses } = await supabase
       .from("analysis_history")
-      .select("overall_score, job_title, company, matched_skills, gaps, created_at")
+      .select(
+        "overall_score, job_title, company, matched_skills, gaps, created_at",
+      )
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
       .limit(20);
@@ -49,23 +55,36 @@ serve(async (req) => {
     const prompt = `Analyze this job seeker's application history and analysis scores to find actionable patterns.
 
 APPLICATIONS (${(applications || []).length} total):
-${JSON.stringify((applications || []).map(a => ({
-  title: a.job_title,
-  company: a.company,
-  status: a.status,
-  outcome_detail: a.outcome_detail,
-  interview_stage: a.interview_stage,
-  response_days: a.response_days,
-})).slice(0, 20), null, 0)}
+${JSON.stringify(
+  (applications || [])
+    .map((a) => ({
+      title: a.job_title,
+      company: a.company,
+      status: a.status,
+      outcome_detail: a.outcome_detail,
+      interview_stage: a.interview_stage,
+      response_days: a.response_days,
+    }))
+    .slice(0, 20),
+  null,
+  0,
+)}
 
 ANALYSIS SCORES:
-${JSON.stringify((analyses || []).map(a => ({
-  title: a.job_title,
-  company: a.company,
-  score: a.overall_score,
-  gaps: ((a.gaps as any[]) || []).length,
-  matched: ((a.matched_skills as any[]) || []).filter((s: any) => s.matched).length,
-})).slice(0, 15), null, 0)}
+${JSON.stringify(
+  (analyses || [])
+    .map((a) => ({
+      title: a.job_title,
+      company: a.company,
+      score: a.overall_score,
+      gaps: ((a.gaps as any[]) || []).length,
+      matched: ((a.matched_skills as any[]) || []).filter((s: any) => s.matched)
+        .length,
+    }))
+    .slice(0, 15),
+  null,
+  0,
+)}
 
 Return a JSON array of 3-5 insights with this structure:
 [
@@ -80,7 +99,8 @@ Focus on:
 Be specific with numbers when possible.`;
 
     const result = await callAnthropic({
-      system: "You analyze career data patterns. Return only valid JSON array. No markdown.",
+      system:
+        "You analyze career data patterns. Return only valid JSON array. No markdown.",
       userMessage: prompt,
       temperature: 0.3,
     });
@@ -98,8 +118,14 @@ Be specific with numbers when possible.`;
     });
   } catch (e) {
     console.error("learning-insights error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({
+        error: e instanceof Error ? e.message : "Unknown error",
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   }
 });

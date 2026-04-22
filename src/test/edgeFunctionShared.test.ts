@@ -15,12 +15,18 @@ import { PROMPTS, buildResumeJobPair } from "../lib/schemas/promptsExport";
 
 describe("PROMPTS", () => {
   const keys: Array<keyof typeof PROMPTS> = [
-    "careerCoach", "resumeTailor", "coverLetterWriter",
-    "interviewCoach", "salaryNegotiator", "skillsAnalyst",
-    "learningAdvisor", "outreachWriter", "jdAnalyst",
+    "careerCoach",
+    "resumeTailor",
+    "coverLetterWriter",
+    "interviewCoach",
+    "salaryNegotiator",
+    "skillsAnalyst",
+    "learningAdvisor",
+    "outreachWriter",
+    "jdAnalyst",
   ];
 
-  keys.forEach(key => {
+  keys.forEach((key) => {
     it(`PROMPTS.${key} is a non-empty string`, () => {
       expect(typeof PROMPTS[key]).toBe("string");
       expect(PROMPTS[key].length).toBeGreaterThan(20);
@@ -28,7 +34,10 @@ describe("PROMPTS", () => {
   });
 
   it("buildResumeJobPair includes both sections", () => {
-    const result = buildResumeJobPair("My resume content", "Job description content");
+    const result = buildResumeJobPair(
+      "My resume content",
+      "Job description content",
+    );
     expect(result).toContain("Candidate Resume");
     expect(result).toContain("Job Description");
     expect(result).toContain("My resume content");

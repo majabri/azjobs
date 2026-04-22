@@ -25,7 +25,10 @@ serve(async (req) => {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
-  const { data: { user }, error: userError } = await callerClient.auth.getUser();
+  const {
+    data: { user },
+    error: userError,
+  } = await callerClient.auth.getUser();
   if (userError || !user) {
     return new Response(JSON.stringify({ error: "Invalid session" }), {
       status: 401,
@@ -39,7 +42,9 @@ serve(async (req) => {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
-  const { error: deleteError } = await adminClient.auth.admin.deleteUser(user.id);
+  const { error: deleteError } = await adminClient.auth.admin.deleteUser(
+    user.id,
+  );
   if (deleteError) {
     return new Response(JSON.stringify({ error: deleteError.message }), {
       status: 400,
@@ -47,8 +52,7 @@ serve(async (req) => {
     });
   }
 
-  return new Response(
-    JSON.stringify({ success: true }),
-    { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-  );
+  return new Response(JSON.stringify({ success: true }), {
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
 });

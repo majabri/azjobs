@@ -32,7 +32,10 @@ serve(async (req) => {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 
-  const { data: { user }, error: userError } = await callerClient.auth.getUser();
+  const {
+    data: { user },
+    error: userError,
+  } = await callerClient.auth.getUser();
   if (userError || !user) {
     return new Response(JSON.stringify({ error: "Invalid session" }), {
       status: 401,
@@ -49,7 +52,11 @@ serve(async (req) => {
 
   // Fetch all user data in parallel; use allSettled so a single table error does not abort the export
   const results = await Promise.allSettled([
-    adminClient.from("job_seeker_profiles").select("*").eq("user_id", uid).maybeSingle(),
+    adminClient
+      .from("job_seeker_profiles")
+      .select("*")
+      .eq("user_id", uid)
+      .maybeSingle(),
     adminClient.from("resume_versions").select("*").eq("user_id", uid),
     adminClient.from("job_applications").select("*").eq("user_id", uid),
     adminClient.from("analysis_history").select("*").eq("user_id", uid),
@@ -57,7 +64,11 @@ serve(async (req) => {
     adminClient.from("interview_sessions").select("*").eq("user_id", uid),
     adminClient.from("outreach_contacts").select("*").eq("user_id", uid),
     adminClient.from("notifications").select("*").eq("user_id", uid),
-    adminClient.from("email_preferences").select("*").eq("user_id", uid).maybeSingle(),
+    adminClient
+      .from("email_preferences")
+      .select("*")
+      .eq("user_id", uid)
+      .maybeSingle(),
     adminClient.from("learning_events").select("*").eq("user_id", uid),
     adminClient.from("agent_runs").select("*").eq("user_id", uid),
     adminClient.from("offers").select("*").eq("user_id", uid),
@@ -66,15 +77,26 @@ serve(async (req) => {
   ]);
 
   const getData = (result: PromiseSettledResult<any>, single = false) => {
-    if (result.status === "fulfilled") return result.value.data ?? (single ? null : []);
+    if (result.status === "fulfilled")
+      return result.value.data ?? (single ? null : []);
     return single ? null : [];
   };
 
   const [
-    profile, resumeVersions, jobApplications, analysisHistory,
-    portfolioItems, interviewSessions, outreachContacts, notifications,
-    emailPreferences, learningEvents, agentRuns, offers,
-    interviewSchedules, ignoredJobs,
+    profile,
+    resumeVersions,
+    jobApplications,
+    analysisHistory,
+    portfolioItems,
+    interviewSessions,
+    outreachContacts,
+    notifications,
+    emailPreferences,
+    learningEvents,
+    agentRuns,
+    offers,
+    interviewSchedules,
+    ignoredJobs,
   ] = results;
 
   const exportData = {
@@ -112,21 +134,21 @@ serve(async (req) => {
   if (EXPORT_ENCRYPTION_KEY) {
     try {
       const rawKey = new TextEncoder().encode(
-        EXPORT_ENCRYPTION_KEY.slice(0, 32).padEnd(32, "0")
+        EXPORT_ENCRYPTION_KEY.slice(0, 32).padEnd(32, "0"),
       );
       const key = await crypto.subtle.importKey(
         "raw",
         rawKey,
         { name: "AES-GCM" },
         false,
-        ["encrypt"]
+        ["encrypt"],
       );
 
       const iv = crypto.getRandomValues(new Uint8Array(12));
       const encrypted = await crypto.subtle.encrypt(
         { name: "AES-GCM", iv },
         key,
-        new TextEncoder().encode(responseBody)
+        new TextEncoder().encode(responseBody),
       );
 
       // Prepend IV so the client can decrypt: first 12 bytes = IV, rest = ciphertext

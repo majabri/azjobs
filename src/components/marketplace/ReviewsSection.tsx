@@ -84,7 +84,7 @@ export default function ReviewsSection({ serviceId, orderId }: Props) {
             user_reported: userReported,
             reviewer_name: reviewerName,
           };
-        })
+        }),
       );
 
       setReviews(enriched);
@@ -94,12 +94,18 @@ export default function ReviewsSection({ serviceId, orderId }: Props) {
     setLoading(false);
   }, [serviceId, user]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const displayedReviews = showAll ? reviews : reviews.slice(0, 5);
 
   if (loading) {
-    return <div className="flex justify-center py-8"><Loader2 className="w-6 h-6 animate-spin text-muted-foreground" /></div>;
+    return (
+      <div className="flex justify-center py-8">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+      </div>
+    );
   }
 
   return (
@@ -109,14 +115,25 @@ export default function ReviewsSection({ serviceId, orderId }: Props) {
       <div className="flex items-center justify-between">
         <h3 className="font-semibold">Reviews ({allReviews.length})</h3>
         {user && (
-          <Button variant="outline" size="sm" onClick={() => setShowForm(!showForm)}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowForm(!showForm)}
+          >
             {showForm ? "Cancel" : "Write a Review"}
           </Button>
         )}
       </div>
 
       {showForm && (
-        <ReviewForm serviceId={serviceId} orderId={orderId} onSubmitted={() => { setShowForm(false); load(); }} />
+        <ReviewForm
+          serviceId={serviceId}
+          orderId={orderId}
+          onSubmitted={() => {
+            setShowForm(false);
+            load();
+          }}
+        />
       )}
 
       {displayedReviews.length === 0 && !showForm ? (
@@ -130,7 +147,11 @@ export default function ReviewsSection({ serviceId, orderId }: Props) {
       )}
 
       {reviews.length > 5 && !showAll && (
-        <Button variant="ghost" className="w-full" onClick={() => setShowAll(true)}>
+        <Button
+          variant="ghost"
+          className="w-full"
+          onClick={() => setShowAll(true)}
+        >
           Show all {reviews.length} reviews
         </Button>
       )}

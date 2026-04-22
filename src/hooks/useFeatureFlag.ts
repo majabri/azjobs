@@ -42,7 +42,9 @@ export function useFeatureFlag(key: string): FeatureFlagResult {
       }
     })();
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [key]);
 
   return { enabled, loading };

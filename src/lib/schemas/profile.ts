@@ -87,12 +87,7 @@ export const profileSchema = z.object({
 
   search_mode: z.enum(SEARCH_MODES).optional(),
 
-  min_match_score: z
-    .number()
-    .int()
-    .min(0)
-    .max(100)
-    .optional(),
+  min_match_score: z.number().int().min(0).max(100).optional(),
 
   // Array fields – validated as arrays of non-empty strings
   skills: z.array(z.string().min(1)).optional(),

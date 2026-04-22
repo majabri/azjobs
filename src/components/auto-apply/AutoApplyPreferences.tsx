@@ -34,14 +34,25 @@ interface AutoApplyPreferencesProps {
 }
 
 export function AutoApplyPreferences({
-  prefs, setPrefs, profileLoaded,
-  titleInput, setTitleInput, locationInput, setLocationInput,
-  isSearching, queueLength, onSearch, onClearQueue,
+  prefs,
+  setPrefs,
+  profileLoaded,
+  titleInput,
+  setTitleInput,
+  locationInput,
+  setLocationInput,
+  isSearching,
+  queueLength,
+  onSearch,
+  onClearQueue,
 }: AutoApplyPreferencesProps) {
   const addTitle = () => {
     const t = titleInput.trim();
     if (!t) return;
-    if (prefs.jobTitles.includes(t)) { toast.error("Already added"); return; }
+    if (prefs.jobTitles.includes(t)) {
+      toast.error("Already added");
+      return;
+    }
     setPrefs({ ...prefs, jobTitles: [...prefs.jobTitles, t] });
     setTitleInput("");
   };
@@ -58,10 +69,14 @@ export function AutoApplyPreferences({
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <Settings className="w-5 h-5 text-primary" />
-          <h2 className="font-display font-bold text-primary text-lg">Job Preferences</h2>
+          <h2 className="font-display font-bold text-primary text-lg">
+            Job Preferences
+          </h2>
         </div>
         {profileLoaded && (
-          <Badge variant="outline" className="text-xs text-muted-foreground">Loaded from profile</Badge>
+          <Badge variant="outline" className="text-xs text-muted-foreground">
+            Loaded from profile
+          </Badge>
         )}
       </div>
 
@@ -72,11 +87,13 @@ export function AutoApplyPreferences({
           <div className="flex gap-2 mt-1">
             <Input
               value={titleInput}
-              onChange={e => setTitleInput(e.target.value)}
+              onChange={(e) => setTitleInput(e.target.value)}
               placeholder="e.g. Security Engineer"
-              onKeyDown={e => e.key === "Enter" && addTitle()}
+              onKeyDown={(e) => e.key === "Enter" && addTitle()}
             />
-            <Button variant="outline" size="sm" onClick={addTitle}>Add</Button>
+            <Button variant="outline" size="sm" onClick={addTitle}>
+              Add
+            </Button>
           </div>
           <div className="flex flex-wrap gap-2 mt-2">
             {prefs.jobTitles.map((t, i) => (
@@ -84,7 +101,12 @@ export function AutoApplyPreferences({
                 key={i}
                 variant="secondary"
                 className="cursor-pointer"
-                onClick={() => setPrefs({ ...prefs, jobTitles: prefs.jobTitles.filter((_, idx) => idx !== i) })}
+                onClick={() =>
+                  setPrefs({
+                    ...prefs,
+                    jobTitles: prefs.jobTitles.filter((_, idx) => idx !== i),
+                  })
+                }
               >
                 {t} <X className="w-3 h-3 ml-1" />
               </Badge>
@@ -100,7 +122,9 @@ export function AutoApplyPreferences({
               <DollarSign className="w-4 h-4 text-muted-foreground" />
               <Input
                 value={prefs.salaryMin}
-                onChange={e => setPrefs({ ...prefs, salaryMin: e.target.value })}
+                onChange={(e) =>
+                  setPrefs({ ...prefs, salaryMin: e.target.value })
+                }
                 placeholder="80,000"
               />
             </div>
@@ -111,7 +135,9 @@ export function AutoApplyPreferences({
               <DollarSign className="w-4 h-4 text-muted-foreground" />
               <Input
                 value={prefs.salaryMax}
-                onChange={e => setPrefs({ ...prefs, salaryMax: e.target.value })}
+                onChange={(e) =>
+                  setPrefs({ ...prefs, salaryMax: e.target.value })
+                }
                 placeholder="150,000"
               />
             </div>
@@ -124,11 +150,13 @@ export function AutoApplyPreferences({
           <div className="flex gap-2 mt-1">
             <Input
               value={locationInput}
-              onChange={e => setLocationInput(e.target.value)}
+              onChange={(e) => setLocationInput(e.target.value)}
               placeholder="e.g. Washington DC"
-              onKeyDown={e => e.key === "Enter" && addLocation()}
+              onKeyDown={(e) => e.key === "Enter" && addLocation()}
             />
-            <Button variant="outline" size="sm" onClick={addLocation}>Add</Button>
+            <Button variant="outline" size="sm" onClick={addLocation}>
+              Add
+            </Button>
           </div>
           <div className="flex flex-wrap gap-2 mt-2">
             {prefs.locations.map((l, i) => (
@@ -136,9 +164,15 @@ export function AutoApplyPreferences({
                 key={i}
                 variant="secondary"
                 className="cursor-pointer"
-                onClick={() => setPrefs({ ...prefs, locations: prefs.locations.filter((_, idx) => idx !== i) })}
+                onClick={() =>
+                  setPrefs({
+                    ...prefs,
+                    locations: prefs.locations.filter((_, idx) => idx !== i),
+                  })
+                }
               >
-                <MapPin className="w-3 h-3 mr-1" />{l} <X className="w-3 h-3 ml-1" />
+                <MapPin className="w-3 h-3 mr-1" />
+                {l} <X className="w-3 h-3 ml-1" />
               </Badge>
             ))}
           </div>
@@ -147,21 +181,34 @@ export function AutoApplyPreferences({
         {/* Toggles */}
         <div className="flex flex-wrap gap-6">
           <div className="flex items-center gap-2">
-            <Switch checked={prefs.remoteOnly} onCheckedChange={v => setPrefs({ ...prefs, remoteOnly: v })} />
+            <Switch
+              checked={prefs.remoteOnly}
+              onCheckedChange={(v) => setPrefs({ ...prefs, remoteOnly: v })}
+            />
             <Label className="text-sm">Remote Only</Label>
           </div>
           <div className="flex items-center gap-2">
-            <Switch checked={prefs.requireReview} onCheckedChange={v => setPrefs({ ...prefs, requireReview: v })} />
+            <Switch
+              checked={prefs.requireReview}
+              onCheckedChange={(v) => setPrefs({ ...prefs, requireReview: v })}
+            />
             <Label className="text-sm">Require Review</Label>
           </div>
         </div>
 
         {/* Min Score */}
         <div>
-          <Label className="text-sm font-semibold">Minimum Match Score: {prefs.minMatchScore}%</Label>
+          <Label className="text-sm font-semibold">
+            Minimum Match Score: {prefs.minMatchScore}%
+          </Label>
           <input
-            type="range" min={30} max={90} value={prefs.minMatchScore}
-            onChange={e => setPrefs({ ...prefs, minMatchScore: parseInt(e.target.value) })}
+            type="range"
+            min={30}
+            max={90}
+            value={prefs.minMatchScore}
+            onChange={(e) =>
+              setPrefs({ ...prefs, minMatchScore: parseInt(e.target.value) })
+            }
             className="w-full mt-1 accent-[hsl(var(--accent))]"
           />
           <div className="flex justify-between text-xs text-muted-foreground">
@@ -172,10 +219,17 @@ export function AutoApplyPreferences({
 
         {/* Risk Tolerance */}
         <div>
-          <Label className="text-sm font-semibold">Risk Tolerance: {prefs.riskTolerance}%</Label>
+          <Label className="text-sm font-semibold">
+            Risk Tolerance: {prefs.riskTolerance}%
+          </Label>
           <input
-            type="range" min={10} max={90} value={prefs.riskTolerance}
-            onChange={e => setPrefs({ ...prefs, riskTolerance: parseInt(e.target.value) })}
+            type="range"
+            min={10}
+            max={90}
+            value={prefs.riskTolerance}
+            onChange={(e) =>
+              setPrefs({ ...prefs, riskTolerance: parseInt(e.target.value) })
+            }
             className="w-full mt-1 accent-[hsl(var(--accent))]"
           />
           <div className="flex justify-between text-xs text-muted-foreground">
@@ -191,9 +245,15 @@ export function AutoApplyPreferences({
           disabled={isSearching}
           onClick={onSearch}
         >
-          {isSearching
-            ? <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Searching...</>
-            : <><Search className="w-4 h-4 mr-2" /> Find & Queue Jobs</>}
+          {isSearching ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin mr-2" /> Searching...
+            </>
+          ) : (
+            <>
+              <Search className="w-4 h-4 mr-2" /> Find & Queue Jobs
+            </>
+          )}
         </Button>
         {queueLength > 0 && (
           <Button variant="outline" size="sm" onClick={onClearQueue}>

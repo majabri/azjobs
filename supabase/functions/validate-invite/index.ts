@@ -25,7 +25,10 @@ serve(async (req: Request) => {
     if (!token && !invite_code) {
       return new Response(
         JSON.stringify({ valid: false, reason: "No token or code provided" }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -45,7 +48,10 @@ serve(async (req: Request) => {
     if (error || !invitation) {
       return new Response(
         JSON.stringify({ valid: false, reason: "not_found" }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -53,15 +59,18 @@ serve(async (req: Request) => {
     if (invitation.status === "accepted") {
       return new Response(
         JSON.stringify({ valid: false, reason: "already_used" }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
     if (invitation.status === "revoked") {
-      return new Response(
-        JSON.stringify({ valid: false, reason: "revoked" }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ valid: false, reason: "revoked" }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Check expiration
@@ -72,16 +81,19 @@ serve(async (req: Request) => {
         .update({ status: "expired" })
         .eq("id", invitation.id);
 
-      return new Response(
-        JSON.stringify({ valid: false, reason: "expired" }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ valid: false, reason: "expired" }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     if (invitation.status !== "pending") {
       return new Response(
         JSON.stringify({ valid: false, reason: invitation.status }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
@@ -93,7 +105,9 @@ serve(async (req: Request) => {
       .single();
 
     const inviterName =
-      inviterProfile?.full_name || inviterProfile?.username || "An iCareerOS member";
+      inviterProfile?.full_name ||
+      inviterProfile?.username ||
+      "An iCareerOS member";
 
     return new Response(
       JSON.stringify({
@@ -104,13 +118,19 @@ serve(async (req: Request) => {
         prefilled_email: invitation.invitee_email || null,
         expires_at: invitation.expires_at,
       }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   } catch (err) {
     console.error("Unexpected error:", err);
     return new Response(
       JSON.stringify({ valid: false, reason: "server_error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   }
 });

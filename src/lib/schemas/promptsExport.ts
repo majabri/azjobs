@@ -50,6 +50,9 @@ Be objective and data-driven.`,
 
 export type PromptKey = keyof typeof PROMPTS;
 
-export function buildResumeJobPair(resume: string, jobDescription: string): string {
+export function buildResumeJobPair(
+  resume: string,
+  jobDescription: string,
+): string {
   return `## Candidate Resume\n\n${resume}\n\n## Job Description\n\n${jobDescription}`;
 }

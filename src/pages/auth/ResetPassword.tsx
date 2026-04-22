@@ -16,7 +16,10 @@ import { Target, CheckCircle, Loader2 } from "lucide-react";
 import { updatePassword } from "@/services/user/auth";
 import { normalizeError } from "@/lib/normalizeError";
 import { supabase } from "@/integrations/supabase/client";
-import { resetPasswordSchema, type ResetPasswordFormValues } from "@/lib/schemas";
+import {
+  resetPasswordSchema,
+  type ResetPasswordFormValues,
+} from "@/lib/schemas";
 
 export default function ResetPasswordPage() {
   const navigate = useNavigate();
@@ -35,13 +38,13 @@ export default function ResetPasswordPage() {
 
   // Wait for Supabase to exchange the recovery token for a session
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event) => {
-        if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") {
-          setChecking(false);
-        }
-      },
-    );
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") {
+        setChecking(false);
+      }
+    });
 
     // Also check if already signed in
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -129,7 +132,9 @@ export default function ResetPasswordPage() {
               {...register("password")}
             />
             {errors.password && (
-              <p role="alert" className="text-xs text-destructive">{errors.password.message}</p>
+              <p role="alert" className="text-xs text-destructive">
+                {errors.password.message}
+              </p>
             )}
           </div>
 
@@ -145,7 +150,9 @@ export default function ResetPasswordPage() {
               {...register("confirmPassword")}
             />
             {errors.confirmPassword && (
-              <p role="alert" className="text-xs text-destructive">{errors.confirmPassword.message}</p>
+              <p role="alert" className="text-xs text-destructive">
+                {errors.confirmPassword.message}
+              </p>
             )}
           </div>
 
@@ -155,11 +162,7 @@ export default function ResetPasswordPage() {
             </p>
           )}
 
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={isSubmitting}
-          >
+          <Button type="submit" className="w-full" disabled={isSubmitting}>
             {isSubmitting ? "Updating password\u2026" : "Update Password"}
           </Button>
         </form>

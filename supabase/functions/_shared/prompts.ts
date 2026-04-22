@@ -66,6 +66,9 @@ export type PromptKey = keyof typeof PROMPTS;
  * Build a user message that pairs a resume with a job description.
  * Used by resume tailor, cover letter, and analysis functions.
  */
-export function buildResumeJobPair(resume: string, jobDescription: string): string {
+export function buildResumeJobPair(
+  resume: string,
+  jobDescription: string,
+): string {
   return `## Candidate Resume\n\n${resume}\n\n## Job Description\n\n${jobDescription}`;
 }

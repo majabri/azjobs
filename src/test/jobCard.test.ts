@@ -16,8 +16,15 @@ function parseSalaryNumber(salary: string): number | null {
 }
 
 const MARKET_BENCHMARKS: Record<string, number> = {
-  entry: 65000, junior: 75000, mid: 105000, senior: 140000, lead: 165000,
-  staff: 185000, principal: 210000, director: 195000, vp: 230000,
+  entry: 65000,
+  junior: 75000,
+  mid: 105000,
+  senior: 140000,
+  lead: 165000,
+  staff: 185000,
+  principal: 210000,
+  director: 195000,
+  vp: 230000,
 };
 
 function estimateMarketRate(title: string): number {

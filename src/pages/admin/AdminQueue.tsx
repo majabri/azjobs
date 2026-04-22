@@ -3,8 +3,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  Layers, RefreshCw, Clock, CheckCircle2, XCircle, AlertTriangle,
-  Trash2, StopCircle,
+  Layers,
+  RefreshCw,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  AlertTriangle,
+  Trash2,
+  StopCircle,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -22,15 +28,46 @@ interface QueueJob {
   completed_at: string | null;
 }
 
-const STATUS_CONFIG: Record<string, { icon: React.ReactNode; label: string; color: string }> = {
-  pending: { icon: <Clock className="w-3.5 h-3.5" />, label: "Pending", color: "text-muted-foreground border-border" },
-  running: { icon: <Clock className="w-3.5 h-3.5 animate-spin" />, label: "Running", color: "text-accent border-accent/30" },
-  failed: { icon: <XCircle className="w-3.5 h-3.5" />, label: "Failed", color: "text-destructive border-destructive/30" },
-  completed: { icon: <CheckCircle2 className="w-3.5 h-3.5" />, label: "Completed", color: "text-success border-success/30" },
-  cancelled: { icon: <StopCircle className="w-3.5 h-3.5" />, label: "Cancelled", color: "text-muted-foreground border-border" },
+const STATUS_CONFIG: Record<
+  string,
+  { icon: React.ReactNode; label: string; color: string }
+> = {
+  pending: {
+    icon: <Clock className="w-3.5 h-3.5" />,
+    label: "Pending",
+    color: "text-muted-foreground border-border",
+  },
+  running: {
+    icon: <Clock className="w-3.5 h-3.5 animate-spin" />,
+    label: "Running",
+    color: "text-accent border-accent/30",
+  },
+  failed: {
+    icon: <XCircle className="w-3.5 h-3.5" />,
+    label: "Failed",
+    color: "text-destructive border-destructive/30",
+  },
+  completed: {
+    icon: <CheckCircle2 className="w-3.5 h-3.5" />,
+    label: "Completed",
+    color: "text-success border-success/30",
+  },
+  cancelled: {
+    icon: <StopCircle className="w-3.5 h-3.5" />,
+    label: "Cancelled",
+    color: "text-muted-foreground border-border",
+  },
 };
 
-function JobCard({ job, onRetry, onCancel }: { job: QueueJob; onRetry: () => void; onCancel: () => void }) {
+function JobCard({
+  job,
+  onRetry,
+  onCancel,
+}: {
+  job: QueueJob;
+  onRetry: () => void;
+  onCancel: () => void;
+}) {
   const cfg = STATUS_CONFIG[job.status] || STATUS_CONFIG.pending;
   return (
     <div className="p-3 bg-card border border-border rounded-lg hover:bg-muted/10 transition-colors">
@@ -38,26 +75,42 @@ function JobCard({ job, onRetry, onCancel }: { job: QueueJob; onRetry: () => voi
         <div className="flex items-center gap-2">
           <span className={cfg.color.split(" ")[0]}>{cfg.icon}</span>
           <div>
-            <p className="text-xs font-medium text-foreground font-mono">{job.job_id.slice(0, 14)}…</p>
+            <p className="text-xs font-medium text-foreground font-mono">
+              {job.job_id.slice(0, 14)}…
+            </p>
             <p className="text-[10px] text-muted-foreground">{job.type}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className={`text-[10px] ${cfg.color}`}>{cfg.label}</Badge>
+          <Badge variant="outline" className={`text-[10px] ${cfg.color}`}>
+            {cfg.label}
+          </Badge>
           {job.status === "failed" && (
-            <Button size="sm" variant="ghost" className="h-6 text-[10px] px-1.5 text-accent" onClick={onRetry}>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-6 text-[10px] px-1.5 text-accent"
+              onClick={onRetry}
+            >
               <RefreshCw className="w-3 h-3 mr-1" /> Retry
             </Button>
           )}
           {job.status === "running" && (
-            <Button size="sm" variant="ghost" className="h-6 text-[10px] px-1.5 text-destructive" onClick={onCancel}>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-6 text-[10px] px-1.5 text-destructive"
+              onClick={onCancel}
+            >
               <StopCircle className="w-3 h-3 mr-1" /> Cancel
             </Button>
           )}
         </div>
       </div>
       {job.error && (
-        <p className="mt-2 text-[10px] font-mono text-destructive bg-destructive/5 px-2 py-1 rounded">{job.error}</p>
+        <p className="mt-2 text-[10px] font-mono text-destructive bg-destructive/5 px-2 py-1 rounded">
+          {job.error}
+        </p>
       )}
       <p className="mt-1 text-[10px] text-muted-foreground">
         {new Date(job.created_at).toLocaleString()}
@@ -81,11 +134,15 @@ export default function AdminQueue() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   // Auto-refresh if there are running jobs
   useEffect(() => {
-    const hasActive = jobs.some((j) => j.status === "running" || j.status === "pending");
+    const hasActive = jobs.some(
+      (j) => j.status === "running" || j.status === "pending",
+    );
     if (!hasActive) return;
     const id = setInterval(load, 5000);
     return () => clearInterval(id);
@@ -127,12 +184,19 @@ export default function AdminQueue() {
   const failed = jobs.filter((j) => j.status === "failed");
 
   // Compute avg wait time for completed jobs (time from created_at to started_at)
-  const completedJobs = jobs.filter((j) => j.status === "completed" && j.started_at && j.created_at);
-  const avgWaitMs = completedJobs.length > 0
-    ? completedJobs.reduce((sum, j) => {
-        return sum + (new Date(j.started_at!).getTime() - new Date(j.created_at).getTime());
-      }, 0) / completedJobs.length
-    : null;
+  const completedJobs = jobs.filter(
+    (j) => j.status === "completed" && j.started_at && j.created_at,
+  );
+  const avgWaitMs =
+    completedJobs.length > 0
+      ? completedJobs.reduce((sum, j) => {
+          return (
+            sum +
+            (new Date(j.started_at!).getTime() -
+              new Date(j.created_at).getTime())
+          );
+        }, 0) / completedJobs.length
+      : null;
 
   function formatWaitTime(ms: number | null): string {
     if (ms === null) return "—";
@@ -156,7 +220,9 @@ export default function AdminQueue() {
           <h1 className="font-display text-2xl font-bold text-foreground flex items-center gap-2">
             <Layers className="w-6 h-6 text-accent" /> Queue & Job Visibility
           </h1>
-          <p className="text-muted-foreground text-sm mt-1">Monitor and manage the job processing queue</p>
+          <p className="text-muted-foreground text-sm mt-1">
+            Monitor and manage the job processing queue
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={load}>
@@ -179,27 +245,37 @@ export default function AdminQueue() {
           <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
             <Clock className="w-4 h-4" /> Pending
           </div>
-          <div className="text-2xl font-display font-bold text-foreground">{pending.length}</div>
+          <div className="text-2xl font-display font-bold text-foreground">
+            {pending.length}
+          </div>
         </div>
         <div className="bg-card rounded-xl p-4 border border-accent/30">
           <div className="flex items-center gap-2 text-accent text-xs mb-1">
             <Clock className="w-4 h-4 animate-spin" /> Running
           </div>
-          <div className="text-2xl font-display font-bold text-foreground">{running.length}</div>
+          <div className="text-2xl font-display font-bold text-foreground">
+            {running.length}
+          </div>
         </div>
         <div className="bg-card rounded-xl p-4 border border-destructive/20">
           <div className="flex items-center gap-2 text-destructive text-xs mb-1">
             <XCircle className="w-4 h-4" /> Failed
           </div>
-          <div className="text-2xl font-display font-bold text-foreground">{failed.length}</div>
+          <div className="text-2xl font-display font-bold text-foreground">
+            {failed.length}
+          </div>
         </div>
         <div className="bg-card rounded-xl p-4 border border-border">
           <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
             <Clock className="w-4 h-4" /> Avg Wait Time
           </div>
-          <div className="text-xl font-display font-bold text-foreground">{formatWaitTime(avgWaitMs)}</div>
+          <div className="text-xl font-display font-bold text-foreground">
+            {formatWaitTime(avgWaitMs)}
+          </div>
           {completedJobs.length > 0 && (
-            <div className="text-[10px] text-muted-foreground mt-0.5">from {completedJobs.length} completed jobs</div>
+            <div className="text-[10px] text-muted-foreground mt-0.5">
+              from {completedJobs.length} completed jobs
+            </div>
           )}
         </div>
       </div>
@@ -219,10 +295,17 @@ export default function AdminQueue() {
               <CardTitle className="text-sm flex items-center justify-between">
                 <span className="flex items-center gap-2">
                   <Clock className="w-4 h-4 text-muted-foreground" /> Pending
-                  <Badge variant="outline" className="text-[10px]">{pending.length}</Badge>
+                  <Badge variant="outline" className="text-[10px]">
+                    {pending.length}
+                  </Badge>
                 </span>
                 {pending.length > 0 && (
-                  <Button size="sm" variant="ghost" className="h-6 text-[10px]" onClick={() => clearQueue(["pending"])}>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 text-[10px]"
+                    onClick={() => clearQueue(["pending"])}
+                  >
                     Clear
                   </Button>
                 )}
@@ -230,10 +313,17 @@ export default function AdminQueue() {
             </CardHeader>
             <CardContent className="space-y-2 max-h-96 overflow-y-auto">
               {pending.length === 0 ? (
-                <p className="text-xs text-muted-foreground text-center py-4">No pending jobs</p>
+                <p className="text-xs text-muted-foreground text-center py-4">
+                  No pending jobs
+                </p>
               ) : (
                 pending.map((j) => (
-                  <JobCard key={j.id} job={j} onRetry={() => retryJob(j.id)} onCancel={() => cancelJob(j.id)} />
+                  <JobCard
+                    key={j.id}
+                    job={j}
+                    onRetry={() => retryJob(j.id)}
+                    onCancel={() => cancelJob(j.id)}
+                  />
                 ))
               )}
             </CardContent>
@@ -244,15 +334,27 @@ export default function AdminQueue() {
             <CardHeader className="pb-3">
               <CardTitle className="text-sm flex items-center gap-2">
                 <Clock className="w-4 h-4 text-accent animate-spin" /> Running
-                <Badge variant="outline" className="text-[10px] text-accent border-accent/30">{running.length}</Badge>
+                <Badge
+                  variant="outline"
+                  className="text-[10px] text-accent border-accent/30"
+                >
+                  {running.length}
+                </Badge>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 max-h-96 overflow-y-auto">
               {running.length === 0 ? (
-                <p className="text-xs text-muted-foreground text-center py-4">No running jobs</p>
+                <p className="text-xs text-muted-foreground text-center py-4">
+                  No running jobs
+                </p>
               ) : (
                 running.map((j) => (
-                  <JobCard key={j.id} job={j} onRetry={() => retryJob(j.id)} onCancel={() => cancelJob(j.id)} />
+                  <JobCard
+                    key={j.id}
+                    job={j}
+                    onRetry={() => retryJob(j.id)}
+                    onCancel={() => cancelJob(j.id)}
+                  />
                 ))
               )}
             </CardContent>
@@ -264,10 +366,20 @@ export default function AdminQueue() {
               <CardTitle className="text-sm flex items-center justify-between">
                 <span className="flex items-center gap-2">
                   <XCircle className="w-4 h-4 text-destructive" /> Failed
-                  <Badge variant="outline" className="text-[10px] text-destructive border-destructive/30">{failed.length}</Badge>
+                  <Badge
+                    variant="outline"
+                    className="text-[10px] text-destructive border-destructive/30"
+                  >
+                    {failed.length}
+                  </Badge>
                 </span>
                 {failed.length > 0 && (
-                  <Button size="sm" variant="ghost" className="h-6 text-[10px] text-destructive" onClick={() => clearQueue(["failed"])}>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 text-[10px] text-destructive"
+                    onClick={() => clearQueue(["failed"])}
+                  >
                     Clear All
                   </Button>
                 )}
@@ -275,10 +387,17 @@ export default function AdminQueue() {
             </CardHeader>
             <CardContent className="space-y-2 max-h-96 overflow-y-auto">
               {failed.length === 0 ? (
-                <p className="text-xs text-muted-foreground text-center py-4">No failed jobs</p>
+                <p className="text-xs text-muted-foreground text-center py-4">
+                  No failed jobs
+                </p>
               ) : (
                 failed.map((j) => (
-                  <JobCard key={j.id} job={j} onRetry={() => retryJob(j.id)} onCancel={() => cancelJob(j.id)} />
+                  <JobCard
+                    key={j.id}
+                    job={j}
+                    onRetry={() => retryJob(j.id)}
+                    onCancel={() => cancelJob(j.id)}
+                  />
                 ))
               )}
             </CardContent>

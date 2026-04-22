@@ -1,7 +1,8 @@
 /**
  * Support Service — API layer.
  */
-export { createTicket, getUserTickets, getFaqs } from "./service";
+export { createTicket, getUserTickets, getFaqs, getTicketMessages, addTicketMessage } from "./service";
+export type { TicketMessage } from "./service";
 export type {
   SupportTicket,
   CreateTicketPayload,

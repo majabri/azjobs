@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { logger } from '@/lib/logger';
+import { logger } from "@/lib/logger";
 
 interface SystemCheck {
   name: string;
@@ -79,14 +79,22 @@ export default function AdminSystem() {
           .limit(100),
         supabase.from("job_queue").select("id, status"),
         // FIX 3.10.3: Additional service checks
-        supabase.from("feature_flags").select("key", { count: "exact", head: true }),
-        supabase.from("service_health").select("service_name, status").order("service_name"),
-        supabase.from("notifications").select("id", { count: "exact", head: true }),
+        supabase
+          .from("feature_flags")
+          .select("key", { count: "exact", head: true }),
+        supabase
+          .from("service_health")
+          .select("service_name, status")
+          .order("service_name"),
+        supabase
+          .from("notifications")
+          .select("id", { count: "exact", head: true }),
       ]);
 
-      const allRuns: ErrorLogEntry[] = (agentRunsRes.data || []) as ErrorLogEntry[];
+      const allRuns: ErrorLogEntry[] = (agentRunsRes.data ||
+        []) as ErrorLogEntry[];
       const failedRuns = allRuns.filter(
-        (r) => r.status === "failed" || r.status === "completed_with_errors"
+        (r) => r.status === "failed" || r.status === "completed_with_errors",
       );
 
       const recentFailed = allRuns.filter((r) => {
@@ -106,7 +114,7 @@ export default function AdminSystem() {
 
       // ── Count healthy services from service_health table ──
       const healthyServices = (serviceHealthRes.data || []).filter(
-        (s: any) => s.status === "healthy"
+        (s: any) => s.status === "healthy",
       ).length;
       const totalServices = (serviceHealthRes.data || []).length;
 

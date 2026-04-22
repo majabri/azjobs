@@ -9,13 +9,10 @@ Deno.serve(async (req) => {
     const { resumeText } = await req.json();
 
     if (!resumeText || typeof resumeText !== "string") {
-      return new Response(
-        JSON.stringify({ error: "resumeText is required" }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
+      return new Response(JSON.stringify({ error: "resumeText is required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
@@ -26,7 +23,7 @@ Deno.serve(async (req) => {
         {
           status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        },
       );
     }
 
@@ -78,7 +75,8 @@ CRITICAL INSTRUCTIONS:
                 },
                 phone: {
                   type: "string",
-                  description: "Phone number including area code, e.g. (415) 555-1234",
+                  description:
+                    "Phone number including area code, e.g. (415) 555-1234",
                 },
                 location: {
                   type: "string",
@@ -86,20 +84,24 @@ CRITICAL INSTRUCTIONS:
                 },
                 summary: {
                   type: "string",
-                  description: "Professional summary or objective paragraph ONLY. Do NOT include work experience or other sections here.",
+                  description:
+                    "Professional summary or objective paragraph ONLY. Do NOT include work experience or other sections here.",
                 },
                 linkedin_url: {
                   type: "string",
-                  description: "LinkedIn profile URL or partial URL (e.g. linkedin.com/in/username or https://www.linkedin.com/in/username)",
+                  description:
+                    "LinkedIn profile URL or partial URL (e.g. linkedin.com/in/username or https://www.linkedin.com/in/username)",
                 },
                 skills: {
                   type: "array",
                   items: { type: "string" },
-                  description: "List of all technical and soft skills mentioned",
+                  description:
+                    "List of all technical and soft skills mentioned",
                 },
                 work_experience: {
                   type: "array",
-                  description: "ALL work experience entries from the resume. Extract every position listed.",
+                  description:
+                    "ALL work experience entries from the resume. Extract every position listed.",
                   items: {
                     type: "object",
                     properties: {
@@ -113,7 +115,8 @@ CRITICAL INSTRUCTIONS:
                       },
                       startDate: {
                         type: "string",
-                        description: "Start date (e.g. January 2021, Jan 2021, 2021)",
+                        description:
+                          "Start date (e.g. January 2021, Jan 2021, 2021)",
                       },
                       endDate: {
                         type: "string",
@@ -125,7 +128,8 @@ CRITICAL INSTRUCTIONS:
                       },
                       description: {
                         type: "string",
-                        description: "Job responsibilities and achievements as bullet points joined by newlines",
+                        description:
+                          "Job responsibilities and achievements as bullet points joined by newlines",
                       },
                     },
                     required: ["title", "company", "startDate", "endDate"],
@@ -139,7 +143,8 @@ CRITICAL INSTRUCTIONS:
                     properties: {
                       degree: {
                         type: "string",
-                        description: "Degree type and field (e.g. B.S. Computer Science)",
+                        description:
+                          "Degree type and field (e.g. B.S. Computer Science)",
                       },
                       institution: {
                         type: "string",
@@ -159,7 +164,8 @@ CRITICAL INSTRUCTIONS:
                 },
                 certifications: {
                   type: "array",
-                  description: "ALL certifications, licenses, and professional credentials",
+                  description:
+                    "ALL certifications, licenses, and professional credentials",
                   items: {
                     type: "object",
                     properties: {
@@ -211,7 +217,7 @@ CRITICAL INSTRUCTIONS:
 
     // Extract the tool_use result from the response
     const toolUseBlock = data.content?.find(
-      (block: any) => block.type === "tool_use"
+      (block: any) => block.type === "tool_use",
     );
 
     if (toolUseBlock?.input) {
@@ -226,31 +232,36 @@ CRITICAL INSTRUCTIONS:
         : [];
       profile.certifications = Array.isArray(profile.certifications)
         ? profile.certifications.map((c: any) =>
-            typeof c === "string" ? c : c.name || String(c)
+            typeof c === "string" ? c : c.name || String(c),
           )
         : [];
       profile.skills = Array.isArray(profile.skills) ? profile.skills : [];
 
       // Sanitize string fields — discard AI placeholders like <UNKNOWN>
       const PLACEHOLDER_RE = /^<[A-Z_]+>$/;
-      for (const key of ["full_name", "email", "phone", "location", "summary", "linkedin_url"] as const) {
-        if (typeof profile[key] === "string" && PLACEHOLDER_RE.test(profile[key].trim())) {
+      for (const key of [
+        "full_name",
+        "email",
+        "phone",
+        "location",
+        "summary",
+        "linkedin_url",
+      ] as const) {
+        if (
+          typeof profile[key] === "string" &&
+          PLACEHOLDER_RE.test(profile[key].trim())
+        ) {
           profile[key] = null;
         }
       }
 
-      return new Response(
-        JSON.stringify({ profile, source: "ai" }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
+      return new Response(JSON.stringify({ profile, source: "ai" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // If no tool_use block, try to parse text content as JSON
-    const textBlock = data.content?.find(
-      (block: any) => block.type === "text"
-    );
+    const textBlock = data.content?.find((block: any) => block.type === "text");
     if (textBlock?.text) {
       try {
         const parsed = JSON.parse(textBlock.text);
@@ -258,7 +269,7 @@ CRITICAL INSTRUCTIONS:
           JSON.stringify({ profile: parsed, source: "ai-text" }),
           {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
+          },
         );
       } catch {
         // Text wasn't JSON, fall through to fallback
@@ -280,7 +291,7 @@ CRITICAL INSTRUCTIONS:
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      },
     );
   }
 });
@@ -288,13 +299,13 @@ CRITICAL INSTRUCTIONS:
 // Regex-based fallback extraction when AI is unavailable
 function regexFallback(text: string) {
   const emailMatch = text.match(
-    /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/
+    /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/,
   );
   const phoneMatch = text.match(
-    /(?:\+?1[-.\s]?)?(?:\(?\d{3}\)?[-.\s]?)?\d{3}[-.\s]?\d{4}/
+    /(?:\+?1[-.\s]?)?(?:\(?\d{3}\)?[-.\s]?)?\d{3}[-.\s]?\d{4}/,
   );
   const linkedinMatch = text.match(
-    /(?:https?:\/\/)?(?:www\.)?linkedin\.com\/in\/[a-zA-Z0-9_-]+/i
+    /(?:https?:\/\/)?(?:www\.)?linkedin\.com\/in\/[a-zA-Z0-9_-]+/i,
   );
 
   // Try to extract name from first non-empty line
@@ -303,12 +314,12 @@ function regexFallback(text: string) {
 
   // Extract location - look for "City, ST" pattern
   const locationMatch = text.match(
-    /(?:^|\||\n)\s*([A-Z][a-z]+(?:\s[A-Z][a-z]+)?,\s*[A-Z]{2})\s*(?:\||$|\n)/m
+    /(?:^|\||\n)\s*([A-Z][a-z]+(?:\s[A-Z][a-z]+)?,\s*[A-Z]{2})\s*(?:\||$|\n)/m,
   );
 
   // Extract skills from a skills section
   const skillsMatch = text.match(
-    /(?:SKILLS|TECHNICAL SKILLS|CORE COMPETENCIES)[:\s]*\n?([\s\S]*?)(?:\n\s*\n|\n[A-Z]{2,})/i
+    /(?:SKILLS|TECHNICAL SKILLS|CORE COMPETENCIES)[:\s]*\n?([\s\S]*?)(?:\n\s*\n|\n[A-Z]{2,})/i,
   );
   let skills: string[] = [];
   if (skillsMatch) {
@@ -320,7 +331,7 @@ function regexFallback(text: string) {
 
   // Extract summary
   const summaryMatch = text.match(
-    /(?:SUMMARY|PROFESSIONAL SUMMARY|OBJECTIVE|PROFILE)[:\s]*\n?([\s\S]*?)(?:\n\s*\n|\n[A-Z]{2,})/i
+    /(?:SUMMARY|PROFESSIONAL SUMMARY|OBJECTIVE|PROFILE)[:\s]*\n?([\s\S]*?)(?:\n\s*\n|\n[A-Z]{2,})/i,
   );
 
   return {

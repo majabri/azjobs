@@ -15,7 +15,10 @@ import { Target, ArrowLeft, Mail } from "lucide-react";
 import { sendPasswordResetEmail } from "@/services/user/auth";
 import { normalizeError } from "@/lib/normalizeError";
 import { supabase } from "@/integrations/supabase/client";
-import { forgotPasswordSchema, type ForgotPasswordFormValues } from "@/lib/schemas";
+import {
+  forgotPasswordSchema,
+  type ForgotPasswordFormValues,
+} from "@/lib/schemas";
 
 export default function ForgotPasswordPage() {
   const [success, setSuccess] = useState(false);
@@ -41,7 +44,9 @@ export default function ForgotPasswordPage() {
         { _username: id },
       );
       if (rpcError || !resolved) {
-        setError("email", { message: "We couldn't find an account with that username." });
+        setError("email", {
+          message: "We couldn't find an account with that username.",
+        });
         return;
       }
       resolvedEmail = resolved;
@@ -116,7 +121,9 @@ export default function ForgotPasswordPage() {
               {...register("email")}
             />
             {errors.email && (
-              <p role="alert" className="text-xs text-destructive">{errors.email.message}</p>
+              <p role="alert" className="text-xs text-destructive">
+                {errors.email.message}
+              </p>
             )}
           </div>
 
@@ -126,11 +133,7 @@ export default function ForgotPasswordPage() {
             </p>
           )}
 
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={isSubmitting}
-          >
+          <Button type="submit" className="w-full" disabled={isSubmitting}>
             {isSubmitting ? "Sending link\u2026" : "Send Reset Link"}
           </Button>
         </form>

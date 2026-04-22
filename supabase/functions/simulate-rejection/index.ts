@@ -3,19 +3,25 @@ import { callAnthropic } from "../_shared/anthropic.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method === "OPTIONS")
+    return new Response(null, { headers: corsHeaders });
 
   try {
     const { resumeText, jobDescription, jobTitle } = await req.json();
 
     if (!resumeText || !jobDescription) {
-      return new Response(JSON.stringify({ error: "Resume and job description required" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "Resume and job description required" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
     }
 
     const result = await callAnthropic({
-      system: "You simulate ATS and recruiter rejection stages for job applications. Return only valid JSON.",
+      system:
+        "You simulate ATS and recruiter rejection stages for job applications. Return only valid JSON.",
       userMessage: `Simulate two rejection stages for this application.
 
 Job Title: ${jobTitle || "Not specified"}
@@ -40,7 +46,9 @@ Return JSON with:
       parsed = JSON.parse(result.content);
     } catch {
       const match = result.content.match(/\{[\s\S]*\}/);
-      parsed = match ? JSON.parse(match[0]) : { error: "Failed to parse AI response" };
+      parsed = match
+        ? JSON.parse(match[0])
+        : { error: "Failed to parse AI response" };
     }
 
     return new Response(JSON.stringify(parsed), {
@@ -48,8 +56,14 @@ Return JSON with:
     });
   } catch (e) {
     console.error("simulate-rejection error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({
+        error: e instanceof Error ? e.message : "Unknown error",
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   }
 });

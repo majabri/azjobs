@@ -6,8 +6,10 @@ import type { Database } from "@/integrations/supabase/types";
 
 export const OUTREACH_CONTACTS_QUERY_KEY = ["outreach_contacts"];
 
-type OutreachContactRow = Database["public"]["Tables"]["outreach_contacts"]["Row"];
-type OutreachContactInsert = Database["public"]["Tables"]["outreach_contacts"]["Insert"];
+type OutreachContactRow =
+  Database["public"]["Tables"]["outreach_contacts"]["Row"];
+type OutreachContactInsert =
+  Database["public"]["Tables"]["outreach_contacts"]["Insert"];
 
 /** Fetch outreach contacts for the current user */
 export function useOutreachContacts() {
@@ -58,7 +60,13 @@ export function useUpdateOutreachContact() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, updates }: { id: string; updates: Partial<OutreachContactInsert> }) => {
+    mutationFn: async ({
+      id,
+      updates,
+    }: {
+      id: string;
+      updates: Partial<OutreachContactInsert>;
+    }) => {
       const { error } = await supabase
         .from("outreach_contacts")
         .update(updates)

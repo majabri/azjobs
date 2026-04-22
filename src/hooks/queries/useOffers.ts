@@ -58,7 +58,13 @@ export function useUpdateOffer() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, updates }: { id: string; updates: Partial<OfferInsert> }) => {
+    mutationFn: async ({
+      id,
+      updates,
+    }: {
+      id: string;
+      updates: Partial<OfferInsert>;
+    }) => {
       const { error } = await supabase
         .from("offers")
         .update({ ...updates, updated_at: new Date().toISOString() })
@@ -80,10 +86,7 @@ export function useDeleteOffer() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from("offers")
-        .delete()
-        .eq("id", id);
+      const { error } = await supabase.from("offers").delete().eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {

@@ -6,8 +6,10 @@ import type { Database } from "@/integrations/supabase/types";
 
 export const INTERVIEW_SCHEDULES_QUERY_KEY = ["interview_schedules"];
 
-type InterviewScheduleRow = Database["public"]["Tables"]["interview_schedules"]["Row"];
-type InterviewScheduleInsert = Database["public"]["Tables"]["interview_schedules"]["Insert"];
+type InterviewScheduleRow =
+  Database["public"]["Tables"]["interview_schedules"]["Row"];
+type InterviewScheduleInsert =
+  Database["public"]["Tables"]["interview_schedules"]["Insert"];
 
 /** Fetch all interview schedules for the current user */
 export function useInterviewSchedules() {
@@ -44,7 +46,9 @@ export function useCreateInterviewSchedule() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: INTERVIEW_SCHEDULES_QUERY_KEY });
+      queryClient.invalidateQueries({
+        queryKey: INTERVIEW_SCHEDULES_QUERY_KEY,
+      });
       toast.success("Interview scheduled");
     },
     onError: () => {
@@ -66,7 +70,9 @@ export function useDeleteInterviewSchedule() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: INTERVIEW_SCHEDULES_QUERY_KEY });
+      queryClient.invalidateQueries({
+        queryKey: INTERVIEW_SCHEDULES_QUERY_KEY,
+      });
       toast.success("Interview removed");
     },
     onError: () => {

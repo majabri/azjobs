@@ -58,7 +58,13 @@ export function useUpdateJobPosting() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, updates }: { id: string; updates: Partial<JobPostingInsert> }) => {
+    mutationFn: async ({
+      id,
+      updates,
+    }: {
+      id: string;
+      updates: Partial<JobPostingInsert>;
+    }) => {
       const { error } = await supabase
         .from("job_postings")
         .update({ ...updates, updated_at: new Date().toISOString() })

@@ -4,29 +4,97 @@ import { corsHeaders } from "../_shared/cors.ts";
 
 // ── Well-known ATS boards to crawl daily ──
 const DEFAULT_GREENHOUSE_BOARDS = [
-  "airbnb", "figma", "stripe", "notion", "databricks", "cloudflare",
-  "discord", "instacart", "robinhood", "coinbase", "grammarly",
-  "plaid", "brex", "airtable", "vercel", "netlify",
-  "dropbox", "squarespace", "hashicorp", "elastic", "confluent",
-  "datadog", "snyk", "mongodb", "cockroachlabs", "dbt-labs",
-  "samsara", "benchling", "retool", "linear", "loom",
+  "airbnb",
+  "figma",
+  "stripe",
+  "notion",
+  "databricks",
+  "cloudflare",
+  "discord",
+  "instacart",
+  "robinhood",
+  "coinbase",
+  "grammarly",
+  "plaid",
+  "brex",
+  "airtable",
+  "vercel",
+  "netlify",
+  "dropbox",
+  "squarespace",
+  "hashicorp",
+  "elastic",
+  "confluent",
+  "datadog",
+  "snyk",
+  "mongodb",
+  "cockroachlabs",
+  "dbt-labs",
+  "samsara",
+  "benchling",
+  "retool",
+  "linear",
+  "loom",
 ];
 
 const DEFAULT_LEVER_COMPANIES = [
-  "netflix", "shopify", "twitch", "palantir", "reddit",
-  "doordash", "lyft", "snap", "spotify", "hubspot",
-  "nerdwallet", "webflow", "postman", "calendly", "miro",
-  "lucidchart", "gong", "lattice", "greenhouse", "gusto",
+  "netflix",
+  "shopify",
+  "twitch",
+  "palantir",
+  "reddit",
+  "doordash",
+  "lyft",
+  "snap",
+  "spotify",
+  "hubspot",
+  "nerdwallet",
+  "webflow",
+  "postman",
+  "calendly",
+  "miro",
+  "lucidchart",
+  "gong",
+  "lattice",
+  "greenhouse",
+  "gusto",
 ];
 
 const GENERIC_JOB_PATH_SEGMENTS = new Set([
-  "careers", "career", "jobs", "job", "job-search", "open-positions",
-  "positions", "vacancies", "opportunities", "join-us", "work-with-us", "employment",
+  "careers",
+  "career",
+  "jobs",
+  "job",
+  "job-search",
+  "open-positions",
+  "positions",
+  "vacancies",
+  "opportunities",
+  "join-us",
+  "work-with-us",
+  "employment",
 ]);
 
-const LISTING_TAIL_SEGMENTS = new Set(["search", "results", "all", "openings", "index", "list"]);
+const LISTING_TAIL_SEGMENTS = new Set([
+  "search",
+  "results",
+  "all",
+  "openings",
+  "index",
+  "list",
+]);
 
-const NON_JOB_PAGE_SEGMENTS = new Set(["about", "company", "team", "culture", "people", "mission", "values", "home", "contact"]);
+const NON_JOB_PAGE_SEGMENTS = new Set([
+  "about",
+  "company",
+  "team",
+  "culture",
+  "people",
+  "mission",
+  "values",
+  "home",
+  "contact",
+]);
 
 // ── Helpers (reused from scrape-jobs-ats) ──
 function detectJobType(title: string, desc: string): string | null {
@@ -48,14 +116,39 @@ function detectSeniority(title: string): string | null {
   return "mid";
 }
 
-function scoreJob(job: any): { score: number; flagged: boolean; reasons: string[] } {
+function scoreJob(job: any): {
+  score: number;
+  flagged: boolean;
+  reasons: string[];
+} {
   let score = 100;
   const reasons: string[] = [];
-  if (!job.description || job.description.length < 50) { score -= 30; reasons.push("Short description"); }
-  if (!job.location && !job.is_remote) { score -= 10; reasons.push("No location"); }
-  if (!job.salary) { score -= 5; reasons.push("No salary info"); }
-  if (job.description && /\b(urgent|immediately|asap)\b/i.test(job.description)) { score -= 15; reasons.push("Urgency keywords"); }
-  if (job.description && /\b(commission only|unpaid|volunteer)\b/i.test(job.description)) { score -= 25; reasons.push("Potentially unpaid"); }
+  if (!job.description || job.description.length < 50) {
+    score -= 30;
+    reasons.push("Short description");
+  }
+  if (!job.location && !job.is_remote) {
+    score -= 10;
+    reasons.push("No location");
+  }
+  if (!job.salary) {
+    score -= 5;
+    reasons.push("No salary info");
+  }
+  if (
+    job.description &&
+    /\b(urgent|immediately|asap)\b/i.test(job.description)
+  ) {
+    score -= 15;
+    reasons.push("Urgency keywords");
+  }
+  if (
+    job.description &&
+    /\b(commission only|unpaid|volunteer)\b/i.test(job.description)
+  ) {
+    score -= 25;
+    reasons.push("Potentially unpaid");
+  }
   return { score: Math.max(0, score), flagged: score < 60, reasons };
 }
 
@@ -66,15 +159,20 @@ function normalizeJobUrl(rawUrl?: string | null): string {
 
   const markdownMatch = trimmed.match(/\((https?:\/\/[^)\s]+)\)/i);
   const plainMatch = trimmed.match(/https?:\/\/[^\s<>'"\])]+/i);
-  const extracted = (markdownMatch?.[1] || plainMatch?.[0] || trimmed).replace(/[),.;]+$/g, "").trim();
+  const extracted = (markdownMatch?.[1] || plainMatch?.[0] || trimmed)
+    .replace(/[),.;]+$/g, "")
+    .trim();
   if (!extracted) return "";
 
-  const withProtocol = /^https?:\/\//i.test(extracted) ? extracted : `https://${extracted}`;
+  const withProtocol = /^https?:\/\//i.test(extracted)
+    ? extracted
+    : `https://${extracted}`;
 
   try {
     const parsed = new URL(withProtocol);
     const host = parsed.hostname.toLowerCase();
-    if (!host || host.includes("example.com") || host.includes("placeholder")) return "";
+    if (!host || host.includes("example.com") || host.includes("placeholder"))
+      return "";
     return parsed.toString();
   } catch {
     return "";
@@ -91,17 +189,37 @@ function isGenericJobListingUrl(rawUrl: string): boolean {
 
     if (parts.length === 0) return true;
 
-    const allGeneric = parts.every((p) => GENERIC_JOB_PATH_SEGMENTS.has(p) || LISTING_TAIL_SEGMENTS.has(p));
+    const allGeneric = parts.every(
+      (p) => GENERIC_JOB_PATH_SEGMENTS.has(p) || LISTING_TAIL_SEGMENTS.has(p),
+    );
     if (allGeneric) return true;
 
-    if (parts.length === 1 && GENERIC_JOB_PATH_SEGMENTS.has(parts[0])) return true;
-    if (parts.length === 2 && GENERIC_JOB_PATH_SEGMENTS.has(parts[0]) && LISTING_TAIL_SEGMENTS.has(parts[1])) return true;
+    if (parts.length === 1 && GENERIC_JOB_PATH_SEGMENTS.has(parts[0]))
+      return true;
+    if (
+      parts.length === 2 &&
+      GENERIC_JOB_PATH_SEGMENTS.has(parts[0]) &&
+      LISTING_TAIL_SEGMENTS.has(parts[1])
+    )
+      return true;
 
     const last = parts[parts.length - 1];
-    if (GENERIC_JOB_PATH_SEGMENTS.has(last) || LISTING_TAIL_SEGMENTS.has(last)) return true;
+    if (GENERIC_JOB_PATH_SEGMENTS.has(last) || LISTING_TAIL_SEGMENTS.has(last))
+      return true;
 
     const qp = url.searchParams;
-    if (["q", "query", "keywords", "search", "location", "department", "team"].some((key) => qp.has(key)) && parts.length <= 2) {
+    if (
+      [
+        "q",
+        "query",
+        "keywords",
+        "search",
+        "location",
+        "department",
+        "team",
+      ].some((key) => qp.has(key)) &&
+      parts.length <= 2
+    ) {
       return true;
     }
 
@@ -124,14 +242,27 @@ function isLikelyDirectJobPostingUrl(rawUrl: string): boolean {
     const last = parts[parts.length - 1];
     if (NON_JOB_PAGE_SEGMENTS.has(last)) return false;
 
-    const hasJobWordInPath = parts.some((p) => /job|jobs|position|opening|opportunit|career/.test(p));
+    const hasJobWordInPath = parts.some((p) =>
+      /job|jobs|position|opening|opportunit|career/.test(p),
+    );
     const hasNumericId = parts.some((p) => /\d{4,}/.test(p));
     const hasLongSlug = parts.some((p) => p.includes("-") && p.length >= 16);
-    const hasKnownJobQuery = ["gh_jid", "job", "jobid", "jk", "lever-source", "oid"].some((k) =>
-      url.searchParams.has(k)
-    );
+    const hasKnownJobQuery = [
+      "gh_jid",
+      "job",
+      "jobid",
+      "jk",
+      "lever-source",
+      "oid",
+    ].some((k) => url.searchParams.has(k));
 
-    if (parts.length === 1 && !hasNumericId && !hasLongSlug && !hasKnownJobQuery) return false;
+    if (
+      parts.length === 1 &&
+      !hasNumericId &&
+      !hasLongSlug &&
+      !hasKnownJobQuery
+    )
+      return false;
 
     return hasJobWordInPath || hasNumericId || hasLongSlug || hasKnownJobQuery;
   } catch {
@@ -150,13 +281,17 @@ function hasSubstantiveDescription(description: unknown): boolean {
 // ── ATS scrapers ──
 async function scrapeGreenhouse(board: string) {
   try {
-    const res = await fetch(`https://boards-api.greenhouse.io/v1/boards/${board}/jobs?content=true`);
+    const res = await fetch(
+      `https://boards-api.greenhouse.io/v1/boards/${board}/jobs?content=true`,
+    );
     if (!res.ok) return [];
     const data = await res.json();
     return (data.jobs || []).map((j: any) => ({
       title: j.title || "",
       company: data.name || board,
-      description: (j.content || "").replace(/<[^>]*>/g, " ").substring(0, 5000),
+      description: (j.content || "")
+        .replace(/<[^>]*>/g, " ")
+        .substring(0, 5000),
       location: j.location?.name || null,
       salary: null,
       job_url: j.absolute_url || null,
@@ -165,7 +300,8 @@ async function scrapeGreenhouse(board: string) {
       job_type: detectJobType(j.title, j.content || ""),
       seniority: detectSeniority(j.title),
       industry: null,
-      is_remote: /remote/i.test(j.location?.name || "") || /remote/i.test(j.title),
+      is_remote:
+        /remote/i.test(j.location?.name || "") || /remote/i.test(j.title),
     }));
   } catch (e) {
     console.error(`Greenhouse ${board} failed:`, e);
@@ -175,22 +311,30 @@ async function scrapeGreenhouse(board: string) {
 
 async function scrapeLever(company: string) {
   try {
-    const res = await fetch(`https://api.lever.co/v0/postings/${company}?mode=json`);
+    const res = await fetch(
+      `https://api.lever.co/v0/postings/${company}?mode=json`,
+    );
     if (!res.ok) return [];
     const jobs: any[] = await res.json();
     return jobs.map((j: any) => ({
       title: j.text || "",
       company,
-      description: (j.descriptionPlain || j.description || "").substring(0, 5000),
+      description: (j.descriptionPlain || j.description || "").substring(
+        0,
+        5000,
+      ),
       location: j.categories?.location || null,
       salary: null,
       job_url: j.hostedUrl || j.applyUrl || null,
       source: "lever",
       source_id: `lv-${company}-${j.id}`,
-      job_type: j.categories?.commitment || detectJobType(j.text, j.descriptionPlain || ""),
+      job_type:
+        j.categories?.commitment ||
+        detectJobType(j.text, j.descriptionPlain || ""),
       seniority: detectSeniority(j.text),
       industry: j.categories?.department || null,
-      is_remote: /remote/i.test(j.categories?.location || "") || /remote/i.test(j.text),
+      is_remote:
+        /remote/i.test(j.categories?.location || "") || /remote/i.test(j.text),
     }));
   } catch (e) {
     console.error(`Lever ${company} failed:`, e);
@@ -230,38 +374,44 @@ CRITICAL: Only include jobs with REAL, WORKING URLs pointing to SPECIFIC individ
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514",
         messages: [
-          { role: "system", content: "You are a job search crawler. Return only valid JSON. No markdown." },
+          {
+            role: "system",
+            content:
+              "You are a job search crawler. Return only valid JSON. No markdown.",
+          },
           { role: "user", content: prompt },
         ],
-        tools: [{
-          type: "function",
-          function: {
-            name: "return_jobs",
-            description: "Return crawled job listings",
-            parameters: {
-              type: "object",
-              properties: {
-                jobs: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      title: { type: "string" },
-                      company: { type: "string" },
-                      location: { type: "string" },
-                      type: { type: "string" },
-                      description: { type: "string" },
-                      url: { type: "string" },
-                      salary: { type: "string" },
+        tools: [
+          {
+            type: "function",
+            function: {
+              name: "return_jobs",
+              description: "Return crawled job listings",
+              parameters: {
+                type: "object",
+                properties: {
+                  jobs: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        title: { type: "string" },
+                        company: { type: "string" },
+                        location: { type: "string" },
+                        type: { type: "string" },
+                        description: { type: "string" },
+                        url: { type: "string" },
+                        salary: { type: "string" },
+                      },
+                      required: ["title", "company", "description", "url"],
                     },
-                    required: ["title", "company", "description", "url"],
                   },
                 },
+                required: ["jobs"],
               },
-              required: ["jobs"],
             },
           },
-        }],
+        ],
         tool_choice: { type: "function", function: { name: "return_jobs" } },
       }),
     });
@@ -284,13 +434,19 @@ CRITICAL: Only include jobs with REAL, WORKING URLs pointing to SPECIFIC individ
           salary: j.salary || null,
           job_url: j.url || null,
           source: "ai_crawl",
-          source_id: `ai-${j.url || `${j.company}-${j.title}`}`.replace(/\s+/g, "-").toLowerCase().substring(0, 200),
+          source_id: `ai-${j.url || `${j.company}-${j.title}`}`
+            .replace(/\s+/g, "-")
+            .toLowerCase()
+            .substring(0, 200),
           job_type: j.type || detectJobType(j.title, j.description || ""),
           seniority: detectSeniority(j.title),
           industry: null,
-          is_remote: /remote/i.test(j.location || "") || /remote/i.test(j.title),
+          is_remote:
+            /remote/i.test(j.location || "") || /remote/i.test(j.title),
         }));
-      } catch { return []; }
+      } catch {
+        return [];
+      }
     }
     return [];
   } catch (e) {
@@ -301,12 +457,13 @@ CRITICAL: Only include jobs with REAL, WORKING URLs pointing to SPECIFIC individ
 
 // ── Main handler ──
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method === "OPTIONS")
+    return new Response(null, { headers: corsHeaders });
 
   try {
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
     );
 
     console.log("🔄 Starting daily job refresh...");
@@ -315,21 +472,25 @@ Deno.serve(async (req) => {
     let allJobs: any[] = [];
 
     const ghResults = await Promise.allSettled(
-      DEFAULT_GREENHOUSE_BOARDS.map((b) => scrapeGreenhouse(b))
+      DEFAULT_GREENHOUSE_BOARDS.map((b) => scrapeGreenhouse(b)),
     );
     for (const r of ghResults) {
       if (r.status === "fulfilled") allJobs = allJobs.concat(r.value);
     }
-    console.log(`✅ Greenhouse: ${allJobs.length} jobs from ${DEFAULT_GREENHOUSE_BOARDS.length} boards`);
+    console.log(
+      `✅ Greenhouse: ${allJobs.length} jobs from ${DEFAULT_GREENHOUSE_BOARDS.length} boards`,
+    );
 
     const lvResults = await Promise.allSettled(
-      DEFAULT_LEVER_COMPANIES.map((c) => scrapeLever(c))
+      DEFAULT_LEVER_COMPANIES.map((c) => scrapeLever(c)),
     );
     const lvCount = allJobs.length;
     for (const r of lvResults) {
       if (r.status === "fulfilled") allJobs = allJobs.concat(r.value);
     }
-    console.log(`✅ Lever: ${allJobs.length - lvCount} jobs from ${DEFAULT_LEVER_COMPANIES.length} companies`);
+    console.log(
+      `✅ Lever: ${allJobs.length - lvCount} jobs from ${DEFAULT_LEVER_COMPANIES.length} companies`,
+    );
 
     // ── Step 2: Scrape user-defined targets from scraping_targets table ──
     const { data: targets } = await supabaseAdmin
@@ -362,7 +523,9 @@ Deno.serve(async (req) => {
     // ── Step 3: AI web crawl based on active user profiles ──
     const { data: profiles } = await supabaseAdmin
       .from("job_seeker_profiles")
-      .select("target_job_titles, skills, location, career_level, preferred_job_types")
+      .select(
+        "target_job_titles, skills, location, career_level, preferred_job_types",
+      )
       .not("target_job_titles", "is", null);
 
     // Build unique search queries from user profiles
@@ -408,7 +571,7 @@ Deno.serve(async (req) => {
     for (let i = 0; i < queries.length; i += 3) {
       const batch = queries.slice(i, i + 3);
       const results = await Promise.allSettled(
-        batch.map((q) => aiWebCrawl(q, Deno.env.get("ANTHROPIC_API_KEY")))
+        batch.map((q) => aiWebCrawl(q, Deno.env.get("ANTHROPIC_API_KEY"))),
       );
       for (const r of results) {
         if (r.status === "fulfilled") allJobs = allJobs.concat(r.value);
@@ -427,7 +590,9 @@ Deno.serve(async (req) => {
       const normalizedUrl = normalizeJobUrl(j.job_url);
       j.job_url = normalizedUrl;
 
-      const key = j.source_id || `${j.company}-${j.title}`.toLowerCase().replace(/\s+/g, "-");
+      const key =
+        j.source_id ||
+        `${j.company}-${j.title}`.toLowerCase().replace(/\s+/g, "-");
       if (seen.has(key)) return false;
       seen.add(key);
       if (!j.job_url) return false;
@@ -462,7 +627,7 @@ Deno.serve(async (req) => {
           flag_reasons: quality.reasons,
           last_seen_at: new Date().toISOString(),
         },
-        { onConflict: "source_id" }
+        { onConflict: "source_id" },
       );
       if (!error) inserted++;
       else console.error("Upsert error:", error.message);
@@ -487,13 +652,19 @@ Deno.serve(async (req) => {
         upserted: inserted,
         stale_removed: deletedCount || 0,
       }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (error) {
     console.error("❌ Daily refresh error:", error);
     return new Response(
-      JSON.stringify({ success: false, error: error instanceof Error ? error.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   }
 });

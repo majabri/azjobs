@@ -1,23 +1,45 @@
 import { describe, it, expect } from "vitest";
-import { detectCareerLevel, extractJobTitles, extractProfileFromResume } from "../lib/services/careerService";
+import {
+  detectCareerLevel,
+  extractJobTitles,
+  extractProfileFromResume,
+} from "../lib/services/careerService";
 
 describe("careerService", () => {
   describe("detectCareerLevel", () => {
     it("should correctly detect entry-level thresholds", () => {
-      expect(detectCareerLevel("We are seeking an energetic intern to join our team.")).toBe("Entry-Level / Junior");
-      expect(detectCareerLevel("Looking for a candidate with no prior experience for this junior role.")).toBe("Entry-Level / Junior");
+      expect(
+        detectCareerLevel(
+          "We are seeking an energetic intern to join our team.",
+        ),
+      ).toBe("Entry-Level / Junior");
+      expect(
+        detectCareerLevel(
+          "Looking for a candidate with no prior experience for this junior role.",
+        ),
+      ).toBe("Entry-Level / Junior");
     });
 
     it("should correctly detect C-Level over senior conflicts", () => {
-      expect(detectCareerLevel("We are hiring a new Chief Technology Officer (CTO) to oversee our senior engineers.")).toBe("C-Level / Executive");
+      expect(
+        detectCareerLevel(
+          "We are hiring a new Chief Technology Officer (CTO) to oversee our senior engineers.",
+        ),
+      ).toBe("C-Level / Executive");
     });
 
     it("should fall back to Mid-Level if no clear indicators exist", () => {
-      expect(detectCareerLevel("Looking for someone with great communication skills and HTML/CSS.")).toBe("Mid-Level");
+      expect(
+        detectCareerLevel(
+          "Looking for someone with great communication skills and HTML/CSS.",
+        ),
+      ).toBe("Mid-Level");
     });
 
     it("should properly identify VP and Directors", () => {
-      expect(detectCareerLevel("Vice President of Engineering")).toBe("VP / Senior Leadership");
+      expect(detectCareerLevel("Vice President of Engineering")).toBe(
+        "VP / Senior Leadership",
+      );
       expect(detectCareerLevel("Managing Director of Sales")).toBe("Director");
     });
   });
@@ -39,7 +61,11 @@ describe("careerService", () => {
     it("should parse compound titles correctly", () => {
       const text = "Currently serving as Vice President of Global Strategy";
       const titles = extractJobTitles(text);
-      expect(titles.some(t => t.toLowerCase() === "vice president of global strategy")).toBe(true);
+      expect(
+        titles.some(
+          (t) => t.toLowerCase() === "vice president of global strategy",
+        ),
+      ).toBe(true);
     });
   });
 
@@ -59,10 +85,14 @@ describe("careerService", () => {
 
       expect(profile.careerLevel).toBe("Manager");
       expect(profile.jobTitles).toContain("Senior Technical Program Manager");
-      expect(profile.certifications.map(c => c.toUpperCase())).toContain("CISSP");
-      expect(profile.certifications.map(c => c.toUpperCase())).toContain("PMP");
-      expect(profile.skills.map(s => s.toLowerCase())).toEqual(
-        expect.arrayContaining(["python", "aws", "kubernetes"])
+      expect(profile.certifications.map((c) => c.toUpperCase())).toContain(
+        "CISSP",
+      );
+      expect(profile.certifications.map((c) => c.toUpperCase())).toContain(
+        "PMP",
+      );
+      expect(profile.skills.map((s) => s.toLowerCase())).toEqual(
+        expect.arrayContaining(["python", "aws", "kubernetes"]),
       );
     });
   });

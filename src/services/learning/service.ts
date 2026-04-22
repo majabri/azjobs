@@ -6,7 +6,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
-import { logger } from '@/lib/logger';
+import { logger } from "@/lib/logger";
 
 export interface LearningEvent {
   id: string;
@@ -16,14 +16,19 @@ export interface LearningEvent {
   created_at: string;
 }
 
-export async function loadLearningEvents(userId: string): Promise<LearningEvent[]> {
+export async function loadLearningEvents(
+  userId: string,
+): Promise<LearningEvent[]> {
   const { data, error } = await supabase
     .from("learning_events")
     .select("id, outcome, features, insights, created_at")
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(100);
-  if (error) { logger.error("[LearningService]", error); return []; }
+  if (error) {
+    logger.error("[LearningService]", error);
+    return [];
+  }
   return (data || []) as unknown as LearningEvent[];
 }
 

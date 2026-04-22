@@ -1,5 +1,14 @@
 import { useState, useEffect, useCallback } from "react";
-import { Bell, X, Check, ExternalLink, Briefcase, TrendingUp, Sparkles, AlertCircle } from "lucide-react";
+import {
+  Bell,
+  X,
+  Check,
+  ExternalLink,
+  Briefcase,
+  TrendingUp,
+  Sparkles,
+  AlertCircle,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -27,7 +36,12 @@ const typeIcons: Record<string, React.ReactNode> = {
 };
 
 const typePriority: Record<string, number> = {
-  urgent: 0, action: 1, job_alert: 2, insight: 3, nudge: 4, info: 5,
+  urgent: 0,
+  action: 1,
+  job_alert: 2,
+  insight: 3,
+  nudge: 4,
+  info: 5,
 };
 
 export default function NotificationCenter() {
@@ -38,37 +52,57 @@ export default function NotificationCenter() {
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 
   const load = useCallback(async () => {
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
     if (!session) return;
-    const { data } = await supabase.from("notifications")
+    const { data } = await supabase
+      .from("notifications")
       .select("*")
       .eq("user_id", session.user.id)
       .order("created_at", { ascending: false })
       .limit(30);
-    if (data) setNotifications(data.sort((a: any, b: any) => {
-      if (a.is_read !== b.is_read) return a.is_read ? 1 : -1;
-      return (typePriority[a.type] ?? 5) - (typePriority[b.type] ?? 5);
-    }));
+    if (data)
+      setNotifications(
+        data.sort((a: any, b: any) => {
+          if (a.is_read !== b.is_read) return a.is_read ? 1 : -1;
+          return (typePriority[a.type] ?? 5) - (typePriority[b.type] ?? 5);
+        }),
+      );
   }, []);
 
   useEffect(() => {
     load();
     const channel = supabase
       .channel("notifications-realtime")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications" }, () => load())
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "notifications" },
+        () => load(),
+      )
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [load]);
 
   const markRead = async (id: string) => {
     await supabase.from("notifications").update({ is_read: true }).eq("id", id);
-    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)));
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)),
+    );
   };
 
   const markAllRead = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
     if (!session) return;
-    await supabase.from("notifications").update({ is_read: true }).eq("user_id", session.user.id).eq("is_read", false);
+    await supabase
+      .from("notifications")
+      .update({ is_read: true })
+      .eq("user_id", session.user.id)
+      .eq("is_read", false);
     setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
   };
 
@@ -80,7 +114,12 @@ export default function NotificationCenter() {
 
   return (
     <div className="relative">
-      <Button variant="ghost" size="sm" className="relative" onClick={() => setOpen(!open)}>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="relative"
+        onClick={() => setOpen(!open)}
+      >
         <Bell className="w-4 h-4" />
         {unreadCount > 0 && (
           <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold flex items-center justify-center">
@@ -94,14 +133,26 @@ export default function NotificationCenter() {
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
           <div className="absolute right-0 top-10 z-50 w-80 sm:w-96 bg-card border border-border rounded-xl shadow-elevated overflow-hidden animate-fade-in">
             <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-              <span className="font-display font-bold text-sm text-primary">Notifications</span>
+              <span className="font-display font-bold text-sm text-primary">
+                Notifications
+              </span>
               <div className="flex items-center gap-1">
                 {unreadCount > 0 && (
-                  <Button variant="ghost" size="sm" className="text-xs text-accent h-7" onClick={markAllRead}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs text-accent h-7"
+                    onClick={markAllRead}
+                  >
                     <Check className="w-3 h-3 mr-1" /> Mark all read
                   </Button>
                 )}
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setOpen(false)}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={() => setOpen(false)}
+                >
                   <X className="w-3.5 h-3.5" />
                 </Button>
               </div>
@@ -109,7 +160,9 @@ export default function NotificationCenter() {
 
             <ScrollArea className="max-h-80">
               {notifications.length === 0 ? (
-                <div className="py-10 text-center text-sm text-muted-foreground">No notifications yet</div>
+                <div className="py-10 text-center text-sm text-muted-foreground">
+                  No notifications yet
+                </div>
               ) : (
                 notifications.map((n) => (
                   <button
@@ -117,20 +170,32 @@ export default function NotificationCenter() {
                     className={`w-full text-left px-4 py-3 flex gap-3 hover:bg-muted/50 transition-colors border-b border-border/50 last:border-0 ${!n.is_read ? "bg-accent/5" : ""}`}
                     onClick={() => handleClick(n)}
                   >
-                    <div className="mt-0.5 flex-shrink-0">{typeIcons[n.type] || typeIcons.info}</div>
+                    <div className="mt-0.5 flex-shrink-0">
+                      {typeIcons[n.type] || typeIcons.info}
+                    </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className={`text-sm font-medium truncate ${!n.is_read ? "text-foreground" : "text-muted-foreground"}`}>
+                        <span
+                          className={`text-sm font-medium truncate ${!n.is_read ? "text-foreground" : "text-muted-foreground"}`}
+                        >
                           {n.title}
                         </span>
-                        {!n.is_read && <div className="w-1.5 h-1.5 rounded-full bg-accent flex-shrink-0" />}
+                        {!n.is_read && (
+                          <div className="w-1.5 h-1.5 rounded-full bg-accent flex-shrink-0" />
+                        )}
                       </div>
-                      <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{n.message}</p>
+                      <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">
+                        {n.message}
+                      </p>
                       <div className="flex items-center gap-2 mt-1">
                         <span className="text-[10px] text-muted-foreground">
-                          {formatDistanceToNow(new Date(n.created_at), { addSuffix: true })}
+                          {formatDistanceToNow(new Date(n.created_at), {
+                            addSuffix: true,
+                          })}
                         </span>
-                        {n.action_url && <ExternalLink className="w-2.5 h-2.5 text-muted-foreground" />}
+                        {n.action_url && (
+                          <ExternalLink className="w-2.5 h-2.5 text-muted-foreground" />
+                        )}
                       </div>
                     </div>
                   </button>

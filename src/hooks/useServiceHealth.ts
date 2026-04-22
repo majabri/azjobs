@@ -4,7 +4,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { logger } from '@/lib/logger';
+import { logger } from "@/lib/logger";
 
 export interface ServiceHealthEntry {
   id: string;
@@ -35,7 +35,9 @@ export function useServiceHealth() {
     }
   }, []);
 
-  useEffect(() => { refresh(); }, [refresh]);
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
 
   return { services, loading, refresh };
 }

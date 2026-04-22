@@ -49,7 +49,9 @@ export interface AuthUser {
  * Extract and verify the Bearer token from a request, returning the
  * authenticated user or null if unauthorized.
  */
-export async function getUserFromRequest(req: Request): Promise<AuthUser | null> {
+export async function getUserFromRequest(
+  req: Request,
+): Promise<AuthUser | null> {
   const authHeader = req.headers.get("Authorization");
   if (!authHeader?.startsWith("Bearer ")) return null;
 

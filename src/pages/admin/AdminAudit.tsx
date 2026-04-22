@@ -3,13 +3,28 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  ClipboardList, RefreshCw, Clock, CheckCircle2, XCircle,
-  Terminal, Shield, User, ChevronDown, ChevronRight, Filter,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  ClipboardList,
+  RefreshCw,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  Terminal,
+  Shield,
+  User,
+  ChevronDown,
+  ChevronRight,
+  Filter,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { logger } from '@/lib/logger';
+import { logger } from "@/lib/logger";
 
 interface CommandLogEntry {
   id: string;
@@ -55,7 +70,9 @@ export default function AdminAudit() {
           .limit(200),
         supabase
           .from("agent_runs")
-          .select("id, user_id, status, started_at, completed_at, errors, jobs_found, jobs_matched, applications_sent")
+          .select(
+            "id, user_id, status, started_at, completed_at, errors, jobs_found, jobs_matched, applications_sent",
+          )
           .order("started_at", { ascending: false })
           .limit(100),
       ]);
@@ -69,9 +86,10 @@ export default function AdminAudit() {
           category: "commands",
           who: (cmd.admin_id?.slice(0, 8) ?? "unknown") + "…",
           what: cmd.command,
-          detail: Object.keys(cmd.args || {}).length > 0
-            ? `Args: ${JSON.stringify(cmd.args)}`
-            : "No args",
+          detail:
+            Object.keys(cmd.args || {}).length > 0
+              ? `Args: ${JSON.stringify(cmd.args)}`
+              : "No args",
           success: cmd.success,
           timestamp: cmd.executed_at,
           raw: {
@@ -85,8 +103,9 @@ export default function AdminAudit() {
       }
 
       // Agent run entries
-      for (const run of (runRes.data || [])) {
-        const failed = run.status === "failed" || run.status === "completed_with_errors";
+      for (const run of runRes.data || []) {
+        const failed =
+          run.status === "failed" || run.status === "completed_with_errors";
         auditEntries.push({
           id: `run-${run.id}`,
           category: "agent_runs",
@@ -109,22 +128,37 @@ export default function AdminAudit() {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+  }, [load]);
 
   const toggleExpand = (id: string) => {
     setExpandedIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) { next.delete(id); } else { next.add(id); }
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
       return next;
     });
   };
 
   const filtered = entries.filter((e) => {
-    if (filters.category !== "all" && e.category !== filters.category) return false;
-    if (filters.who.trim() && !e.who.toLowerCase().includes(filters.who.trim().toLowerCase())) return false;
+    if (filters.category !== "all" && e.category !== filters.category)
+      return false;
+    if (
+      filters.who.trim() &&
+      !e.who.toLowerCase().includes(filters.who.trim().toLowerCase())
+    )
+      return false;
     if (filters.search.trim()) {
       const q = filters.search.trim().toLowerCase();
-      if (!e.what.toLowerCase().includes(q) && !e.detail.toLowerCase().includes(q)) return false;
+      if (
+        !e.what.toLowerCase().includes(q) &&
+        !e.detail.toLowerCase().includes(q)
+      )
+        return false;
     }
     return true;
   });
@@ -170,25 +204,33 @@ export default function AdminAudit() {
           <div className="flex items-center gap-2 text-muted-foreground text-xs mb-1">
             <ClipboardList className="w-3.5 h-3.5" /> Total Events
           </div>
-          <div className="text-2xl font-display font-bold text-foreground">{stats.total}</div>
+          <div className="text-2xl font-display font-bold text-foreground">
+            {stats.total}
+          </div>
         </div>
         <div className="bg-card rounded-xl p-4 border border-border shadow-sm">
           <div className="flex items-center gap-2 text-xs mb-1 text-accent">
             <Terminal className="w-3.5 h-3.5" /> Commands
           </div>
-          <div className="text-2xl font-display font-bold text-foreground">{stats.commands}</div>
+          <div className="text-2xl font-display font-bold text-foreground">
+            {stats.commands}
+          </div>
         </div>
         <div className="bg-card rounded-xl p-4 border border-border shadow-sm">
           <div className="flex items-center gap-2 text-xs mb-1 text-blue-400">
             <Shield className="w-3.5 h-3.5" /> Agent Runs
           </div>
-          <div className="text-2xl font-display font-bold text-foreground">{stats.agent_runs}</div>
+          <div className="text-2xl font-display font-bold text-foreground">
+            {stats.agent_runs}
+          </div>
         </div>
         <div className="bg-card rounded-xl p-4 border border-destructive/20 shadow-sm">
           <div className="flex items-center gap-2 text-xs mb-1 text-destructive">
             <XCircle className="w-3.5 h-3.5" /> Failures
           </div>
-          <div className="text-2xl font-display font-bold text-foreground">{stats.failures}</div>
+          <div className="text-2xl font-display font-bold text-foreground">
+            {stats.failures}
+          </div>
         </div>
       </div>
 
@@ -217,13 +259,17 @@ export default function AdminAudit() {
             <Input
               placeholder="Filter by who (user/admin ID)"
               value={filters.who}
-              onChange={(e) => setFilters((f) => ({ ...f, who: e.target.value }))}
+              onChange={(e) =>
+                setFilters((f) => ({ ...f, who: e.target.value }))
+              }
               className="text-xs h-8"
             />
             <Input
               placeholder="Search actions / details"
               value={filters.search}
-              onChange={(e) => setFilters((f) => ({ ...f, search: e.target.value }))}
+              onChange={(e) =>
+                setFilters((f) => ({ ...f, search: e.target.value }))
+              }
               className="text-xs h-8"
             />
           </div>
@@ -267,20 +313,33 @@ export default function AdminAudit() {
                         {new Date(entry.timestamp).toLocaleString()}
                       </span>
                       {/* Category badge */}
-                      <span className={`flex items-center gap-1 w-24 shrink-0 ${CATEGORY_COLOR[entry.category] ?? "text-muted-foreground"}`}>
+                      <span
+                        className={`flex items-center gap-1 w-24 shrink-0 ${CATEGORY_COLOR[entry.category] ?? "text-muted-foreground"}`}
+                      >
                         {CATEGORY_ICON[entry.category]}
-                        <span className="uppercase text-[9px] font-bold">{entry.category.replace(/_/g, " ")}</span>
+                        <span className="uppercase text-[9px] font-bold">
+                          {entry.category.replace(/_/g, " ")}
+                        </span>
                       </span>
                       {/* Who */}
-                      <span className="text-muted-foreground w-24 shrink-0 truncate" title={entry.who}>
+                      <span
+                        className="text-muted-foreground w-24 shrink-0 truncate"
+                        title={entry.who}
+                      >
                         {entry.who}
                       </span>
                       {/* What */}
-                      <span className="text-accent font-medium w-32 shrink-0 truncate" title={entry.what}>
+                      <span
+                        className="text-accent font-medium w-32 shrink-0 truncate"
+                        title={entry.what}
+                      >
                         {entry.what}
                       </span>
                       {/* Detail */}
-                      <span className="flex-1 text-foreground leading-relaxed truncate" title={entry.detail}>
+                      <span
+                        className="flex-1 text-foreground leading-relaxed truncate"
+                        title={entry.detail}
+                      >
                         {entry.detail}
                       </span>
                       {/* Status + expand */}

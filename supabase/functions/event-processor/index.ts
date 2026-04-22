@@ -19,9 +19,9 @@ import { corsHeaders } from "../_shared/cors.ts";
  * ─────────────────────────────────────────────────────────────────────────
  */
 
-const SUPABASE_URL    = Deno.env.get("SUPABASE_URL")!;
-const SERVICE_KEY     = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const ANON_KEY        = Deno.env.get("SUPABASE_ANON_KEY")!;
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 
 // ─── PostgREST helpers ────────────────────────────────────────────────────────
 
@@ -35,7 +35,9 @@ function svcHeaders(): Record<string, string> {
 }
 
 async function pgGet(table: string, qs: string): Promise<any[]> {
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${qs}`, { headers: svcHeaders() });
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${qs}`, {
+    headers: svcHeaders(),
+  });
   if (!res.ok) throw new Error(`pgGet ${table}: ${res.status}`);
   return res.json();
 }
@@ -58,7 +60,9 @@ async function pgPatch(table: string, qs: string, body: any): Promise<void> {
  *
  * The event_data payload carries { filters, user_id } written by runAllAgents.
  */
-async function handleJobSearchRequested(event: any): Promise<{ dispatched: boolean; detail: string }> {
+async function handleJobSearchRequested(
+  event: any,
+): Promise<{ dispatched: boolean; detail: string }> {
   const userId = event.user_id;
   if (!userId) return { dispatched: false, detail: "no user_id on event" };
 
@@ -71,12 +75,18 @@ async function handleJobSearchRequested(event: any): Promise<{ dispatched: boole
       apikey: ANON_KEY,
       Authorization: `Bearer ${SERVICE_KEY}`,
     },
-    body: JSON.stringify({ agents: ["discovery", "matching"], user_id: userId }),
+    body: JSON.stringify({
+      agents: ["discovery", "matching"],
+      user_id: userId,
+    }),
   });
 
   if (!resp.ok) {
     const txt = await resp.text().catch(() => "");
-    return { dispatched: false, detail: `agent-orchestrator ${resp.status}: ${txt.slice(0, 200)}` };
+    return {
+      dispatched: false,
+      detail: `agent-orchestrator ${resp.status}: ${txt.slice(0, 200)}`,
+    };
   }
 
   const data = await resp.json().catch(() => ({}));
@@ -90,38 +100,57 @@ async function handleJobSearchRequested(event: any): Promise<{ dispatched: boole
  * pipeline.failed — log to console (Sentry already captured on the frontend).
  * Future: could trigger an admin notification or recovery rule.
  */
-async function handlePipelineFailed(event: any): Promise<{ dispatched: boolean; detail: string }> {
+async function handlePipelineFailed(
+  event: any,
+): Promise<{ dispatched: boolean; detail: string }> {
   const step = event.payload?.step ?? "unknown";
-  const msg  = event.payload?.error_message ?? "";
-  console.error(`[event-processor] pipeline.failed  step=${step}  error=${msg}`);
+  const msg = event.payload?.error_message ?? "";
+  console.error(
+    `[event-processor] pipeline.failed  step=${step}  error=${msg}`,
+  );
   return { dispatched: true, detail: `logged step=${step}` };
 }
 
 // ─── Dispatcher ───────────────────────────────────────────────────────────────
 
-const HANDLERS: Record<string, (event: any) => Promise<{ dispatched: boolean; detail: string }>> = {
+const HANDLERS: Record<
+  string,
+  (event: any) => Promise<{ dispatched: boolean; detail: string }>
+> = {
   "job.search.requested": handleJobSearchRequested,
-  "pipeline.failed":      handlePipelineFailed,
+  "pipeline.failed": handlePipelineFailed,
 };
 
 async function processEvent(event: any): Promise<void> {
   const handler = HANDLERS[event.event_type];
   if (!handler) {
     // Unknown event type — mark processed so we don't retry forever
-    await pgPatch("platform_events", `id=eq.${event.id}`, { processed: true }).catch(() => {});
+    await pgPatch("platform_events", `id=eq.${event.id}`, {
+      processed: true,
+    }).catch(() => {});
     return;
   }
 
   // Optimistic lock: mark processed before running handler so concurrent invocations skip it
-  await pgPatch("platform_events", `id=eq.${event.id}`, { processed: true }).catch(() => {});
+  await pgPatch("platform_events", `id=eq.${event.id}`, {
+    processed: true,
+  }).catch(() => {});
 
   try {
     const result = await handler(event);
-    console.log(`[event-processor] ${event.event_type} id=${event.id} →`, result);
+    console.log(
+      `[event-processor] ${event.event_type} id=${event.id} →`,
+      result,
+    );
   } catch (err) {
     // Reset processed so the retry loop picks it up again (unless it keeps failing)
-    console.error(`[event-processor] handler threw for ${event.event_type} id=${event.id}:`, err);
-    await pgPatch("platform_events", `id=eq.${event.id}`, { processed: false }).catch(() => {});
+    console.error(
+      `[event-processor] handler threw for ${event.event_type} id=${event.id}:`,
+      err,
+    );
+    await pgPatch("platform_events", `id=eq.${event.id}`, {
+      processed: false,
+    }).catch(() => {});
   }
 }
 
@@ -148,7 +177,8 @@ async function retryStaleEvents(): Promise<{ retried: number }> {
 // ─── HTTP handler ─────────────────────────────────────────────────────────────
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method === "OPTIONS")
+    return new Response(null, { headers: corsHeaders });
 
   try {
     const body = await req.json().catch(() => ({}));
@@ -177,15 +207,27 @@ Deno.serve(async (req) => {
       });
     }
 
-    return new Response(JSON.stringify({ ok: false, error: "no event, record, or mode provided" }), {
-      status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({
+        ok: false,
+        error: "no event, record, or mode provided",
+      }),
+      {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   } catch (err) {
     console.error("[event-processor] error:", err);
-    return new Response(JSON.stringify({ ok: false, error: err instanceof Error ? err.message : String(err) }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({
+        ok: false,
+        error: err instanceof Error ? err.message : String(err),
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   }
 });

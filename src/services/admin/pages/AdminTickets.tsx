@@ -13,16 +13,31 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
 import {
-  Loader2, Search, MessageCircle, Send, Clock, AlertCircle,
-  CheckCircle2, Filter, User,
+  Loader2,
+  Search,
+  MessageCircle,
+  Send,
+  Clock,
+  AlertCircle,
+  CheckCircle2,
+  Filter,
+  User,
 } from "lucide-react";
 
 /* ─── Types (local to admin, no cross-service import) ─── */
@@ -73,7 +88,10 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 function statusBadge(status: string) {
-  const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+  const variants: Record<
+    string,
+    "default" | "secondary" | "destructive" | "outline"
+  > = {
     open: "destructive",
     in_progress: "default",
     resolved: "secondary",
@@ -87,17 +105,19 @@ function statusBadge(status: string) {
   };
   return (
     <Badge variant={variants[status] || "outline"} className="text-xs">
-      {icons[status]}{STATUS_OPTIONS.find((s) => s.value === status)?.label || status}
+      {icons[status]}
+      {STATUS_OPTIONS.find((s) => s.value === status)?.label || status}
     </Badge>
   );
 }
 
 function priorityBadge(priority: string) {
-  const cls = priority === "high"
-    ? "bg-destructive/10 text-destructive border-destructive/20"
-    : priority === "medium"
-    ? "bg-primary/10 text-primary border-primary/20"
-    : "bg-muted text-muted-foreground border-border";
+  const cls =
+    priority === "high"
+      ? "bg-destructive/10 text-destructive border-destructive/20"
+      : priority === "medium"
+        ? "bg-primary/10 text-primary border-primary/20"
+        : "bg-muted text-muted-foreground border-border";
   return (
     <Badge variant="outline" className={`text-xs ${cls}`}>
       {PRIORITY_OPTIONS.find((p) => p.value === priority)?.label || priority}
@@ -131,11 +151,15 @@ export default function AdminTickets() {
         .order("created_at", { ascending: false })
         .limit(200);
       if (!error && data) setTickets(data as unknown as Ticket[]);
-    } catch { /* */ }
+    } catch {
+      /* */
+    }
     setLoading(false);
   }, []);
 
-  useEffect(() => { loadTickets(); }, [loadTickets]);
+  useEffect(() => {
+    loadTickets();
+  }, [loadTickets]);
 
   const loadResponses = useCallback(async (ticketId: string) => {
     setLoadingResponses(true);
@@ -146,7 +170,9 @@ export default function AdminTickets() {
         .eq("ticket_id", ticketId)
         .order("created_at", { ascending: true });
       if (data) setResponses(data as unknown as TicketResponse[]);
-    } catch { /* */ }
+    } catch {
+      /* */
+    }
     setLoadingResponses(false);
   }, []);
 
@@ -164,11 +190,16 @@ export default function AdminTickets() {
     try {
       // Update status if changed
       if (newStatus !== selectedTicket.status) {
-        const updatePayload: { status: string; updated_at: string; resolved_at?: string } = {
+        const updatePayload: {
+          status: string;
+          updated_at: string;
+          resolved_at?: string;
+        } = {
           status: newStatus,
           updated_at: new Date().toISOString(),
         };
-        if (newStatus === "resolved") updatePayload.resolved_at = new Date().toISOString();
+        if (newStatus === "resolved")
+          updatePayload.resolved_at = new Date().toISOString();
 
         await supabase
           .from("support_tickets")
@@ -216,34 +247,50 @@ export default function AdminTickets() {
 
   // Stats
   const openCount = tickets.filter((t) => t.status === "open").length;
-  const inProgressCount = tickets.filter((t) => t.status === "in_progress").length;
+  const inProgressCount = tickets.filter(
+    (t) => t.status === "in_progress",
+  ).length;
   const resolvedCount = tickets.filter((t) => t.status === "resolved").length;
 
   return (
     <div className="p-4 md:p-6 space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Support Tickets</h1>
-        <p className="text-sm text-muted-foreground">Manage and respond to user support requests.</p>
+        <p className="text-sm text-muted-foreground">
+          Manage and respond to user support requests.
+        </p>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Card><CardContent className="p-4 text-center">
-          <p className="text-2xl font-bold text-foreground">{tickets.length}</p>
-          <p className="text-xs text-muted-foreground">Total</p>
-        </CardContent></Card>
-        <Card><CardContent className="p-4 text-center">
-          <p className="text-2xl font-bold text-destructive">{openCount}</p>
-          <p className="text-xs text-muted-foreground">Open</p>
-        </CardContent></Card>
-        <Card><CardContent className="p-4 text-center">
-          <p className="text-2xl font-bold text-primary">{inProgressCount}</p>
-          <p className="text-xs text-muted-foreground">In Progress</p>
-        </CardContent></Card>
-        <Card><CardContent className="p-4 text-center">
-          <p className="text-2xl font-bold text-accent-foreground">{resolvedCount}</p>
-          <p className="text-xs text-muted-foreground">Resolved</p>
-        </CardContent></Card>
+        <Card>
+          <CardContent className="p-4 text-center">
+            <p className="text-2xl font-bold text-foreground">
+              {tickets.length}
+            </p>
+            <p className="text-xs text-muted-foreground">Total</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 text-center">
+            <p className="text-2xl font-bold text-destructive">{openCount}</p>
+            <p className="text-xs text-muted-foreground">Open</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 text-center">
+            <p className="text-2xl font-bold text-primary">{inProgressCount}</p>
+            <p className="text-xs text-muted-foreground">In Progress</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4 text-center">
+            <p className="text-2xl font-bold text-accent-foreground">
+              {resolvedCount}
+            </p>
+            <p className="text-xs text-muted-foreground">Resolved</p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Filters */}
@@ -251,7 +298,9 @@ export default function AdminTickets() {
         <CardContent className="p-4">
           <div className="flex flex-wrap items-end gap-3">
             <div className="flex-1 min-w-[200px]">
-              <Label className="text-xs text-muted-foreground mb-1 block">Search</Label>
+              <Label className="text-xs text-muted-foreground mb-1 block">
+                Search
+              </Label>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -263,37 +312,55 @@ export default function AdminTickets() {
               </div>
             </div>
             <div className="min-w-[130px]">
-              <Label className="text-xs text-muted-foreground mb-1 block">Status</Label>
+              <Label className="text-xs text-muted-foreground mb-1 block">
+                Status
+              </Label>
               <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
                   {STATUS_OPTIONS.map((s) => (
-                    <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                    <SelectItem key={s.value} value={s.value}>
+                      {s.label}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="min-w-[130px]">
-              <Label className="text-xs text-muted-foreground mb-1 block">Priority</Label>
+              <Label className="text-xs text-muted-foreground mb-1 block">
+                Priority
+              </Label>
               <Select value={filterPriority} onValueChange={setFilterPriority}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Priority</SelectItem>
                   {PRIORITY_OPTIONS.map((p) => (
-                    <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
+                    <SelectItem key={p.value} value={p.value}>
+                      {p.label}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="min-w-[130px]">
-              <Label className="text-xs text-muted-foreground mb-1 block">Type</Label>
+              <Label className="text-xs text-muted-foreground mb-1 block">
+                Type
+              </Label>
               <Select value={filterType} onValueChange={setFilterType}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Types</SelectItem>
                   {Object.entries(TYPE_LABELS).map(([val, label]) => (
-                    <SelectItem key={val} value={val}>{label}</SelectItem>
+                    <SelectItem key={val} value={val}>
+                      {label}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -329,14 +396,19 @@ export default function AdminTickets() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1.5">
-                      <span className="text-sm font-medium text-foreground truncate">{ticket.title}</span>
+                      <span className="text-sm font-medium text-foreground truncate">
+                        {ticket.title}
+                      </span>
                     </div>
                     <div className="flex flex-wrap gap-1.5">
-                      <Badge variant="outline" className="text-xs font-mono">{ticket.ticket_number}</Badge>
+                      <Badge variant="outline" className="text-xs font-mono">
+                        {ticket.ticket_number}
+                      </Badge>
                       {statusBadge(ticket.status)}
                       {priorityBadge(ticket.priority)}
                       <Badge variant="secondary" className="text-xs">
-                        {TYPE_LABELS[ticket.request_type] || ticket.request_type}
+                        {TYPE_LABELS[ticket.request_type] ||
+                          ticket.request_type}
                       </Badge>
                     </div>
                     {ticket.email && (
@@ -356,7 +428,10 @@ export default function AdminTickets() {
       )}
 
       {/* Ticket Detail Dialog */}
-      <Dialog open={!!selectedTicket} onOpenChange={(open) => !open && setSelectedTicket(null)}>
+      <Dialog
+        open={!!selectedTicket}
+        onOpenChange={(open) => !open && setSelectedTicket(null)}
+      >
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           {selectedTicket && (
             <>
@@ -365,11 +440,14 @@ export default function AdminTickets() {
                   {selectedTicket.title}
                 </DialogTitle>
                 <DialogDescription className="flex flex-wrap gap-2 pt-1">
-                  <Badge variant="outline" className="font-mono text-xs">{selectedTicket.ticket_number}</Badge>
+                  <Badge variant="outline" className="font-mono text-xs">
+                    {selectedTicket.ticket_number}
+                  </Badge>
                   {statusBadge(selectedTicket.status)}
                   {priorityBadge(selectedTicket.priority)}
                   <Badge variant="secondary" className="text-xs">
-                    {TYPE_LABELS[selectedTicket.request_type] || selectedTicket.request_type}
+                    {TYPE_LABELS[selectedTicket.request_type] ||
+                      selectedTicket.request_type}
                   </Badge>
                 </DialogDescription>
               </DialogHeader>
@@ -377,7 +455,9 @@ export default function AdminTickets() {
               {/* Ticket Details */}
               <div className="space-y-4">
                 <div>
-                  <Label className="text-xs text-muted-foreground">Description</Label>
+                  <Label className="text-xs text-muted-foreground">
+                    Description
+                  </Label>
                   <p className="text-sm text-foreground mt-1 whitespace-pre-wrap bg-muted/30 rounded-md p-3">
                     {selectedTicket.description}
                   </p>
@@ -385,12 +465,20 @@ export default function AdminTickets() {
 
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <Label className="text-xs text-muted-foreground">Submitted</Label>
-                    <p className="text-foreground">{new Date(selectedTicket.created_at).toLocaleString()}</p>
+                    <Label className="text-xs text-muted-foreground">
+                      Submitted
+                    </Label>
+                    <p className="text-foreground">
+                      {new Date(selectedTicket.created_at).toLocaleString()}
+                    </p>
                   </div>
                   <div>
-                    <Label className="text-xs text-muted-foreground">Email</Label>
-                    <p className="text-foreground">{selectedTicket.email || "—"}</p>
+                    <Label className="text-xs text-muted-foreground">
+                      Email
+                    </Label>
+                    <p className="text-foreground">
+                      {selectedTicket.email || "—"}
+                    </p>
                   </div>
                 </div>
 
@@ -398,13 +486,17 @@ export default function AdminTickets() {
 
                 {/* Conversation Thread */}
                 <div>
-                  <Label className="text-xs text-muted-foreground mb-2 block">Conversation</Label>
+                  <Label className="text-xs text-muted-foreground mb-2 block">
+                    Conversation
+                  </Label>
                   {loadingResponses ? (
                     <div className="flex justify-center py-4">
                       <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                     </div>
                   ) : responses.length === 0 ? (
-                    <p className="text-xs text-muted-foreground italic py-2">No responses yet.</p>
+                    <p className="text-xs text-muted-foreground italic py-2">
+                      No responses yet.
+                    </p>
                   ) : (
                     <div className="space-y-3 max-h-60 overflow-y-auto">
                       {responses.map((r) => (
@@ -417,14 +509,21 @@ export default function AdminTickets() {
                           }`}
                         >
                           <div className="flex items-center gap-2 mb-1">
-                            <Badge variant={r.is_admin_response ? "default" : "secondary"} className="text-xs">
+                            <Badge
+                              variant={
+                                r.is_admin_response ? "default" : "secondary"
+                              }
+                              className="text-xs"
+                            >
                               {r.is_admin_response ? "Admin" : "User"}
                             </Badge>
                             <span className="text-xs text-muted-foreground">
                               {new Date(r.created_at).toLocaleString()}
                             </span>
                           </div>
-                          <p className="text-foreground whitespace-pre-wrap">{r.message}</p>
+                          <p className="text-foreground whitespace-pre-wrap">
+                            {r.message}
+                          </p>
                         </div>
                       ))}
                     </div>
@@ -443,7 +542,9 @@ export default function AdminTickets() {
                       </SelectTrigger>
                       <SelectContent>
                         {STATUS_OPTIONS.map((s) => (
-                          <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                          <SelectItem key={s.value} value={s.value}>
+                            {s.label}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -462,13 +563,22 @@ export default function AdminTickets() {
 
                   <Button
                     onClick={handleSendResponse}
-                    disabled={sendingResponse || (!newResponse.trim() && newStatus === selectedTicket.status)}
+                    disabled={
+                      sendingResponse ||
+                      (!newResponse.trim() &&
+                        newStatus === selectedTicket.status)
+                    }
                     className="w-full"
                   >
                     {sendingResponse ? (
-                      <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending...</>
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
+                        Sending...
+                      </>
                     ) : (
-                      <><Send className="mr-2 h-4 w-4" /> Send Response & Update</>
+                      <>
+                        <Send className="mr-2 h-4 w-4" /> Send Response & Update
+                      </>
                     )}
                   </Button>
                 </div>

@@ -43,7 +43,9 @@ export async function saveJobToApplications(input: SaveJobInput): Promise<{
 
   const alreadyExists = (existingRows || []).some((row) => {
     const sameUrl =
-      normalizedUrl && row.job_url && row.job_url.trim().toLowerCase() === normalizedUrl.toLowerCase();
+      normalizedUrl &&
+      row.job_url &&
+      row.job_url.trim().toLowerCase() === normalizedUrl.toLowerCase();
     const sameTitleCompany =
       row.job_title.trim().toLowerCase() === normalizedTitle.toLowerCase() &&
       row.company.trim().toLowerCase() === normalizedCompany.toLowerCase();
@@ -61,14 +63,16 @@ export async function saveJobToApplications(input: SaveJobInput): Promise<{
     input.description ? input.description.slice(0, 240) : "",
   ].filter(Boolean);
 
-  const { error: insertError } = await supabase.from("job_applications").insert({
-    user_id: session.user.id,
-    job_title: normalizedTitle,
-    company: normalizedCompany,
-    job_url: normalizedUrl || null,
-    status: "saved",
-    notes: notesParts.join("\n"),
-  });
+  const { error: insertError } = await supabase
+    .from("job_applications")
+    .insert({
+      user_id: session.user.id,
+      job_title: normalizedTitle,
+      company: normalizedCompany,
+      job_url: normalizedUrl || null,
+      status: "saved",
+      notes: notesParts.join("\n"),
+    });
 
   if (insertError) {
     return { ok: false, error: insertError.message };

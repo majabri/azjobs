@@ -27,12 +27,21 @@ export default function SignupPage() {
     getValues,
   } = useForm<SignupFormValues>({
     resolver: zodResolver(signupSchema),
-    defaultValues: { email: "", password: "", confirmPassword: "", fullName: "" },
+    defaultValues: {
+      email: "",
+      password: "",
+      confirmPassword: "",
+      fullName: "",
+    },
   });
 
   const onSubmit = async ({ email, password, fullName }: SignupFormValues) => {
     try {
-      const result = await signup(email.trim(), password, fullName?.trim() || undefined);
+      const result = await signup(
+        email.trim(),
+        password,
+        fullName?.trim() || undefined,
+      );
       if (result.error) {
         setError("root", { message: result.error });
       } else {
@@ -49,13 +58,19 @@ export default function SignupPage() {
         <div className="w-full max-w-sm text-center space-y-6">
           <div className="flex flex-col items-center gap-3">
             <CheckCircle className="w-14 h-14 text-primary" />
-            <h1 className="font-display text-2xl font-bold text-foreground">Check your email</h1>
+            <h1 className="font-display text-2xl font-bold text-foreground">
+              Check your email
+            </h1>
             <p className="text-muted-foreground text-sm">
               We sent a verification link to <strong>{verifyEmail}</strong>.
               Please verify your email to continue.
             </p>
           </div>
-          <Button variant="outline" className="w-full" onClick={() => navigate("/auth/login")}>
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => navigate("/auth/login")}
+          >
             Back to Sign In
           </Button>
         </div>
@@ -70,7 +85,9 @@ export default function SignupPage() {
           <div className="w-14 h-14 gradient-indigo rounded-2xl flex items-center justify-center shadow-indigo-500/20">
             <Target className="w-7 h-7 text-white" />
           </div>
-          <h1 className="font-display text-3xl font-bold text-primary">Create Account</h1>
+          <h1 className="font-display text-3xl font-bold text-primary">
+            Create Account
+          </h1>
           <p className="text-muted-foreground text-sm">
             Join iCareerOS to optimize your job search
           </p>
@@ -89,13 +106,18 @@ export default function SignupPage() {
               {...register("email")}
             />
             {errors.email && (
-              <p role="alert" className="text-xs text-destructive">{errors.email.message}</p>
+              <p role="alert" className="text-xs text-destructive">
+                {errors.email.message}
+              </p>
             )}
           </div>
 
           <div className="space-y-1">
             <Label htmlFor="fullName">
-              Full Name <span className="text-muted-foreground font-normal">(optional)</span>
+              Full Name{" "}
+              <span className="text-muted-foreground font-normal">
+                (optional)
+              </span>
             </Label>
             <Input
               id="fullName"
@@ -107,7 +129,9 @@ export default function SignupPage() {
               {...register("fullName")}
             />
             {errors.fullName && (
-              <p role="alert" className="text-xs text-destructive">{errors.fullName.message}</p>
+              <p role="alert" className="text-xs text-destructive">
+                {errors.fullName.message}
+              </p>
             )}
           </div>
 
@@ -123,7 +147,9 @@ export default function SignupPage() {
               {...register("password")}
             />
             {errors.password && (
-              <p role="alert" className="text-xs text-destructive">{errors.password.message}</p>
+              <p role="alert" className="text-xs text-destructive">
+                {errors.password.message}
+              </p>
             )}
           </div>
 
@@ -139,12 +165,16 @@ export default function SignupPage() {
               {...register("confirmPassword")}
             />
             {errors.confirmPassword && (
-              <p role="alert" className="text-xs text-destructive">{errors.confirmPassword.message}</p>
+              <p role="alert" className="text-xs text-destructive">
+                {errors.confirmPassword.message}
+              </p>
             )}
           </div>
 
           {errors.root && (
-            <p role="alert" className="text-sm text-destructive">{errors.root.message}</p>
+            <p role="alert" className="text-sm text-destructive">
+              {errors.root.message}
+            </p>
           )}
 
           <Button type="submit" className="w-full" disabled={isSubmitting}>
@@ -154,7 +184,10 @@ export default function SignupPage() {
 
         <p className="text-sm text-muted-foreground">
           Already have an account?{" "}
-          <Link to="/auth/login" className="text-primary hover:underline font-medium">
+          <Link
+            to="/auth/login"
+            className="text-primary hover:underline font-medium"
+          >
             Sign in
           </Link>
         </p>

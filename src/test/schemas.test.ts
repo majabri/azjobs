@@ -15,23 +15,35 @@ import { jobPostingSchema } from "@/lib/schemas/jobPosting";
 // ── loginSchema ───────────────────────────────────────────────────────────────
 describe("loginSchema", () => {
   it("accepts valid email + password", () => {
-    const result = loginSchema.safeParse({ identifier: "user@example.com", password: "secret" });
+    const result = loginSchema.safeParse({
+      identifier: "user@example.com",
+      password: "secret",
+    });
     expect(result.success).toBe(true);
   });
 
   it("accepts admin username (no @)", () => {
-    const result = loginSchema.safeParse({ identifier: "admin", password: "secret" });
+    const result = loginSchema.safeParse({
+      identifier: "admin",
+      password: "secret",
+    });
     expect(result.success).toBe(true);
   });
 
   it("rejects empty identifier", () => {
-    const result = loginSchema.safeParse({ identifier: "", password: "secret" });
+    const result = loginSchema.safeParse({
+      identifier: "",
+      password: "secret",
+    });
     expect(result.success).toBe(false);
     expect(result.error?.issues[0].path).toContain("identifier");
   });
 
   it("rejects empty password", () => {
-    const result = loginSchema.safeParse({ identifier: "user@example.com", password: "" });
+    const result = loginSchema.safeParse({
+      identifier: "user@example.com",
+      password: "",
+    });
     expect(result.success).toBe(false);
     expect(result.error?.issues[0].path).toContain("password");
   });
@@ -59,7 +71,9 @@ describe("signupSchema", () => {
   });
 
   it("accepts optional fullName as empty string", () => {
-    expect(signupSchema.safeParse({ ...valid, fullName: "" }).success).toBe(true);
+    expect(signupSchema.safeParse({ ...valid, fullName: "" }).success).toBe(
+      true,
+    );
   });
 
   it("rejects invalid email", () => {
@@ -69,13 +83,20 @@ describe("signupSchema", () => {
   });
 
   it("rejects password shorter than 8 characters", () => {
-    const r = signupSchema.safeParse({ ...valid, password: "short", confirmPassword: "short" });
+    const r = signupSchema.safeParse({
+      ...valid,
+      password: "short",
+      confirmPassword: "short",
+    });
     expect(r.success).toBe(false);
-    expect(r.error?.issues.some(i => i.path.includes("password"))).toBe(true);
+    expect(r.error?.issues.some((i) => i.path.includes("password"))).toBe(true);
   });
 
   it("rejects mismatched passwords", () => {
-    const r = signupSchema.safeParse({ ...valid, confirmPassword: "different" });
+    const r = signupSchema.safeParse({
+      ...valid,
+      confirmPassword: "different",
+    });
     expect(r.success).toBe(false);
     expect(r.error?.issues[0].path).toContain("confirmPassword");
     expect(r.error?.issues[0].message).toMatch(/do not match/i);
@@ -85,7 +106,9 @@ describe("signupSchema", () => {
 // ── forgotPasswordSchema ──────────────────────────────────────────────────────
 describe("forgotPasswordSchema", () => {
   it("accepts a valid email", () => {
-    expect(forgotPasswordSchema.safeParse({ email: "user@example.com" }).success).toBe(true);
+    expect(
+      forgotPasswordSchema.safeParse({ email: "user@example.com" }).success,
+    ).toBe(true);
   });
 
   it("rejects an empty email", () => {
@@ -103,17 +126,26 @@ describe("forgotPasswordSchema", () => {
 // ── resetPasswordSchema ───────────────────────────────────────────────────────
 describe("resetPasswordSchema", () => {
   it("accepts matching passwords of 8+ chars", () => {
-    const r = resetPasswordSchema.safeParse({ password: "newpass1!", confirmPassword: "newpass1!" });
+    const r = resetPasswordSchema.safeParse({
+      password: "newpass1!",
+      confirmPassword: "newpass1!",
+    });
     expect(r.success).toBe(true);
   });
 
   it("rejects password shorter than 8 chars", () => {
-    const r = resetPasswordSchema.safeParse({ password: "short", confirmPassword: "short" });
+    const r = resetPasswordSchema.safeParse({
+      password: "short",
+      confirmPassword: "short",
+    });
     expect(r.success).toBe(false);
   });
 
   it("rejects mismatched passwords", () => {
-    const r = resetPasswordSchema.safeParse({ password: "longpass1", confirmPassword: "different" });
+    const r = resetPasswordSchema.safeParse({
+      password: "longpass1",
+      confirmPassword: "different",
+    });
     expect(r.success).toBe(false);
     expect(r.error?.issues[0].message).toMatch(/do not match/i);
   });
@@ -176,8 +208,10 @@ describe("jobPostingSchema", () => {
     location: "Washington DC",
     job_type: "full-time" as const,
     experience_level: "senior" as const,
-    description: "We are looking for a Senior Security Engineer to join our team and help us secure our infrastructure. The role involves threat modeling, penetration testing, and security architecture.",
-    requirements: "5+ years of security experience. CISSP preferred. Strong knowledge of AWS security services.",
+    description:
+      "We are looking for a Senior Security Engineer to join our team and help us secure our infrastructure. The role involves threat modeling, penetration testing, and security architecture.",
+    requirements:
+      "5+ years of security experience. CISSP preferred. Strong knowledge of AWS security services.",
     is_remote: true,
     skills_required: ["AWS", "CISSP", "Python"],
   };
@@ -193,24 +227,38 @@ describe("jobPostingSchema", () => {
   });
 
   it("rejects a description shorter than 50 chars", () => {
-    const r = jobPostingSchema.safeParse({ ...validPosting, description: "Short." });
+    const r = jobPostingSchema.safeParse({
+      ...validPosting,
+      description: "Short.",
+    });
     expect(r.success).toBe(false);
     expect(r.error?.issues[0].path).toContain("description");
   });
 
   it("rejects salary_max less than salary_min", () => {
-    const r = jobPostingSchema.safeParse({ ...validPosting, salary_min: 200000, salary_max: 100000 });
+    const r = jobPostingSchema.safeParse({
+      ...validPosting,
+      salary_min: 200000,
+      salary_max: 100000,
+    });
     expect(r.success).toBe(false);
     expect(r.error?.issues[0].path).toContain("salary_max");
   });
 
   it("accepts salary_max equal to salary_min", () => {
-    const r = jobPostingSchema.safeParse({ ...validPosting, salary_min: 150000, salary_max: 150000 });
+    const r = jobPostingSchema.safeParse({
+      ...validPosting,
+      salary_min: 150000,
+      salary_max: 150000,
+    });
     expect(r.success).toBe(true);
   });
 
   it("rejects empty skills_required array", () => {
-    const r = jobPostingSchema.safeParse({ ...validPosting, skills_required: [] });
+    const r = jobPostingSchema.safeParse({
+      ...validPosting,
+      skills_required: [],
+    });
     expect(r.success).toBe(false);
     expect(r.error?.issues[0].path).toContain("skills_required");
   });
@@ -221,12 +269,18 @@ describe("jobPostingSchema", () => {
   });
 
   it("rejects an invalid application_url", () => {
-    const r = jobPostingSchema.safeParse({ ...validPosting, application_url: "not-a-url" });
+    const r = jobPostingSchema.safeParse({
+      ...validPosting,
+      application_url: "not-a-url",
+    });
     expect(r.success).toBe(false);
   });
 
   it("accepts a missing application_url (optional)", () => {
-    const { application_url: _, ...rest } = { ...validPosting, application_url: undefined };
+    const { application_url: _, ...rest } = {
+      ...validPosting,
+      application_url: undefined,
+    };
     expect(jobPostingSchema.safeParse(rest).success).toBe(true);
   });
 });

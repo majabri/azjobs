@@ -1,10 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,9 +53,9 @@ export default function AdminConsole() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const scrollBottom = useCallback(() => {
-    setTimeout(() =>
-      bottomRef.current?.scrollIntoView({ behavior: "smooth" }),
-      50
+    setTimeout(
+      () => bottomRef.current?.scrollIntoView({ behavior: "smooth" }),
+      50,
     );
   }, []);
 
@@ -79,7 +74,7 @@ export default function AdminConsole() {
 
     const lower = val.toLowerCase();
     const matches = ALLOWED_COMMANDS.map((c) => c.name).filter((name) =>
-      name.startsWith(lower)
+      name.startsWith(lower),
     );
 
     setSuggestions(matches.slice(0, 5));
@@ -204,8 +199,8 @@ export default function AdminConsole() {
 
     setHistory((prev) =>
       prev.map((h) =>
-        h.id === entry.id ? { ...h, response, loading: false } : h
-      )
+        h.id === entry.id ? { ...h, response, loading: false } : h,
+      ),
     );
   };
 
@@ -230,11 +225,7 @@ export default function AdminConsole() {
             <HelpCircle className="w-3.5 h-3.5 mr-1.5" />
             {showHelp ? "Hide" : "Help"}
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setHistory([])}
-          >
+          <Button variant="outline" size="sm" onClick={() => setHistory([])}>
             <Trash2 className="w-3.5 h-3.5 mr-1.5" />
             Clear
           </Button>
@@ -302,8 +293,8 @@ export default function AdminConsole() {
                     <Clock className="w-3 h-3 animate-spin" />
                     Executingâ¦
                   </div>
-                ) : entry.response && (
-                  <OutputBlock response={entry.response} />
+                ) : (
+                  entry.response && <OutputBlock response={entry.response} />
                 )}
               </div>
             ))}
@@ -388,12 +379,14 @@ function OutputBlock({ response }: { response: AdminCommandResponse }) {
   if (command === "help" && result.commands) {
     return (
       <div className="pl-4 space-y-1 text-[10px]">
-        {(result.commands as Array<{ name: string; description: string }>).map((cmd) => (
-          <div key={cmd.name} className="flex gap-3">
-            <span className="text-cyan-400 w-24 shrink-0">{cmd.name}</span>
-            <span className="text-green-600">{cmd.description}</span>
-          </div>
-        ))}
+        {(result.commands as Array<{ name: string; description: string }>).map(
+          (cmd) => (
+            <div key={cmd.name} className="flex gap-3">
+              <span className="text-cyan-400 w-24 shrink-0">{cmd.name}</span>
+              <span className="text-green-600">{cmd.description}</span>
+            </div>
+          ),
+        )}
         <div className="flex gap-3">
           <span className="text-cyan-400 w-24 shrink-0">clear</span>
           <span className="text-green-600">Clear terminal output</span>
@@ -413,7 +406,11 @@ function OutputBlock({ response }: { response: AdminCommandResponse }) {
           success ? "text-green-500" : "text-red-400"
         }`}
       >
-        {success ? <CheckCircle2 className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
+        {success ? (
+          <CheckCircle2 className="w-3 h-3" />
+        ) : (
+          <XCircle className="w-3 h-3" />
+        )}
         <span>{success ? "Success" : "Error"}</span>
       </div>
       <pre

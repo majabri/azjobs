@@ -4,7 +4,8 @@ import { callAnthropic } from "../_shared/anthropic.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method === "OPTIONS")
+    return new Response(null, { headers: corsHeaders });
 
   try {
     const body = await req.json();
@@ -16,10 +17,14 @@ serve(async (req) => {
     const client = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     });
-    const { data: { user }, error: authErr } = await client.auth.getUser();
+    const {
+      data: { user },
+      error: authErr,
+    } = await client.auth.getUser();
     if (authErr || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -47,15 +52,27 @@ serve(async (req) => {
     });
   } catch (e: any) {
     console.error("negotiation-strategy error:", e);
-    const status = e?.message?.includes("429") ? 429 : e?.message?.includes("402") ? 402 : 500;
-    return new Response(JSON.stringify({ error: e?.message ?? "Unknown error" }), {
-      status, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    const status = e?.message?.includes("429")
+      ? 429
+      : e?.message?.includes("402")
+        ? 402
+        : 500;
+    return new Response(
+      JSON.stringify({ error: e?.message ?? "Unknown error" }),
+      {
+        status,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   }
 });
 
 async function callAI(systemPrompt: string, userPrompt: string) {
-  const result = await callAnthropic({ system: systemPrompt, userMessage: userPrompt, temperature: 0.5 });
+  const result = await callAnthropic({
+    system: systemPrompt,
+    userMessage: userPrompt,
+    temperature: 0.5,
+  });
   try {
     return JSON.parse(result.content);
   } catch {
@@ -74,12 +91,20 @@ async function handleBenchmark(body: any) {
 - Experience: ${experienceLevel || "Mid-level"}
 - Key Skills: ${(skills || []).join(", ")}
 
-Return JSON with: marketLow, marketMedian, marketHigh, top10Percent (numbers), classification (underpaid/fair/overpaid), targetRange (string), insights (array of strings), topPayingCompanies (array), demandTrend (rising/stable/declining).`
+Return JSON with: marketLow, marketMedian, marketHigh, top10Percent (numbers), classification (underpaid/fair/overpaid), targetRange (string), insights (array of strings), topPayingCompanies (array), demandTrend (rising/stable/declining).`,
   );
 }
 
 async function handleOfferAnalysis(body: any) {
-  const { baseSalary, bonus, equity, jobTitle, company, location, experienceLevel } = body;
+  const {
+    baseSalary,
+    bonus,
+    equity,
+    jobTitle,
+    company,
+    location,
+    experienceLevel,
+  } = body;
   const totalComp = (baseSalary || 0) + (bonus || 0) + (equity || 0);
   return callAI(
     "You are a compensation expert. Analyze job offers against market rates. Return JSON.",
@@ -89,12 +114,21 @@ async function handleOfferAnalysis(body: any) {
 - Experience: ${experienceLevel || "Mid-level"}
 - Base: $${baseSalary || 0}, Bonus: $${bonus || 0}, Equity: $${equity || 0}, Total: $${totalComp}
 
-Return JSON with: marketComparison (string), moneyLeftOnTable (number), overallRating (poor/below_market/fair/good/excellent), breakdownAnalysis ({baseVerdict, bonusVerdict, equityVerdict}), riskFactors (array), strengths (array), recommendation (string).`
+Return JSON with: marketComparison (string), moneyLeftOnTable (number), overallRating (poor/below_market/fair/good/excellent), breakdownAnalysis ({baseVerdict, bonusVerdict, equityVerdict}), riskFactors (array), strengths (array), recommendation (string).`,
   );
 }
 
 async function handleNegotiation(body: any) {
-  const { baseSalary, bonus, equity, jobTitle, company, skills, experience, marketData } = body;
+  const {
+    baseSalary,
+    bonus,
+    equity,
+    jobTitle,
+    company,
+    skills,
+    experience,
+    marketData,
+  } = body;
   return callAI(
     "You are an expert salary negotiation coach. Generate specific, actionable negotiation strategies. Return JSON.",
     `Create a negotiation strategy for:
@@ -103,12 +137,13 @@ async function handleNegotiation(body: any) {
 - Experience: ${JSON.stringify(experience || []).slice(0, 500)}
 - Market context: ${JSON.stringify(marketData || {}).slice(0, 300)}
 
-Return JSON with: targetSalary, walkAwayPoint, anchorPoint (numbers), justificationPoints, tacticalAdvice, leveragePoints, concessions (arrays of strings), timing (string).`
+Return JSON with: targetSalary, walkAwayPoint, anchorPoint (numbers), justificationPoints, tacticalAdvice, leveragePoints, concessions (arrays of strings), timing (string).`,
   );
 }
 
 async function handleScriptGeneration(body: any) {
-  const { baseSalary, targetSalary, jobTitle, company, justificationPoints } = body;
+  const { baseSalary, targetSalary, jobTitle, company, justificationPoints } =
+    body;
   return callAI(
     "You are a professional communication expert. Write confident negotiation scripts. Return JSON.",
     `Generate negotiation scripts for:
@@ -116,6 +151,6 @@ async function handleScriptGeneration(body: any) {
 - Target: $${targetSalary}
 - Justifications: ${(justificationPoints || []).join("; ")}
 
-Return JSON with: emailSubject (string), emailBody (string), callScript ({opening, counterOffer, objectionHandling: [{objection, response}], closing}).`
+Return JSON with: emailSubject (string), emailBody (string), callScript ({opening, counterOffer, objectionHandling: [{objection, response}], closing}).`,
   );
 }

@@ -1,0 +1,5 @@
+-- NOTE: This file was superseded before being applied.
+-- The actual Phase 1 migrations that were applied to production are:
+--   20260504_support_tickets_add_support_agent_role.sql
+--   20260504_support_tickets_phase1_delta.sql
+-- This file is kept for reference only.

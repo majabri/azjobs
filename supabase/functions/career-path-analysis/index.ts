@@ -4,27 +4,30 @@ import { callAnthropic } from "../_shared/anthropic.ts";
 import { corsHeaders } from "../_shared/cors.ts";
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method === "OPTIONS")
+    return new Response(null, { headers: corsHeaders });
 
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Missing authorization" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      { global: { headers: { Authorization: authHeader } } }
+      { global: { headers: { Authorization: authHeader } } },
     );
 
     const token = authHeader.replace("Bearer ", "");
     const { data, error: authError } = await supabase.auth.getClaims(token);
     if (authError || !data?.claims) {
       return new Response(JSON.stringify({ error: "Invalid token" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -68,9 +71,20 @@ Include 3-4 next roles sorted by attainability, 4-5 skills to learn sorted by im
 
     let result;
     try {
-      result = JSON.parse(await callAnthropic(prompt, "You are a career strategy advisor. Return only valid JSON. No markdown."));
+      result = JSON.parse(
+        await callAnthropic(
+          prompt,
+          "You are a career strategy advisor. Return only valid JSON. No markdown.",
+        ),
+      );
     } catch {
-      result = { currentLevel: "Unknown", nextRoles: [], skillsToLearn: [], industryTrends: [], advice: "Unable to parse response" };
+      result = {
+        currentLevel: "Unknown",
+        nextRoles: [],
+        skillsToLearn: [],
+        industryTrends: [],
+        advice: "Unable to parse response",
+      };
     }
 
     return new Response(JSON.stringify(result), {
@@ -78,8 +92,14 @@ Include 3-4 next roles sorted by attainability, 4-5 skills to learn sorted by im
     });
   } catch (e) {
     console.error("career-path-analysis error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({
+        error: e instanceof Error ? e.message : "Unknown error",
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
   }
 });

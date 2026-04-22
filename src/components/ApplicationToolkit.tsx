@@ -4,8 +4,15 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  Mail, Copy, ExternalLink, Package, Briefcase, CheckCircle2,
-  Loader2, Trash2, LayoutDashboard
+  Mail,
+  Copy,
+  ExternalLink,
+  Package,
+  Briefcase,
+  CheckCircle2,
+  Loader2,
+  Trash2,
+  LayoutDashboard,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
@@ -39,7 +46,6 @@ const statusColors: Record<string, string> = {
   rejected: "bg-destructive/15 text-destructive border-destructive/30",
 };
 
-
 export default function ApplicationToolkit({
   jobLink,
   jobDesc,
@@ -58,9 +64,15 @@ export default function ApplicationToolkit({
   // Extract job title and company from description
   useEffect(() => {
     if (jobDesc) {
-      const firstLine = jobDesc.split("\n").find((l) => l.trim())?.trim() || "";
+      const firstLine =
+        jobDesc
+          .split("\n")
+          .find((l) => l.trim())
+          ?.trim() || "";
       setTrackTitle(firstLine.slice(0, 100));
-      const companyMatch = jobDesc.match(/(?:at|@|company[:\s]*)\s*([A-Z][A-Za-z0-9 &.]+)/i);
+      const companyMatch = jobDesc.match(
+        /(?:at|@|company[:\s]*)\s*([A-Z][A-Za-z0-9 &.]+)/i,
+      );
       setTrackCompany(companyMatch?.[1]?.trim() || "");
     }
   }, [jobDesc]);
@@ -86,7 +98,9 @@ export default function ApplicationToolkit({
       return;
     }
     setIsSaving(true);
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
     if (!session) {
       toast.error("Please sign in to track applications");
       setIsSaving(false);
@@ -117,7 +131,7 @@ export default function ApplicationToolkit({
       .update({ status, updated_at: new Date().toISOString() })
       .eq("id", id);
     setApplications((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, status } : a))
+      prev.map((a) => (a.id === id ? { ...a, status } : a)),
     );
     toast.success(`Status updated to ${status}`);
   };
@@ -149,9 +163,11 @@ export default function ApplicationToolkit({
 
   // Build mailto link
   const getMailtoLink = () => {
-    const subject = encodeURIComponent(`Application: ${trackTitle || "Job Application"}`);
+    const subject = encodeURIComponent(
+      `Application: ${trackTitle || "Job Application"}`,
+    );
     const body = encodeURIComponent(
-      `Dear Hiring Manager,\n\n${coverLetter || "Please find my resume attached for your consideration."}\n\n---\nResume:\n${aiResume || resume}\n\nBest regards`
+      `Dear Hiring Manager,\n\n${coverLetter || "Please find my resume attached for your consideration."}\n\n---\nResume:\n${aiResume || resume}\n\nBest regards`,
     );
     return `mailto:?subject=${subject}&body=${body}`;
   };
@@ -212,7 +228,9 @@ export default function ApplicationToolkit({
       {/* Track form */}
       <div className="grid sm:grid-cols-2 gap-3">
         <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">Job Title</label>
+          <label className="text-xs font-medium text-muted-foreground">
+            Job Title
+          </label>
           <Input
             value={trackTitle}
             onChange={(e) => setTrackTitle(e.target.value)}
@@ -221,7 +239,9 @@ export default function ApplicationToolkit({
           />
         </div>
         <div className="space-y-1">
-          <label className="text-xs font-medium text-muted-foreground">Company</label>
+          <label className="text-xs font-medium text-muted-foreground">
+            Company
+          </label>
           <Input
             value={trackCompany}
             onChange={(e) => setTrackCompany(e.target.value)}
@@ -235,7 +255,8 @@ export default function ApplicationToolkit({
       {applications.length > 0 && (
         <div className="space-y-3">
           <h4 className="text-sm font-semibold text-primary flex items-center gap-2">
-            <Briefcase className="w-4 h-4" /> Your Applications ({applications.length})
+            <Briefcase className="w-4 h-4" /> Your Applications (
+            {applications.length})
           </h4>
           <div className="space-y-2 max-h-60 overflow-y-auto">
             {applications.map((app) => (
@@ -248,7 +269,8 @@ export default function ApplicationToolkit({
                     {app.job_title}
                   </p>
                   <p className="text-xs text-muted-foreground truncate">
-                    {app.company || "Unknown company"} • {new Date(app.applied_at).toLocaleDateString()}
+                    {app.company || "Unknown company"} •{" "}
+                    {new Date(app.applied_at).toLocaleDateString()}
                   </p>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
@@ -270,7 +292,11 @@ export default function ApplicationToolkit({
                     {app.status}
                   </Badge>
                   {app.job_url && (
-                    <a href={app.job_url} target="_blank" rel="noopener noreferrer">
+                    <a
+                      href={app.job_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
                       <ExternalLink className="w-3.5 h-3.5 text-muted-foreground hover:text-accent" />
                     </a>
                   )}
@@ -289,7 +315,8 @@ export default function ApplicationToolkit({
 
       {isLoading && (
         <div className="flex items-center justify-center py-4 text-muted-foreground text-sm">
-          <Loader2 className="w-4 h-4 animate-spin mr-2" /> Loading applications…
+          <Loader2 className="w-4 h-4 animate-spin mr-2" /> Loading
+          applications…
         </div>
       )}
 
@@ -300,10 +327,10 @@ export default function ApplicationToolkit({
           onClick={() => navigate("/applications")}
           className="text-sm"
         >
-          <LayoutDashboard className="w-4 h-4 mr-1.5" /> Open Applications Dashboard
+          <LayoutDashboard className="w-4 h-4 mr-1.5" /> Open Applications
+          Dashboard
         </Button>
       </div>
-
     </div>
   );
 }

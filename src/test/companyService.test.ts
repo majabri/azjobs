@@ -13,7 +13,7 @@ describe("companyService", () => {
         - Build things
         - Write code
       `;
-      
+
       const companyText = extractCompanySection(text);
       expect(companyText).toContain("We are a leading GenAI firm");
       expect(companyText).toContain("empower developers.");
@@ -29,7 +29,7 @@ describe("companyService", () => {
         Must have 10 years of experience.
         Our team spans the globe.
       `;
-      
+
       const companyText = extractCompanySection(text);
       expect(companyText).toContain("We build fast web apps.");
       expect(companyText).toContain("Our team spans the globe.");
@@ -44,9 +44,11 @@ describe("companyService", () => {
         We are a fast-growing startup in the fintech space. Our goal is to democratize banking. We believe in open finance.
         Please apply now. You will be responsible for the architecture.
       `;
-      
+
       const companyText = extractCompanySection(text);
-      expect(companyText).toContain("We are a fast-growing startup in the fintech space.");
+      expect(companyText).toContain(
+        "We are a fast-growing startup in the fintech space.",
+      );
       expect(companyText).toContain("We believe in open finance.");
       expect(companyText).not.toContain("Please apply now.");
       expect(companyText).not.toContain("responsible for");

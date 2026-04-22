@@ -64,7 +64,11 @@ export function useSaveResumeVersion() {
   const { user } = useAuthReady();
 
   return useMutation({
-    mutationFn: async (payload: { version_name: string; job_type: string; resume_text: string }) => {
+    mutationFn: async (payload: {
+      version_name: string;
+      job_type: string;
+      resume_text: string;
+    }) => {
       if (!user) throw new Error("Not authenticated");
       const { error } = await supabase.from("resume_versions").insert({
         user_id: user.id,

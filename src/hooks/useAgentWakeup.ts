@@ -19,14 +19,19 @@ import { supabase } from "@/integrations/supabase/client";
 // ── Agent registry (mirrors _shared/agent-registry.ts) ───────────────────────
 
 const AGENT_FUNCTION_MAP: Record<string, string> = {
-  job_match:      "run-job-agent",
+  job_match: "run-job-agent",
   salary_monitor: "run-salary-agent",
-  market_intel:   "run-market-agent",
+  market_intel: "run-market-agent",
   interview_prep: "run-interview-agent",
 };
 
 // Agents woken automatically at login (interview_prep is on-demand)
-const WAKEUP_ON_LOGIN = ["job_match", "salary_monitor", "market_intel", "interview_prep"];
+const WAKEUP_ON_LOGIN = [
+  "job_match",
+  "salary_monitor",
+  "market_intel",
+  "interview_prep",
+];
 
 // ── Core wakeup function ──────────────────────────────────────────────────────
 
@@ -59,9 +64,10 @@ export async function wakeAgents(userId: string): Promise<void> {
       continue;
     }
 
-    if (inst.status === "running") continue;  // already in flight
+    if (inst.status === "running") continue; // already in flight
 
-    const isDue = inst.status === "pending" ||
+    const isDue =
+      inst.status === "pending" ||
       !inst.next_run_at ||
       new Date(inst.next_run_at) <= new Date();
 
@@ -74,12 +80,10 @@ export async function wakeAgents(userId: string): Promise<void> {
   for (const agentType of toWake) {
     const fnName = AGENT_FUNCTION_MAP[agentType];
     if (!fnName) continue;
-    supabase.functions
-      .invoke(fnName, { body: {} })
-      .catch((err: unknown) => {
-        // Silently swallow — agents are best-effort, never block the user
-        console.debug(`[useAgentWakeup] ${agentType} wakeup failed:`, err);
-      });
+    supabase.functions.invoke(fnName, { body: {} }).catch((err: unknown) => {
+      // Silently swallow — agents are best-effort, never block the user
+      console.debug(`[useAgentWakeup] ${agentType} wakeup failed:`, err);
+    });
   }
 }
 

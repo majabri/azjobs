@@ -16,7 +16,7 @@ Deno.serve(async (req) => {
 
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
   );
 
   try {
@@ -32,8 +32,12 @@ Deno.serve(async (req) => {
     if (fetchErr) throw fetchErr;
     if (!events || events.length === 0) {
       return new Response(
-        JSON.stringify({ status: "success", data: { processed: 0 }, fallback: false }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({
+          status: "success",
+          data: { processed: 0 },
+          fallback: false,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
@@ -55,24 +59,29 @@ Deno.serve(async (req) => {
       const shouldOpenCircuitBreaker = errorCount >= 5;
 
       // Update service health
-      await supabase
-        .from("service_health")
-        .upsert({
+      await supabase.from("service_health").upsert(
+        {
           service_name: serviceName,
-          status: shouldOpenCircuitBreaker ? "down" : errorCount >= 3 ? "degraded" : "healthy",
+          status: shouldOpenCircuitBreaker
+            ? "down"
+            : errorCount >= 3
+              ? "degraded"
+              : "healthy",
           error_count: errorCount,
           circuit_breaker_open: shouldOpenCircuitBreaker,
           last_error: payload?.message || errorType,
           last_check: new Date().toISOString(),
           updated_at: new Date().toISOString(),
-        }, { onConflict: "service_name" });
+        },
+        { onConflict: "service_name" },
+      );
 
       // Emit recovery event
       const recoveryAction = shouldOpenCircuitBreaker
         ? "circuit_breaker_opened"
         : errorCount >= 3
-        ? "switched_to_fallback"
-        : "retry_scheduled";
+          ? "switched_to_fallback"
+          : "retry_scheduled";
 
       await supabase.from("service_events").insert({
         event_name: "recovery.triggered",
@@ -102,14 +111,25 @@ Deno.serve(async (req) => {
     });
 
     return new Response(
-      JSON.stringify({ status: "success", data: { processed }, fallback: false }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({
+        status: "success",
+        data: { processed },
+        fallback: false,
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (e) {
     console.error("[ai-recovery] Error:", e);
     return new Response(
-      JSON.stringify({ status: "error", data: { message: String(e) }, fallback: true }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({
+        status: "error",
+        data: { message: String(e) },
+        fallback: true,
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   }
 });

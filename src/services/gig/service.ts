@@ -27,7 +27,9 @@ export async function fetchOpenGigs(): Promise<Gig[]> {
 
 export async function fetchMyGigs(): Promise<Gig[]> {
   try {
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
     if (!session) return [];
     const { data, error } = await supabase
       .from("gigs")
@@ -44,7 +46,9 @@ export async function fetchMyGigs(): Promise<Gig[]> {
 
 export async function createGig(gig: Partial<Gig>): Promise<Gig | null> {
   try {
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
     if (!session) throw new Error("Not authenticated");
     const { data, error } = await supabase
       .from("gigs")
@@ -59,9 +63,15 @@ export async function createGig(gig: Partial<Gig>): Promise<Gig | null> {
   }
 }
 
-export async function submitBid(bid: { gig_id: string; amount: number; message: string }): Promise<GigBid | null> {
+export async function submitBid(bid: {
+  gig_id: string;
+  amount: number;
+  message: string;
+}): Promise<GigBid | null> {
   try {
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
     if (!session) throw new Error("Not authenticated");
     const { data, error } = await supabase
       .from("gig_bids")
