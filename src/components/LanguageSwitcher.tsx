@@ -10,7 +10,7 @@ import {
 import { Globe } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { logger } from '@/lib/logger';
+import { logger } from "@/lib/logger";
 
 const languages = [
   { code: "en", label: "English", flag: "\u{1F1FA}\u{1F1F8}" },
@@ -29,7 +29,8 @@ let tableUnavailable = false;
 export default function LanguageSwitcher() {
   const { i18n } = useTranslation();
   const { user } = useAuth();
-  const current = languages.find((l) => l.code === i18n.language) || languages[0];
+  const current =
+    languages.find((l) => l.code === i18n.language) || languages[0];
 
   const changeLanguage = useCallback(
     async (code: string) => {
@@ -42,11 +43,10 @@ export default function LanguageSwitcher() {
           const { error } = await supabase.from("user_preferences").upsert(
             {
               user_id: user.id,
-              preference_key: "language",
-              preference_value: code,
+              language: code,
               updated_at: new Date().toISOString(),
-            },
-            { onConflict: "user_id,preference_key" }
+            } as any,
+            { onConflict: "user_id" },
           );
 
           if (error) {
@@ -60,7 +60,7 @@ export default function LanguageSwitcher() {
             ) {
               tableUnavailable = true;
               logger.debug(
-                "[LanguageSwitcher] user_preferences table unavailable â using localStorage only"
+                "[LanguageSwitcher] user_preferences table unavailable â using localStorage only",
               );
             }
           }
@@ -69,7 +69,7 @@ export default function LanguageSwitcher() {
         }
       }
     },
-    [i18n, user]
+    [i18n, user],
   );
 
   return (
@@ -77,7 +77,9 @@ export default function LanguageSwitcher() {
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="sm" className="gap-1.5 px-2">
           <Globe className="w-4 h-4" />
-          <span className="text-xs hidden sm:inline">{current.flag} {current.code.toUpperCase()}</span>
+          <span className="text-xs hidden sm:inline">
+            {current.flag} {current.code.toUpperCase()}
+          </span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="min-w-[140px]">

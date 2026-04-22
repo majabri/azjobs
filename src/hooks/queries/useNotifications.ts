@@ -33,7 +33,7 @@ export function useMarkNotificationRead() {
     mutationFn: async (id: string) => {
       const { error } = await supabase
         .from("notifications")
-        .update({ read: true })
+        .update({ is_read: true })
         .eq("id", id);
       if (error) throw error;
     },
@@ -53,9 +53,9 @@ export function useMarkAllNotificationsRead() {
       if (!user) throw new Error("Not authenticated");
       const { error } = await supabase
         .from("notifications")
-        .update({ read: true })
+        .update({ is_read: true })
         .eq("user_id", user.id)
-        .eq("read", false);
+        .eq("is_read", false);
       if (error) throw error;
     },
     onSuccess: () => {

@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import i18n from "@/lib/i18n";
-import { logger } from '@/lib/logger';
+import { logger } from "@/lib/logger";
 
 /**
  * FIX: Cache whether the user_preferences table is available.
@@ -28,9 +28,9 @@ export function useLanguagePreference() {
       try {
         const { data, error } = await supabase
           .from("user_preferences")
-          .select("preference_value")
+          .select("language")
           .eq("user_id", user.id)
-          .eq("preference_key", "language")
+
           .maybeSingle();
 
         // If the table does not exist Supabase returns a 400 / 404.
@@ -48,7 +48,7 @@ export function useLanguagePreference() {
           ) {
             tableUnavailable = true;
             logger.debug(
-              "[useLanguagePreference] user_preferences table unavailable â falling back to localStorage"
+              "[useLanguagePreference] user_preferences table unavailable â falling back to localStorage",
             );
           }
           // Other transient errors are silently ignored; the
@@ -56,9 +56,9 @@ export function useLanguagePreference() {
           return;
         }
 
-        if (data?.preference_value && data.preference_value !== i18n.language) {
-          await i18n.changeLanguage(data.preference_value);
-          localStorage.setItem("icareeros_language", data.preference_value);
+        if (data?.language && data.language !== i18n.language) {
+          await i18n.changeLanguage(data.language);
+          localStorage.setItem("icareeros_language", data.language);
         }
       } catch {
         // Network-level error â localStorage fallback is already active

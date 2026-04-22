@@ -1,7 +1,17 @@
 import { useState, useCallback, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Users, FileText, Calendar, Target, Clock, Shield, Briefcase, Pencil, Trash2 } from "lucide-react";
+import {
+  Users,
+  FileText,
+  Calendar,
+  Target,
+  Clock,
+  Shield,
+  Briefcase,
+  Pencil,
+  Trash2,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
@@ -31,39 +41,53 @@ export function HiringManagerPanel({
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [postingsRes, interviewsRes, rolesRes, profilesRes] = await Promise.all([
-        supabase.from("job_postings").select("user_id, candidates_matched, created_at"),
-        supabase.from("interview_schedules").select("user_id"),
-        supabase.from("user_roles").select("user_id, role"),
-        supabase.from("profiles").select("user_id, full_name, email"),
-      ]);
+      const [postingsRes, interviewsRes, rolesRes, profilesRes] =
+        await Promise.all([
+          supabase
+            .from("job_postings")
+            .select("user_id, candidates_matched, created_at"),
+          supabase.from("interview_schedules").select("user_id"),
+          supabase.from("user_roles").select("user_id, role"),
+          supabase.from("profiles").select("user_id, full_name, email"),
+        ]);
 
       const rolesMap = new Map<string, string>();
       for (const r of rolesRes.data || []) rolesMap.set(r.user_id, r.role);
 
-      const profileMap = new Map<string, { full_name: string | null; email: string | null }>();
-      for (const p of (profilesRes.data || [])) {
+      const profileMap = new Map<
+        string,
+        { full_name: string | null; email: string | null }
+      >();
+      for (const p of profilesRes.data || []) {
         profileMap.set(p.user_id, { full_name: p.full_name, email: p.email });
       }
 
-      type PostingAgg = { count: number; matched: number; latest: string | null };
+      type PostingAgg = { count: number; matched: number; latest: string };
       const postingAgg = new Map<string, PostingAgg>();
-      for (const p of (postingsRes.data || [])) {
-        const existing = postingAgg.get(p.user_id) ?? { count: 0, matched: 0, latest: null };
+      for (const p of postingsRes.data || []) {
+        const userId = p.user_id ?? "";
+        const existing = postingAgg.get(userId) ?? {
+          count: 0,
+          matched: 0,
+          latest: "",
+        };
         existing.count += 1;
         existing.matched += p.candidates_matched ?? 0;
-        if (!existing.latest || p.created_at > existing.latest) existing.latest = p.created_at;
-        postingAgg.set(p.user_id, existing);
+        if (!existing.latest || (p.created_at ?? "") > existing.latest)
+          existing.latest = p.created_at ?? "";
+        postingAgg.set(userId, existing);
       }
 
       const interviewCount = new Map<string, number>();
-      for (const i of (interviewsRes.data || [])) {
+      for (const i of interviewsRes.data || []) {
         interviewCount.set(i.user_id, (interviewCount.get(i.user_id) ?? 0) + 1);
       }
 
       const allHiringUserIds = new Set<string>([
         ...postingAgg.keys(),
-        ...[...rolesMap.entries()].filter(([, r]) => r === "recruiter").map(([uid]) => uid),
+        ...[...rolesMap.entries()]
+          .filter(([, r]) => r === "recruiter")
+          .map(([uid]) => uid),
       ]);
 
       const merged: HiringManagerRecord[] = [...allHiringUserIds].map((uid) => {
@@ -85,14 +109,16 @@ export function HiringManagerPanel({
       setRecords(merged);
       onRecordsLoaded?.(merged);
     } catch (e) {
-      logger.error(e);
+      logger.error(e instanceof Error ? e.message : String(e));
       toast.error("Failed to load hiring managers");
     } finally {
       setLoading(false);
     }
   }, [onRecordsLoaded]);
 
-  useEffect(() => { load(); }, [load, reloadKey]);
+  useEffect(() => {
+    load();
+  }, [load, reloadKey]);
 
   const filtered = records.filter((u) => {
     if (!search.trim()) return true;
@@ -115,7 +141,11 @@ export function HiringManagerPanel({
   return (
     <>
       <div className="grid grid-cols-3 gap-3 mb-4">
-        <MiniStat label="Hiring accounts" value={records.length} icon={<Users className="w-3.5 h-3.5" />} />
+        <MiniStat
+          label="Hiring accounts"
+          value={records.length}
+          icon={<Users className="w-3.5 h-3.5" />}
+        />
         <MiniStat
           label="Total job postings"
           value={records.reduce((s, r) => s + r.job_posting_count, 0)}
@@ -156,13 +186,16 @@ export function HiringManagerPanel({
 
               <div className="hidden md:flex items-center gap-3 text-[10px] text-muted-foreground">
                 <span className="flex items-center gap-1">
-                  <FileText className="w-3 h-3" /> {user.job_posting_count} postings
+                  <FileText className="w-3 h-3" /> {user.job_posting_count}{" "}
+                  postings
                 </span>
                 <span className="flex items-center gap-1">
-                  <Calendar className="w-3 h-3" /> {user.interview_count} interviews
+                  <Calendar className="w-3 h-3" /> {user.interview_count}{" "}
+                  interviews
                 </span>
                 <span className="flex items-center gap-1">
-                  <Target className="w-3 h-3" /> {user.candidates_matched} matched
+                  <Target className="w-3 h-3" /> {user.candidates_matched}{" "}
+                  matched
                 </span>
               </div>
 
@@ -173,7 +206,9 @@ export function HiringManagerPanel({
                   : "No postings"}
               </div>
 
-              <Badge className={ROLE_COLORS[user.role] || ROLE_COLORS.job_seeker}>
+              <Badge
+                className={ROLE_COLORS[user.role] || ROLE_COLORS.job_seeker}
+              >
                 {user.role === "admin" && <Shield className="w-3 h-3 mr-1" />}
                 {user.role}
               </Badge>

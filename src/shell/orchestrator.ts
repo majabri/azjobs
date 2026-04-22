@@ -74,7 +74,11 @@ export async function runSearchOnly(
   historicalOutcomes?: HistoricalOutcomes,
   userId?: string,
 ): Promise<SearchOnlyResult> {
-  publishEvent("job.search.requested", { filters: filters as unknown as Record<string, unknown> }, userId);
+  publishEvent(
+    "job.search.requested",
+    { filters: filters as unknown as Record<string, unknown> },
+    userId,
+  );
 
   // ── Step 1 — fetch ─────────────────────────────────────────────────────────
   logger.info("[Orchestrator] runSearchOnly: searching jobs…");
@@ -82,24 +86,32 @@ export async function runSearchOnly(
   let matchingTriggered = false;
 
   const rawJobs = await searchJobs(filters)
-    .then(r => {
+    .then((r) => {
       matchingTriggered = r.matchingTriggered ?? false;
-      publishEvent("job.search.completed", {
-        job_count: r.jobs.length,
-        source: r.source ?? "database",
-        matching_triggered: matchingTriggered,
-        duration_ms: elapsed(t1),
-      }, userId);
+      publishEvent(
+        "job.search.completed",
+        {
+          job_count: r.jobs.length,
+          source: "search",
+          matching_triggered: matchingTriggered,
+          duration_ms: elapsed(t1),
+        } as any,
+        userId,
+      );
       return r.jobs;
     })
-    .catch(e => {
+    .catch((e) => {
       logger.error("[Orchestrator] runSearchOnly: searchJobs failed:", e);
       publishFailureEvent("searchJobs", e, elapsed(t1), userId);
       return [];
     });
 
   if (rawJobs.length === 0) {
-    publishEvent("pipeline.step.skipped", { step: "scoreJobs", reason: "no jobs found" }, userId);
+    publishEvent(
+      "pipeline.step.skipped",
+      { step: "scoreJobs", reason: "no jobs found" },
+      userId,
+    );
     return { jobs: [], matchingTriggered };
   }
 
@@ -115,16 +127,23 @@ export async function runSearchOnly(
       salaryMax: filters.salaryMax,
       remotePreferred: filters.jobTypes.includes("remote"),
     });
-    publishEvent("job.scored", {
-      jobs_scored: jobs.length,
-      top_score: Math.max(0, ...jobs.map(j => j.decisionScore ?? 0)),
-      duration_ms: elapsed(t2),
-    }, userId);
+    publishEvent(
+      "job.scored",
+      {
+        jobs_scored: jobs.length,
+        top_score: Math.max(0, ...jobs.map((j) => j.decisionScore ?? 0)),
+        duration_ms: elapsed(t2),
+      },
+      userId,
+    );
     return { jobs, matchingTriggered };
   } catch (e) {
-    logger.error("[Orchestrator] runSearchOnly: scoreJobs failed (non-blocking):", e);
+    logger.error(
+      "[Orchestrator] runSearchOnly: scoreJobs failed (non-blocking):",
+      e,
+    );
     publishFailureEvent("scoreJobs", e, elapsed(t2), userId);
-    const jobs: EnrichedJob[] = rawJobs.map(job => ({
+    const jobs: EnrichedJob[] = rawJobs.map((job) => ({
       ...job,
       flags: [],
       trustScore: 50,
@@ -178,7 +197,9 @@ export async function runAllAgents(
   // to the appropriate backend service.
   const asyncMode = await getFeatureFlag("orchestration_mode_async");
   if (asyncMode) {
-    logger.info("[Orchestrator] async mode enabled — publishing trigger event and returning");
+    logger.info(
+      "[Orchestrator] async mode enabled — publishing trigger event and returning",
+    );
     publishEvent(
       "job.search.requested",
       { filters: filters as unknown as Record<string, unknown> },
@@ -188,22 +209,30 @@ export async function runAllAgents(
   }
 
   // ── Synchronous mode (default, flag = false) ───────────────────────────────
-  publishEvent("job.search.requested", { filters: filters as unknown as Record<string, unknown> }, userId);
+  publishEvent(
+    "job.search.requested",
+    { filters: filters as unknown as Record<string, unknown> },
+    userId,
+  );
 
   // ── Step 1: Job Service — fetch jobs only ──────────────────────────────────
   logger.info("[Orchestrator] Step 1: searching jobs...");
   const t1 = Date.now();
   const jobs = await searchJobs(filters)
-    .then(r => {
-      publishEvent("job.search.completed", {
-        job_count: r.jobs.length,
-        source: r.source ?? "database",
-        matching_triggered: r.matchingTriggered ?? false,
-        duration_ms: elapsed(t1),
-      }, userId);
+    .then((r) => {
+      publishEvent(
+        "job.search.completed",
+        {
+          job_count: r.jobs.length,
+          source: "search",
+          matching_triggered: r.matchingTriggered ?? false,
+          duration_ms: elapsed(t1),
+        } as any,
+        userId,
+      );
       return r.jobs;
     })
-    .catch(e => {
+    .catch((e) => {
       logger.error("[Orchestrator] searchJobs failed:", e);
       result.errors.push(`searchJobs: ${errMsg(e)}`);
       publishFailureEvent("searchJobs", e, elapsed(t1), userId);
@@ -214,7 +243,11 @@ export async function runAllAgents(
 
   if (jobs.length === 0) {
     logger.warn("[Orchestrator] No jobs found — pipeline halted");
-    publishEvent("pipeline.step.skipped", { step: "scoreJobs", reason: "no jobs found" }, userId);
+    publishEvent(
+      "pipeline.step.skipped",
+      { step: "scoreJobs", reason: "no jobs found" },
+      userId,
+    );
     return result;
   }
 
@@ -225,18 +258,24 @@ export async function runAllAgents(
   try {
     scoredJobs = scoreJobs({ jobs, skills: filters.skills });
     result.jobsScored = scoredJobs.length;
-    logger.info(`[Orchestrator] Step 2 complete: ${scoredJobs.length} jobs scored`);
-    publishEvent("job.scored", {
-      jobs_scored: scoredJobs.length,
-      top_score: Math.max(0, ...scoredJobs.map(j => j.decisionScore ?? 0)),
-      duration_ms: elapsed(t2),
-    }, userId);
+    logger.info(
+      `[Orchestrator] Step 2 complete: ${scoredJobs.length} jobs scored`,
+    );
+    publishEvent(
+      "job.scored",
+      {
+        jobs_scored: scoredJobs.length,
+        top_score: Math.max(0, ...scoredJobs.map((j) => j.decisionScore ?? 0)),
+        duration_ms: elapsed(t2),
+      },
+      userId,
+    );
   } catch (e) {
     logger.error("[Orchestrator] scoreJobs failed (non-blocking):", e);
     result.errors.push(`scoreJobs: ${errMsg(e)}`);
     publishFailureEvent("scoreJobs", e, elapsed(t2), userId);
     // Fallback: wrap unscored jobs so pipeline continues
-    scoredJobs = jobs.map(job => ({
+    scoredJobs = jobs.map((job) => ({
       ...job,
       flags: [],
       trustScore: 50,
@@ -254,49 +293,61 @@ export async function runAllAgents(
   logger.info("[Orchestrator] Step 3: optimizing resume...");
   const t3 = Date.now();
   const topJobs = scoredJobs.slice(0, 5);
-  const jobDescriptions = topJobs.map(j => j.description).filter(Boolean);
+  const jobDescriptions = topJobs.map((j) => j.description).filter(Boolean);
   const optimizedResume = await optimize(jobDescriptions)
-    .then(resume => {
-      publishEvent("resume.optimized", {
-        job_titles: topJobs.map(j => j.title),
-        duration_ms: elapsed(t3),
-      }, userId);
+    .then((resume) => {
+      publishEvent(
+        "resume.optimized",
+        {
+          job_titles: topJobs.map((j) => j.title),
+          duration_ms: elapsed(t3),
+        },
+        userId,
+      );
       return resume;
     })
-    .catch(e => {
+    .catch((e) => {
       logger.error("[Orchestrator] optimize failed (non-blocking):", e);
       result.errors.push(`optimize: ${errMsg(e)}`);
       publishFailureEvent("optimize", e, elapsed(t3), userId);
       return null;
     });
   result.resumeOptimized = Boolean(optimizedResume);
-  logger.info(`[Orchestrator] Step 3 complete: resume optimized = ${result.resumeOptimized}`);
+  logger.info(
+    `[Orchestrator] Step 3 complete: resume optimized = ${result.resumeOptimized}`,
+  );
 
   // ── Step 4: Application Service — submit applications ─────────────────────
   logger.info("[Orchestrator] Step 4: submitting applications...");
   const t4 = Date.now();
-  const applyPayloads = topJobs.map(j => ({
+  const applyPayloads = topJobs.map((j) => ({
     title: j.title,
     company: j.company,
     url: j.url,
     resumeText: optimizedResume,
   }));
   const submitted = await apply(applyPayloads)
-    .then(count => {
-      publishEvent("application.submitted", {
-        application_count: count,
-        duration_ms: elapsed(t4),
-      }, userId);
+    .then((count) => {
+      publishEvent(
+        "application.submitted",
+        {
+          application_count: count,
+          duration_ms: elapsed(t4),
+        },
+        userId,
+      );
       return count;
     })
-    .catch(e => {
+    .catch((e) => {
       logger.error("[Orchestrator] apply failed (non-blocking):", e);
       result.errors.push(`apply: ${errMsg(e)}`);
       publishFailureEvent("apply", e, elapsed(t4), userId);
       return 0;
     });
   result.applicationsSubmitted = submitted;
-  logger.info(`[Orchestrator] Step 4 complete: ${submitted} applications submitted`);
+  logger.info(
+    `[Orchestrator] Step 4 complete: ${submitted} applications submitted`,
+  );
 
   logger.info("[Orchestrator] Pipeline complete:", result);
   return result;

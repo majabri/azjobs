@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Loader2, Search, Filter, Clock, DollarSign, Star } from 'lucide-react';
-import { logger } from '@/lib/logger';
+import React, { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, Search, Filter, Clock, DollarSign, Star } from "lucide-react";
+import { logger } from "@/lib/logger";
 
 interface GigProject {
   id: string;
@@ -36,16 +36,16 @@ export default function GigMarketplace() {
   const [error, setError] = useState<string | null>(null);
 
   const [filters, setFilters] = useState({
-    category: '',
-    budget_min: '',
-    budget_max: '',
-    timeline: '',
-    search: ''
+    category: "",
+    budget_min: "",
+    budget_max: "",
+    timeline: "",
+    search: "",
   });
 
   useEffect(() => {
     fetchData();
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchData intentionally excluded; mount-only load
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchData intentionally excluded; mount-only load
   }, []);
 
   const fetchData = async () => {
@@ -55,18 +55,20 @@ export default function GigMarketplace() {
 
       // Fetch categories
       const { data: categoriesData, error: categoriesError } = await supabase
-        .from('gig_categories')
-        .select('*')
-        .order('name');
+        .from("gig_categories")
+        .select("*")
+        .order("name");
 
       if (categoriesError) throw categoriesError;
-      setCategories(categoriesData || []);
+      setCategories((categoriesData as unknown as GigCategory[]) || []);
 
       // Fetch projects
       await fetchProjects();
     } catch (err) {
-      logger.error('Error fetching data:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load marketplace');
+      logger.error("Error fetching data:", err);
+      setError(
+        err instanceof Error ? err.message : "Failed to load marketplace",
+      );
     } finally {
       setLoading(false);
     }
@@ -75,8 +77,9 @@ export default function GigMarketplace() {
   const fetchProjects = async () => {
     try {
       let query = supabase
-        .from('gig_projects')
-        .select(`
+        .from("gig_projects")
+        .select(
+          `
           id,
           title,
           description,
@@ -88,52 +91,52 @@ export default function GigMarketplace() {
           skills_required,
           created_at,
           gig_categories(name)
-        `)
-        .eq('status', 'open');
+        `,
+        )
+        .eq("status", "open");
 
       // Apply filters
       if (filters.category) {
-        query = query.eq('category_id', filters.category);
+        query = query.eq("category_id", filters.category);
       }
 
       if (filters.budget_min) {
-        query = query.gte('budget_min', parseInt(filters.budget_min));
+        query = query.gte("budget_min", parseInt(filters.budget_min));
       }
 
       if (filters.budget_max) {
-        query = query.lte('budget_max', parseInt(filters.budget_max));
-      }
-
-      if (filters.timeline) {
-        query = query.eq('timeline', filters.timeline);
+        query = query.lte("budget_max", parseInt(filters.budget_max));
       }
 
       if (filters.search) {
         query = query.or(
-          `title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`
+          `title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`,
         );
       }
 
-      const { data: projectsData, error: projectsError } = await query
-        .order('created_at', { ascending: false });
+      const { data: projectsData, error: projectsError } = await query.order(
+        "created_at",
+        { ascending: false },
+      );
 
       if (projectsError) throw projectsError;
 
-      const formattedProjects = (projectsData || []).map(proj => ({
+      const formattedProjects = (projectsData || []).map((proj: any) => ({
         ...proj,
-        category: proj.gig_categories
-      })) as GigProject[];
+      })) as any;
 
       setProjects(formattedProjects);
     } catch (err) {
-      logger.error('Error fetching projects:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load projects');
+      logger.error("Error fetching projects:", err);
+      setError(err instanceof Error ? err.message : "Failed to load projects");
     }
   };
 
-  const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleFilterChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => {
     const { name, value } = e.target;
-    setFilters(prev => ({ ...prev, [name]: value }));
+    setFilters((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleApplyFilters = () => {
@@ -142,16 +145,17 @@ export default function GigMarketplace() {
 
   const handleResetFilters = () => {
     setFilters({
-      category: '',
-      budget_min: '',
-      budget_max: '',
-      timeline: '',
-      search: ''
+      category: "",
+      budget_min: "",
+      budget_max: "",
+      timeline: "",
+      search: "",
     });
   };
 
   const formatBudget = (min: number, max: number) => {
-    const format = (n: number) => `$${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}k`;
+    const format = (n: number) =>
+      `$${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}k`;
     return `${format(min)} - ${format(max)}`;
   };
 
@@ -171,7 +175,9 @@ export default function GigMarketplace() {
       <div className="max-w-7xl mx-auto px-4 py-12">
         {/* Header */}
         <div className="mb-12">
-          <h1 className="text-4xl font-bold text-foreground mb-2">Gig Marketplace</h1>
+          <h1 className="text-4xl font-bold text-foreground mb-2">
+            Gig Marketplace
+          </h1>
           <p className="text-muted-foreground">
             Browse and apply for thousands of projects and opportunities
           </p>
@@ -223,7 +229,7 @@ export default function GigMarketplace() {
                     className="w-full px-3 py-2 bg-muted border border-border rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   >
                     <option value="">All Categories</option>
-                    {categories.map(cat => (
+                    {categories.map((cat) => (
                       <option key={cat.id} value={cat.id}>
                         {cat.name}
                       </option>
@@ -268,10 +274,10 @@ export default function GigMarketplace() {
                     className="w-full px-3 py-2 bg-muted border border-border rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   >
                     <option value="">Any Timeline</option>
-                    <option value="immediate">Immediate ({'<'} 1 week)</option>
+                    <option value="immediate">Immediate ({"<"} 1 week)</option>
                     <option value="short">Short (1-2 weeks)</option>
                     <option value="medium">Medium (1-3 months)</option>
-                    <option value="long">Long ({'>'} 3 months)</option>
+                    <option value="long">Long ({">"} 3 months)</option>
                   </select>
                 </div>
 
@@ -318,7 +324,7 @@ export default function GigMarketplace() {
               </Card>
             ) : (
               <div className="grid grid-cols-1 gap-4">
-                {projects.map(project => (
+                {projects.map((project) => (
                   <Card
                     key={project.id}
                     className="bg-card border-border hover:border-primary/50 transition-colors cursor-pointer"
@@ -340,9 +346,14 @@ export default function GigMarketplace() {
                         </div>
                         <div className="text-right">
                           <div className="text-2xl font-bold text-primary">
-                            {formatBudget(project.budget_min, project.budget_max)}
+                            {formatBudget(
+                              project.budget_min,
+                              project.budget_max,
+                            )}
                           </div>
-                          <div className="text-xs text-muted-foreground">Budget</div>
+                          <div className="text-xs text-muted-foreground">
+                            Budget
+                          </div>
                         </div>
                       </div>
 
@@ -353,15 +364,17 @@ export default function GigMarketplace() {
                       {/* Skills Tags */}
                       <div className="mb-4">
                         <div className="flex flex-wrap gap-2">
-                          {project.skills_required?.slice(0, 4).map((skill, idx) => (
-                            <Badge
-                              key={idx}
-                              variant="secondary"
-                              className="bg-muted text-muted-foreground/70 border-border"
-                            >
-                              {skill}
-                            </Badge>
-                          ))}
+                          {project.skills_required
+                            ?.slice(0, 4)
+                            .map((skill, idx) => (
+                              <Badge
+                                key={idx}
+                                variant="secondary"
+                                className="bg-muted text-muted-foreground/70 border-border"
+                              >
+                                {skill}
+                              </Badge>
+                            ))}
                           {project.skills_required?.length > 4 && (
                             <Badge
                               variant="secondary"
@@ -387,7 +400,9 @@ export default function GigMarketplace() {
                         </div>
                         <Button
                           className="bg-primary hover:bg-primary/90 text-foreground"
-                          onClick={() => window.location.href = `/gig/${project.id}`}
+                          onClick={() =>
+                            (window.location.href = `/gig/${project.id}`)
+                          }
                         >
                           View Details
                         </Button>

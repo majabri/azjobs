@@ -7,7 +7,13 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -28,17 +34,20 @@ import {
   TrendingUp,
   UserPlus,
 } from "lucide-react";
-import { logger } from '@/lib/logger';
+import { logger } from "@/lib/logger";
 
 interface Invitation {
   id: string;
-  invite_type: "email" | "code";
+  invite_type: string;
   invitee_email: string | null;
   invite_code: string | null;
   token: string;
-  status: "pending" | "accepted" | "expired" | "revoked";
+  status: string;
   created_at: string;
   expires_at: string;
+  inviter_id?: string;
+  accepted_at?: string | null;
+  accepted_by?: string | null;
 }
 
 const DAILY_LIMIT = 5;
@@ -75,13 +84,13 @@ export default function ReferralProgram() {
       // Calculate today's remaining
       const today = new Date().toISOString().split("T")[0];
       const todayCount = (invites || []).filter((inv) =>
-        inv.created_at.startsWith(today)
+        inv.created_at.startsWith(today),
       ).length;
       setInvitesRemaining(Math.max(0, DAILY_LIMIT - todayCount));
 
       // Find active code invite
       const activeCodeInvite = (invites || []).find(
-        (inv) => inv.invite_type === "code" && inv.status === "pending"
+        (inv) => inv.invite_type === "code" && inv.status === "pending",
       );
       setActiveCode(activeCodeInvite?.invite_code || null);
 
@@ -93,14 +102,19 @@ export default function ReferralProgram() {
 
       setReferralCount(count || 0);
 
-      // Fetch user's own referral code
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("referral_code")
-        .eq("user_id", user.id)
-        .single();
+      // Fetch user's own referral code (if available)
+      // Note: referral_code may not exist in profiles table
+      try {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("referral_code")
+          .eq("user_id", user.id)
+          .single();
 
-      setUserReferralCode(profile?.referral_code || null);
+        setUserReferralCode((profile as any)?.referral_code || null);
+      } catch {
+        // referral_code column may not exist, skip
+      }
     } catch (err) {
       logger.error("Error fetching referral data:", err);
     } finally {
@@ -185,7 +199,7 @@ export default function ReferralProgram() {
 
   function handleCopyLink() {
     const pendingToken = invitations.find(
-      (inv) => inv.status === "pending" && inv.invite_type === "code"
+      (inv) => inv.status === "pending" && inv.invite_type === "code",
     );
     if (pendingToken) {
       const url = `${window.location.origin}/auth/signup?invite=${pendingToken.token}`;
@@ -202,7 +216,8 @@ export default function ReferralProgram() {
   > = {
     pending: {
       label: "Pending",
-      color: "bg-[hsl(var(--primary))]/10 text-[hsl(var(--primary))] border-[hsl(var(--primary))]/20",
+      color:
+        "bg-[hsl(var(--primary))]/10 text-[hsl(var(--primary))] border-[hsl(var(--primary))]/20",
       icon: Clock,
     },
     accepted: {
@@ -232,11 +247,9 @@ export default function ReferralProgram() {
 
   const limitReached = invitesRemaining <= 0;
   const acceptedCount = invitations.filter(
-    (i) => i.status === "accepted"
+    (i) => i.status === "accepted",
   ).length;
-  const pendingCount = invitations.filter(
-    (i) => i.status === "pending"
-  ).length;
+  const pendingCount = invitations.filter((i) => i.status === "pending").length;
 
   return (
     <div className="space-y-6">

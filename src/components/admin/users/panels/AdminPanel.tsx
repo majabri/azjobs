@@ -47,9 +47,20 @@ export function AdminPanel({
         .select("user_id, full_name, email, username")
         .in("user_id", adminIds);
 
-      const profileMap = new Map<string, { full_name: string | null; email: string | null; username: string | null }>();
-      for (const p of (profilesData || [])) {
-        profileMap.set(p.user_id, { full_name: p.full_name, email: p.email, username: p.username });
+      const profileMap = new Map<
+        string,
+        {
+          full_name: string | null;
+          email: string | null;
+          username: string | null;
+        }
+      >();
+      for (const p of profilesData || []) {
+        profileMap.set(p.user_id, {
+          full_name: p.full_name,
+          email: p.email,
+          username: p.username,
+        });
       }
 
       const merged: AdminRecord[] = (rolesData || []).map((r) => {
@@ -65,14 +76,16 @@ export function AdminPanel({
 
       setRecords(merged);
     } catch (e) {
-      logger.error(e);
+      logger.error(e instanceof Error ? e.message : String(e));
       toast.error("Failed to load admins");
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => { load(); }, [load, reloadKey]);
+  useEffect(() => {
+    load();
+  }, [load, reloadKey]);
 
   const filtered = records.filter((u) => {
     if (!search.trim()) return true;
@@ -96,8 +109,17 @@ export function AdminPanel({
   return (
     <>
       <div className="grid grid-cols-2 gap-3 mb-4">
-        <MiniStat label="Total Admins" value={records.length} icon={<Shield className="w-3.5 h-3.5" />} color="text-destructive" />
-        <MiniStat label="With Username Login" value={records.filter((r) => !!r.username).length} icon={<UserCircle className="w-3.5 h-3.5" />} />
+        <MiniStat
+          label="Total Admins"
+          value={records.length}
+          icon={<Shield className="w-3.5 h-3.5" />}
+          color="text-destructive"
+        />
+        <MiniStat
+          label="With Username Login"
+          value={records.filter((r) => !!r.username).length}
+          icon={<UserCircle className="w-3.5 h-3.5" />}
+        />
       </div>
 
       {filtered.length === 0 ? (
@@ -126,14 +148,19 @@ export function AdminPanel({
               </div>
 
               {user.username && (
-                <Badge variant="outline" className="text-[10px] font-mono hidden sm:inline-flex">
+                <Badge
+                  variant="outline"
+                  className="text-[10px] font-mono hidden sm:inline-flex"
+                >
                   @{user.username}
                 </Badge>
               )}
 
               <div className="hidden sm:flex items-center gap-1 text-xs text-muted-foreground">
                 <Clock className="w-3 h-3" />
-                {user.created_at ? new Date(user.created_at).toLocaleDateString() : "—"}
+                {user.created_at
+                  ? new Date(user.created_at).toLocaleDateString()
+                  : "—"}
               </div>
 
               <Badge className={ROLE_COLORS.admin}>

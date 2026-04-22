@@ -1,15 +1,25 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
-import type { ServiceCatalog, ServicePackage, CatalogOrder, ServiceReview } from "./types";
+import type {
+  ServiceCatalog,
+  ServicePackage,
+  CatalogOrder,
+  ServiceReview,
+} from "./types";
 
 type ServiceCatalogRow = Database["public"]["Tables"]["service_catalog"]["Row"];
-type ServiceCatalogInsert = Database["public"]["Tables"]["service_catalog"]["Insert"];
-type ServicePackageInsert = Database["public"]["Tables"]["service_packages"]["Insert"];
-type CatalogOrderInsert = Database["public"]["Tables"]["catalog_orders"]["Insert"];
-type ServiceReviewInsert = Database["public"]["Tables"]["service_reviews"]["Insert"];
+type ServiceCatalogInsert =
+  Database["public"]["Tables"]["service_catalog"]["Insert"];
+type ServicePackageInsert =
+  Database["public"]["Tables"]["service_packages"]["Insert"];
+type CatalogOrderInsert =
+  Database["public"]["Tables"]["catalog_orders"]["Insert"];
+type ServiceReviewInsert = any;
 
 async function uid() {
-  const { data: { session } } = await supabase.auth.getSession();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
   if (!session) throw new Error("Not authenticated");
   return session.user.id;
 }
@@ -22,7 +32,7 @@ export async function fetchPublishedServices(): Promise<ServiceCatalog[]> {
     .eq("status", "published")
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return (data ?? []) as ServiceCatalog[];
+  return (data ?? []) as unknown as ServiceCatalog[];
 }
 
 export async function fetchMyServices(): Promise<ServiceCatalog[]> {
@@ -30,37 +40,44 @@ export async function fetchMyServices(): Promise<ServiceCatalog[]> {
   const { data, error } = await supabase
     .from("service_catalog")
     .select("*")
-    .eq("seller_id", id)
+    .eq("talent_id", id)
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return (data ?? []) as ServiceCatalog[];
+  return (data ?? []) as unknown as ServiceCatalog[];
 }
 
-export async function fetchServiceById(serviceId: string): Promise<ServiceCatalog | null> {
+export async function fetchServiceById(
+  serviceId: string,
+): Promise<ServiceCatalog | null> {
   const { data, error } = await supabase
     .from("service_catalog")
     .select("*")
     .eq("id", serviceId)
     .single();
   if (error) return null;
-  return data as ServiceCatalog;
+  return data as unknown as ServiceCatalog;
 }
 
-export async function createService(svc: Partial<ServiceCatalog>): Promise<ServiceCatalog> {
+export async function createService(
+  svc: Partial<ServiceCatalog>,
+): Promise<ServiceCatalog> {
   const id = await uid();
   const { data, error } = await supabase
     .from("service_catalog")
-    .insert({ ...svc, seller_id: id } as ServiceCatalogInsert)
+    .insert({ ...svc, talent_id: id } as ServiceCatalogInsert)
     .select()
     .single();
   if (error) throw error;
-  return data as ServiceCatalog;
+  return data as unknown as ServiceCatalog;
 }
 
-export async function updateService(serviceId: string, svc: Partial<ServiceCatalog>): Promise<void> {
+export async function updateService(
+  serviceId: string,
+  svc: Partial<ServiceCatalog>,
+): Promise<void> {
   const { error } = await supabase
     .from("service_catalog")
-    .update(svc as Partial<ServiceCatalogRow>)
+    .update(svc as any)
     .eq("id", serviceId);
   if (error) throw error;
 }
@@ -74,25 +91,35 @@ export async function deleteService(serviceId: string): Promise<void> {
 }
 
 // ── Packages ──────────────────────────────────────────
-export async function fetchPackages(serviceId: string): Promise<ServicePackage[]> {
+export async function fetchPackages(
+  serviceId: string,
+): Promise<ServicePackage[]> {
   const { data, error } = await supabase
     .from("service_packages")
     .select("*")
     .eq("service_id", serviceId)
     .order("price", { ascending: true });
   if (error) throw error;
-  return (data ?? []) as ServicePackage[];
+  return (data ?? []) as unknown as ServicePackage[];
 }
 
-export async function upsertPackages(serviceId: string, pkgs: Partial<ServicePackage>[]): Promise<void> {
+export async function upsertPackages(
+  serviceId: string,
+  pkgs: Partial<ServicePackage>[],
+): Promise<void> {
   await supabase.from("service_packages").delete().eq("service_id", serviceId);
-  const rows = pkgs.map((p) => ({ ...p, service_id: serviceId })) as ServicePackageInsert[];
+  const rows = pkgs.map((p) => ({
+    ...p,
+    service_id: serviceId,
+  })) as unknown as ServicePackageInsert[];
   const { error } = await supabase.from("service_packages").insert(rows);
   if (error) throw error;
 }
 
 // ── Orders ────────────────────────────────────────────
-export async function createOrder(order: Partial<CatalogOrder>): Promise<CatalogOrder> {
+export async function createOrder(
+  order: Partial<CatalogOrder>,
+): Promise<CatalogOrder> {
   const id = await uid();
   const { data, error } = await supabase
     .from("catalog_orders")
@@ -100,22 +127,27 @@ export async function createOrder(order: Partial<CatalogOrder>): Promise<Catalog
     .select()
     .single();
   if (error) throw error;
-  return data as CatalogOrder;
+  return data as unknown as CatalogOrder;
 }
 
-export async function fetchMyOrders(role: "buyer" | "seller"): Promise<CatalogOrder[]> {
+export async function fetchMyOrders(
+  role: "buyer" | "seller",
+): Promise<CatalogOrder[]> {
   const id = await uid();
-  const col = role === "buyer" ? "buyer_id" : "seller_id";
+  const col = role === "buyer" ? "buyer_id" : "talent_id";
   const { data, error } = await supabase
     .from("catalog_orders")
     .select("*")
     .eq(col, id)
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return (data ?? []) as CatalogOrder[];
+  return (data ?? []) as unknown as CatalogOrder[];
 }
 
-export async function updateOrderStatus(orderId: string, status: string): Promise<void> {
+export async function updateOrderStatus(
+  orderId: string,
+  status: string,
+): Promise<void> {
   const { error } = await supabase
     .from("catalog_orders")
     .update({ status })
@@ -124,19 +156,23 @@ export async function updateOrderStatus(orderId: string, status: string): Promis
 }
 
 // ── Reviews ───────────────────────────────────────────
-export async function fetchReviews(serviceId: string): Promise<ServiceReview[]> {
-  const { data, error } = await supabase
+export async function fetchReviews(
+  serviceId: string,
+): Promise<ServiceReview[]> {
+  const { data, error } = await (supabase as any)
     .from("service_reviews")
     .select("*")
     .eq("service_id", serviceId)
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return (data ?? []) as ServiceReview[];
+  return (data ?? []) as unknown as ServiceReview[];
 }
 
-export async function createReview(review: Partial<ServiceReview>): Promise<void> {
+export async function createReview(
+  review: Partial<ServiceReview>,
+): Promise<void> {
   const id = await uid();
-  const { error } = await supabase
+  const { error } = await (supabase as any)
     .from("service_reviews")
     .insert({ ...review, reviewer_id: id } as ServiceReviewInsert);
   if (error) throw error;

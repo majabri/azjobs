@@ -25,7 +25,9 @@ import type { EventType, EventPayloads } from "@/types/events";
  */
 export function publishEvent<T extends EventType>(
   eventType: T,
-  eventData: T extends keyof EventPayloads ? EventPayloads[T] : Record<string, unknown>,
+  eventData: T extends keyof EventPayloads
+    ? EventPayloads[T]
+    : Record<string, unknown>,
   userId?: string | null,
 ): void {
   // Non-blocking insert — we do NOT await this
@@ -38,8 +40,7 @@ export function publishEvent<T extends EventType>(
       event_type: eventType,
       payload: eventData as Record<string, unknown>,
       user_id: userId ?? null,
-      source_service: "frontend",
-    })
+    } as any)
     .then(({ error }) => {
       if (error) {
         // Warn locally but never surface to user

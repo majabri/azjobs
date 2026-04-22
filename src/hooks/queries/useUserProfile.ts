@@ -39,7 +39,7 @@ export function useUpdateUserProfile() {
       if (!user) throw new Error("Not authenticated");
       const { error } = await supabase
         .from("profiles")
-        .update(updates as Parameters<ReturnType<typeof supabase.from<"profiles">>["update"]>[0])
+        .update(updates as any)
         .eq("user_id", user.id);
       if (error) throw error;
     },

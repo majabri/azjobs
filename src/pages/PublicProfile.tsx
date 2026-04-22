@@ -4,8 +4,17 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  Loader2, User, Briefcase, GraduationCap, Award, ExternalLink, MapPin, Globe, FileText,
-  Share2, Copy,
+  Loader2,
+  User,
+  Briefcase,
+  GraduationCap,
+  Award,
+  ExternalLink,
+  MapPin,
+  Globe,
+  FileText,
+  Share2,
+  Copy,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import ProfilePdfExport from "@/components/ProfilePdfExport";
@@ -30,18 +39,23 @@ export default function PublicProfilePage() {
 
   useEffect(() => {
     if (userId) loadPublicProfile();
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- loadPublicProfile intentionally excluded; runs once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- loadPublicProfile intentionally excluded; runs once on mount
   }, [userId]);
 
   const loadPublicProfile = async () => {
     try {
       const { data: p, error } = await supabase
         .from("job_seeker_profiles")
-        .select("full_name, summary, skills, work_experience, education, certifications, location, career_level, email, phone")
+        .select(
+          "full_name, summary, skills, work_experience, education, certifications, location, career_level, email, phone",
+        )
         .eq("user_id", userId!)
         .maybeSingle();
 
-      if (error || !p) { setNotFound(true); return; }
+      if (error || !p) {
+        setNotFound(true);
+        return;
+      }
       setProfile(p);
 
       const { data: items } = await supabase
@@ -49,9 +63,12 @@ export default function PublicProfilePage() {
         .select("*")
         .eq("user_id", userId!)
         .order("display_order", { ascending: true });
-      setPortfolio(items || []);
-    } catch { setNotFound(true); }
-    finally { setLoading(false); }
+      setPortfolio((items as unknown as PortfolioItem[]) || []);
+    } catch {
+      setNotFound(true);
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Dynamic OG + JSON-LD
@@ -59,53 +76,94 @@ export default function PublicProfilePage() {
     if (!profile) return;
     const name = profile.full_name || "Professional";
     const title = `${name} — iCareerOS Career Profile`;
-    const desc = profile.summary?.slice(0, 155) || `${name}'s professional profile on iCareerOS`;
+    const desc =
+      profile.summary?.slice(0, 155) ||
+      `${name}'s professional profile on iCareerOS`;
     document.title = title;
     const setMeta = (prop: string, content: string) => {
-      let el = document.querySelector(`meta[property="${prop}"]`) || document.querySelector(`meta[name="${prop}"]`);
-      if (!el) { el = document.createElement("meta"); prop.startsWith("og:") ? el.setAttribute("property", prop) : el.setAttribute("name", prop); document.head.appendChild(el); }
+      let el =
+        document.querySelector(`meta[property="${prop}"]`) ||
+        document.querySelector(`meta[name="${prop}"]`);
+      if (!el) {
+        el = document.createElement("meta");
+        prop.startsWith("og:")
+          ? el.setAttribute("property", prop)
+          : el.setAttribute("name", prop);
+        document.head.appendChild(el);
+      }
       el.setAttribute("content", content);
     };
-    setMeta("og:title", title); setMeta("og:description", desc); setMeta("og:type", "profile");
-    setMeta("twitter:title", title); setMeta("twitter:description", desc);
+    setMeta("og:title", title);
+    setMeta("og:description", desc);
+    setMeta("og:type", "profile");
+    setMeta("twitter:title", title);
+    setMeta("twitter:description", desc);
 
     // JSON-LD
-    let ld = document.querySelector('script[data-ld="profile"]') as HTMLScriptElement;
-    if (!ld) { ld = document.createElement("script"); ld.type = "application/ld+json"; ld.setAttribute("data-ld", "profile"); document.head.appendChild(ld); }
+    let ld = document.querySelector(
+      'script[data-ld="profile"]',
+    ) as HTMLScriptElement;
+    if (!ld) {
+      ld = document.createElement("script");
+      ld.type = "application/ld+json";
+      ld.setAttribute("data-ld", "profile");
+      document.head.appendChild(ld);
+    }
     ld.textContent = JSON.stringify({
-      "@context": "https://schema.org", "@type": "Person",
-      name, jobTitle: profile.career_level || undefined,
-      address: profile.location ? { "@type": "PostalAddress", addressLocality: profile.location } : undefined,
+      "@context": "https://schema.org",
+      "@type": "Person",
+      name,
+      jobTitle: profile.career_level || undefined,
+      address: profile.location
+        ? { "@type": "PostalAddress", addressLocality: profile.location }
+        : undefined,
       knowsAbout: skills,
     });
-    return () => { ld?.remove(); };
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- skills dependency intentionally excluded to avoid re-runs on skill list change
+    return () => {
+      ld?.remove();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- skills dependency intentionally excluded to avoid re-runs on skill list change
   }, [profile]);
 
   const shareProfile = () => {
     if (navigator.share) {
-      navigator.share({ title: `${profile.full_name}'s Profile`, url: window.location.href }).catch(() => {});
+      navigator
+        .share({
+          title: `${profile.full_name}'s Profile`,
+          url: window.location.href,
+        })
+        .catch(() => {});
     } else {
       navigator.clipboard.writeText(window.location.href);
       toast.success("Link copied!");
     }
   };
 
-  if (loading) return <div className="min-h-screen bg-background flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-accent" /></div>;
-  if (notFound) return (
-    <div className="min-h-screen bg-background flex items-center justify-center">
-      <div className="text-center">
-        <User className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-        <h1 className="text-2xl font-bold text-primary mb-2">Profile Not Found</h1>
-        <p className="text-muted-foreground">This profile doesn't exist or isn't public.</p>
+  if (loading)
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-accent" />
       </div>
-    </div>
-  );
+    );
+  if (notFound)
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <User className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+          <h1 className="text-2xl font-bold text-primary mb-2">
+            Profile Not Found
+          </h1>
+          <p className="text-muted-foreground">
+            This profile doesn't exist or isn't public.
+          </p>
+        </div>
+      </div>
+    );
 
-  const experience = (profile.work_experience as Array<Record<string, unknown>>) || [];
-  const education = (profile.education as Array<Record<string, unknown>>) || [];
-  const skills = (profile.skills as string[]) || [];
-  const certs = (profile.certifications as string[]) || [];
+  const experience = (profile.work_experience as any) || [];
+  const education = (profile.education as any) || [];
+  const skills = (profile.skills as unknown as string[]) || [];
+  const certs = (profile.certifications as unknown as string[]) || [];
 
   return (
     <div className="min-h-screen bg-background">
@@ -115,9 +173,20 @@ export default function PublicProfilePage() {
           <div className="w-20 h-20 rounded-full bg-accent/20 flex items-center justify-center mx-auto mb-4">
             <User className="w-10 h-10 text-accent" />
           </div>
-          <h1 className="font-display text-3xl font-bold text-primary">{profile.full_name || "Professional"}</h1>
-          {profile.career_level && <Badge className="mt-2 bg-accent/10 text-accent border-accent/20">{profile.career_level}</Badge>}
-          {profile.location && <p className="text-sm text-muted-foreground mt-2 flex items-center justify-center gap-1"><MapPin className="w-3 h-3" />{profile.location}</p>}
+          <h1 className="font-display text-3xl font-bold text-primary">
+            {profile.full_name || "Professional"}
+          </h1>
+          {profile.career_level && (
+            <Badge className="mt-2 bg-accent/10 text-accent border-accent/20">
+              {profile.career_level}
+            </Badge>
+          )}
+          {profile.location && (
+            <p className="text-sm text-muted-foreground mt-2 flex items-center justify-center gap-1">
+              <MapPin className="w-3 h-3" />
+              {profile.location}
+            </p>
+          )}
           <div className="mt-3 flex items-center justify-center gap-2">
             <ProfilePdfExport
               profile={{
@@ -150,21 +219,37 @@ export default function PublicProfilePage() {
         {/* Skills */}
         {skills.length > 0 && (
           <div>
-            <h2 className="font-display font-bold text-primary text-lg mb-3">Skills</h2>
-            <div className="flex flex-wrap gap-2">{skills.map((s, i) => <Badge key={i} variant="secondary">{s}</Badge>)}</div>
+            <h2 className="font-display font-bold text-primary text-lg mb-3">
+              Skills
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              {skills.map((s, i) => (
+                <Badge key={i} variant="secondary">
+                  {s}
+                </Badge>
+              ))}
+            </div>
           </div>
         )}
 
         {/* Experience */}
         {experience.length > 0 && (
           <div>
-            <h2 className="font-display font-bold text-primary text-lg mb-3 flex items-center gap-2"><Briefcase className="w-5 h-5" /> Experience</h2>
+            <h2 className="font-display font-bold text-primary text-lg mb-3 flex items-center gap-2">
+              <Briefcase className="w-5 h-5" /> Experience
+            </h2>
             <div className="space-y-4">
               {experience.map((exp: any, i) => (
                 <Card key={i} className="p-4">
                   <h3 className="font-semibold text-foreground">{exp.title}</h3>
-                  <p className="text-sm text-muted-foreground">{exp.company} · {exp.startDate} – {exp.endDate || "Present"}</p>
-                  {exp.description && <p className="text-sm text-foreground mt-2">{exp.description}</p>}
+                  <p className="text-sm text-muted-foreground">
+                    {exp.company} · {exp.startDate} – {exp.endDate || "Present"}
+                  </p>
+                  {exp.description && (
+                    <p className="text-sm text-foreground mt-2">
+                      {exp.description}
+                    </p>
+                  )}
                 </Card>
               ))}
             </div>
@@ -174,12 +259,19 @@ export default function PublicProfilePage() {
         {/* Education */}
         {education.length > 0 && (
           <div>
-            <h2 className="font-display font-bold text-primary text-lg mb-3 flex items-center gap-2"><GraduationCap className="w-5 h-5" /> Education</h2>
+            <h2 className="font-display font-bold text-primary text-lg mb-3 flex items-center gap-2">
+              <GraduationCap className="w-5 h-5" /> Education
+            </h2>
             <div className="space-y-3">
               {education.map((edu: any, i) => (
                 <Card key={i} className="p-4">
-                  <h3 className="font-semibold text-foreground">{edu.degree}</h3>
-                  <p className="text-sm text-muted-foreground">{edu.institution}{edu.year ? ` · ${edu.year}` : ""}</p>
+                  <h3 className="font-semibold text-foreground">
+                    {edu.degree}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    {edu.institution}
+                    {edu.year ? ` · ${edu.year}` : ""}
+                  </p>
                 </Card>
               ))}
             </div>
@@ -189,30 +281,65 @@ export default function PublicProfilePage() {
         {/* Certifications */}
         {certs.length > 0 && (
           <div>
-            <h2 className="font-display font-bold text-primary text-lg mb-3 flex items-center gap-2"><Award className="w-5 h-5" /> Certifications</h2>
-            <div className="flex flex-wrap gap-2">{certs.map((c, i) => <Badge key={i} variant="outline">{c}</Badge>)}</div>
+            <h2 className="font-display font-bold text-primary text-lg mb-3 flex items-center gap-2">
+              <Award className="w-5 h-5" /> Certifications
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              {certs.map((c, i) => (
+                <Badge key={i} variant="outline">
+                  {c}
+                </Badge>
+              ))}
+            </div>
           </div>
         )}
 
         {/* Portfolio */}
         {portfolio.length > 0 && (
           <div>
-            <h2 className="font-display font-bold text-primary text-lg mb-3 flex items-center gap-2"><Globe className="w-5 h-5" /> Portfolio</h2>
+            <h2 className="font-display font-bold text-primary text-lg mb-3 flex items-center gap-2">
+              <Globe className="w-5 h-5" /> Portfolio
+            </h2>
             <div className="grid gap-4 sm:grid-cols-2">
               {portfolio.map((item) => (
                 <Card key={item.id} className="p-4">
                   <div className="flex items-start justify-between mb-2">
                     <div>
-                      <Badge variant="outline" className="text-[10px] mb-1">{item.item_type}</Badge>
-                      <h3 className="font-semibold text-foreground">{item.title}</h3>
+                      <Badge variant="outline" className="text-[10px] mb-1">
+                        {item.item_type}
+                      </Badge>
+                      <h3 className="font-semibold text-foreground">
+                        {item.title}
+                      </h3>
                     </div>
                     {item.url && (
-                      <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-accent hover:text-accent/80"><ExternalLink className="w-4 h-4" /></a>
+                      <a
+                        href={item.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-accent hover:text-accent/80"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                      </a>
                     )}
                   </div>
-                  {item.description && <p className="text-sm text-muted-foreground">{item.description}</p>}
+                  {item.description && (
+                    <p className="text-sm text-muted-foreground">
+                      {item.description}
+                    </p>
+                  )}
                   {item.tags?.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-2">{item.tags.map((t, j) => <Badge key={j} variant="secondary" className="text-[10px]">{t}</Badge>)}</div>
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {item.tags.map((t, j) => (
+                        <Badge
+                          key={j}
+                          variant="secondary"
+                          className="text-[10px]"
+                        >
+                          {t}
+                        </Badge>
+                      ))}
+                    </div>
                   )}
                 </Card>
               ))}

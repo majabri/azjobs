@@ -317,17 +317,18 @@ async function fetchArbeitnow(): Promise<{
 // ---------------------------------------------------------------------------
 
 // Capped at 10 boards — 17 parallel Greenhouse fetches exceeded WORKER_RESOURCE_LIMIT.
+// supabase + linear removed (404 — no longer on Greenhouse); replaced with notion + rippling.
 const GREENHOUSE_BOARDS = [
   "anthropic",
   "stripe",
   "vercel",
-  "supabase",
-  "linear",
   "figma",
   "airbnb",
   "databricks",
   "cloudflare",
   "datadog",
+  "notion",
+  "rippling",
 ];
 
 async function fetchGreenhouseBoards(
@@ -389,13 +390,14 @@ async function fetchGreenhouseBoards(
 // ---------------------------------------------------------------------------
 
 // Capped at 6 companies — 10 parallel Lever fetches added excessive compute.
+// reddit, duolingo, coinbase removed (404 — no longer on Lever); replaced with scale, faire, brex.
 const LEVER_COMPANIES = [
   "netflix",
-  "reddit",
-  "coinbase",
-  "duolingo",
   "discord",
   "plaid",
+  "scale-ai",
+  "faire",
+  "brex",
 ];
 
 async function fetchLeverBoards(
@@ -514,6 +516,8 @@ async function logFeedRun(
   durationMs: number,
   error?: string,
 ) {
+  // Supabase v2 builders are PromiseLike, not full Promises — no .catch().
+  // Errors here are non-fatal; silently ignore via destructuring.
   await supabase
     .from("job_feed_log")
     .insert({
@@ -524,7 +528,7 @@ async function logFeedRun(
       duration_ms: durationMs,
       error: error ?? null,
     })
-    .catch(() => {}); // non-fatal
+    .then(null, () => {}); // non-fatal — ignore log write failures
 }
 
 // ---------------------------------------------------------------------------
@@ -561,7 +565,9 @@ Deno.serve(async (req) => {
     const results: Record<string, SourceResult> = {};
     let totalIngested = 0;
 
-    // ── Run selected sources in parallel ─────────────────────────────────────
+    // ── Run sources sequentially to stay within WORKER_RESOURCE_LIMIT ────────
+    // Parallel execution of all 5 sources spikes peak memory above the 150MB
+    // edge function limit (HTTP 546). Sequential keeps peak flat at ~1 source.
     const sourceTasks: Array<() => Promise<void>> = [];
 
     if (requestedSource === "all" || requestedSource === "remotive") {
@@ -707,7 +713,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    await Promise.allSettled(sourceTasks.map((t) => t()));
+    for (const task of sourceTasks) {
+      await task();
+    }
 
     console.log(
       `[job-feeds] Complete: ${totalIngested} jobs ingested in ${Date.now() - startTime}ms`,

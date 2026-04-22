@@ -38,13 +38,22 @@ import {
   type HistoricalOutcomes,
 } from "@/lib/job-search";
 import { saveJobToApplications } from "@/lib/job-search";
-import { getIgnoredJobs, ignoreJob, isJobIgnored, isJobAlreadySaved, type IgnoredJob } from "@/lib/job-search";
-import { searchJobs as searchJobsService, markJobInteraction } from "@/services/job/api";
+import {
+  getIgnoredJobs,
+  ignoreJob,
+  isJobIgnored,
+  isJobAlreadySaved,
+  type IgnoredJob,
+} from "@/lib/job-search";
+import {
+  searchJobs as searchJobsService,
+  markJobInteraction,
+} from "@/services/job/api";
 import type { JobResult } from "@/services/job/types";
-import { logger } from '@/lib/logger';
+import { logger } from "@/lib/logger";
 
 interface JobMatch {
-  id?: string;         // job_postings UUID — present for DB-sourced jobs; used for job_interactions
+  id?: string; // job_postings UUID — present for DB-sourced jobs; used for job_interactions
   title: string;
   company: string;
   location: string;
@@ -78,7 +87,14 @@ const GENERIC_JOB_PATH_SEGMENTS = new Set([
   "employment",
 ]);
 
-const LISTING_TAIL_SEGMENTS = new Set(["search", "results", "all", "openings", "index", "list"]);
+const LISTING_TAIL_SEGMENTS = new Set([
+  "search",
+  "results",
+  "all",
+  "openings",
+  "index",
+  "list",
+]);
 
 const NON_JOB_PAGE_SEGMENTS = new Set([
   "about",
@@ -112,7 +128,8 @@ function normalizeJobUrl(rawUrl?: string | null): string {
   try {
     const parsed = new URL(withProtocol);
     const host = parsed.hostname.toLowerCase();
-    if (!host || host.includes("example.com") || host.includes("placeholder")) return "";
+    if (!host || host.includes("example.com") || host.includes("placeholder"))
+      return "";
     return parsed.toString();
   } catch {
     return "";
@@ -129,21 +146,37 @@ function isGenericJobListingUrl(rawUrl: string): boolean {
 
     if (parts.length === 0) return true;
 
-    const allGeneric = parts.every((p) => GENERIC_JOB_PATH_SEGMENTS.has(p) || LISTING_TAIL_SEGMENTS.has(p));
+    const allGeneric = parts.every(
+      (p) => GENERIC_JOB_PATH_SEGMENTS.has(p) || LISTING_TAIL_SEGMENTS.has(p),
+    );
     if (allGeneric) return true;
 
-    if (parts.length === 1 && GENERIC_JOB_PATH_SEGMENTS.has(parts[0])) return true;
+    if (parts.length === 1 && GENERIC_JOB_PATH_SEGMENTS.has(parts[0]))
+      return true;
 
-    if (parts.length === 2 && GENERIC_JOB_PATH_SEGMENTS.has(parts[0]) && LISTING_TAIL_SEGMENTS.has(parts[1])) {
+    if (
+      parts.length === 2 &&
+      GENERIC_JOB_PATH_SEGMENTS.has(parts[0]) &&
+      LISTING_TAIL_SEGMENTS.has(parts[1])
+    ) {
       return true;
     }
 
     const last = parts[parts.length - 1];
-    if (GENERIC_JOB_PATH_SEGMENTS.has(last) || LISTING_TAIL_SEGMENTS.has(last)) return true;
+    if (GENERIC_JOB_PATH_SEGMENTS.has(last) || LISTING_TAIL_SEGMENTS.has(last))
+      return true;
 
     const qp = url.searchParams;
     if (
-      ["q", "query", "keywords", "search", "location", "department", "team"].some((key) => qp.has(key)) &&
+      [
+        "q",
+        "query",
+        "keywords",
+        "search",
+        "location",
+        "department",
+        "team",
+      ].some((key) => qp.has(key)) &&
       parts.length <= 2
     ) {
       return true;
@@ -178,14 +211,27 @@ function isLikelyDirectJobPostingUrl(rawUrl: string): boolean {
     const last = parts[parts.length - 1];
     if (NON_JOB_PAGE_SEGMENTS.has(last)) return false;
 
-    const hasJobWordInPath = parts.some((p) => /job|jobs|position|opening|opportunit|career/.test(p));
+    const hasJobWordInPath = parts.some((p) =>
+      /job|jobs|position|opening|opportunit|career/.test(p),
+    );
     const hasNumericId = parts.some((p) => /\d{4,}/.test(p));
     const hasLongSlug = parts.some((p) => p.includes("-") && p.length >= 16);
-    const hasKnownJobQuery = ["gh_jid", "job", "jobid", "jk", "lever-source", "oid"].some((k) =>
-      url.searchParams.has(k),
-    );
+    const hasKnownJobQuery = [
+      "gh_jid",
+      "job",
+      "jobid",
+      "jk",
+      "lever-source",
+      "oid",
+    ].some((k) => url.searchParams.has(k));
 
-    if (parts.length === 1 && !hasNumericId && !hasLongSlug && !hasKnownJobQuery) return false;
+    if (
+      parts.length === 1 &&
+      !hasNumericId &&
+      !hasLongSlug &&
+      !hasKnownJobQuery
+    )
+      return false;
 
     return hasJobWordInPath || hasNumericId || hasLongSlug || hasKnownJobQuery;
   } catch {
@@ -202,8 +248,17 @@ function estimateMatchScore(matchReason: string, skills: string[]): number {
   return Math.min(95, Math.max(30, score));
 }
 
-const TRUST_ICONS = { "shield-check": ShieldCheck, "shield-alert": ShieldAlert, "shield-x": ShieldX };
-const STRATEGY_ICONS = { apply_now: Sparkles, apply_fast: Zap, improve_first: TrendingUp, skip: Clock };
+const TRUST_ICONS = {
+  "shield-check": ShieldCheck,
+  "shield-alert": ShieldAlert,
+  "shield-x": ShieldX,
+};
+const STRATEGY_ICONS = {
+  apply_now: Sparkles,
+  apply_fast: Zap,
+  improve_first: TrendingUp,
+  skip: Clock,
+};
 
 interface TodaysMatchesProps {
   compact?: boolean;
@@ -216,8 +271,12 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
   const [jobs, setJobs] = useState<JobMatch[]>([]);
   const [loading, setLoading] = useState(false);
   const [lastFetched, setLastFetched] = useState<string | null>(null);
-  const [historicalOutcomes, setHistoricalOutcomes] = useState<HistoricalOutcomes | undefined>();
-  const [savingJobKeys, setSavingJobKeys] = useState<Record<string, boolean>>({});
+  const [historicalOutcomes, setHistoricalOutcomes] = useState<
+    HistoricalOutcomes | undefined
+  >();
+  const [savingJobKeys, setSavingJobKeys] = useState<Record<string, boolean>>(
+    {},
+  );
   const [ignoredList, setIgnoredList] = useState<IgnoredJob[]>([]);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
@@ -225,28 +284,44 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
   const { data: profileData } = useJobSeekerProfile();
   const { data: appsData = [] } = useJobApplications();
 
-  const savedApps = appsData.map(a => ({
+  const savedApps = appsData.map((a) => ({
     job_title: a.job_title ?? null,
     company: a.company ?? null,
     job_url: a.job_url ?? null,
   }));
 
   // Derive hasProfile from React Query data (no direct Supabase call needed)
-  const hasProfile = !!(profileData?.skills?.length || profileData?.target_job_titles?.length || profileData?.career_level);
+  const hasProfile = !!(
+    profileData?.skills?.length ||
+    profileData?.target_job_titles?.length ||
+    profileData?.career_level
+  );
 
   useEffect(() => {
     checkAndFetch();
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- checkAndFetch is stable per render cycle; adding it would cause infinite loops
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- checkAndFetch is stable per render cycle; adding it would cause infinite loops
   }, []);
 
-  const loadHistoricalOutcomes = async (userId: string): Promise<HistoricalOutcomes | undefined> => {
+  const loadHistoricalOutcomes = async (
+    userId: string,
+  ): Promise<HistoricalOutcomes | undefined> => {
     try {
-      const { data } = await supabase.from("job_applications").select("status, response_days").eq("user_id", userId);
+      const { data } = await supabase
+        .from("job_applications")
+        .select("status, response_days")
+        .eq("user_id", userId);
       if (!data || data.length < 3) return undefined;
       const total = data.length;
-      const responded = data.filter((a) => a.status !== "applied" && a.status !== "no_response").length;
-      const responseDays = data.filter((a) => a.response_days).map((a) => a.response_days!);
-      const avgDays = responseDays.length > 0 ? responseDays.reduce((a, b) => a + b, 0) / responseDays.length : 14;
+      const responded = data.filter(
+        (a) => a.status !== "applied" && a.status !== "no_response",
+      ).length;
+      const responseDays = data
+        .filter((a) => a.response_days)
+        .map((a) => a.response_days!);
+      const avgDays =
+        responseDays.length > 0
+          ? responseDays.reduce((a, b) => a + b, 0) / responseDays.length
+          : 14;
       return {
         totalApplications: total,
         totalResponses: responded,
@@ -294,7 +369,17 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
               );
             })
             .filter((job: JobMatch) => !isJobIgnored(job, ignored))
-            .filter((job: JobMatch) => !isJobAlreadySaved(job, savedApps as { job_title: string; company: string; job_url: string | null }[]));
+            .filter(
+              (job: JobMatch) =>
+                !isJobAlreadySaved(
+                  job,
+                  savedApps as {
+                    job_title: string;
+                    company: string;
+                    job_url: string | null;
+                  }[],
+                ),
+            );
 
           if (vettedCachedJobs.length > 0) {
             setJobs(vettedCachedJobs);
@@ -303,27 +388,46 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
             return;
           }
         }
-      } catch (e) { logger.warn("Cache read error:", e); }
+      } catch (e) {
+        logger.warn("Cache read error:", e);
+      }
     }
 
     // profileData comes from React Query hook
     if (profileData) fetchJobs(profileData, session, cacheKey, outcomes);
   };
 
-  const enrichJobs = (rawJobs: any[], skills: string[], targetTitles: string[], outcomes?: HistoricalOutcomes): JobMatch[] => {
+  const enrichJobs = (
+    rawJobs: any[],
+    skills: string[],
+    targetTitles: string[],
+    outcomes?: HistoricalOutcomes,
+  ): JobMatch[] => {
     const allTitles = rawJobs.map((j) => j.title || "");
     // Normalised target title tokens for fast matching
-    const targetTitleTokens = targetTitles.map(t => t.toLowerCase().trim()).filter(Boolean);
+    const targetTitleTokens = targetTitles
+      .map((t) => t.toLowerCase().trim())
+      .filter(Boolean);
 
     const enriched = rawJobs.map((job) => {
       const matchScore = estimateMatchScore(job.matchReason || "", skills);
       // Flag jobs whose title contains any of the user's target titles (these always rank first)
       const jobTitleLower = (job.title || "").toLowerCase();
-      const titleMatch = targetTitleTokens.some(t => jobTitleLower.includes(t));
+      const titleMatch = targetTitleTokens.some((t) =>
+        jobTitleLower.includes(t),
+      );
       // Use real posted date if available, otherwise estimate from data
       const postedDate = job.postedDate || job.created_at || job.first_seen_at;
-      const jobAge = postedDate ? Math.max(1, Math.floor((Date.now() - new Date(postedDate).getTime()) / 86400000)) : 7; // default to 7 days if no date available
-      const competitionLevel: "low" | "medium" | "high" = jobAge <= 3 ? "low" : jobAge <= 14 ? "medium" : "high";
+      const jobAge = postedDate
+        ? Math.max(
+            1,
+            Math.floor(
+              (Date.now() - new Date(postedDate).getTime()) / 86400000,
+            ),
+          )
+        : 7; // default to 7 days if no date available
+      const competitionLevel: "low" | "medium" | "high" =
+        jobAge <= 3 ? "low" : jobAge <= 14 ? "medium" : "high";
 
       // Fake job detection
       const flags = detectFakeJobFlags({
@@ -352,7 +456,12 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
         skillMatchRatio,
       });
 
-      const strategy = getJobStrategy(matchScore, responseProbability, trustLevel, jobAge);
+      const strategy = getJobStrategy(
+        matchScore,
+        responseProbability,
+        trustLevel,
+        jobAge,
+      );
 
       return {
         ...job,
@@ -370,13 +479,20 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
 
     // Sort: title matches first (user-defined target titles), then by strategy tier,
     // then by match score. This preserves the server's title-first priority.
-    const order = { apply_fast: 0, apply_now: 1, improve_first: 2, skip: 3 };
+    const order: Record<string, number> = {
+      apply_fast: 0,
+      apply_now: 1,
+      improve_first: 2,
+      skip: 3,
+    };
     enriched.sort((a, b) => {
       // 1. Title match jobs always rank above skill/description match jobs
       const titleDiff = (a.titleMatch ? 0 : 1) - (b.titleMatch ? 0 : 1);
       if (titleDiff !== 0) return titleDiff;
       // 2. Within each group, sort by strategy tier
-      const stratDiff = (order[a.strategy!] || 3) - (order[b.strategy!] || 3);
+      const aStrategy = (a.strategy || "skip") as string;
+      const bStrategy = (b.strategy || "skip") as string;
+      const stratDiff = (order[aStrategy] || 3) - (order[bStrategy] || 3);
       if (stratDiff !== 0) return stratDiff;
       // 3. Within same tier, stronger match score wins
       return (b.matchScore || 0) - (a.matchScore || 0);
@@ -388,16 +504,19 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
   // ── Agent-powered fetch ────────────────────────────────────────────────────
   // Calls run-job-agent edge function first (uses DB cache + profile-aware
   // discovery). Falls back to direct discover-jobs call if agent is unavailable.
-  const fetchJobs = async (profile: any, session: any, cacheKey: string, outcomes?: HistoricalOutcomes) => {
+  const fetchJobs = async (
+    profile: any,
+    session: any,
+    cacheKey: string,
+    outcomes?: HistoricalOutcomes,
+  ) => {
     setLoading(true);
     try {
       // ── Try agent service first ──────────────────────────────────────────
       let agentJobs: any[] | null = null;
       try {
-        const { data: agentData, error: agentErr } = await supabase.functions.invoke(
-          "run-job-agent",
-          { body: {} }
-        );
+        const { data: agentData, error: agentErr } =
+          await supabase.functions.invoke("run-job-agent", { body: {} });
         if (!agentErr && agentData?.jobs?.length > 0) {
           agentJobs = agentData.jobs;
         }
@@ -413,23 +532,66 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
       } else {
         // ── Legacy fallback: direct discover-jobs call ─────────────────────
         const CAREER_LEVEL_TITLES: Record<string, string[]> = {
-          "Entry-Level / Junior": ["junior software engineer", "entry level analyst", "associate engineer", "junior developer"],
-          "Mid-Level":            ["software engineer", "data analyst", "product manager", "business analyst"],
-          "Senior":               ["senior software engineer", "senior engineer", "senior analyst", "senior manager"],
-          "Manager":              ["engineering manager", "product manager", "team lead", "operations manager"],
-          "Director":             ["director of engineering", "director of operations", "director of product"],
-          "VP / Senior Leadership": ["VP of Engineering", "VP of Product", "VP of Operations", "Vice President"],
-          "C-Level / Executive":  ["CTO", "CEO", "COO", "Chief Technology Officer", "CISO"],
+          "Entry-Level / Junior": [
+            "junior software engineer",
+            "entry level analyst",
+            "associate engineer",
+            "junior developer",
+          ],
+          "Mid-Level": [
+            "software engineer",
+            "data analyst",
+            "product manager",
+            "business analyst",
+          ],
+          Senior: [
+            "senior software engineer",
+            "senior engineer",
+            "senior analyst",
+            "senior manager",
+          ],
+          Manager: [
+            "engineering manager",
+            "product manager",
+            "team lead",
+            "operations manager",
+          ],
+          Director: [
+            "director of engineering",
+            "director of operations",
+            "director of product",
+          ],
+          "VP / Senior Leadership": [
+            "VP of Engineering",
+            "VP of Product",
+            "VP of Operations",
+            "Vice President",
+          ],
+          "C-Level / Executive": [
+            "CTO",
+            "CEO",
+            "COO",
+            "Chief Technology Officer",
+            "CISO",
+          ],
         };
         const profileTitles: string[] = profile.target_job_titles || [];
-        const targetTitles = profileTitles.length > 0
-          ? profileTitles
-          : (CAREER_LEVEL_TITLES[profile.career_level || ""] ?? ["software engineer", "data analyst", "product manager"]);
+        const targetTitles =
+          profileTitles.length > 0
+            ? profileTitles
+            : (CAREER_LEVEL_TITLES[profile.career_level || ""] ?? [
+                "software engineer",
+                "data analyst",
+                "product manager",
+              ]);
 
         const { jobs: svcResults } = await searchJobsService({
           skills: profile.skills?.slice(0, 10) || [],
           jobTypes: profile.preferred_job_types || [],
-          location: (profile.location && profile.location !== '<UNKNOWN>') ? profile.location : "",
+          location:
+            profile.location && profile.location !== "<UNKNOWN>"
+              ? profile.location
+              : "",
           query: "",
           careerLevel: profile.career_level || "",
           targetTitles,
@@ -442,15 +604,16 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
 
       // ── Map to JobMatch ────────────────────────────────────────────────
       const mappedJobs: JobMatch[] = rawResults.map((jr: any) => ({
-        id:          jr.id || undefined,
-        title:       jr.title || "",
-        company:     jr.company || "",
-        location:    jr.location || "",
-        type:        jr.job_type || jr.type || "full-time",
+        id: jr.id || undefined,
+        title: jr.title || "",
+        company: jr.company || "",
+        location: jr.location || "",
+        type: jr.job_type || jr.type || "full-time",
         description: jr.description || "",
-        url:         normalizeJobUrl(jr.job_url || jr.url || ""),
-        matchReason: jr.matchReason || (jr.title || "") + " " + (jr.description || ""),
-        matchScore:  jr.matchScore || jr.fit_score || 0,
+        url: normalizeJobUrl(jr.job_url || jr.url || ""),
+        matchReason:
+          jr.matchReason || (jr.title || "") + " " + (jr.description || ""),
+        matchScore: jr.matchScore || jr.fit_score || 0,
       }));
 
       const vettedJobs = mappedJobs.filter(
@@ -468,26 +631,84 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
       // Derive target titles for enrichment (same logic as above)
       const profileTitles: string[] = profile.target_job_titles || [];
       const CAREER_LEVEL_TITLES_ENRICH: Record<string, string[]> = {
-        "Entry-Level / Junior": ["junior software engineer", "entry level analyst", "associate engineer", "junior developer"],
-        "Mid-Level":            ["software engineer", "data analyst", "product manager", "business analyst"],
-        "Senior":               ["senior software engineer", "senior engineer", "senior analyst", "senior manager"],
-        "Manager":              ["engineering manager", "product manager", "team lead", "operations manager"],
-        "Director":             ["director of engineering", "director of operations", "director of product"],
-        "VP / Senior Leadership": ["VP of Engineering", "VP of Product", "VP of Operations", "Vice President"],
-        "C-Level / Executive":  ["CTO", "CEO", "COO", "Chief Technology Officer", "CISO"],
+        "Entry-Level / Junior": [
+          "junior software engineer",
+          "entry level analyst",
+          "associate engineer",
+          "junior developer",
+        ],
+        "Mid-Level": [
+          "software engineer",
+          "data analyst",
+          "product manager",
+          "business analyst",
+        ],
+        Senior: [
+          "senior software engineer",
+          "senior engineer",
+          "senior analyst",
+          "senior manager",
+        ],
+        Manager: [
+          "engineering manager",
+          "product manager",
+          "team lead",
+          "operations manager",
+        ],
+        Director: [
+          "director of engineering",
+          "director of operations",
+          "director of product",
+        ],
+        "VP / Senior Leadership": [
+          "VP of Engineering",
+          "VP of Product",
+          "VP of Operations",
+          "Vice President",
+        ],
+        "C-Level / Executive": [
+          "CTO",
+          "CEO",
+          "COO",
+          "Chief Technology Officer",
+          "CISO",
+        ],
       };
-      const enrichTitles = profileTitles.length > 0
-        ? profileTitles
-        : (CAREER_LEVEL_TITLES_ENRICH[profile.career_level || ""] ?? ["software engineer", "data analyst", "product manager"]);
+      const enrichTitles =
+        profileTitles.length > 0
+          ? profileTitles
+          : (CAREER_LEVEL_TITLES_ENRICH[profile.career_level || ""] ?? [
+              "software engineer",
+              "data analyst",
+              "product manager",
+            ]);
 
-      const enriched = enrichJobs(Array.from(uniqueByUrl.values()), profile.skills || [], enrichTitles, outcomes)
-        .filter(job => !isJobIgnored(job, ignoredList))
-        .filter(job => !isJobAlreadySaved(job, savedApps as { job_title: string; company: string; job_url: string | null }[]));
+      const enriched = enrichJobs(
+        Array.from(uniqueByUrl.values()),
+        profile.skills || [],
+        enrichTitles,
+        outcomes,
+      )
+        .filter((job) => !isJobIgnored(job, ignoredList))
+        .filter(
+          (job) =>
+            !isJobAlreadySaved(
+              job,
+              savedApps as {
+                job_title: string;
+                company: string;
+                job_url: string | null;
+              }[],
+            ),
+        );
 
       setJobs(enriched);
       setVisibleCount(PAGE_SIZE);
       setLastFetched(new Date().toLocaleTimeString());
-      localStorage.setItem(cacheKey, JSON.stringify({ jobs: enriched, timestamp: Date.now() }));
+      localStorage.setItem(
+        cacheKey,
+        JSON.stringify({ jobs: enriched, timestamp: Date.now() }),
+      );
     } catch {
       toast.error("Failed to fetch job matches");
     } finally {
@@ -504,15 +725,27 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
     const cacheKey = `icareeros_daily_jobs_v2_${session.user.id}`;
     localStorage.removeItem(cacheKey);
     // Signal agent to force a fresh discovery run on this refresh
-    supabase.from("user_job_agents" as Parameters<typeof supabase.from>[0])
-      .upsert({ user_id: session.user.id, status: "pending", next_run_at: new Date().toISOString() }, { onConflict: "user_id" })
+    (supabase as any)
+      .from("user_job_agents")
+      .upsert(
+        {
+          user_id: session.user.id,
+          status: "pending",
+          next_run_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id" },
+      )
       .then(() => fetchJobs(profileData, session, cacheKey, historicalOutcomes))
-      .catch(() => fetchJobs(profileData, session, cacheKey, historicalOutcomes));
+      .then(null, () =>
+        fetchJobs(profileData, session, cacheKey, historicalOutcomes),
+      );
   };
 
   const handleAnalyzeFit = (job: JobMatch) => {
     const jobDesc = `${job.title} at ${job.company}\nLocation: ${job.location}\nType: ${job.type}\n\n${job.description}`;
-    navigate("/job-seeker", { state: { prefillJob: jobDesc, prefillJobLink: job.url || "" } });
+    navigate("/job-seeker", {
+      state: { prefillJob: jobDesc, prefillJobLink: job.url || "" },
+    });
   };
 
   const getJobSaveKey = (job: JobMatch): string => {
@@ -558,34 +791,61 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
     return (
       <Card className="p-6 text-center">
         <Sparkles className="w-8 h-8 text-muted-foreground mx-auto mb-3" />
-        <h3 className="font-display font-bold text-primary mb-2">Set up your profile to see matches</h3>
+        <h3 className="font-display font-bold text-primary mb-2">
+          Set up your profile to see matches
+        </h3>
         <p className="text-sm text-muted-foreground mb-4">
-          Add your skills and preferences to get personalized job recommendations.
+          Add your skills and preferences to get personalized job
+          recommendations.
         </p>
-        <Button variant="outline" size="sm" onClick={() => navigate("/profile")}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => navigate("/profile")}
+        >
           Complete Profile
         </Button>
       </Card>
     );
   }
 
-  const effectiveVisible = compact && visibleCount === PAGE_SIZE ? 3 : visibleCount;
+  const effectiveVisible =
+    compact && visibleCount === PAGE_SIZE ? 3 : visibleCount;
   const displayJobs = jobs.slice(0, effectiveVisible);
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <h2 className="font-display font-bold text-primary text-xl flex items-center gap-1.5">Today's Matches For You <HelpTooltip text="Jobs matched to your profile skills, experience, and preferences. Each job shows a trust score, match %, and a recommended action strategy." /></h2>
+          <h2 className="font-display font-bold text-primary text-xl flex items-center gap-1.5">
+            Today's Matches For You{" "}
+            <HelpTooltip text="Jobs matched to your profile skills, experience, and preferences. Each job shows a trust score, match %, and a recommended action strategy." />
+          </h2>
           {jobs.length > 0 && (
             <Badge className="bg-accent/15 text-accent border-accent/30 text-xs">
-              {jobs.filter((j) => j.strategy === "apply_now" || j.strategy === "apply_fast").length} ready to apply
+              {
+                jobs.filter(
+                  (j) =>
+                    j.strategy === "apply_now" || j.strategy === "apply_fast",
+                ).length
+              }{" "}
+              ready to apply
             </Badge>
           )}
         </div>
         <div className="flex items-center gap-2">
-          {lastFetched && <span className="text-xs text-muted-foreground">Updated {lastFetched}</span>}
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleRefresh} disabled={loading}>
+          {lastFetched && (
+            <span className="text-xs text-muted-foreground">
+              Updated {lastFetched}
+            </span>
+          )}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={handleRefresh}
+            disabled={loading}
+          >
             <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
           </Button>
         </div>
@@ -594,7 +854,9 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
       {loading && jobs.length === 0 ? (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="w-6 h-6 animate-spin text-accent mr-2" />
-          <span className="text-muted-foreground">Finding your best matches...</span>
+          <span className="text-muted-foreground">
+            Finding your best matches...
+          </span>
         </div>
       ) : jobs.length === 0 ? (
         <Card className="p-6 text-center text-muted-foreground">
@@ -621,8 +883,12 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-semibold text-foreground">{job.title}</h3>
-                        {hasDanger && <AlertTriangle className="w-4 h-4 text-destructive flex-shrink-0" />}
+                        <h3 className="font-semibold text-foreground">
+                          {job.title}
+                        </h3>
+                        {hasDanger && (
+                          <AlertTriangle className="w-4 h-4 text-destructive flex-shrink-0" />
+                        )}
                       </div>
                       <div className="flex flex-wrap items-center gap-3 mt-1 text-sm text-muted-foreground">
                         <span className="flex items-center gap-1">
@@ -632,25 +898,35 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
                           <MapPin className="w-3.5 h-3.5" /> {job.location}
                         </span>
                         {job.type && (
-                          <Badge variant="outline" className="capitalize text-xs">
+                          <Badge
+                            variant="outline"
+                            className="capitalize text-xs"
+                          >
                             {job.type}
                           </Badge>
                         )}
-                        {job.jobAge && <span className="text-xs">{job.jobAge}d ago</span>}
+                        {job.jobAge && (
+                          <span className="text-xs">{job.jobAge}d ago</span>
+                        )}
                         {job.url && isLikelyDirectJobPostingUrl(job.url) && (
                           <Badge
                             variant="outline"
                             className="text-xs border-emerald-500/40 text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-400"
                           >
-                            <ShieldCheck className="w-3 h-3 mr-1" /> Direct Link Verified
+                            <ShieldCheck className="w-3 h-3 mr-1" /> Direct Link
+                            Verified
                           </Badge>
                         )}
                       </div>
                     </div>
                     <div className="flex flex-col items-end gap-1 flex-shrink-0">
                       <div className="text-right">
-                        <div className="text-lg font-display font-bold text-accent">{job.matchScore}%</div>
-                        <div className="text-[10px] text-muted-foreground">match</div>
+                        <div className="text-lg font-display font-bold text-accent">
+                          {job.matchScore}%
+                        </div>
+                        <div className="text-[10px] text-muted-foreground">
+                          match
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -659,7 +935,9 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
                   <div className="flex items-center gap-4 text-xs flex-wrap">
                     <div className="flex items-center gap-1.5">
                       <Target className="w-3.5 h-3.5 text-accent" />
-                      <span className="text-muted-foreground">Response chance:</span>
+                      <span className="text-muted-foreground">
+                        Response chance:
+                      </span>
                       <span
                         className={`font-semibold ${
                           (job.responseProbability || 0) >= 60
@@ -673,10 +951,17 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
                       </span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <TrustIcon className={`w-3.5 h-3.5 ${trustCfg.colorClass}`} />
-                      <span className={`font-semibold ${trustCfg.colorClass}`}>{trustCfg.label}</span>
+                      <TrustIcon
+                        className={`w-3.5 h-3.5 ${trustCfg.colorClass}`}
+                      />
+                      <span className={`font-semibold ${trustCfg.colorClass}`}>
+                        {trustCfg.label}
+                      </span>
                     </div>
-                    <Badge variant="outline" className={`text-[10px] ${strat.colorClass}`}>
+                    <Badge
+                      variant="outline"
+                      className={`text-[10px] ${strat.colorClass}`}
+                    >
                       <StratIcon className="w-3 h-3 mr-1" /> {strat.label}
                     </Badge>
                   </div>
@@ -694,7 +979,8 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
                               : "border-warning/40 text-warning bg-warning/5"
                           }`}
                         >
-                          <AlertTriangle className="w-3 h-3 mr-1" /> {flag.label}
+                          <AlertTriangle className="w-3 h-3 mr-1" />{" "}
+                          {flag.label}
                         </Badge>
                       ))}
                     </div>
@@ -702,12 +988,20 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
 
                   {/* Description */}
                   {!compact && (
-                    <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3">{job.description}</p>
+                    <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3">
+                      {job.description}
+                    </p>
                   )}
                   {compact && (
-                    <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">{job.description}</p>
+                    <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">
+                      {job.description}
+                    </p>
                   )}
-                  {job.matchReason && <p className="text-xs text-accent italic truncate">💡 {job.matchReason}</p>}
+                  {job.matchReason && (
+                    <p className="text-xs text-accent italic truncate">
+                      💡 {job.matchReason}
+                    </p>
+                  )}
 
                   {/* Actions */}
                   <div className="flex items-center gap-2">
@@ -720,7 +1014,8 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
                     >
                       {savingJobKeys[saveKey] ? (
                         <>
-                          <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" /> Saving
+                          <Loader2 className="w-3.5 h-3.5 mr-1 animate-spin" />{" "}
+                          Saving
                         </>
                       ) : (
                         <>
@@ -744,7 +1039,8 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
                           window.open(job.url, "_blank", "noopener,noreferrer");
                         }}
                       >
-                        <ExternalLink className="w-3.5 h-3.5 mr-1" /> Find & Apply
+                        <ExternalLink className="w-3.5 h-3.5 mr-1" /> Find &
+                        Apply
                       </Button>
                     )}
                     <Button
@@ -752,12 +1048,29 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
                       size="sm"
                       className="text-xs text-muted-foreground hover:text-destructive"
                       onClick={async () => {
-                        const ok = await ignoreJob({ title: job.title, company: job.company, url: job.url });
+                        const ok = await ignoreJob({
+                          title: job.title,
+                          company: job.company,
+                          url: job.url,
+                        });
                         if (ok) {
-                          setJobs(prev => prev.filter(j => getJobSaveKey(j) !== saveKey));
-                          setIgnoredList(prev => [...prev, { id: '', job_title: job.title, company: job.company, job_url: job.url }]);
+                          setJobs((prev) =>
+                            prev.filter((j) => getJobSaveKey(j) !== saveKey),
+                          );
+                          setIgnoredList((prev) => [
+                            ...prev,
+                            {
+                              id: "",
+                              job_title: job.title,
+                              company: job.company,
+                              job_url: job.url,
+                            },
+                          ]);
                           // Record dismissal for behavioral signal filtering (fire-and-forget)
-                          if (job.id) markJobInteraction(job.id, "dismissed").catch(() => {});
+                          if (job.id)
+                            markJobInteraction(job.id, "dismissed").catch(
+                              () => {},
+                            );
                           toast.success("Job hidden");
                         }
                       }}
@@ -771,12 +1084,20 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
           })}
 
           {compact && jobs.length > 3 && effectiveVisible <= 3 && (
-            <Button variant="outline" className="w-full" onClick={() => setVisibleCount(jobs.length)}>
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => setVisibleCount(jobs.length)}
+            >
               View All {jobs.length} Matches
             </Button>
           )}
           {compact && effectiveVisible > 3 && jobs.length > 3 && (
-            <Button variant="ghost" className="w-full text-muted-foreground" onClick={() => setVisibleCount(3)}>
+            <Button
+              variant="ghost"
+              className="w-full text-muted-foreground"
+              onClick={() => setVisibleCount(3)}
+            >
               Show Less
             </Button>
           )}
@@ -784,7 +1105,7 @@ export default function TodaysMatches({ compact = false }: TodaysMatchesProps) {
             <Button
               variant="outline"
               className="w-full"
-              onClick={() => setVisibleCount(prev => prev + PAGE_SIZE)}
+              onClick={() => setVisibleCount((prev) => prev + PAGE_SIZE)}
             >
               Load More ({jobs.length - visibleCount} remaining)
             </Button>

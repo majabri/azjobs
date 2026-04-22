@@ -6,16 +6,29 @@ import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import {
-  Upload, Target, Sparkles, ChevronRight, CheckCircle2,
-  Loader2, FileText, ArrowRight, Rocket,
+  Upload,
+  Target,
+  Sparkles,
+  ChevronRight,
+  CheckCircle2,
+  Loader2,
+  FileText,
+  ArrowRight,
+  Rocket,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { parseDocument } from "@/lib/api/parseDocument";
 import { extractProfileFromResume } from "@/lib/analysisEngine";
 import { toast } from "sonner";
-import { logger } from '@/lib/logger';
-import { useJobSeekerProfile, PROFILE_QUERY_KEY } from "@/hooks/queries/useJobSeekerProfile";
-import { useResumeVersions, RESUME_VERSIONS_QUERY_KEY } from "@/hooks/queries/useResumeVersions";
+import { logger } from "@/lib/logger";
+import {
+  useJobSeekerProfile,
+  PROFILE_QUERY_KEY,
+} from "@/hooks/queries/useJobSeekerProfile";
+import {
+  useResumeVersions,
+  RESUME_VERSIONS_QUERY_KEY,
+} from "@/hooks/queries/useResumeVersions";
 import { useQueryClient } from "@tanstack/react-query";
 
 type WizardStep = "welcome" | "resume" | "preferences" | "done";
@@ -38,12 +51,15 @@ export default function OnboardingWizard() {
 
   // Use React Query hooks for onboarding status check
   const { data: profile, isLoading: profileLoading } = useJobSeekerProfile();
-  const { data: resumeVersions = [], isLoading: resumeLoading } = useResumeVersions();
+  const { data: resumeVersions = [], isLoading: resumeLoading } =
+    useResumeVersions();
 
   const loading = profileLoading || resumeLoading;
 
   // Derive onboarding state from hook data
-  const hasProfile = !!(profile?.full_name && (profile?.skills as string[])?.length > 0);
+  const hasProfile = !!(
+    profile?.full_name && (profile?.skills as string[])?.length > 0
+  );
   const hasResume = resumeVersions.length > 0;
   const shouldShow = !hasProfile && !hasResume;
 
@@ -57,12 +73,17 @@ export default function OnboardingWizard() {
     setExtracting(false);
     try {
       const result = await parseDocument(file);
-      if (!result.success || !result.text) { toast.error("Could not extract text"); return; }
+      if (!result.success || !result.text) {
+        toast.error("Could not extract text");
+        return;
+      }
 
       setExtracting(true);
 
       // Save to resume vault
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) return;
 
       await supabase.from("resume_versions").insert({
@@ -73,16 +94,18 @@ export default function OnboardingWizard() {
       queryClient.invalidateQueries({ queryKey: RESUME_VERSIONS_QUERY_KEY });
 
       // Extract profile via edge function
-      const { data: extractedResult } = await supabase.functions.invoke('extract-profile-fields', {
-        body: { resumeText: result.text },
-      });
+      const { data: extractedResult } = await supabase.functions.invoke(
+        "extract-profile-fields",
+        {
+          body: { resumeText: result.text },
+        },
+      );
 
       if (extractedResult) {
         const { profile: extracted } = extractedResult;
         const local = extractProfileFromResume(result.text);
 
         if (extracted) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- dynamic upsert payload from edge fn response
           const payload: any = {
             user_id: session.user.id,
             full_name: extracted.full_name || null,
@@ -92,15 +115,21 @@ export default function OnboardingWizard() {
             summary: extracted.summary || null,
             linkedin_url: extracted.linkedin_url || null,
             skills: extracted.skills?.length ? extracted.skills : null,
-            work_experience: extracted.work_experience?.length ? extracted.work_experience : null,
+            work_experience: extracted.work_experience?.length
+              ? extracted.work_experience
+              : null,
             education: extracted.education?.length ? extracted.education : null,
-            certifications: extracted.certifications?.length ? extracted.certifications : null,
+            certifications: extracted.certifications?.length
+              ? extracted.certifications
+              : null,
             career_level: local.careerLevel || null,
             target_job_titles: local.jobTitles.length ? local.jobTitles : null,
             updated_at: new Date().toISOString(),
           };
 
-          await supabase.from("job_seeker_profiles").upsert(payload, { onConflict: "user_id" });
+          await supabase
+            .from("job_seeker_profiles")
+            .upsert(payload, { onConflict: "user_id" });
           queryClient.invalidateQueries({ queryKey: PROFILE_QUERY_KEY });
 
           if (local.jobTitles.length) setJobTitles(local.jobTitles);
@@ -110,7 +139,7 @@ export default function OnboardingWizard() {
 
       setStep("preferences");
     } catch (e) {
-      logger.error(e);
+      logger.error(e instanceof Error ? e.message : String(e));
       toast.error("Failed to process resume");
     } finally {
       setUploading(false);
@@ -122,25 +151,36 @@ export default function OnboardingWizard() {
   const handleSavePreferences = async () => {
     setSaving(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) return;
-      await supabase.from("job_seeker_profiles").upsert({
-        user_id: session.user.id,
-        target_job_titles: jobTitles.length ? jobTitles : null,
-        remote_only: remoteOnly,
-        salary_min: salaryMin || null,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: "user_id" });
+      await supabase.from("job_seeker_profiles").upsert(
+        {
+          user_id: session.user.id,
+          target_job_titles: jobTitles.length ? jobTitles : null,
+          remote_only: remoteOnly,
+          salary_min: salaryMin || null,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id" },
+      );
       queryClient.invalidateQueries({ queryKey: PROFILE_QUERY_KEY });
       toast.success("Preferences saved!");
       setStep("done");
-    } catch { toast.error("Failed to save"); }
-    finally { setSaving(false); }
+    } catch {
+      toast.error("Failed to save");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const addTitle = () => {
     const t = titleInput.trim();
-    if (t && !jobTitles.includes(t)) { setJobTitles([...jobTitles, t]); setTitleInput(""); }
+    if (t && !jobTitles.includes(t)) {
+      setJobTitles([...jobTitles, t]);
+      setTitleInput("");
+    }
   };
 
   if (loading || !shouldShow || dismissed) return null;
@@ -156,7 +196,7 @@ export default function OnboardingWizard() {
     { key: "preferences", label: "Preferences" },
     { key: "done", label: "Ready!" },
   ];
-  const currentIdx = steps.findIndex(s => s.key === step);
+  const currentIdx = steps.findIndex((s) => s.key === step);
   const progress = Math.round(((currentIdx + 1) / steps.length) * 100);
 
   return (
@@ -165,20 +205,30 @@ export default function OnboardingWizard() {
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-2">
           <Rocket className="w-5 h-5 text-accent" />
-          <span className="font-display font-bold text-foreground text-sm">Getting Started</span>
+          <span className="font-display font-bold text-foreground text-sm">
+            Getting Started
+          </span>
         </div>
-        <span className="text-xs text-muted-foreground">Step {currentIdx + 1} of {steps.length}</span>
+        <span className="text-xs text-muted-foreground">
+          Step {currentIdx + 1} of {steps.length}
+        </span>
       </div>
       <Progress value={progress} className="h-1.5 mb-6" />
 
       {/* Step: Welcome */}
       {step === "welcome" && (
         <div className="text-center py-4">
-          <h2 className="font-display text-2xl font-bold text-foreground mb-2">Welcome to iCareerOS!</h2>
+          <h2 className="font-display text-2xl font-bold text-foreground mb-2">
+            Welcome to iCareerOS!
+          </h2>
           <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-            Let's set up your profile in under 2 minutes. Upload your resume and we'll do the rest.
+            Let's set up your profile in under 2 minutes. Upload your resume and
+            we'll do the rest.
           </p>
-          <Button className="gradient-indigo text-white shadow-indigo-500/20 hover:opacity-90" onClick={() => setStep("resume")}>
+          <Button
+            className="gradient-indigo text-white shadow-indigo-500/20 hover:opacity-90"
+            onClick={() => setStep("resume")}
+          >
             <ArrowRight className="w-4 h-4 mr-2" /> Let's Go
           </Button>
         </div>
@@ -188,11 +238,20 @@ export default function OnboardingWizard() {
       {step === "resume" && (
         <div className="text-center py-4">
           <FileText className="w-12 h-12 text-accent mx-auto mb-4" />
-          <h2 className="font-display text-xl font-bold text-foreground mb-2">Upload Your Resume</h2>
+          <h2 className="font-display text-xl font-bold text-foreground mb-2">
+            Upload Your Resume
+          </h2>
           <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-            Upload a PDF or Word doc. AI will extract your skills, experience, and certifications automatically.
+            Upload a PDF or Word doc. AI will extract your skills, experience,
+            and certifications automatically.
           </p>
-          <input ref={fileRef} type="file" accept=".pdf,.doc,.docx" className="hidden" onChange={handleResumeUpload} />
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".pdf,.doc,.docx"
+            className="hidden"
+            onChange={handleResumeUpload}
+          />
           <div className="flex flex-col items-center gap-3">
             <Button
               className="gradient-indigo text-white shadow-indigo-500/20 hover:opacity-90 px-8"
@@ -200,12 +259,22 @@ export default function OnboardingWizard() {
               disabled={uploading || extracting}
             >
               {uploading ? (
-                <><Loader2 className="w-4 h-4 animate-spin mr-2" /> {extracting ? "Extracting profile..." : "Uploading..."}</>
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />{" "}
+                  {extracting ? "Extracting profile..." : "Uploading..."}
+                </>
               ) : (
-                <><Upload className="w-4 h-4 mr-2" /> Upload Resume</>
+                <>
+                  <Upload className="w-4 h-4 mr-2" /> Upload Resume
+                </>
               )}
             </Button>
-            <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={() => setStep("preferences")}>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-muted-foreground"
+              onClick={() => setStep("preferences")}
+            >
               Skip — I'll fill in manually
             </Button>
           </div>
@@ -215,37 +284,77 @@ export default function OnboardingWizard() {
       {/* Step: Preferences */}
       {step === "preferences" && (
         <div className="py-4 max-w-md mx-auto">
-          <h2 className="font-display text-xl font-bold text-foreground mb-2 text-center">Set Your Job Preferences</h2>
+          <h2 className="font-display text-xl font-bold text-foreground mb-2 text-center">
+            Set Your Job Preferences
+          </h2>
           <p className="text-muted-foreground mb-6 text-center text-sm">
-            Tell us what you're looking for so we can match you with the right jobs.
+            Tell us what you're looking for so we can match you with the right
+            jobs.
           </p>
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-semibold text-foreground mb-1 block">Target Job Titles</label>
+              <label className="text-sm font-semibold text-foreground mb-1 block">
+                Target Job Titles
+              </label>
               <div className="flex gap-2">
-                <Input value={titleInput} onChange={e => setTitleInput(e.target.value)} placeholder="e.g. Product Manager" onKeyDown={e => e.key === "Enter" && (e.preventDefault(), addTitle())} />
-                <Button variant="outline" size="sm" onClick={addTitle}>Add</Button>
+                <Input
+                  value={titleInput}
+                  onChange={(e) => setTitleInput(e.target.value)}
+                  placeholder="e.g. Product Manager"
+                  onKeyDown={(e) =>
+                    e.key === "Enter" && (e.preventDefault(), addTitle())
+                  }
+                />
+                <Button variant="outline" size="sm" onClick={addTitle}>
+                  Add
+                </Button>
               </div>
               <div className="flex flex-wrap gap-2 mt-2">
                 {jobTitles.map((t, i) => (
-                  <Badge key={i} variant="secondary" className="cursor-pointer" onClick={() => setJobTitles(jobTitles.filter((_, idx) => idx !== i))}>
+                  <Badge
+                    key={i}
+                    variant="secondary"
+                    className="cursor-pointer"
+                    onClick={() =>
+                      setJobTitles(jobTitles.filter((_, idx) => idx !== i))
+                    }
+                  >
                     {t} ×
                   </Badge>
                 ))}
               </div>
             </div>
             <div>
-              <label className="text-sm font-semibold text-foreground mb-1 block">Minimum Salary</label>
-              <Input value={salaryMin} onChange={e => setSalaryMin(e.target.value)} placeholder="e.g. 80000" />
+              <label className="text-sm font-semibold text-foreground mb-1 block">
+                Minimum Salary
+              </label>
+              <Input
+                value={salaryMin}
+                onChange={(e) => setSalaryMin(e.target.value)}
+                placeholder="e.g. 80000"
+              />
             </div>
             <div className="flex items-center gap-2">
-              <input type="checkbox" checked={remoteOnly} onChange={e => setRemoteOnly(e.target.checked)} className="accent-[hsl(var(--accent))]" />
+              <input
+                type="checkbox"
+                checked={remoteOnly}
+                onChange={(e) => setRemoteOnly(e.target.checked)}
+                className="accent-[hsl(var(--accent))]"
+              />
               <label className="text-sm text-foreground">Remote only</label>
             </div>
           </div>
           <div className="flex justify-center mt-6">
-            <Button className="gradient-indigo text-white shadow-indigo-500/20 hover:opacity-90 px-8" onClick={handleSavePreferences} disabled={saving}>
-              {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <CheckCircle2 className="w-4 h-4 mr-2" />}
+            <Button
+              className="gradient-indigo text-white shadow-indigo-500/20 hover:opacity-90 px-8"
+              onClick={handleSavePreferences}
+              disabled={saving}
+            >
+              {saving ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              ) : (
+                <CheckCircle2 className="w-4 h-4 mr-2" />
+              )}
               Save & Continue
             </Button>
           </div>
@@ -256,12 +365,21 @@ export default function OnboardingWizard() {
       {step === "done" && (
         <div className="text-center py-4">
           <CheckCircle2 className="w-12 h-12 text-success mx-auto mb-4" />
-          <h2 className="font-display text-xl font-bold text-foreground mb-2">You're All Set!</h2>
+          <h2 className="font-display text-xl font-bold text-foreground mb-2">
+            You're All Set!
+          </h2>
           <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-            Your profile is ready. Start analyzing job postings to see your fit score and get AI-optimized resumes.
+            Your profile is ready. Start analyzing job postings to see your fit
+            score and get AI-optimized resumes.
           </p>
           <div className="flex gap-3 justify-center">
-            <Button className="gradient-indigo text-white shadow-indigo-500/20 hover:opacity-90" onClick={() => { setDismissed(true); navigate("/job-seeker"); }}>
+            <Button
+              className="gradient-indigo text-white shadow-indigo-500/20 hover:opacity-90"
+              onClick={() => {
+                setDismissed(true);
+                navigate("/job-seeker");
+              }}
+            >
               <Target className="w-4 h-4 mr-2" /> Analyze a Job
             </Button>
             <Button variant="outline" onClick={() => setDismissed(true)}>

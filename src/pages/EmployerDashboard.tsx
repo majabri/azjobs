@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Loader2, Eye, Edit2, BarChart3 } from 'lucide-react';
-import { logger } from '@/lib/logger';
+import React, { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Loader2, Eye, Edit2, BarChart3 } from "lucide-react";
+import { logger } from "@/lib/logger";
 
 interface JobPosting {
   id: string;
@@ -16,7 +16,7 @@ interface JobPosting {
   salary_min: number;
   salary_max: number;
   job_type: string;
-  status: 'active' | 'paused' | 'closed';
+  status: "active" | "paused" | "closed";
   created_at: string;
   application_count?: number;
 }
@@ -46,31 +46,34 @@ export default function EmployerDashboard() {
       setError(null);
 
       // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) {
-        setError('Please sign in to view your dashboard');
+        setError("Please sign in to view your dashboard");
         return;
       }
 
       // Fetch employer profile
       const { data: profileData, error: profileError } = await supabase
-        .from('employer_profiles')
-        .select('*')
-        .eq('user_id', user.id)
+        .from("employer_profiles")
+        .select("*")
+        .eq("user_id", user.id)
         .single();
 
-      if (profileError && profileError.code !== 'PGRST116') {
+      if (profileError && profileError.code !== "PGRST116") {
         throw profileError;
       }
 
       if (profileData) {
-        setProfile(profileData);
+        setProfile(profileData as unknown as EmployerProfile);
       }
 
       // Fetch job postings with application count
       const { data: jobsData, error: jobsError } = await supabase
-        .from('job_postings')
-        .select(`
+        .from("job_postings")
+        .select(
+          `
           id,
           title,
           description,
@@ -81,21 +84,24 @@ export default function EmployerDashboard() {
           status,
           created_at,
           job_applications(count)
-        `)
-        .eq('employer_id', user.id)
-        .order('created_at', { ascending: false });
+        `,
+        )
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
 
       if (jobsError) throw jobsError;
 
-      const formattedJobs = (jobsData || []).map(job => ({
+      const formattedJobs = (jobsData || []).map((job: any) => ({
         ...job,
-        application_count: job.job_applications?.[0]?.count || 0
+        application_count: Array.isArray(job.job_applications)
+          ? job.job_applications[0]?.count || 0
+          : 0,
       })) as JobPosting[];
 
       setJobPostings(formattedJobs);
     } catch (err) {
-      logger.error('Error fetching employer data:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load dashboard');
+      logger.error("Error fetching employer data:", err);
+      setError(err instanceof Error ? err.message : "Failed to load dashboard");
     } finally {
       setLoading(false);
     }
@@ -103,14 +109,14 @@ export default function EmployerDashboard() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active':
-        return 'bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/30';
-      case 'paused':
-        return 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/30';
-      case 'closed':
-        return 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/30';
+      case "active":
+        return "bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/30";
+      case "paused":
+        return "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400 border-yellow-500/30";
+      case "closed":
+        return "bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/30";
       default:
-        return 'bg-muted text-muted-foreground';
+        return "bg-muted text-muted-foreground";
     }
   };
 
@@ -155,7 +161,9 @@ export default function EmployerDashboard() {
                   <h1 className="text-3xl font-bold text-foreground mb-2">
                     {profile.company_name}
                   </h1>
-                  <p className="text-muted-foreground mb-4">{profile.description}</p>
+                  <p className="text-muted-foreground mb-4">
+                    {profile.description}
+                  </p>
                   <div className="flex gap-4">
                     {profile.website && (
                       <a
@@ -186,19 +194,28 @@ export default function EmployerDashboard() {
         {/* Stats Section */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
           <Card className="bg-card border-border p-6">
-            <div className="text-muted-foreground text-sm mb-2">Active Postings</div>
+            <div className="text-muted-foreground text-sm mb-2">
+              Active Postings
+            </div>
             <div className="text-3xl font-bold text-foreground">
-              {jobPostings.filter(j => j.status === 'active').length}
+              {jobPostings.filter((j) => j.status === "active").length}
             </div>
           </Card>
           <Card className="bg-card border-border p-6">
-            <div className="text-muted-foreground text-sm mb-2">Total Applications</div>
+            <div className="text-muted-foreground text-sm mb-2">
+              Total Applications
+            </div>
             <div className="text-3xl font-bold text-foreground">
-              {jobPostings.reduce((sum, j) => sum + (j.application_count || 0), 0)}
+              {jobPostings.reduce(
+                (sum, j) => sum + (j.application_count || 0),
+                0,
+              )}
             </div>
           </Card>
           <Card className="bg-card border-border p-6">
-            <div className="text-muted-foreground text-sm mb-2">Total Postings</div>
+            <div className="text-muted-foreground text-sm mb-2">
+              Total Postings
+            </div>
             <div className="text-3xl font-bold text-foreground">
               {jobPostings.length}
             </div>
@@ -208,10 +225,12 @@ export default function EmployerDashboard() {
         {/* Job Postings Section */}
         <div>
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-foreground">Your Job Postings</h2>
+            <h2 className="text-2xl font-bold text-foreground">
+              Your Job Postings
+            </h2>
             <Button
               className="bg-primary hover:bg-primary/90 text-foreground"
-              onClick={() => window.location.href = '/post-job'}
+              onClick={() => (window.location.href = "/post-job")}
             >
               Post New Job
             </Button>
@@ -219,17 +238,19 @@ export default function EmployerDashboard() {
 
           {jobPostings.length === 0 ? (
             <Card className="bg-card border-border p-12 text-center">
-              <p className="text-muted-foreground mb-4">You haven't posted any jobs yet</p>
+              <p className="text-muted-foreground mb-4">
+                You haven't posted any jobs yet
+              </p>
               <Button
                 className="bg-primary hover:bg-primary/90 text-foreground"
-                onClick={() => window.location.href = '/post-job'}
+                onClick={() => (window.location.href = "/post-job")}
               >
                 Create Your First Job Posting
               </Button>
             </Card>
           ) : (
             <div className="grid grid-cols-1 gap-4">
-              {jobPostings.map(job => (
+              {jobPostings.map((job) => (
                 <Card
                   key={job.id}
                   className="bg-card border-border hover:border-primary/50 transition-colors"
@@ -265,7 +286,9 @@ export default function EmployerDashboard() {
                         <div className="text-2xl font-bold text-primary mb-1">
                           {job.application_count || 0}
                         </div>
-                        <div className="text-xs text-muted-foreground">applications</div>
+                        <div className="text-xs text-muted-foreground">
+                          applications
+                        </div>
                       </div>
                     </div>
 

@@ -3,10 +3,18 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Copy, Gift, Users, Loader2, CheckCircle, Clock, Send } from "lucide-react";
+import {
+  Copy,
+  Gift,
+  Users,
+  Loader2,
+  CheckCircle,
+  Clock,
+  Send,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { logger } from '@/lib/logger';
+import { logger } from "@/lib/logger";
 
 interface Referral {
   id: string;
@@ -24,11 +32,15 @@ export default function ReferralDashboard() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
 
-  useEffect(() => { loadReferrals(); }, []);
+  useEffect(() => {
+    loadReferrals();
+  }, []);
 
   const loadReferrals = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) return;
 
       const { data } = await supabase
@@ -45,15 +57,20 @@ export default function ReferralDashboard() {
       } else {
         setReferralCode(session.user.id.slice(0, 8));
       }
-    } catch (e) { logger.error(e); }
-    finally { setLoading(false); }
+    } catch (e) {
+      logger.error(e instanceof Error ? e.message : String(e));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const sendInvite = async () => {
     if (!inviteEmail.trim()) return;
     setSending(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) return;
 
       const code = `${referralCode}-${Date.now().toString(36)}`;
@@ -74,8 +91,11 @@ export default function ReferralDashboard() {
       toast.success(`Invite tracked for ${inviteEmail}`);
       setInviteEmail("");
       loadReferrals();
-    } catch { toast.error("Failed to send invite"); }
-    finally { setSending(false); }
+    } catch {
+      toast.error("Failed to send invite");
+    } finally {
+      setSending(false);
+    }
   };
 
   const copyLink = () => {
@@ -84,11 +104,16 @@ export default function ReferralDashboard() {
     toast.success("Referral link copied!");
   };
 
-  const converted = referrals.filter(r => r.status === "converted").length;
-  const pending = referrals.filter(r => r.status === "pending").length;
+  const converted = referrals.filter((r) => r.status === "converted").length;
+  const pending = referrals.filter((r) => r.status === "pending").length;
   const premiumUnlocked = converted >= 3;
 
-  if (loading) return <Card className="p-6 flex items-center justify-center h-32"><Loader2 className="w-6 h-6 animate-spin text-accent" /></Card>;
+  if (loading)
+    return (
+      <Card className="p-6 flex items-center justify-center h-32">
+        <Loader2 className="w-6 h-6 animate-spin text-accent" />
+      </Card>
+    );
 
   return (
     <Card className="p-6">
@@ -97,22 +122,30 @@ export default function ReferralDashboard() {
           <Gift className="w-5 h-5 text-accent" /> Referral Program
         </h2>
         {premiumUnlocked && (
-          <Badge className="bg-success/10 text-success border-success/20">Premium Unlocked!</Badge>
+          <Badge className="bg-success/10 text-success border-success/20">
+            Premium Unlocked!
+          </Badge>
         )}
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3 mb-6">
         <div className="text-center p-3 rounded-lg bg-muted/30">
-          <p className="font-display font-bold text-primary text-xl">{referrals.length}</p>
+          <p className="font-display font-bold text-primary text-xl">
+            {referrals.length}
+          </p>
           <p className="text-xs text-muted-foreground">Invited</p>
         </div>
         <div className="text-center p-3 rounded-lg bg-muted/30">
-          <p className="font-display font-bold text-accent text-xl">{converted}</p>
+          <p className="font-display font-bold text-accent text-xl">
+            {converted}
+          </p>
           <p className="text-xs text-muted-foreground">Joined</p>
         </div>
         <div className="text-center p-3 rounded-lg bg-muted/30">
-          <p className="font-display font-bold text-primary text-xl">{Math.max(0, 3 - converted)}</p>
+          <p className="font-display font-bold text-primary text-xl">
+            {Math.max(0, 3 - converted)}
+          </p>
           <p className="text-xs text-muted-foreground">Until Premium</p>
         </div>
       </div>
@@ -133,12 +166,20 @@ export default function ReferralDashboard() {
       <div className="flex gap-2 mb-6">
         <Input
           value={inviteEmail}
-          onChange={e => setInviteEmail(e.target.value)}
+          onChange={(e) => setInviteEmail(e.target.value)}
           placeholder="friend@email.com"
           type="email"
         />
-        <Button size="sm" onClick={sendInvite} disabled={sending || !inviteEmail.trim()}>
-          {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4 mr-1" />}
+        <Button
+          size="sm"
+          onClick={sendInvite}
+          disabled={sending || !inviteEmail.trim()}
+        >
+          {sending ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Send className="w-4 h-4 mr-1" />
+          )}
           Invite
         </Button>
       </div>
@@ -147,14 +188,24 @@ export default function ReferralDashboard() {
       {referrals.length > 0 && (
         <div className="space-y-2">
           <h4 className="text-sm font-semibold text-primary">Your Referrals</h4>
-          {referrals.slice(0, 10).map(r => (
-            <div key={r.id} className="flex items-center justify-between p-2 rounded-lg bg-muted/20 text-sm">
+          {referrals.slice(0, 10).map((r) => (
+            <div
+              key={r.id}
+              className="flex items-center justify-between p-2 rounded-lg bg-muted/20 text-sm"
+            >
               <span className="text-foreground">{r.referred_email}</span>
-              <Badge variant={r.status === "converted" ? "default" : "outline"} className="text-xs">
+              <Badge
+                variant={r.status === "converted" ? "default" : "outline"}
+                className="text-xs"
+              >
                 {r.status === "converted" ? (
-                  <><CheckCircle className="w-3 h-3 mr-1" /> Joined</>
+                  <>
+                    <CheckCircle className="w-3 h-3 mr-1" /> Joined
+                  </>
                 ) : (
-                  <><Clock className="w-3 h-3 mr-1" /> Pending</>
+                  <>
+                    <Clock className="w-3 h-3 mr-1" /> Pending
+                  </>
                 )}
               </Badge>
             </div>
@@ -164,7 +215,8 @@ export default function ReferralDashboard() {
 
       {!premiumUnlocked && (
         <p className="text-xs text-muted-foreground mt-4 text-center">
-          Invite 3 friends who sign up to unlock premium features like advanced salary projections and priority job alerts.
+          Invite 3 friends who sign up to unlock premium features like advanced
+          salary projections and priority job alerts.
         </p>
       )}
     </Card>

@@ -83,7 +83,7 @@ export async function sendInvite(params: {
  */
 export async function fetchAdminInviteDashboard() {
   const { data, error } = await supabase.functions.invoke(
-    "admin-invite-dashboard"
+    "admin-invite-dashboard",
   );
 
   if (error) throw error;
@@ -98,12 +98,14 @@ export async function checkRegistrationMode(): Promise<{
   invite_only: boolean;
   mode: "invite_only" | "public";
 }> {
-  const { data, error } = await supabase.rpc("check_registration_mode");
+  const { data, error } = await (supabase as any).rpc(
+    "check_registration_mode",
+  );
 
   if (error) {
     // Default to invite-only if check fails
     return { invite_only: true, mode: "invite_only" };
   }
 
-  return data;
+  return data as { invite_only: boolean; mode: "invite_only" | "public" };
 }

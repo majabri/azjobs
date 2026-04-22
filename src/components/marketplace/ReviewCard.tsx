@@ -3,8 +3,20 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { ThumbsUp, Flag, Loader2 } from "lucide-react";
 import StarRating from "./StarRating";
@@ -42,9 +54,17 @@ export default function ReviewCard({ review, onVoteChanged }: Props) {
     setVoting(true);
     try {
       if (review.user_voted) {
-        await supabase.from("helpful_votes").delete().eq("review_id", review.id).eq("voter_id", user.id);
+        await supabase
+          .from("helpful_votes")
+          .delete()
+          .eq("review_id", review.id)
+          .eq("voter_id", user.id);
       } else {
-        await supabase.from("helpful_votes").insert({ review_id: review.id, voter_id: user.id });
+        await supabase.from("helpful_votes").insert({
+          review_id: review.id,
+          voter_id: user.id,
+          is_helpful: true,
+        });
       }
       onVoteChanged();
     } catch {
@@ -61,8 +81,8 @@ export default function ReviewCard({ review, onVoteChanged }: Props) {
         review_id: review.id,
         reporter_id: user.id,
         reason: reportReason,
-        comment: reportComment.trim(),
-      });
+        description: reportComment.trim(),
+      } as any);
       if (error) throw error;
       toast.success("Review reported");
       setReported(true);
@@ -84,22 +104,35 @@ export default function ReviewCard({ review, onVoteChanged }: Props) {
         <CardContent className="p-4 space-y-3">
           <div className="flex items-center justify-between flex-wrap gap-2">
             <div className="flex items-center gap-2">
-              <span className="font-medium text-sm">{review.reviewer_name || "Anonymous"}</span>
-              {reported && <Badge variant="destructive" className="text-[10px]">Reported</Badge>}
+              <span className="font-medium text-sm">
+                {review.reviewer_name || "Anonymous"}
+              </span>
+              {reported && (
+                <Badge variant="destructive" className="text-[10px]">
+                  Reported
+                </Badge>
+              )}
             </div>
-            <span className="text-xs text-muted-foreground">{new Date(review.created_at).toLocaleDateString()}</span>
+            <span className="text-xs text-muted-foreground">
+              {new Date(review.created_at).toLocaleDateString()}
+            </span>
           </div>
 
           <StarRating value={review.rating} readonly size="sm" />
 
-          {review.title && <h4 className="font-semibold text-sm">{review.title}</h4>}
+          {review.title && (
+            <h4 className="font-semibold text-sm">{review.title}</h4>
+          )}
 
           <p className="text-sm text-muted-foreground whitespace-pre-wrap">
             {displayText}
             {truncated && !expanded && "…"}
           </p>
           {truncated && (
-            <button className="text-xs text-primary hover:underline" onClick={() => setExpanded(!expanded)}>
+            <button
+              className="text-xs text-primary hover:underline"
+              onClick={() => setExpanded(!expanded)}
+            >
               {expanded ? "Show less" : "Read more"}
             </button>
           )}
@@ -112,11 +145,20 @@ export default function ReviewCard({ review, onVoteChanged }: Props) {
               onClick={handleVote}
               disabled={voting || !user}
             >
-              {voting ? <Loader2 className="w-3 h-3 animate-spin" /> : <ThumbsUp className="w-3 h-3" />}
+              {voting ? (
+                <Loader2 className="w-3 h-3 animate-spin" />
+              ) : (
+                <ThumbsUp className="w-3 h-3" />
+              )}
               Helpful ({review.helpful_count})
             </Button>
             {user && !reported && (
-              <Button variant="ghost" size="sm" className="text-xs gap-1 text-muted-foreground" onClick={() => setReportOpen(true)}>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-xs gap-1 text-muted-foreground"
+                onClick={() => setReportOpen(true)}
+              >
                 <Flag className="w-3 h-3" /> Report
               </Button>
             )}
@@ -126,12 +168,16 @@ export default function ReviewCard({ review, onVoteChanged }: Props) {
 
       <Dialog open={reportOpen} onOpenChange={setReportOpen}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Report Review</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Report Review</DialogTitle>
+          </DialogHeader>
           <div className="space-y-4">
             <div>
               <label className="text-sm font-medium">Reason</label>
               <Select value={reportReason} onValueChange={setReportReason}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="spam">Spam</SelectItem>
                   <SelectItem value="inappropriate">Inappropriate</SelectItem>
@@ -141,13 +187,27 @@ export default function ReviewCard({ review, onVoteChanged }: Props) {
             </div>
             <div>
               <label className="text-sm font-medium">Comment (optional)</label>
-              <Textarea value={reportComment} onChange={(e) => setReportComment(e.target.value)} placeholder="Additional details..." rows={3} />
+              <Textarea
+                value={reportComment}
+                onChange={(e) => setReportComment(e.target.value)}
+                placeholder="Additional details..."
+                rows={3}
+              />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setReportOpen(false)}>Cancel</Button>
-            <Button variant="destructive" onClick={handleReport} disabled={reporting}>
-              {reporting ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null} Submit Report
+            <Button variant="outline" onClick={() => setReportOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleReport}
+              disabled={reporting}
+            >
+              {reporting ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-1" />
+              ) : null}{" "}
+              Submit Report
             </Button>
           </DialogFooter>
         </DialogContent>

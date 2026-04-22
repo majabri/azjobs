@@ -4,17 +4,44 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  ArrowRight, Target, Users, CheckCircle, TrendingUp, Zap, LogOut, Play,
-  BarChart3, Search, FileText, Briefcase, ClipboardList, UserCircle, Shield,
-  Upload, Sparkles, Bot, Star, ChevronRight, Check, X, Share2, Gift,
-  MessageSquare, Globe, Mail, Clock, Award, Rocket, Loader2
+  ArrowRight,
+  Target,
+  Users,
+  CheckCircle,
+  TrendingUp,
+  Zap,
+  LogOut,
+  Play,
+  BarChart3,
+  Search,
+  FileText,
+  Briefcase,
+  ClipboardList,
+  UserCircle,
+  Shield,
+  Upload,
+  Sparkles,
+  Bot,
+  Star,
+  ChevronRight,
+  Check,
+  X,
+  Share2,
+  Gift,
+  MessageSquare,
+  Globe,
+  Mail,
+  Clock,
+  Award,
+  Rocket,
+  Loader2,
 } from "lucide-react";
 import heroBg from "@/assets/hero-bg.jpg";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { analyzeJobFit } from "@/lib/analysisEngine";
 import { AUTH_LOGIN, AUTH_SIGNUP } from "@/lib/routes";
-import { ICareerOSLogo } from '@/components/ui/ICareerOSLogo';
+import { ICareerOSLogo } from "@/components/ui/ICareerOSLogo";
 /* ────────────────────── DATA ────────────────────── */
 
 const stats = [
@@ -90,14 +117,49 @@ const features = [
 ];
 
 const comparisonRows = [
-  { feature: "AI-Powered Job Matching", icareeros: true, indeed: false, zip: false },
-  { feature: "Resume Optimization for Each Job", icareeros: true, indeed: false, zip: false },
-  { feature: "Interview Probability Score", icareeros: true, indeed: false, zip: false },
-  { feature: "Auto-Generated Cover Letters", icareeros: true, indeed: false, zip: false },
-  { feature: "Application Package Generator", icareeros: true, indeed: false, zip: false },
-  { feature: "Skill Gap Action Plan", icareeros: true, indeed: false, zip: false },
+  {
+    feature: "AI-Powered Job Matching",
+    icareeros: true,
+    indeed: false,
+    zip: false,
+  },
+  {
+    feature: "Resume Optimization for Each Job",
+    icareeros: true,
+    indeed: false,
+    zip: false,
+  },
+  {
+    feature: "Interview Probability Score",
+    icareeros: true,
+    indeed: false,
+    zip: false,
+  },
+  {
+    feature: "Auto-Generated Cover Letters",
+    icareeros: true,
+    indeed: false,
+    zip: false,
+  },
+  {
+    feature: "Application Package Generator",
+    icareeros: true,
+    indeed: false,
+    zip: false,
+  },
+  {
+    feature: "Skill Gap Action Plan",
+    icareeros: true,
+    indeed: false,
+    zip: false,
+  },
   { feature: "Fake Job Detection", icareeros: true, indeed: false, zip: false },
-  { feature: "Built-in Application Tracker", icareeros: true, indeed: true, zip: true },
+  {
+    feature: "Built-in Application Tracker",
+    icareeros: true,
+    indeed: true,
+    zip: true,
+  },
 ];
 
 /* ────────────────────── COMPONENT ────────────────────── */
@@ -121,31 +183,30 @@ export default function Index() {
   // Load live job counts
   useEffect(() => {
     const loadCounts = async () => {
-      const { count } = await supabase
+      const result = await (supabase
         .from("scraped_jobs")
-        .select("*", { count: "exact", head: true });
+        .select("*", { count: "exact", head: true }) as any);
+      const { count } = result;
       setTotalJobCount(count || 0);
 
       if (user) {
-        const { data: profile } = await supabase
+        const { data: profile } = await (supabase
           .from("job_seeker_profiles")
           .select("skills, target_job_titles")
           .eq("user_id", user.id)
-          .maybeSingle();
+          .maybeSingle() as any);
 
         if (
           profile?.target_job_titles &&
           (profile.target_job_titles as string[]).length > 0
         ) {
           const titles = profile.target_job_titles as string[];
-          const titleFilter = titles
-            .map((t) => `title.ilike.%${t}%`)
-            .join(",");
-          const { count: matched } = await supabase
+          const titleFilter = titles.map((t) => `title.ilike.%${t}%`).join(",");
+          const resultMatched = await (supabase
             .from("scraped_jobs")
             .select("*", { count: "exact", head: true })
-            .or(titleFilter);
-          setMatchedJobCount(matched || 0);
+            .or(titleFilter) as any);
+          setMatchedJobCount(resultMatched.count || 0);
         }
       }
     };
@@ -194,16 +255,34 @@ export default function Index() {
         <nav className="flex items-center gap-1">
           {user ? (
             <>
-              <NavBtn icon={<BarChart3 className="w-4 h-4" />} label="Dashboard" onClick={() => navigate("/dashboard")} />
-              <NavBtn icon={<Search className="w-4 h-4" />} label="Find Jobs" onClick={() => navigate("/job-search")} />
-              <NavBtn icon={<ClipboardList className="w-4 h-4" />} label="Applications" onClick={() => navigate("/applications")} />
-              <NavBtn icon={<UserCircle className="w-4 h-4" />} label="Profile" onClick={() => navigate("/profile")} />
+              <NavBtn
+                icon={<BarChart3 className="w-4 h-4" />}
+                label="Dashboard"
+                onClick={() => navigate("/dashboard")}
+              />
+              <NavBtn
+                icon={<Search className="w-4 h-4" />}
+                label="Find Jobs"
+                onClick={() => navigate("/job-search")}
+              />
+              <NavBtn
+                icon={<ClipboardList className="w-4 h-4" />}
+                label="Applications"
+                onClick={() => navigate("/applications")}
+              />
+              <NavBtn
+                icon={<UserCircle className="w-4 h-4" />}
+                label="Profile"
+                onClick={() => navigate("/profile")}
+              />
               <div className="w-px h-6 bg-border mx-1" />
               <Button
                 size="sm"
                 variant="ghost"
                 className="text-muted-foreground hover:text-foreground text-xs"
-                onClick={async () => { await supabase.auth.signOut(); }}
+                onClick={async () => {
+                  await supabase.auth.signOut();
+                }}
               >
                 <LogOut className="w-3.5 h-3.5" />
               </Button>
@@ -259,7 +338,9 @@ export default function Index() {
           >
             Stop Applying to Jobs.
             <br />
-            <span className="text-gradient-indigo">Your AI Does It For You.</span>
+            <span className="text-gradient-indigo">
+              Your AI Does It For You.
+            </span>
           </h1>
 
           <p
@@ -435,8 +516,8 @@ export default function Index() {
                         demoResult.score >= 70
                           ? "text-success"
                           : demoResult.score >= 45
-                          ? "text-warning"
-                          : "text-destructive"
+                            ? "text-warning"
+                            : "text-destructive"
                       }`}
                     >
                       {demoResult.score}%
@@ -497,7 +578,8 @@ export default function Index() {
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-display font-bold text-primary mb-4">
-              See the <span className="text-gradient-indigo">AI Difference</span>
+              See the{" "}
+              <span className="text-gradient-indigo">AI Difference</span>
             </h2>
             <p className="text-muted-foreground text-lg">
               One click transforms your resume from generic to interview-ready.
@@ -538,9 +620,7 @@ export default function Index() {
                   <Check className="w-4 h-4 text-success" />
                 </div>
                 <div>
-                  <h3 className="font-display font-bold text-success">
-                    After
-                  </h3>
+                  <h3 className="font-display font-bold text-success">After</h3>
                   <p className="text-xs text-muted-foreground">
                     ATS-optimized — 87% match
                   </p>
@@ -637,8 +717,7 @@ export default function Index() {
               </span>
             </h2>
             <p className="text-muted-foreground text-lg">
-              Job boards show listings. We help you{" "}
-              <strong>get hired</strong>.
+              Job boards show listings. We help you <strong>get hired</strong>.
             </p>
           </div>
 
@@ -724,14 +803,18 @@ export default function Index() {
       </section>
 
       {/* ═══════════════ FINAL CTA ═══════════════ */}
-      <section className="py-24 px-6" style={{ background: "var(--gradient-hero)" }}>
+      <section
+        className="py-24 px-6"
+        style={{ background: "var(--gradient-hero)" }}
+      >
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-4xl md:text-5xl font-display font-bold text-white mb-6">
             Ready to Let AI{" "}
             <span className="text-gradient-indigo">Land Your Next Job?</span>
           </h2>
           <p className="text-xl text-white/60 mb-10 max-w-2xl mx-auto">
-            Upload your resume once. Wake up to interview invitations. It's that simple.
+            Upload your resume once. Wake up to interview invitations. It's that
+            simple.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-6">
