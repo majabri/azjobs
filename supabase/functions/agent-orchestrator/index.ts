@@ -234,7 +234,7 @@ async function runApplication(ctx: AgentContext): Promise<AgentResult> {
   return {
     name: "application",
     success: true,
-    metrics: { applications_sent: remaining },
+    metrics: { applications_sent: 0 },
   };
 }
 
