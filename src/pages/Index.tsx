@@ -238,7 +238,7 @@ export default function Index() {
   };
 
   return (
-    <div className="dark-landing min-h-screen flex flex-col" style={{ background: '#050505' }}>
+    <div className="dark-landing min-h-screen flex flex-col">
       <ConstellationBg />
 
       {/* ═══════════════ NAV ═══════════════ */}
