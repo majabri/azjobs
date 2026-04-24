@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Syne:wght@700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,35 +6,36 @@
 
 /* =========================================
    iCareerOS Design System
-   Theme-aware — Light / Dark / Auto
+   JBS Dark Theme — Cyan / #050505
    ========================================= */
 
 @layer base {
   :root,
-  [data-theme="light"] {
-    /* Brand — indigo (light mode) */
-    --primary:                  228 69% 55%;    /* #3B5BDB */
-    --primary-foreground:       0 0% 100%;
+  [data-theme="light"],
+  [data-theme="dark"] {
+    /* Brand — cyan */
+    --primary:                  183 100% 50%;   /* #00f2ff */
+    --primary-foreground:       0 0% 2%;        /* #050505 */
 
-    /* Page surfaces */
-    --background:               227 32% 97%;    /* #F5F6FA */
-    --foreground:               233 32% 16%;    /* #1C1F36 */
-    --card:                     0 0% 100%;      /* #FFFFFF */
-    --card-foreground:          233 32% 16%;
-    --popover:                  0 0% 100%;
-    --popover-foreground:       233 32% 16%;
+    /* Page surfaces — near-black */
+    --background:               0 0% 2%;        /* #050505 */
+    --foreground:               0 0% 100%;      /* #ffffff */
+    --card:                     0 0% 4%;        /* #0a0a0a */
+    --card-foreground:          0 0% 100%;
+    --popover:                  0 0% 4%;
+    --popover-foreground:       0 0% 100%;
 
     /* Secondary */
-    --secondary:                220 20% 92%;
-    --secondary-foreground:     233 32% 16%;
+    --secondary:                0 0% 8%;
+    --secondary-foreground:     0 0% 100%;
 
-    /* Muted / alt surfaces */
-    --muted:                    228 33% 96%;    /* #F1F3F9 */
-    --muted-foreground:         220 9% 46%;     /* #6B7280 */
+    /* Muted */
+    --muted:                    0 0% 8%;
+    --muted-foreground:         0 0% 50%;
 
-    /* Accent — badge tints, hover fills */
-    --accent:                   232 79% 96%;    /* #EEF0FD */
-    --accent-foreground:        228 69% 55%;
+    /* Accent */
+    --accent:                   183 100% 50%;   /* #00f2ff */
+    --accent-foreground:        0 0% 2%;
 
     /* Status */
     --destructive:              4 86% 58%;
@@ -44,114 +45,45 @@
     --warning:                  38 92% 50%;
     --warning-foreground:       0 0% 10%;
 
-    /* Borders and inputs */
-    --border:                   228 21% 91%;    /* #E2E4EC */
-    --input:                    228 21% 91%;
-    --ring:                     228 69% 55%;
-    --radius:                   0.75rem;
+    /* Borders and inputs — subtle cyan tint */
+    --border:                   183 83% 9%;     /* ≈ rgba(0,242,255,0.15) on #050505 */
+    --input:                    183 50% 7%;     /* ≈ rgba(0,242,255,0.08) on #050505 */
+    --ring:                     183 100% 50%;
+    --radius:                   0rem;
 
-    /* Custom gradients & glows */
-    --gradient-hero:      linear-gradient(135deg, hsl(228 69% 45%), hsl(228 69% 55%) 50%, hsl(225 65% 48%));
-    --gradient-card:      linear-gradient(145deg, hsl(0 0% 100%), hsl(228 33% 97%));
-    --gradient-indigo:    linear-gradient(135deg, hsl(228 69% 55%), hsl(228 96% 65%));
+    /* Gradients */
+    --gradient-hero:      linear-gradient(135deg, #050505, #0a1a1b 50%, #060606);
+    --gradient-card:      linear-gradient(145deg, #0a0a0a, #080808);
+    --gradient-indigo:    linear-gradient(135deg, #00f2ff, #00d4e8);
     --gradient-score-high: linear-gradient(90deg, hsl(145 65% 42%), hsl(172 70% 48%));
     --gradient-score-mid:  linear-gradient(90deg, hsl(38 92% 50%), hsl(30 90% 55%));
     --gradient-score-low:  linear-gradient(90deg, hsl(4 86% 55%), hsl(10 80% 58%));
 
-    --shadow-card:     0 4px 24px -4px hsl(228 69% 15% / 0.08), 0 1px 4px hsl(228 69% 15% / 0.04);
-    --shadow-elevated: 0 12px 40px -8px hsl(228 69% 15% / 0.14), 0 4px 12px hsl(228 69% 15% / 0.06);
-    --shadow-primary:  0 8px 24px -4px hsl(228 69% 55% / 0.3);
+    --shadow-card:     0 4px 24px -4px hsl(183 100% 50% / 0.06), 0 1px 4px hsl(0 0% 0% / 0.4);
+    --shadow-elevated: 0 12px 40px -8px hsl(183 100% 50% / 0.1), 0 4px 12px hsl(0 0% 0% / 0.5);
+    --shadow-primary:  0 8px 24px -4px hsl(183 100% 50% / 0.3);
 
     /* Sidebar */
-    --sidebar-background:           0 0% 100%;
-    --sidebar-foreground:           233 32% 16%;
-    --sidebar-primary:              228 69% 55%;
-    --sidebar-primary-foreground:   0 0% 100%;
-    --sidebar-accent:               232 79% 96%;
-    --sidebar-accent-foreground:    228 69% 55%;
-    --sidebar-border:               228 21% 91%;
-    --sidebar-ring:                 228 69% 55%;
+    --sidebar-background:           0 0% 4%;
+    --sidebar-foreground:           0 0% 100%;
+    --sidebar-primary:              183 100% 50%;
+    --sidebar-primary-foreground:   0 0% 2%;
+    --sidebar-accent:               183 20% 10%;
+    --sidebar-accent-foreground:    183 100% 50%;
+    --sidebar-border:               183 83% 9%;
+    --sidebar-ring:                 183 100% 50%;
 
-    /* Theme-specific semantic tokens */
-    --bg-page:       #F5F6FA;
-    --bg-surface:    #FFFFFF;
-    --bg-surface-2:  #EEF0FD;
-    --badge-tint:    #EEF0FD;
-    --border-theme:  #E2E4EC;
-    --brand:         #3B5BDB;
-    --brand-text:    #FFFFFF;
-    --text-primary:  #1C1F36;
-    --text-secondary:#6B7280;
-    --text-muted:    #9CA3AF;
-  }
-
-  [data-theme="dark"] {
-    /* Brand — violet (dark mode) */
-    --primary:                  228 96% 72%;    /* #748FFC */
-    --primary-foreground:       224 21% 8%;     /* #0F1117 */
-
-    /* Page surfaces */
-    --background:               224 21% 8%;     /* #0F1117 */
-    --foreground:               231 44% 94%;    /* #E8EAF6 */
-    --card:                     222 28% 12%;    /* #161B27 */
-    --card-foreground:          231 44% 94%;
-    --popover:                  222 28% 12%;
-    --popover-foreground:       231 44% 94%;
-
-    /* Secondary */
-    --secondary:                225 19% 18%;
-    --secondary-foreground:     231 44% 94%;
-
-    /* Muted / alt surfaces */
-    --muted:                    227 32% 16%;    /* #1C2236 */
-    --muted-foreground:         218 11% 65%;    /* #9CA3AF */
-
-    /* Accent */
-    --accent:                   231 36% 18%;    /* #1E2340 */
-    --accent-foreground:        228 96% 72%;
-
-    /* Status */
-    --destructive:              4 72% 55%;
-    --destructive-foreground:   0 0% 100%;
-
-    /* Borders and inputs */
-    --border:                   225 19% 20%;    /* #2A2F3E */
-    --input:                    225 19% 20%;
-    --ring:                     228 96% 72%;
-
-    /* Dark gradients */
-    --gradient-hero:      linear-gradient(135deg, hsl(224 21% 6%), hsl(224 21% 12%) 50%, hsl(222 28% 10%));
-    --gradient-card:      linear-gradient(145deg, hsl(222 28% 12%), hsl(222 28% 10%));
-    --gradient-indigo:    linear-gradient(135deg, hsl(228 96% 72%), hsl(228 80% 78%));
-    --gradient-score-high: linear-gradient(90deg, hsl(145 65% 42%), hsl(172 70% 48%));
-    --gradient-score-mid:  linear-gradient(90deg, hsl(38 92% 50%), hsl(30 90% 55%));
-    --gradient-score-low:  linear-gradient(90deg, hsl(4 86% 55%), hsl(10 80% 58%));
-
-    --shadow-card:     0 4px 24px -4px hsl(0 0% 0% / 0.3), 0 1px 4px hsl(0 0% 0% / 0.2);
-    --shadow-elevated: 0 12px 40px -8px hsl(0 0% 0% / 0.4), 0 4px 12px hsl(0 0% 0% / 0.25);
-    --shadow-primary:  0 8px 24px -4px hsl(228 96% 72% / 0.2);
-
-    /* Sidebar (dark variant) */
-    --sidebar-background:           222 28% 12%;
-    --sidebar-foreground:           231 44% 94%;
-    --sidebar-primary:              228 96% 72%;
-    --sidebar-primary-foreground:   224 21% 8%;
-    --sidebar-accent:               231 36% 18%;
-    --sidebar-accent-foreground:    228 96% 72%;
-    --sidebar-border:               225 19% 20%;
-    --sidebar-ring:                 228 96% 72%;
-
-    /* Theme-specific semantic tokens */
-    --bg-page:       #0F1117;
-    --bg-surface:    #161B27;
-    --bg-surface-2:  #1E2340;
-    --badge-tint:    #1E2340;
-    --border-theme:  #2A2F3E;
-    --brand:         #748FFC;
-    --brand-text:    #0F1117;
-    --text-primary:  #E8EAF6;
-    --text-secondary:#9CA3AF;
-    --text-muted:    #4B5563;
+    /* Semantic tokens */
+    --bg-page:       #050505;
+    --bg-surface:    #0a0a0a;
+    --bg-surface-2:  #0f1515;
+    --badge-tint:    #0f1515;
+    --border-theme:  rgba(0,242,255,0.15);
+    --brand:         #00f2ff;
+    --brand-text:    #050505;
+    --text-primary:  #ffffff;
+    --text-secondary:rgba(255,255,255,0.6);
+    --text-muted:    rgba(255,255,255,0.4);
   }
 }
 
@@ -161,17 +93,26 @@
   }
   body {
     @apply bg-background text-foreground;
+    background-color: #050505;
+    color: #ffffff;
     font-family: 'Inter', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
   }
   h1, h2, h3 {
-    font-family: 'Syne', 'Inter', sans-serif;
+    font-family: 'Inter', 'system-ui', sans-serif;
+    font-weight: 900;
+    color: #ffffff;
   }
 }
 
 @layer utilities {
   .font-display {
-    font-family: 'Syne', sans-serif;
+    font-family: 'Inter', sans-serif;
+    font-weight: 900;
+  }
+  .font-mono-jbs {
+    font-family: 'JetBrains Mono', monospace;
   }
   .gradient-hero {
     background: var(--gradient-hero);
@@ -207,44 +148,24 @@
     background: var(--gradient-score-low);
   }
   .glass {
-    background: hsl(0 0% 100% / 0.08);
+    background: hsl(0 0% 100% / 0.05);
     backdrop-filter: blur(12px);
-    border: 1px solid hsl(0 0% 100% / 0.12);
+    border: 1px solid hsl(183 100% 50% / 0.15);
   }
 
   /* Theme semantic utilities */
-  .bg-page {
-    background-color: var(--bg-page);
-  }
-  .bg-surface {
-    background-color: var(--bg-surface);
-  }
-  .bg-surface-2 {
-    background-color: var(--bg-surface-2);
-  }
-  .border-theme {
-    border-color: var(--border-theme);
-  }
-  .bg-brand {
-    background-color: var(--brand);
-  }
-  .text-brand {
-    color: var(--brand);
-  }
-  .text-on-brand {
-    color: var(--brand-text);
-  }
-  .text-theme-primary {
-    color: var(--text-primary);
-  }
-  .text-theme-secondary {
-    color: var(--text-secondary);
-  }
-  .text-theme-muted {
-    color: var(--text-muted);
-  }
+  .bg-page       { background-color: var(--bg-page); }
+  .bg-surface    { background-color: var(--bg-surface); }
+  .bg-surface-2  { background-color: var(--bg-surface-2); }
+  .border-theme  { border-color: var(--border-theme); }
+  .bg-brand      { background-color: var(--brand); }
+  .text-brand    { color: var(--brand); }
+  .text-on-brand { color: var(--brand-text); }
+  .text-theme-primary   { color: var(--text-primary); }
+  .text-theme-secondary { color: var(--text-secondary); }
+  .text-theme-muted     { color: var(--text-muted); }
 
-  /* Animations — use forwards (not both) so elements are visible before animation fires */
+  /* Animations */
   .animate-fade-up {
     animation: fade-up 0.5s ease-out forwards;
   }
@@ -259,7 +180,45 @@
   }
 }
 
-/* Ensure all landing sections are visible regardless of JS animation state */
+/* ── Landing page — transparent sections so constellation shows ── */
+.dark-landing section {
+  background-color: transparent !important;
+  background-image: none !important;
+}
+.dark-landing .bg-background,
+.dark-landing .bg-card {
+  background-color: transparent !important;
+}
+
+/* ── Constellation canvas ─────────────────────────────────────── */
+#constellation-canvas {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100vw; height: 100vh;
+  z-index: -1;
+  pointer-events: none;
+  display: block;
+}
+
+/* ── Blinking cursor (navbar) ─────────────────────────────────── */
+@keyframes jbs-blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+.nav-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 18px;
+  background: #ffffff;
+  flex-shrink: 0;
+  animation: jbs-blink 1s step-end infinite;
+}
+
+/* ── Scrollbar ────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; background: #050505; }
+::-webkit-scrollbar-thumb { background: #00f2ff; }
+
+/* ── Ensure sections are always visible regardless of JS ─────── */
 section {
   opacity: 1 !important;
   transform: none !important;
@@ -286,8 +245,8 @@ section {
   to   { width: var(--bar-width); }
 }
 @keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 0 0 hsl(228 69% 55% / 0.4); }
-  50%      { box-shadow: 0 0 0 8px hsl(228 69% 55% / 0); }
+  0%, 100% { box-shadow: 0 0 0 0 hsl(183 100% 50% / 0.4); }
+  50%      { box-shadow: 0 0 0 8px hsl(183 100% 50% / 0); }
 }
 .animate-pulse-glow {
   animation: pulse-glow 2s ease-in-out infinite;

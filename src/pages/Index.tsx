@@ -36,12 +36,12 @@ import {
   Rocket,
   Loader2,
 } from "lucide-react";
-import heroBg from "@/assets/hero-bg.jpg";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { analyzeJobFit } from "@/lib/analysisEngine";
 import { AUTH_LOGIN, AUTH_SIGNUP } from "@/lib/routes";
 import { ICareerOSLogo } from "@/components/ui/ICareerOSLogo";
+import { ConstellationBg } from "@/components/ConstellationBg";
 /* ────────────────────── DATA ────────────────────── */
 
 const stats = [
@@ -238,19 +238,45 @@ export default function Index() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="dark-landing min-h-screen flex flex-col" style={{ background: '#050505' }}>
+      <ConstellationBg />
+
       {/* ═══════════════ NAV ═══════════════ */}
-      <header className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-3 bg-card/95 backdrop-blur-sm border-b border-border">
-        <a
-          href="/"
-          className="flex items-center gap-2 select-none no-underline"
-        >
-          <ICareerOSLogo size={28} />
-          <span className="text-sm font-medium tracking-tight">
-            <span className="text-primary">iCareer</span>
-            <span className="text-foreground">OS</span>
-          </span>
-        </a>
+      <header
+        className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-3"
+        style={{
+          background: 'rgba(5,5,5,0.92)',
+          borderBottom: '1px solid rgba(0,242,255,0.15)',
+          backdropFilter: 'blur(12px)',
+        }}
+      >
+        {/* ── LEFT: cursor + dots + logo ── */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {/* Blinking cursor */}
+          <div className="nav-cursor" />
+          {/* Traffic-light dots */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#ff5f57', boxShadow: '0 0 8px rgba(255,95,87,0.85)' }} />
+            <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#ffbd2e', boxShadow: '0 0 8px rgba(255,189,46,0.85)' }} />
+            <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#28c840', boxShadow: '0 0 8px rgba(40,200,63,0.85)' }} />
+          </div>
+          {/* Logo — inline style overrides global uppercase */}
+          <a
+            href="/"
+            style={{
+              display: 'flex', alignItems: 'center', gap: '8px',
+              textDecoration: 'none', textTransform: 'none', letterSpacing: 'normal',
+            }}
+          >
+            <ICareerOSLogo size={28} />
+            <span style={{
+              fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: '16px',
+              color: '#ffffff', textTransform: 'none', letterSpacing: 'normal',
+            }}>
+              iCareerOS
+            </span>
+          </a>
+        </div>
 
         <nav className="flex items-center gap-1">
           {user ? (
@@ -309,12 +335,7 @@ export default function Index() {
       </header>
 
       {/* ═══════════════ HERO ═══════════════ */}
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16">
-        <div
-          className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: `url(${heroBg})` }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-indigo-900/90 via-indigo-800/80 to-indigo-900/95" />
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16" style={{ background: 'transparent' }}>
 
         <div className="relative z-10 max-w-5xl mx-auto px-6 text-center">
           {/* Personalized welcome */}
@@ -338,7 +359,7 @@ export default function Index() {
           >
             Stop Applying to Jobs.
             <br />
-            <span className="text-gradient-indigo">
+            <span style={{ color: '#00f2ff' }}>
               Your AI Does It For You.
             </span>
           </h1>
@@ -805,7 +826,7 @@ export default function Index() {
       {/* ═══════════════ FINAL CTA ═══════════════ */}
       <section
         className="py-24 px-6"
-        style={{ background: "var(--gradient-hero)" }}
+        style={{ background: 'transparent', borderTop: '1px solid rgba(0,242,255,0.1)' }}
       >
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-4xl md:text-5xl font-display font-bold text-white mb-6">
@@ -874,48 +895,32 @@ export default function Index() {
       </div>
 
       {/* ═══════════════ FOOTER ═══════════════ */}
-      <footer className="bg-primary py-10 px-6 sm:pb-10 pb-20">
+      <footer
+        className="py-10 px-6 sm:pb-10 pb-20"
+        style={{ background: '#050505', borderTop: '1px solid rgba(0,242,255,0.15)' }}
+      >
         <div className="max-w-5xl mx-auto">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 gradient-indigo rounded-md flex items-center justify-center">
                 <Target className="w-3 h-3 text-white" />
               </div>
-              <span className="font-display font-bold text-primary-foreground">
+              <span
+                style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, color: '#ffffff', textTransform: 'none', letterSpacing: 'normal' }}
+              >
                 iCareerOS
               </span>
             </div>
-            <div className="flex flex-wrap gap-4 text-primary-foreground/50 text-sm">
-              <a
-                className="hover:text-primary-foreground transition-colors"
-                href="/job-seeker"
-              >
-                Get Interviews
-              </a>
-              <a
-                className="hover:text-primary-foreground transition-colors"
-                href="/job-search"
-              >
-                Find Jobs
-              </a>
-              <a
-                className="hover:text-primary-foreground transition-colors"
-                href="/applications"
-              >
-                Track
-              </a>
-              <a
-                className="hover:text-primary-foreground transition-colors"
-                href="/dashboard"
-              >
-                Dashboard
-              </a>
+            <div className="flex flex-wrap gap-4 text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
+              <a className="hover:text-white transition-colors" href="/job-seeker">Get Interviews</a>
+              <a className="hover:text-white transition-colors" href="/job-search">Find Jobs</a>
+              <a className="hover:text-white transition-colors" href="/applications">Track</a>
+              <a className="hover:text-white transition-colors" href="/dashboard">Dashboard</a>
             </div>
           </div>
-          <div className="border-t border-white/10 pt-4 text-center">
-            <p className="text-primary-foreground/40 text-sm">
-              iCareerOS — Intelligent Career Operating System. Built by Amir
-              Jabri.
+          <div className="border-t pt-4 text-center" style={{ borderColor: 'rgba(0,242,255,0.1)' }}>
+            <p className="text-sm" style={{ color: 'rgba(255,255,255,0.3)' }}>
+              iCareerOS — Intelligent Career Operating System. Built by Amir Jabri.
             </p>
           </div>
         </div>
