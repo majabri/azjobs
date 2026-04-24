@@ -211,10 +211,11 @@
 .nav-cursor {
   display: inline-block;
   width: 2px;
-  height: 18px;
-  background: #ffffff;
+  height: 16px;
+  background: rgba(255, 255, 255, 0.42);
   flex-shrink: 0;
-  animation: jbs-blink 1s step-end infinite;
+  border-radius: 1px;
+  animation: jbs-blink 1.5s ease-in-out infinite;
 }
 
 /* ── Scrollbar ────────────────────────────────────────────────── */

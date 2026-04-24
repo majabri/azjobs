@@ -250,16 +250,8 @@ export default function Index() {
           backdropFilter: 'blur(12px)',
         }}
       >
-        {/* ── LEFT: cursor + dots + logo ── */}
+        {/* ── LEFT: logo → dots → cursor ── */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          {/* Blinking cursor */}
-          <div className="nav-cursor" />
-          {/* Traffic-light dots */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#ff5f57', boxShadow: '0 0 8px rgba(255,95,87,0.85)' }} />
-            <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#ffbd2e', boxShadow: '0 0 8px rgba(255,189,46,0.85)' }} />
-            <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#28c840', boxShadow: '0 0 8px rgba(40,200,63,0.85)' }} />
-          </div>
           {/* Logo — inline style overrides global uppercase */}
           <a
             href="/"
@@ -276,6 +268,14 @@ export default function Index() {
               iCareerOS
             </span>
           </a>
+          {/* Traffic-light dots */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#ff5f57', boxShadow: '0 0 8px rgba(255,95,87,0.85)' }} />
+            <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#ffbd2e', boxShadow: '0 0 8px rgba(255,189,46,0.85)' }} />
+            <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#28c840', boxShadow: '0 0 8px rgba(40,200,63,0.85)' }} />
+          </div>
+          {/* Blinking cursor — soft */}
+          <div className="nav-cursor" />
         </div>
 
         <nav className="flex items-center gap-1">
