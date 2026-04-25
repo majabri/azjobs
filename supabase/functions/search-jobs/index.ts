@@ -245,8 +245,6 @@ async function queryJobPostings(
   if (params.isRemote === true) query = query.eq("is_remote", true);
   if (params.jobType) query = query.eq("job_type", params.jobType);
   if (params.salaryMin) query = query.gte("salary_max", params.salaryMin);
-  if (params.careerLevel)
-    query = query.ilike("title", `%${params.careerLevel}%`);
 
   const cutoff = new Date(
     Date.now() - (params.daysOld ?? 30) * 24 * 60 * 60 * 1000,
