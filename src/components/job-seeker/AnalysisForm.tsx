@@ -231,7 +231,7 @@ export default function AnalysisForm({
     [],
   );
   const [showVersionPicker, setShowVersionPicker] = useState(false);
-  const [autoLoaded, setAutoLoaded] = useState(false);
+  const autoLoadedRef = useRef(false); // ref guard — avoids adding to effect deps
   const [urlAlert, setUrlAlert] = useState<InlineAlert | null>(null);
   const [rateLimitSeconds, setRateLimitSeconds] = useState(0);
 
@@ -401,11 +401,12 @@ export default function AnalysisForm({
       "prefillJob",
     );
     if (prefillFromUrl) setJobDesc(prefillFromUrl);
-    if (!autoLoaded) {
+    if (!autoLoadedRef.current) {
+      autoLoadedRef.current = true;
       autoLoadResume();
-      setAutoLoaded(true);
     }
-  }, [isDemo, prefillJob, prefillJobLink]);
+    // autoLoadResume uses only stable supabase + state setters; autoLoadedRef is a stable ref
+  }, [isDemo, prefillJob, prefillJobLink, handleScrapeResult]);
 
   const handleFetchJobLink = async () => {
     if (!jobLink.trim() || isFetchingJob || rateLimitSeconds > 0) return;
@@ -491,14 +492,12 @@ export default function AnalysisForm({
           if (session) {
             const versionName =
               file.name.replace(/\.[^.]+$/, "") || "Uploaded Resume";
-            await supabase
-              .from("resume_versions")
-              .insert({
-                user_id: session.user.id,
-                version_name: versionName,
-                job_type: null,
-                resume_text: result.text,
-              });
+            await supabase.from("resume_versions").insert({
+              user_id: session.user.id,
+              version_name: versionName,
+              job_type: null,
+              resume_text: result.text,
+            });
             const extracted = extractProfileFromResume(result.text);
             if (extracted.skills.length) {
               const { data } = await supabase
@@ -514,27 +513,31 @@ export default function AnalysisForm({
                     .includes(s.toLowerCase()),
               );
               if (newSkills.length) {
-                await supabase
-                  .from("job_seeker_profiles")
-                  .upsert(
-                    {
-                      user_id: session.user.id,
-                      skills: [...current, ...newSkills],
-                      updated_at: new Date().toISOString(),
-                    },
-                    { onConflict: "user_id" },
-                  );
+                await supabase.from("job_seeker_profiles").upsert(
+                  {
+                    user_id: session.user.id,
+                    skills: [...current, ...newSkills],
+                    updated_at: new Date().toISOString(),
+                  },
+                  { onConflict: "user_id" },
+                );
                 toast.success(
                   `${newSkills.length} new skill(s) synced to profile`,
                 );
               }
             }
           }
-        } catch {}
+        } catch (skillSyncErr) {
+          console.warn(
+            "[AnalysisForm] Skill sync failed silently:",
+            skillSyncErr,
+          );
+        }
       } else {
         toast.error(result.error || "Could not extract text");
       }
-    } catch {
+    } catch (parseErr) {
+      console.error("[AnalysisForm] Document parse error:", parseErr);
       toast.error("Failed to parse document");
     } finally {
       setIsUploadingResume(false);

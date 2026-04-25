@@ -23,9 +23,9 @@ import { logger } from "@/lib/logger";
 export function normalizeJobUrl(rawUrl?: string | null): string {
   if (!rawUrl) return "";
   const urlPattern = /^(https?):\/\//i;
-  let url = rawUrl.replace(/^\s+|\s+$/g, "").replace(/['"\[\]()\{\}]/g, "");
+  let url = rawUrl.replace(/^\s+|\s+$/g, "").replace(/['"[\](){}]/g, "");
   if (!urlPattern.test(url)) url = "https://" + url;
-  url = url.replace(/[\s\.,;!?]+$/g, "");
+  url = url.replace(/[\s.,;!?]+$/g, "");
   const markdownPattern = /.*?\((.*?)\)/;
   const match = url.match(markdownPattern);
   if (match) url = match[1];
@@ -418,7 +418,7 @@ export async function searchDatabaseJobsFallback(
         ...new Set(
           filters.query
             .split(/[\s,&]+/)
-            .map((s) => s.replace(/[%_()\[\]]/g, "").trim())
+            .map((s) => s.replace(/[%_()[\]]/g, "").trim())
             .filter(
               (s) => s.length >= 4 && !POSTGREST_RESERVED.has(s.toLowerCase()),
             ),
@@ -480,7 +480,7 @@ export async function searchDatabaseJobsFallback(
     const skillPhrases = filters.skills
       .map((s) =>
         s
-          .replace(/[%_()\[\]]/g, "")
+          .replace(/[%_()[\]]/g, "")
           .replace(/[,&]/g, " ")
           .replace(/\s+/g, " ")
           .trim(),
@@ -500,7 +500,7 @@ export async function searchDatabaseJobsFallback(
         ...new Set(
           filters.query
             .split(/[\s,&]+/)
-            .map((s) => s.replace(/[%_()\[\]]/g, "").trim())
+            .map((s) => s.replace(/[%_()[\]]/g, "").trim())
             .filter(
               (s) => s.length >= 4 && !POSTGREST_RESERVED.has(s.toLowerCase()),
             ),

@@ -16,7 +16,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { HiringManagerRecord, UserRef } from "../types";
-import { MiniStat, RoleSelect, ROLE_COLORS } from "../shared";
+import { MiniStat, RoleSelect } from "../shared";
+import { ROLE_COLORS } from "../constants";
 
 export function HiringManagerPanel({
   search,
