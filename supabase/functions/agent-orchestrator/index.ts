@@ -155,7 +155,7 @@ async function runMatching(ctx: AgentContext): Promise<AgentResult> {
     return { name: "matching", success: true, metrics: { jobs_matched: 0 } };
 
   const jobs = await pgGet(
-    "scraped_jobs",
+    "job_postings",
     "select=id,title,company,description&order=created_at.desc&limit=30",
   );
   if (!jobs?.length)
