@@ -1,12 +1,11 @@
-import axios from 'axios';
-import type { FetchOptions, FetchResult } from '../../shared/types/scraper';
+import axios from "axios";
+import type { FetchOptions, FetchResult } from "../../shared/types/scraper";
 
 // Firecrawl SDK import — requires @firecrawl/sdk to be installed
 // Using dynamic import to avoid hard failure if SDK isn't installed yet
 let FirecrawlApp: any;
 try {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  FirecrawlApp = require('@mendable/firecrawl-js').default;
+  FirecrawlApp = require("@mendable/firecrawl-js").default;
 } catch {
   FirecrawlApp = null;
 }
@@ -20,7 +19,9 @@ export class ContentFetcher {
     if (FirecrawlApp && firecrawlApiKey) {
       this.firecrawl = new FirecrawlApp({ apiKey: firecrawlApiKey });
     } else {
-      console.warn('[Fetcher] Firecrawl SDK not available — falling back to axios only');
+      console.warn(
+        "[Fetcher] Firecrawl SDK not available — falling back to axios only",
+      );
       this.firecrawl = null;
     }
   }
@@ -29,7 +30,7 @@ export class ContentFetcher {
     const cached = this.getFromCache(options.url);
     if (cached && this.isFresh(cached)) {
       console.log(`[Fetcher] Cache hit: ${options.url}`);
-      return { ...cached, fetchMethod: 'cached' };
+      return { ...cached, fetchMethod: "cached" };
     }
 
     // Strategy 1: Firecrawl
@@ -37,15 +38,15 @@ export class ContentFetcher {
       try {
         console.log(`[Fetcher] Firecrawl: ${options.url}`);
         const response = await this.firecrawl.scrapeUrl(options.url, {
-          formats: ['html'],
+          formats: ["html"],
           timeout: options.timeout || 30000,
         });
 
         const result: FetchResult = {
           url: options.url,
-          html: response.html || '',
+          html: response.html || "",
           statusCode: 200,
-          fetchMethod: 'firecrawl',
+          fetchMethod: "firecrawl",
           timestamp: new Date(),
         };
 
@@ -62,9 +63,9 @@ export class ContentFetcher {
       const response = await axios.get(options.url, {
         timeout: options.timeout || 15000,
         headers: {
-          'User-Agent':
+          "User-Agent":
             options.userAgent ||
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
           ...options.headers,
         },
         maxRedirects: options.followRedirects !== false ? 5 : 0,
@@ -74,7 +75,7 @@ export class ContentFetcher {
         url: options.url,
         html: response.data,
         statusCode: response.status,
-        fetchMethod: 'axios',
+        fetchMethod: "axios",
         timestamp: new Date(),
       };
 
@@ -87,7 +88,7 @@ export class ContentFetcher {
     // Strategy 3: Return stale cache
     if (cached) {
       console.warn(`[Fetcher] Returning stale cache: ${options.url}`);
-      return { ...cached, fetchMethod: 'cached' };
+      return { ...cached, fetchMethod: "cached" };
     }
 
     throw new Error(`[Fetcher] All strategies failed for ${options.url}`);

@@ -1,12 +1,12 @@
 import React from "react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-
-export const ROLE_COLORS: Record<string, string> = {
-  admin: "bg-destructive/10 text-destructive border-destructive/20",
-  recruiter: "bg-accent/10 text-accent border-accent/20",
-  job_seeker: "bg-muted text-muted-foreground border-border",
-};
 
 export function RoleSelect({
   userId,
@@ -53,7 +53,9 @@ export function MiniStat({
       <div className="flex items-center gap-1.5 text-muted-foreground text-[10px] mb-1">
         {icon} {label}
       </div>
-      <div className={`font-display font-bold text-xl ${color ?? "text-foreground"}`}>
+      <div
+        className={`font-display font-bold text-xl ${color ?? "text-foreground"}`}
+      >
         {value.toLocaleString()}
       </div>
     </div>

@@ -57,6 +57,7 @@ export function useProfile() {
     return () => {
       mounted = false;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: effect only reads user.id
   }, [user?.id]);
 
   /**
@@ -82,21 +83,19 @@ export function useProfile() {
   const updateDisplayName = async (newName: string): Promise<string | null> => {
     if (!user) return "Not authenticated";
     const trimmed = newName.trim();
-    const { error } = await supabase
-      .from("profiles")
-      .upsert(
-        {
-          user_id: user.id,
-          full_name: trimmed,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "user_id" }
-      );
+    const { error } = await supabase.from("profiles").upsert(
+      {
+        user_id: user.id,
+        full_name: trimmed,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id" },
+    );
     if (error) return error.message;
     setProfile((prev) =>
       prev
         ? { ...prev, full_name: trimmed }
-        : { full_name: trimmed, username: null, avatar_url: null }
+        : { full_name: trimmed, username: null, avatar_url: null },
     );
     return null;
   };

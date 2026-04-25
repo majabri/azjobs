@@ -41,7 +41,7 @@ interface UseAgentInvocationReturn<T> {
  */
 export function useAgentInvocation<T = unknown>(
   fnName: string,
-  options: UseAgentInvocationOptions = {}
+  options: UseAgentInvocationOptions = {},
 ): UseAgentInvocationReturn<T> {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,7 +53,9 @@ export function useAgentInvocation<T = unknown>(
       setLoading(true);
       setError(null);
       try {
-        const { data, error: fnErr } = await supabase.functions.invoke(fnName, { body });
+        const { data, error: fnErr } = await supabase.functions.invoke(fnName, {
+          body,
+        });
 
         if (fnErr) throw new Error(fnErr.message || `${fnName} failed`);
         if ((data as Record<string, unknown>)?.error) {
@@ -74,8 +76,7 @@ export function useAgentInvocation<T = unknown>(
       }
     },
     // fnName is stable across renders; options.errorMessage is a primitive.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [fnName, options.errorMessage]
+    [fnName, options.errorMessage],
   );
 
   return { invoke, loading, error, reset };

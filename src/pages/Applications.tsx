@@ -114,10 +114,13 @@ export default function ApplicationsPage() {
   const [newTitle, setNewTitle] = useState("");
   const [newCompany, setNewCompany] = useState("");
 
-  const handleUpdateStatus = async (id: string, status: string) => {
-    await updateStatusMutation.mutateAsync({ id, status });
-    toast.success(`Moved to ${status}`);
-  };
+  const handleUpdateStatus = useCallback(
+    async (id: string, status: string) => {
+      await updateStatusMutation.mutateAsync({ id, status });
+      toast.success(`Moved to ${status}`);
+    },
+    [updateStatusMutation],
+  );
 
   const handleDelete = async (id: string) => {
     await deleteMutation.mutateAsync(id);
@@ -183,12 +186,15 @@ export default function ApplicationsPage() {
     toast.success("Application added!");
   };
 
-  const onDragEnd = useCallback((result: DropResult) => {
-    if (!result.destination) return;
-    const { draggableId, destination } = result;
-    const newStatus = destination.droppableId;
-    handleUpdateStatus(draggableId, newStatus);
-  }, []);
+  const onDragEnd = useCallback(
+    (result: DropResult) => {
+      if (!result.destination) return;
+      const { draggableId, destination } = result;
+      const newStatus = destination.droppableId;
+      handleUpdateStatus(draggableId, newStatus);
+    },
+    [handleUpdateStatus],
+  );
 
   const filtered = applications.filter(
     (app) =>

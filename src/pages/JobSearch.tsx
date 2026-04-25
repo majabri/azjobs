@@ -125,7 +125,7 @@ export default function JobSearchPage() {
 
   useEffect(() => {
     if (!profileLoaded) return;
-    if (skills.length > 0 || targetTitles.length > 0) handleSearch();
+    handleSearch();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [profileLoaded]);
 

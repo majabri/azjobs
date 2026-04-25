@@ -291,7 +291,7 @@ export function JobCard({
                 {job.type}
               </Badge>
             )}
-            {job.salary && (
+            {job.salary ? (
               <span className="flex items-center gap-1">
                 <Badge variant="outline" className="text-xs">
                   <DollarSign className="w-3 h-3 mr-1" />
@@ -299,6 +299,13 @@ export function JobCard({
                 </Badge>
                 <SalaryBadge salary={job.salary} title={job.title} />
               </span>
+            ) : (
+              <Badge
+                variant="outline"
+                className="text-xs text-muted-foreground"
+              >
+                Salary not listed
+              </Badge>
             )}
             {job.source && (
               <Badge variant="outline" className="text-xs capitalize">

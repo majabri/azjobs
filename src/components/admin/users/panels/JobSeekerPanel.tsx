@@ -19,7 +19,8 @@ import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { callAdminManageUser } from "@/services/admin/userService";
 import { JobSeekerRecord, UserRef } from "../types";
-import { MiniStat, RoleSelect, ROLE_COLORS } from "../shared";
+import { MiniStat, RoleSelect } from "../shared";
+import { ROLE_COLORS } from "../constants";
 import { UserActivityDialog } from "../dialogs/UserActivityDialog";
 
 export function JobSeekerPanel({
