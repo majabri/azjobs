@@ -3,6 +3,7 @@ name: Pre-Deploy Validation Pipeline
 # Prevents incidents like ICR-2026-04-25-001 (NULL constraint violation)
 
 on:
+  workflow_dispatch:
   pull_request:
     branches:
       - main
